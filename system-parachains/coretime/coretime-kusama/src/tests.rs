@@ -15,7 +15,7 @@
 // limitations under the License.
 
 use crate::{
-	coretime::BrokerPalletId,
+	coretime::{BrokerPalletId, CoretimeBurnAccount},
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
 	*,
 };
@@ -64,7 +64,7 @@ fn advance_to(b: BlockNumber) {
 }
 
 #[test]
-fn bulk_revenue_accumulates_for_the_forward() {
+fn bulk_revenue_is_burnt() {
 	ExtBuilder::<Runtime>::default()
 		.with_collators(vec![AccountId::from(ALICE)])
 		.with_session_keys(vec![(
@@ -93,13 +93,13 @@ fn bulk_revenue_accumulates_for_the_forward() {
 
 			// Check and set initial balances.
 			let broker_account = BrokerPalletId::get().into_account_truncating();
-			let accumulation_account = AccumulateForward::accumulation_account();
+			let coretime_burn_account = CoretimeBurnAccount::get();
 			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();
 			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * UNITS));
 			let alice_balance_before = Balances::balance(&AccountId::from(ALICE));
 			let treasury_balance_before = Balances::balance(&treasury_account);
 			let broker_balance_before = Balances::balance(&broker_account);
-			let accumulated_before = Balances::balance(&accumulation_account);
+			let burn_balance_before = Balances::balance(&coretime_burn_account);
 
 			// Purchase coretime.
 			assert_ok!(Broker::purchase(
@@ -113,11 +113,11 @@ fn bulk_revenue_accumulates_for_the_forward() {
 			assert_eq!(Balances::balance(&treasury_account), treasury_balance_before);
 			// Broker pallet account does not increase.
 			assert_eq!(Balances::balance(&broker_account), broker_balance_before);
-			// Revenue joins the dust in the accumulation account.
-			assert!(Balances::balance(&accumulation_account) > accumulated_before);
+			// Coretime burn pot gets the funds.
+			assert!(Balances::balance(&coretime_burn_account) > burn_balance_before);
 
-			// It is burnt on Asset Hub by the forward, asserted in the emulated test
-			// `coretime_revenue_is_burnt_on_asset_hub`.
+			// They're burnt on Asset Hub when a day has passed on chain. This is asserted in the
+			// emulated test `coretime_revenue_is_burnt_on_asset_hub`.
 		});
 }
 

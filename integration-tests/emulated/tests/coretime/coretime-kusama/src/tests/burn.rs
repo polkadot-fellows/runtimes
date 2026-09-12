@@ -15,12 +15,15 @@
 // limitations under the License.
 
 use crate::*;
-use frame_support::traits::{
-	fungible::{Inspect as FungibleInspect, Mutate as FungibleMutate},
-	Hooks,
+use frame_support::{
+	traits::fungible::{Inspect as FungibleInspect, Mutate as FungibleMutate},
+	PalletId,
 };
+use kusama_runtime_constants::{system_parachain::coretime::TIMESLICE_PERIOD, time::DAYS};
+use pallet_broker::CoretimeInterface;
+use sp_runtime::traits::AccountIdConversion;
 
-/// Coretime revenue and dust accumulate together and are burnt on Asset Hub.
+/// Coretime sweeps its revenue holding account and burns it on Asset Hub.
 #[test]
 fn coretime_revenue_is_burnt_on_asset_hub() {
 	type CoretimeRuntime = <CoretimeKusama as Chain>::Runtime;
@@ -28,15 +31,13 @@ fn coretime_revenue_is_burnt_on_asset_hub() {
 	type AssetHubRuntime = <AssetHubKusama as Chain>::Runtime;
 	type AssetHubEvent = <AssetHubKusama as Chain>::RuntimeEvent;
 
-	let accumulation_account: AccountId = CoretimeKusama::execute_with(|| {
-		pallet_accumulate_and_forward::Pallet::<CoretimeRuntime>::accumulation_account()
-	});
-	let amount = 2 * CoretimeKusama::execute_with(|| {
-		<CoretimeRuntime as pallet_accumulate_and_forward::Config>::MinTransferAmount::get()
-	});
-	CoretimeKusama::fund_accounts(vec![(accumulation_account.clone(), amount)]);
+	// GIVEN a day of revenue in the holding account.
+	let amount = 1_000 * CORETIME_KUSAMA_ED;
+	let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
+	CoretimeKusama::fund_accounts(vec![(burn_account.clone(), amount)]);
 
-	// The emulated chain minted that KSM itself, so top up the checking account.
+	// The emulated Coretime chain minted that KSM itself, so Asset Hub's checking account never saw
+	// it leave. Fund it as a real teleport out would have.
 	let check_account: AccountId =
 		AssetHubKusama::execute_with(pallet_xcm::Pallet::<AssetHubRuntime>::check_account);
 	AssetHubKusama::execute_with(|| {
@@ -52,33 +53,30 @@ fn coretime_revenue_is_burnt_on_asset_hub() {
 		)
 	});
 
+	// WHEN the daily sweep runs.
 	CoretimeKusama::execute_with(|| {
 		let issuance_before = pallet_balances::Pallet::<CoretimeRuntime>::total_issuance();
-		let period: u32 =
-			<CoretimeRuntime as pallet_accumulate_and_forward::Config>::TransferPeriod::get();
 
-		frame_system::Pallet::<CoretimeRuntime>::set_block_number(period);
-		pallet_accumulate_and_forward::Pallet::<CoretimeRuntime>::on_idle(period, Weight::MAX);
+		<<CoretimeRuntime as pallet_broker::Config>::Coretime as CoretimeInterface>::on_new_timeslice(
+			DAYS / TIMESLICE_PERIOD,
+		);
 
-		// Emptied down to the ED; the KSM has left this chain.
+		// THEN the holding account is emptied and the KSM has left this chain.
 		assert_expected_events!(
 			CoretimeKusama,
-			vec![CoretimeEvent::AccumulateForward(
-				pallet_accumulate_and_forward::Event::ForwardSucceeded { .. }
-			) => {},]
+			vec![CoretimeEvent::Balances(pallet_balances::Event::Withdraw { who, amount: withdrawn }) => {
+				who: *who == burn_account,
+				withdrawn: *withdrawn == amount,
+			},]
 		);
-		let forwarded = amount - CORETIME_KUSAMA_ED;
-		assert_eq!(
-			pallet_balances::Pallet::<CoretimeRuntime>::balance(&accumulation_account),
-			CORETIME_KUSAMA_ED
-		);
+		assert_eq!(pallet_balances::Pallet::<CoretimeRuntime>::balance(&burn_account), 0);
 		assert_eq!(
 			pallet_balances::Pallet::<CoretimeRuntime>::total_issuance(),
-			issuance_before - forwarded
+			issuance_before - amount
 		);
 	});
 
-	// Asset Hub burns it: issuance and checking account drop alike.
+	// AND Asset Hub burns it: its issuance and its checking account drop by the same amount.
 	AssetHubKusama::execute_with(|| {
 		assert_expected_events!(
 			AssetHubKusama,
@@ -86,14 +84,13 @@ fn coretime_revenue_is_burnt_on_asset_hub() {
 				pallet_message_queue::Event::Processed { success: true, .. }
 			) => {},]
 		);
-		let forwarded = amount - CORETIME_KUSAMA_ED;
 		assert_eq!(
 			pallet_balances::Pallet::<AssetHubRuntime>::total_issuance(),
-			asset_hub_issuance_before - forwarded
+			asset_hub_issuance_before - amount
 		);
 		assert_eq!(
 			pallet_balances::Pallet::<AssetHubRuntime>::balance(&check_account),
-			check_balance_before - forwarded
+			check_balance_before - amount
 		);
 	});
 }

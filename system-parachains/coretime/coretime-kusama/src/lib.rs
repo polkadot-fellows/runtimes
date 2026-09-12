@@ -132,7 +132,6 @@ pub mod migrations {
 		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 		system_parachains_common::accumulate_and_forward::EnsureAccumulationAccountFunded<Runtime>,
-		coretime::RetireCoretimeBurnAccount,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
