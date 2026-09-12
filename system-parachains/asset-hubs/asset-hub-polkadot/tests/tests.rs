@@ -1429,3 +1429,123 @@ fn session_keys_are_compatible_between_ah_and_rc() {
 		"Session key type IDs must match between AssetHub and Polkadot"
 	);
 }
+
+/// Dust reaches the DAP instead of being burned, and is deactivated in the buffer.
+#[test]
+fn dust_goes_to_dap_and_is_deactivated() {
+	use frame_support::traits::{
+		fungible::{Inspect, Mutate},
+		tokens::Preservation,
+		Hooks,
+	};
+	use sp_runtime::BuildStorage;
+
+	const BOB: [u8; 32] = [2u8; 32];
+
+	let dap_buffer = pallet_dap::Pallet::<Runtime>::buffer_account();
+	let dap_staging = pallet_dap::Pallet::<Runtime>::staging_account();
+	let ed = ExistentialDeposit::get();
+
+	let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+	pallet_balances::GenesisConfig::<Runtime> {
+		balances: vec![
+			(AccountId::from(ALICE), ed),
+			(AccountId::from(BOB), ed),
+			(dap_buffer.clone(), ed),
+			(dap_staging.clone(), ed),
+		],
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	sp_io::TestExternalities::from(t).execute_with(|| {
+		let issuance_before = Balances::total_issuance();
+		let inactive_before = Balances::inactive_issuance();
+		let staging_before = <Balances as Inspect<_>>::balance(&dap_staging);
+		let buffer_before = <Balances as Inspect<_>>::balance(&dap_buffer);
+
+		// Reap Alice, leaving dust behind.
+		let dust = ed / 2;
+		assert_ok!(<Balances as Mutate<_>>::transfer(
+			&AccountId::from(ALICE),
+			&AccountId::from(BOB),
+			ed - dust,
+			Preservation::Expendable,
+		));
+
+		assert_eq!(<Balances as Inspect<_>>::balance(&AccountId::from(ALICE)), 0);
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), staging_before + dust);
+		assert_eq!(Balances::total_issuance(), issuance_before);
+
+		// The drain deactivates it: still issued, no longer active.
+		pallet_dap::Pallet::<Runtime>::on_idle(1, Weight::MAX);
+
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), staging_before);
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_buffer), buffer_before + dust);
+		assert_eq!(Balances::total_issuance(), issuance_before);
+		assert_eq!(Balances::inactive_issuance(), inactive_before + dust);
+	});
+}
+
+/// Two things stop the dust-removal chain in
+/// https://github.com/paritytech/polkadot-sdk/issues/12130 from looping: the staging account keeps
+/// its ED through a drain, and a sub-ED deposit is refused rather than made reapable.
+#[test]
+fn dap_staging_account_keeps_ed_so_dust_removal_cannot_recurse() {
+	use frame_support::traits::{
+		fungible::{Inspect, Mutate},
+		tokens::{DepositConsequence, Preservation, Provenance},
+		Hooks,
+	};
+	use sp_runtime::BuildStorage;
+
+	const BOB: [u8; 32] = [2u8; 32];
+
+	let dap_buffer = pallet_dap::Pallet::<Runtime>::buffer_account();
+	let dap_staging = pallet_dap::Pallet::<Runtime>::staging_account();
+	let ed = ExistentialDeposit::get();
+
+	let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+	pallet_balances::GenesisConfig::<Runtime> {
+		balances: vec![
+			(AccountId::from(ALICE), ed),
+			(AccountId::from(BOB), ed),
+			(dap_buffer.clone(), ed),
+			(dap_staging.clone(), ed),
+		],
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	sp_io::TestExternalities::from(t).execute_with(|| {
+		// Draining an empty staging account leaves the ED.
+		pallet_dap::Pallet::<Runtime>::on_idle(1, Weight::MAX);
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), ed);
+
+		// Dust arrives and drains in one pass, leaving the account at the ED, not reaped.
+		let dust = ed / 2;
+		assert_ok!(<Balances as Mutate<_>>::transfer(
+			&AccountId::from(ALICE),
+			&AccountId::from(BOB),
+			ed - dust,
+			Preservation::Expendable,
+		));
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), ed + dust);
+
+		pallet_dap::Pallet::<Runtime>::on_idle(2, Weight::MAX);
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), ed);
+		assert!(frame_system::Pallet::<Runtime>::account_exists(&dap_staging));
+
+		// And routed dust cannot bounce back out: a sub-ED deposit is refused outright.
+		assert_eq!(
+			<Balances as Inspect<_>>::can_deposit(
+				&AccountId::from(ALICE),
+				dust,
+				Provenance::Extant
+			),
+			DepositConsequence::BelowMinimum
+		);
+	});
+}
