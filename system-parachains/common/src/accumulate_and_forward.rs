@@ -29,11 +29,8 @@ use xcm_executor::traits::TransactAsset;
 
 const LOG_TARGET: &str = "xcm::accumulate-forward";
 
-/// Fails `try-runtime` if the accumulation account is not funded with the existential deposit.
-///
-/// `can_deposit` rejects deposits leaving an account below the ED, so an unfunded account makes
-/// the sinks wired to it burn dust instead of accumulating it. Fund it out of band before the
-/// upgrade, as was done for `acf/dott` in #1282. Changes no state.
+/// Fails `try-runtime` if the accumulation account lacks the ED, without which dust is burned
+/// rather than accumulated. Fund it out of band, as for `acf/dott` in #1282.
 pub struct EnsureAccumulationAccountFunded<T>(PhantomData<T>);
 
 impl<T: pallet_accumulate_and_forward::Config> EnsureAccumulationAccountFunded<T> {
@@ -71,11 +68,9 @@ impl<T: pallet_accumulate_and_forward::Config> OnRuntimeUpgrade
 	}
 }
 
-/// [`pallet_accumulate_and_forward::Forwarder`] that teleports to Asset Hub and burns there,
-/// because Kusama tracks the network `TotalIssuance` on Asset Hub. The Polkadot counterpart is
-/// `xcm_builder::TeleportForwarderForAccountId32`, which deposits to DAP staging instead.
-///
-/// A failed send rolls the withdrawal back. Once queued, a failure on arrival traps the assets.
+/// [`pallet_accumulate_and_forward::Forwarder`] teleporting to Asset Hub to burn there, since
+/// Kusama tracks `TotalIssuance` on Asset Hub. A failed send rolls back; once queued, a failure
+/// on arrival traps the assets.
 pub struct TeleportAndBurnForwarder<XcmConfig, Dest, NativeAsset>(
 	PhantomData<(XcmConfig, Dest, NativeAsset)>,
 );

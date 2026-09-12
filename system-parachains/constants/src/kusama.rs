@@ -17,8 +17,6 @@
 pub mod account {
 	use frame_support::PalletId;
 
-	/// Accumulate-and-forward pallet ID. Derives the account gathering the imbalances that would
-	/// otherwise be burned locally, before they are teleported to Asset Hub and burned there.
 	pub const ACCUMULATE_FORWARD_PALLET_ID: PalletId = PalletId(*b"acf/ksmt");
 }
 

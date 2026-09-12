@@ -132,6 +132,7 @@ pub mod migrations {
 		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 		system_parachains_common::accumulate_and_forward::EnsureAccumulationAccountFunded<Runtime>,
+		coretime::RetireCoretimeBurnAccount,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
@@ -307,8 +308,6 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	pub const AccumulateForwardPalletId: PalletId = ACCUMULATE_FORWARD_PALLET_ID;
-	/// Forward at most hourly, once at least 0.1 KSM has gathered. Funds waiting here still count
-	/// towards this chain's issuance, so the checking account stays correct meanwhile.
 	pub const ForwardPeriod: BlockNumber = HOURS;
 	pub const MinForwardAmount: Balance = UNITS / 10;
 }

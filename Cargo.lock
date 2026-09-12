@@ -4040,6 +4040,7 @@ dependencies = [
  "integration-tests-helpers",
  "kusama-runtime-constants",
  "kusama-system-emulated-network",
+ "pallet-accumulate-and-forward",
  "pallet-balances",
  "pallet-broker",
  "pallet-identity",
