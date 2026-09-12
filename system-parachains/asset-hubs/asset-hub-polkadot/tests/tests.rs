@@ -61,6 +61,7 @@ use xcm_executor::traits::ConvertLocation;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
 const ALICE: [u8; 32] = [1u8; 32];
+const BOB: [u8; 32] = [2u8; 32];
 const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
 
 frame_support::parameter_types! {
@@ -1440,8 +1441,6 @@ fn dust_goes_to_dap_and_is_deactivated() {
 	};
 	use sp_runtime::BuildStorage;
 
-	const BOB: [u8; 32] = [2u8; 32];
-
 	let dap_buffer = pallet_dap::Pallet::<Runtime>::buffer_account();
 	let dap_staging = pallet_dap::Pallet::<Runtime>::staging_account();
 	let ed = ExistentialDeposit::get();
@@ -1488,19 +1487,16 @@ fn dust_goes_to_dap_and_is_deactivated() {
 	});
 }
 
-/// Two things stop the dust-removal chain in
-/// https://github.com/paritytech/polkadot-sdk/issues/12130 from looping: the staging account keeps
-/// its ED through a drain, and a sub-ED deposit is refused rather than made reapable.
+/// `Preserve` keeps staging above its ED, so it is never reapable and the chain in
+/// https://github.com/paritytech/polkadot-sdk/issues/12130 never starts.
 #[test]
-fn dap_staging_account_keeps_ed_so_dust_removal_cannot_recurse() {
+fn dap_staging_account_keeps_ed_through_drain() {
 	use frame_support::traits::{
 		fungible::{Inspect, Mutate},
 		tokens::{DepositConsequence, Preservation, Provenance},
 		Hooks,
 	};
 	use sp_runtime::BuildStorage;
-
-	const BOB: [u8; 32] = [2u8; 32];
 
 	let dap_buffer = pallet_dap::Pallet::<Runtime>::buffer_account();
 	let dap_staging = pallet_dap::Pallet::<Runtime>::staging_account();
@@ -1524,7 +1520,7 @@ fn dap_staging_account_keeps_ed_so_dust_removal_cannot_recurse() {
 		pallet_dap::Pallet::<Runtime>::on_idle(1, Weight::MAX);
 		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), ed);
 
-		// Dust arrives and drains in one pass, leaving the account at the ED, not reaped.
+		// Dust arrives and drains in one pass, leaving the ED, not reaped.
 		let dust = ed / 2;
 		assert_ok!(<Balances as Mutate<_>>::transfer(
 			&AccountId::from(ALICE),
@@ -1538,7 +1534,7 @@ fn dap_staging_account_keeps_ed_so_dust_removal_cannot_recurse() {
 		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), ed);
 		assert!(frame_system::Pallet::<Runtime>::account_exists(&dap_staging));
 
-		// And routed dust cannot bounce back out: a sub-ED deposit is refused outright.
+		// Routed dust cannot bounce back out: a sub-ED deposit is refused.
 		assert_eq!(
 			<Balances as Inspect<_>>::can_deposit(
 				&AccountId::from(ALICE),
@@ -1546,6 +1542,37 @@ fn dap_staging_account_keeps_ed_so_dust_removal_cannot_recurse() {
 				Provenance::Extant
 			),
 			DepositConsequence::BelowMinimum
+		);
+	});
+}
+
+/// And were it to start, it stops after one call: the deposit back into the emptied staging
+/// account fails `BelowMinimum`, so no fresh dust appears. Recursion would blow the stack.
+#[test]
+#[should_panic(expected = "Failed to deposit slash to DAP staging account")]
+fn dust_removal_terminates_when_staging_is_dusted() {
+	use frame_support::traits::{fungible::Mutate, tokens::Preservation};
+	use sp_runtime::BuildStorage;
+
+	let dap_staging = pallet_dap::Pallet::<Runtime>::staging_account();
+	let ed = ExistentialDeposit::get();
+
+	let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+	pallet_balances::GenesisConfig::<Runtime> {
+		balances: vec![(AccountId::from(BOB), ed), (dap_staging.clone(), ed)],
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	sp_io::TestExternalities::from(t).execute_with(|| {
+		// Reap staging itself, so its dust routes back into it.
+		let dust = ed / 2;
+		let _ = <Balances as Mutate<_>>::transfer(
+			&dap_staging,
+			&AccountId::from(BOB),
+			ed - dust,
+			Preservation::Expendable,
 		);
 	});
 }

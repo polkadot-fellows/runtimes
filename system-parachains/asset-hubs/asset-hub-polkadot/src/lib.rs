@@ -346,7 +346,6 @@ impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
-	// Polkadot deactivates rather than destroys: dust joins the other sinks at the DAP.
 	type DustRemoval = Dap;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
