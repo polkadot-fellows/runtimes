@@ -171,3 +171,52 @@ fn governance_authorize_upgrade_works() {
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(AssetHubLocation::get())));
 }
+
+/// Dust accumulates for the forward to Asset Hub instead of being burned here, where the burn
+/// would not show in the network total that Asset Hub tracks.
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	use crate::{AccumulateForward, Balance, Balances};
+	use frame_support::traits::{
+		fungible::{Inspect, Mutate},
+		tokens::Preservation,
+		OnRuntimeUpgrade,
+	};
+	use parachains_runtimes_test_utils::ExtBuilder;
+	use system_parachains_common::accumulate_and_forward::EnsureAccumulationAccountFunded;
+
+	const BOB: [u8; 32] = [2u8; 32];
+
+	let existential_deposit: Balance =
+		<Runtime as pallet_balances::Config>::ExistentialDeposit::get();
+	let accumulation_account = AccumulateForward::accumulation_account();
+
+	ExtBuilder::<Runtime>::default()
+		// Funded out of band before the upgrade; without the ED, dust is rejected and burned.
+		.with_balances(vec![(accumulation_account.clone(), existential_deposit)])
+		.build()
+		.execute_with(|| {
+			EnsureAccumulationAccountFunded::<Runtime>::on_runtime_upgrade();
+
+			let alice = AccountId::from(ALICE);
+			let bob = AccountId::from(BOB);
+			assert_ok!(Balances::mint_into(&alice, existential_deposit));
+			assert_ok!(Balances::mint_into(&bob, existential_deposit));
+
+			let issuance_before = Balances::total_issuance();
+			let accumulated_before = Balances::balance(&accumulation_account);
+
+			// Reap Alice, leaving dust behind.
+			let dust = existential_deposit / 2;
+			assert_ok!(<Balances as Mutate<_>>::transfer(
+				&alice,
+				&bob,
+				existential_deposit - dust,
+				Preservation::Expendable,
+			));
+
+			assert_eq!(Balances::balance(&alice), 0);
+			assert_eq!(Balances::balance(&accumulation_account), accumulated_before + dust);
+			assert_eq!(Balances::total_issuance(), issuance_before);
+		});
+}

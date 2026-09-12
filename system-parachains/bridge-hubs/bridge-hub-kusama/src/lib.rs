@@ -86,7 +86,10 @@ use parachains_common::{AccountId, Balance, BlockNumber, Hash, Header, Nonce, Si
 pub use system_parachains_constants::SLOT_DURATION;
 
 use system_parachains_constants::{
-	kusama::{consensus::*, currency::*, fee::WeightToFee, fellowship::IsFellowshipVoice},
+	kusama::{
+		account::ACCUMULATE_FORWARD_PALLET_ID, consensus::*, currency::*, fee::WeightToFee,
+		fellowship::IsFellowshipVoice,
+	},
 	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 };
 
@@ -152,6 +155,7 @@ pub mod migrations {
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
 		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
+		system_parachains_common::accumulate_and_forward::EnsureAccumulationAccountFunded<Runtime>,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
@@ -302,7 +306,7 @@ parameter_types! {
 impl pallet_balances::Config for Runtime {
 	/// The type for recording an account's balance.
 	type Balance = Balance;
-	type DustRemoval = ();
+	type DustRemoval = AccumulateForward;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
@@ -316,6 +320,29 @@ impl pallet_balances::Config for Runtime {
 	type FreezeIdentifier = ();
 	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
+}
+
+parameter_types! {
+	pub const AccumulateForwardPalletId: PalletId = ACCUMULATE_FORWARD_PALLET_ID;
+	pub const ForwardPeriod: BlockNumber = HOURS;
+	pub const MinForwardAmount: Balance = UNITS / 10;
+}
+
+impl pallet_accumulate_and_forward::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = AccumulateForwardPalletId;
+	type Forwarder = system_parachains_common::accumulate_and_forward::TeleportAndBurnForwarder<
+		xcm_config::XcmConfig,
+		AssetHubLocation,
+		RelayChainLocation,
+	>;
+	type TransferPeriod = ForwardPeriod;
+	type MinTransferAmount = MinForwardAmount;
+	// Local clock: the relay one would fire on one parity only, as forwards happen on exact
+	// multiples of the period. TODO: use `RelaychainDataProvider` once
+	// https://github.com/paritytech/polkadot-sdk/issues/13149 lands.
+	type BlockNumberProvider = System;
+	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -658,6 +685,7 @@ construct_runtime!(
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
 		TransactionPayment: pallet_transaction_payment = 11,
+		AccumulateForward: pallet_accumulate_and_forward = 12,
 
 		// Collator support. The order of these 4 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -704,6 +732,7 @@ mod benches {
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
 		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
+		[pallet_accumulate_and_forward, AccumulateForward]
 		[pallet_balances, Balances]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
@@ -1505,5 +1534,61 @@ mod tests {
 		let relay_tbf = kusama_runtime_constants::fee::TRANSACTION_BYTE_FEE;
 		let parachain_tbf = TransactionByteFee::get();
 		assert_eq!(relay_tbf / 10, parachain_tbf);
+	}
+}
+
+#[cfg(test)]
+mod accumulate_and_forward_tests {
+	use super::*;
+	use frame_support::{
+		assert_ok,
+		traits::{
+			fungible::{Inspect, Mutate},
+			tokens::Preservation,
+			OnRuntimeUpgrade,
+		},
+	};
+	use parachains_runtimes_test_utils::ExtBuilder;
+	use system_parachains_common::accumulate_and_forward::EnsureAccumulationAccountFunded;
+
+	const ALICE: [u8; 32] = [1u8; 32];
+	const BOB: [u8; 32] = [2u8; 32];
+
+	/// Dust accumulates for the forward to Asset Hub instead of being burned here, where the burn
+	/// would not show in the network total that Asset Hub tracks.
+	#[test]
+	fn dust_accumulates_instead_of_being_burned() {
+		let existential_deposit: Balance =
+			<Runtime as pallet_balances::Config>::ExistentialDeposit::get();
+		let accumulation_account = AccumulateForward::accumulation_account();
+
+		ExtBuilder::<Runtime>::default()
+			// Funded out of band before the upgrade; without the ED, dust is rejected.
+			.with_balances(vec![(accumulation_account.clone(), existential_deposit)])
+			.build()
+			.execute_with(|| {
+				EnsureAccumulationAccountFunded::<Runtime>::on_runtime_upgrade();
+
+				let alice = AccountId::from(ALICE);
+				let bob = AccountId::from(BOB);
+				assert_ok!(Balances::mint_into(&alice, existential_deposit));
+				assert_ok!(Balances::mint_into(&bob, existential_deposit));
+
+				let issuance_before = Balances::total_issuance();
+				let accumulated_before = Balances::balance(&accumulation_account);
+
+				// Reap Alice, leaving dust behind.
+				let dust = existential_deposit / 2;
+				assert_ok!(<Balances as Mutate<_>>::transfer(
+					&alice,
+					&bob,
+					existential_deposit - dust,
+					Preservation::Expendable,
+				));
+
+				assert_eq!(Balances::balance(&alice), 0);
+				assert_eq!(Balances::balance(&accumulation_account), accumulated_before + dust);
+				assert_eq!(Balances::total_issuance(), issuance_before);
+			});
 	}
 }
