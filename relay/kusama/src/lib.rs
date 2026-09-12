@@ -2147,6 +2147,7 @@ pub mod migrations {
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
 		RemoveRecoveryPallet,
+		relay_common::proxy::MigrateLegacyProxies<Runtime>,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
