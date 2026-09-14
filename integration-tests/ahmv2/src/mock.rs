@@ -158,8 +158,8 @@ impl Chain {
 
 /// Load the externalities of one chain from its snapshot.
 ///
-/// Runs on a worker thread so that `tokio::join!`-ed loads actually run in parallel (snapshot
-/// hydration is CPU-bound). Panics with instructions if the snapshot is not available.
+/// Runs on a worker thread so that `tokio::join!`-ed loads actually run in parallel. Panics
+/// with instructions if the snapshot is not available.
 pub async fn load(chain: Chain) -> TestExternalities {
 	tokio::spawn(async move {
 		sp_tracing::try_init_simple();

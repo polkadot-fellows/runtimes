@@ -12,8 +12,7 @@ version.workspace = true
 
 # Asset Hub Migration concerning deps
 pallet-rc-migrator = { workspace = true }
-# Behind the `ahm-v2` feature; see `src/ahm_v2.rs`. Not `optional`: `construct_runtime!` needs
-# the crate path to resolve even when the feature gates the pallet out.
+# Behind the `ahm-v2` feature; see `src/ahm_v2.rs`.
 pallet-rc2-migrator = { workspace = true }
 # End: Asset Hub Migration concerning deps
 

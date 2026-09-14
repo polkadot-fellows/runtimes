@@ -144,7 +144,7 @@ pub const LOG_TARGET: &str = "runtime::kusama";
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 
-// AHM v2 migration wiring; see the module docs for why it is feature-gated.
+// AHM v2 migration wiring; Avoids migrator pallets being part of the on-chain build.
 #[cfg(feature = "ahm-v2")]
 mod ahm_v2;
 

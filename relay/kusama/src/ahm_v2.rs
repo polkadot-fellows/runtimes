@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-//! AHM v2 migration wiring: the relay-chain side of moving this chain's remaining state to the
-//! Coretime chain and Asset Hub.
+//! AHM v2 migration wiring: the relay-chain side of moving account, proxy, registrar and HRMP
+//! state to the Coretime chain.
 //!
 //! Compiled only with the `ahm-v2` feature, which released runtimes do not enable. The
 //! integration tests turn it on to drive the real runtime.

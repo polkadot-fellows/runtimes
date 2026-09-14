@@ -1,6 +1,6 @@
 [package]
 name = "pallet-rc2-migrator"
-description = "Migrates the relay chain's remaining state to the Coretime chain and Asset Hub. Relay-chain side."
+description = "Moves account, proxy, registrar and HRMP state from the relay chain to the Coretime chain. Relay-chain side."
 license = "Apache-2.0"
 version = "0.1.0"
 edition.workspace = true

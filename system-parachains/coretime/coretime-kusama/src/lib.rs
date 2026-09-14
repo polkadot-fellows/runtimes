@@ -24,7 +24,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 extern crate alloc;
 
-// AHM v2 migration wiring; see the module docs for why it is feature-gated.
+// AHM v2 migration wiring; Avoids migrator pallets being part of the on-chain build.
 #[cfg(feature = "ahm-v2")]
 mod ahm_v2;
 mod coretime;

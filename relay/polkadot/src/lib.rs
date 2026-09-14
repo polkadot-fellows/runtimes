@@ -135,7 +135,7 @@ use polkadot_runtime_constants::{
 	currency::*, fee::*, proxy::ProxyType, system_parachain, time::*, TREASURY_PALLET_ID,
 };
 
-// AHM v2 migration wiring; see the module docs for why it is feature-gated.
+// AHM v2 migration wiring; Avoids migrator pallets being part of the on-chain build.
 #[cfg(feature = "ahm-v2")]
 mod ahm_v2;
 
