@@ -13,7 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Coretime-chain side of the AHM v2 migration.
+//! Receiver side of the AHM v2 migration.
+//! Note: This is usually CoreTime chain, but for networks (such as Paseo) w/o CT, we will use
+//! this on AH.
 //!
 //! Ingests state sent by `pallet-rc2-migrator`, writing through the same code paths as ordinary
 //! extrinsics so that migrated and natively created state are indistinguishable. Temporary
@@ -22,8 +24,8 @@
 //! Has no stage machine of its own; the relay chain drives every transition. The stage is stored
 //! so this chain can check locally whether the migration is over.
 //!
-//! Every call the relay chain sends follows one rule: a repeat of a signal already acted on is
-//! accepted, a signal out of order is an error.
+//! Calls are gated by root. Any signal that is already acted on is accepted (so idempotent), and
+//! a signal out of order is an error.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -76,22 +78,17 @@ impl MigrationStage {
 	}
 }
 
-/// Calls on the relay chain, as this chain must encode them.
-///
-/// The indices are `Rc2Migrator`'s pallet index in the relay `construct_runtime!` — every relay
-/// chain this pallet is deployed against must agree on it — and the `#[pallet::call_index]` in
-/// `pallet-rc2-migrator`. The compiler checks none of this; the integration tests decode these
-/// against the real relay `RuntimeCall` on each network, which is why they are public.
-#[derive(Encode, Decode, PartialEq, Eq, Debug)]
-pub enum Rc2RuntimeCall {
-	#[codec(index = 254)]
-	Rc2Migrator(Rc2MigratorCall),
-}
-
-/// `Rc2Migrator`'s pallet index in the relay `construct_runtime!`, as encoded above. Each relay
-/// runtime asserts its real index against this in its own tests.
+/// `Rc2Migrator`'s pallet index in the relay `construct_runtime!`.
 pub const RC2_MIGRATOR_PALLET_INDEX: u8 = 254;
 
+/// Calls on the relay chain, as this chain must encode them.
+#[derive(Encode, Decode, PartialEq, Eq, Debug)]
+#[repr(u8)]
+pub enum Rc2RuntimeCall {
+	Rc2Migrator(Rc2MigratorCall) = RC2_MIGRATOR_PALLET_INDEX,
+}
+
+/// Indices are the `#[pallet::call_index]`es in `pallet-rc2-migrator`.
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
 pub enum Rc2MigratorCall {
 	#[codec(index = 2)]
@@ -138,21 +135,16 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// The relay chain asks whether this chain can receive migrated state.
 		///
-		/// Dispatched by `pallet-rc2-migrator` via XCM `Transact` with `OriginKind::Superuser`;
-		/// the relay-chain location converts to Root here. The answer is what unblocks the relay
-		/// chain's first data stage.
-		///
-		/// Idempotent while the migration is ongoing, so a relay chain rewound to `Scheduled`
-		/// re-runs the handshake without a matching rewind here.
+		/// The CT response unblocks the relay chain's first data stage. A relay chain rewound to
+		/// `Scheduled` re-runs the handshake, which is accepted here without a matching rewind.
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(3, 2))]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
+		    // relay chain origin converts to root.
 			ensure_root(origin)?;
 
-			// The answer goes out before the stage is written: a start this chain cannot
-			// acknowledge must not leave it believing a migration is under way that the relay
-			// chain will never continue.
 			match CtMigrationStage::<T>::get() {
+			    // try send xcm before updating stage.
 				MigrationStage::Pending => {
 					Self::send_to_rc(Rc2MigratorCall::CtReady)?;
 					Self::transition(MigrationStage::DataMigrationOngoing);
@@ -167,6 +159,7 @@ pub mod pallet {
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn finish_migration(origin: OriginFor<T>) -> DispatchResult {
+		    // rc origin
 			ensure_root(origin)?;
 
 			match CtMigrationStage::<T>::get() {
@@ -199,9 +192,7 @@ pub mod pallet {
 		/// Send a `pallet-rc2-migrator` call to the relay chain.
 		fn send_to_rc(call: Rc2MigratorCall) -> Result<(), Error<T>> {
 			let call = Rc2RuntimeCall::Rc2Migrator(call);
-			// `Xcm` makes the relay chain dispatch this as `pallet_xcm::Origin::Xcm(<this chain>)`,
-			// which is what `ct_ready`'s origin check matches on. Root is not requested: confirming
-			// readiness needs no more privilege than being the Coretime chain.
+			// This is dispatched as `Origin::Xcm(<this chain>)`.
 			let message = Xcm(vec![
 				UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 				Transact {

@@ -48,7 +48,7 @@ pub type MigrationStageOf<T> =
 
 /// Progress of the migration. Advanced by `on_initialize`, except where noted.
 ///
-/// The invariant order is how the migration will progress.
+/// Variants are in the order the migration progresses through them.
 #[derive(Encode, Decode, DecodeWithMemTracking, Clone, Default, PartialEq, Eq, Debug, TypeInfo)]
 pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// Nothing has been scheduled; `on_initialize` does no work.
@@ -89,14 +89,14 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		last_key: Option<HrmpChannelId>,
 	},
 	HrmpDone,
-	/// Empty the configured leftover pots (eg: treasury, on-demand, acf)
+	/// Empty the pots whose balance has no owning account to migrate it with, such as the
+	/// treasury's.
 	Sweep,
 	/// Reap the accounts left below the existential deposit, and the zero-balance husks.
 	///
-	/// Separate from, and downstream of, the accounts stage on purpose:
-	/// - most of what it reaps does not exist until the earlier stages have run.
-	/// - [`Self::TiCorrection`] burns the issuance no account holds, which is only a safe
-	///   assumption once this has run. It will read this stage's output.
+	/// Runs after the accounts stage because most of what it reaps does not exist until the
+	/// earlier stages have run, and because [`Self::TiCorrection`] reads its output: burning the
+	/// issuance no account holds is only safe once the husks are gone.
 	SweepDust {
 		last_key: Option<AccountId>,
 	},
@@ -120,19 +120,17 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 	}
 }
 
-/// Calls on the Coretime chain, as this chain must encode them.
-///
-/// The indices are `CtMigrator`'s pallet index in the Coretime Chain and the
-/// `#[pallet::call_index]`es in `pallet-ct-migrator`.
-#[derive(Encode, Decode, PartialEq, Eq, Debug)]
-pub enum CtRuntimeCall {
-	#[codec(index = 100)]
-	CtMigrator(CtMigratorCall),
-}
-
-/// `CtMigrator`'s pallet index in the Coretime chain, as encoded above.
+/// `CtMigrator`'s pallet index in the Coretime (receiver) chain.
 pub const CT_MIGRATOR_PALLET_INDEX: u8 = 100;
 
+/// Calls on the Coretime chain, as this chain must encode them.
+#[derive(Encode, Decode, PartialEq, Eq, Debug)]
+#[repr(u8)]
+pub enum CtRuntimeCall {
+	CtMigrator(CtMigratorCall) = CT_MIGRATOR_PALLET_INDEX,
+}
+
+/// Indices are the `#[pallet::call_index]`es in `pallet-ct-migrator`.
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
 pub enum CtMigratorCall {
 	#[codec(index = 0)]
@@ -157,11 +155,11 @@ pub mod pallet {
 		/// Para id of the Coretime chain.
 		type CtParaId: Get<u32>;
 
-		/// Wall clock the schedule is compared against. This avoids a schedule set weeks ahead to
+		/// Wall clock the schedule is compared against, so a schedule set weeks ahead does not
 		/// drift with block times.
 		type TimeProvider: Time;
 
-		/// The origin the Coretime chain's messages dispatch with here.
+		/// The origin that the Coretime chain's messages dispatch with on this chain.
 		type CtOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
 		/// How long the machine parks in [`MigrationStage::CoolOff`] before finishing.
@@ -283,8 +281,7 @@ pub mod pallet {
 		/// Send a `pallet-ct-migrator` call to the Coretime chain.
 		fn send_to_ct(call: CtMigratorCall) -> Result<(), Error<T>> {
 			let call = CtRuntimeCall::CtMigrator(call);
-			// `Superuser` converts to Root on the Coretime chain, which system chains grant the
-			// relay-chain location; the receiving calls check for Root.
+			// `Superuser` converts to Root on the Coretime chain; the receiving calls check for Root.
 			let message = Xcm(vec![
 				UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 				Transact {
