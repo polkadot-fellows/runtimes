@@ -90,10 +90,10 @@ fn the_readiness_answer_is_the_message_the_relay_chain_expects() {
 			vec![(
 				Location::parent(),
 				Xcm(vec![
-				    // unpaid execution so the RC's barrier lets it in
+					// unpaid execution so the RC's barrier lets it in
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
-					    // arrives with this chain's parachain origin
+						// arrives with this chain's parachain origin
 						origin_kind: OriginKind::Xcm,
 						fallback_max_weight: None,
 						call: Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady).encode().into(),

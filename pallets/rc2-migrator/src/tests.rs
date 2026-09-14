@@ -136,10 +136,10 @@ fn the_start_signal_is_the_message_the_coretime_chain_expects() {
 			vec![(
 				Location::new(0, [Parachain(CT_PARA_ID)]),
 				Xcm(vec![
-				    // unpaid execution so the Coretime chain's barrier lets it in
+					// unpaid execution so the Coretime chain's barrier lets it in
 					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
 					Transact {
-					    // call arrives with the root origin
+						// call arrives with the root origin
 						origin_kind: OriginKind::Superuser,
 						fallback_max_weight: None,
 						call: CtRuntimeCall::CtMigrator(CtMigratorCall::StartMigration)
