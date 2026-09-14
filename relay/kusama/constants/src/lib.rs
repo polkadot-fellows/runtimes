@@ -18,6 +18,7 @@
 
 extern crate alloc;
 
+pub mod accumulate_and_forward;
 pub mod weights;
 
 /// Money matters.

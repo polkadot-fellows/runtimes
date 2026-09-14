@@ -141,9 +141,6 @@ use kusama_runtime_constants::{
 /// Default logging target.
 pub const LOG_TARGET: &str = "runtime::kusama";
 
-// Accumulate-and-forward XCM adapter.
-pub mod accumulate_and_forward;
-
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 
@@ -446,7 +443,7 @@ parameter_types! {
 impl pallet_accumulate_and_forward::Config for Runtime {
 	type Currency = Balances;
 	type PalletId = AccumulateForwardPalletId;
-	type Forwarder = accumulate_and_forward::TeleportAndBurnForwarder<
+	type Forwarder = kusama_runtime_constants::accumulate_and_forward::TeleportAndBurnForwarder<
 		xcm_config::XcmConfig,
 		xcm_config::AssetHubLocation,
 		xcm_config::TokenLocation,
@@ -2176,7 +2173,7 @@ pub mod migrations {
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
 		RemoveRecoveryPallet,
-		accumulate_and_forward::EnsureAccumulationAccountFunded<Runtime>,
+		kusama_runtime_constants::accumulate_and_forward::EnsureAccumulationAccountFunded<Runtime>,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.

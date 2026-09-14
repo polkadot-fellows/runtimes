@@ -8867,6 +8867,9 @@ name = "kusama-runtime-constants"
 version = "1.0.0"
 dependencies = [
  "frame-support",
+ "frame-system",
+ "log",
+ "pallet-accumulate-and-forward",
  "pallet-remote-proxy",
  "parity-scale-codec",
  "polkadot-primitives",
@@ -8877,7 +8880,9 @@ dependencies = [
  "sp-runtime 48.0.0",
  "sp-trie 46.0.0",
  "sp-weights 36.0.0",
+ "staging-xcm",
  "staging-xcm-builder",
+ "staging-xcm-executor",
 ]
 
 [[package]]
