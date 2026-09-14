@@ -1,16 +1,13 @@
 # AHM v2 migration test harness.
-#
-# `just test` is the only command you need: it creates any missing snapshot and runs the suite.
-# `NETWORK=kusama just test` runs the same suite against Kusama.
 
 network := env_var_or_default("NETWORK", "polkadot")
 snap_dir := env_var_or_default("SNAP_DIR", justfile_directory() / "snapshots") / network
 
-features := if network == "kusama" { "--features kusama" } else { "" }
+# Exactly one network's runtimes are compiled, so the default set is always off.
+features := "--no-default-features --features " + network
 snap_env := "SNAP_RC=" + snap_dir / "snap_rc.snap" + " SNAP_CT=" + snap_dir / "snap_ct.snap"
 
-# RPC endpoints used to create missing snapshots. All public; override with `RC_URI` / `CT_URI`
-# (e.g. a try-runtime node of your own, which scrapes faster than a public relay endpoint).
+# RPC endpoints used to create missing snapshots. override with `RC_URI` / `CT_URI`
 rc_uri := env_var_or_default("RC_URI", if network == "kusama" { "wss://kusama-rpc.polkadot.io:443" } else { "wss://try-runtime.polkadot.io:443" })
 ct_uri := env_var_or_default("CT_URI", if network == "kusama" { "wss://kusama-coretime-rpc.polkadot.io:443" } else { "wss://polkadot-coretime-rpc.polkadot.io:443" })
 
