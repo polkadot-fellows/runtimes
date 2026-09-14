@@ -217,7 +217,18 @@ async fn load_snapshot_uncached(chain: Chain) -> RawSnapshot {
 /// migrator sits below `MessageQueue` so that its `on_initialize` sees the block's inbound
 /// messages.
 pub fn next_block_rc() {
-	next_block::<RelayRuntime>(Chain::Relay, |now| {
+	next_block_rc_with(InboundMessages::MustSucceed)
+}
+
+/// Execute the next Relay Chain block, requiring that an inbound message is rejected.
+///
+/// Proves that a message reached the chain and was refused.
+pub fn next_block_rc_expecting_rejection() {
+	next_block_rc_with(InboundMessages::MustBeRejected)
+}
+
+fn next_block_rc_with(inbound: InboundMessages) {
+	next_block::<RelayRuntime>(Chain::Relay, inbound, |now| {
 		let weight = <network::relay::MessageQueue as OnInitialize<_>>::on_initialize(now);
 		let weight = weight
 			.saturating_add(<network::relay::Rc2Migrator as OnInitialize<_>>::on_initialize(now));
@@ -250,18 +261,30 @@ pub fn set_block_number_rc(now: BlockNumberFor<RelayRuntime>) {
 
 /// Execute the next block on parachain `P`
 pub fn next_block_para<P: Para>() {
-	next_block::<P::Runtime>(P::CHAIN, |now| {
+	next_block::<P::Runtime>(P::CHAIN, InboundMessages::MustSucceed, |now| {
 		let weight = <MqPallet<P> as OnInitialize<_>>::on_initialize(now);
 		<MqPallet<P> as OnFinalize<_>>::on_finalize(now);
 		weight
 	});
 }
 
+/// What a produced block expects of the messages it processes.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum InboundMessages {
+	/// Every message the block processes must be accepted and execute without error.
+	MustSucceed,
+	/// At least one message must be refused, by the barrier or by the call it dispatches.
+	MustBeRejected,
+}
+
 /// Shared block-execution skeleton: bump the block number, reset events, run the chain's hooks,
-/// then assert that no message failed processing and that the consumed weight stays below 80% of
-/// the block limit.
-fn next_block<T>(chain: Chain, hooks: impl FnOnce(BlockNumberFor<T>) -> Weight)
-where
+/// then assert that the messages processed met `inbound` and that the consumed weight stays below
+/// 80% of the block limit.
+fn next_block<T>(
+	chain: Chain,
+	inbound: InboundMessages,
+	hooks: impl FnOnce(BlockNumberFor<T>) -> Weight,
+) where
 	T: frame_system::Config + pallet_message_queue::Config,
 	<T as frame_system::Config>::RuntimeEvent: TryInto<pallet_message_queue::Event<T>>,
 {
@@ -272,12 +295,23 @@ where
 	frame_system::Pallet::<T>::reset_events();
 	let weight = hooks(now);
 
-	for record in frame_system::Pallet::<T>::events() {
-		if let Ok(failed @ pallet_message_queue::Event::Processed { success: false, .. }) =
-			record.event.try_into()
-		{
-			panic!("{name}: message processing failure: {failed:?}");
-		}
+	// A message the executor refused outright, such as one the barrier turned away, is discarded
+	// as `ProcessingFailed`; one that started executing and then errored is `Processed` with
+	// `success: false`.
+	let rejected: Vec<_> = frame_system::Pallet::<T>::events()
+		.into_iter()
+		.filter_map(|record| match record.event.try_into() {
+			Ok(event @ pallet_message_queue::Event::Processed { success: false, .. }) |
+			Ok(event @ pallet_message_queue::Event::ProcessingFailed { .. }) => Some(event),
+			_ => None,
+		})
+		.collect();
+
+	match inbound {
+		InboundMessages::MustSucceed =>
+			assert!(rejected.is_empty(), "{name}: message processing failure: {rejected:?}"),
+		InboundMessages::MustBeRejected =>
+			assert!(!rejected.is_empty(), "{name}: expected a message to be rejected, none was"),
 	}
 
 	let limit = <T as frame_system::Config>::BlockWeights::get().max_block;

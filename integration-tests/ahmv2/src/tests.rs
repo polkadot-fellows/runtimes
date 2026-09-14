@@ -223,6 +223,44 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 	});
 }
 
+/// A para that is not the Coretime chain. Deliberately one the live snapshot holds no message
+/// queue for, so the replayed message is the only thing its queue has to deliver.
+const IMPOSTOR_PARA: u32 = 4242;
+
+/// Readiness is only accepted from the Coretime chain.
+#[tokio::test(flavor = "multi_thread")]
+async fn readiness_from_another_parachain_is_refused() {
+	use pallet_rc2_migrator::MigrationStage as RcStage;
+
+	let (mut rc, mut ct) = tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN));
+
+	// GIVEN a relay chain waiting for the Coretime chain,
+	rc.execute_with(|| {
+		assert_ok!(pallet_rc2_migrator::Pallet::<network::relay::Runtime>::force_set_stage(
+			network::relay::RuntimeOrigin::root(),
+			RcStage::WaitingForCt,
+		));
+	});
+
+	// and the message the Coretime chain would answer with.
+	let ump = ct.execute_with(|| {
+		assert_ok!(pallet_ct_migrator::Pallet::<network::ct::Runtime>::start_migration(
+			network::ct::RuntimeOrigin::root(),
+		));
+		take_ump::<CoretimePara>()
+	});
+	assert!(!ump.is_empty(), "the Coretime chain queued no answer to copy");
+
+	// WHEN another parachain sends that same message.
+	rc.execute_with(|| {
+		enqueue_ump(IMPOSTOR_PARA.into(), ump);
+		next_block_rc_expecting_rejection();
+
+		// THEN the relay chain is still waiting: only the Coretime chain opens the migration.
+		assert_eq!(rc_stage(), RcStage::WaitingForCt);
+	});
+}
+
 fn rc_stage() -> pallet_rc2_migrator::MigrationStageOf<network::relay::Runtime> {
 	pallet_rc2_migrator::RcMigrationStage::<network::relay::Runtime>::get()
 }
