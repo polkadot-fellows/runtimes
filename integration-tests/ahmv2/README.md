@@ -14,6 +14,11 @@ this crate enables on the runtimes it selects. The runtimes gate them on
 `all(feature = "ahm-v2", not(feature = "on-chain-release-build"))`, so a release build drops the
 pallets even when `ahm-v2` is on.
 
+## CI
+
+The `ahm-v2-test` job in `.github/workflows/test.yml` runs the migrator pallet tests, the runtime
+wiring tests and this suite, for both networks. The job is informational and does not gate a merge.
+
 ## Running
 
 ```bash
