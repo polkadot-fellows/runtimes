@@ -29,14 +29,22 @@ impl pallet_ct_migrator::Config for Runtime {
 
 #[cfg(test)]
 mod tests {
-	use frame_support::traits::PalletInfoAccess;
+	use crate::{Runtime, RuntimeCall};
+	use codec::Encode;
+	use pallet_rc2_migrator::{CtMigratorCall, CtRuntimeCall};
 
-	/// `pallet-rc2-migrator` hand-encodes this pallet's index; the compiler checks none of it.
+	/// Ensure the pallet + call index aligns.
 	#[test]
-	fn migrator_pallet_index_matches_what_the_relay_chain_encodes() {
+	fn the_relay_chain_encodes_this_chains_calls_correctly() {
 		assert_eq!(
-			crate::CtMigrator::index(),
-			pallet_rc2_migrator::CT_MIGRATOR_PALLET_INDEX as usize
+			CtRuntimeCall::CtMigrator(CtMigratorCall::StartMigration).encode(),
+			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::start_migration {})
+				.encode(),
+		);
+		assert_eq!(
+			CtRuntimeCall::CtMigrator(CtMigratorCall::FinishMigration).encode(),
+			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::finish_migration {})
+				.encode(),
 		);
 	}
 }

@@ -16,9 +16,7 @@
 
 use crate::{
 	mock::*, CtMigratorCall, CtRuntimeCall, Error, Event, MigrationStage, RcMigrationStage,
-	CT_MIGRATOR_PALLET_INDEX,
 };
-use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::DispatchError::BadOrigin;
 use xcm::prelude::*;
@@ -359,18 +357,4 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 		assert_eq!(stage.is_ongoing(), ongoing, "is_ongoing for {stage:?}");
 		assert_eq!(stage.is_finished(), finished, "is_finished for {stage:?}");
 	}
-}
-
-#[test]
-fn the_coretime_call_encoding_is_pinned() {
-	// Pins the hand-encoded bytes so an accidental renumbering fails here first, with a readable
-	// diff. The Coretime runtimes assert the pallet index against the real `construct_runtime!`.
-	assert_eq!(
-		CtRuntimeCall::CtMigrator(CtMigratorCall::StartMigration).encode(),
-		vec![CT_MIGRATOR_PALLET_INDEX, 0]
-	);
-	assert_eq!(
-		CtRuntimeCall::CtMigrator(CtMigratorCall::FinishMigration).encode(),
-		vec![CT_MIGRATOR_PALLET_INDEX, 1]
-	);
 }

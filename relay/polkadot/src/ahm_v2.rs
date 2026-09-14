@@ -44,14 +44,16 @@ impl pallet_rc2_migrator::Config for Runtime {
 
 #[cfg(test)]
 mod tests {
-	use frame_support::traits::PalletInfoAccess;
+	use crate::{Runtime, RuntimeCall};
+	use codec::Encode;
+	use pallet_ct_migrator::{Rc2MigratorCall, Rc2RuntimeCall};
 
-	/// `pallet-ct-migrator` hand-encodes this pallet's index; the compiler checks none of it.
+	/// Ensure the pallet + call index aligns.
 	#[test]
-	fn migrator_pallet_index_matches_what_the_coretime_chain_encodes() {
+	fn the_coretime_chain_encodes_this_chains_calls_correctly() {
 		assert_eq!(
-			crate::Rc2Migrator::index(),
-			pallet_ct_migrator::RC2_MIGRATOR_PALLET_INDEX as usize
+			Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady).encode(),
+			RuntimeCall::Rc2Migrator(pallet_rc2_migrator::Call::<Runtime>::ct_ready {}).encode(),
 		);
 	}
 }

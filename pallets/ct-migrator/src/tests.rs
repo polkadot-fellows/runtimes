@@ -16,9 +16,7 @@
 
 use crate::{
 	mock::*, CtMigrationStage, Error, Event, MigrationStage, Rc2MigratorCall, Rc2RuntimeCall,
-	RC2_MIGRATOR_PALLET_INDEX,
 };
-use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::DispatchError::BadOrigin;
 use xcm::prelude::*;
@@ -210,14 +208,4 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 		assert_eq!(stage.is_ongoing(), ongoing, "is_ongoing for {stage:?}");
 		assert_eq!(stage.is_finished(), finished, "is_finished for {stage:?}");
 	}
-}
-
-#[test]
-fn the_relay_call_encoding_is_pinned() {
-	// Pins the hand-encoded bytes so an accidental renumbering fails here first, with a readable
-	// diff. The relay runtimes assert the pallet index against the real `construct_runtime!`.
-	assert_eq!(
-		Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady).encode(),
-		vec![RC2_MIGRATOR_PALLET_INDEX, 2]
-	);
 }
