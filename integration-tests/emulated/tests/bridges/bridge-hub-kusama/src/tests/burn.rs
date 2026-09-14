@@ -13,23 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub use paste;
+use crate::*;
 
-// Substrate
-pub use frame_support;
-pub use frame_system;
-pub use pallet_accumulate_and_forward;
-pub use pallet_balances;
-pub use pallet_message_queue;
-
-// Polkadot
-pub use pallet_xcm;
-pub use xcm::prelude::{AccountId32, VersionedAssetId, VersionedAssets, Weight, WeightLimit};
-pub use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV2;
-
-// Cumulus
-pub use cumulus_pallet_xcmp_queue;
-pub use emulated_integration_tests_common::*;
-pub use xcm_emulator::Chain;
-
-pub mod common;
+integration_tests_helpers::test_accumulated_funds_are_burnt_on_asset_hub!(
+	BridgeHubKusama,
+	AssetHubKusama,
+	BRIDGE_HUB_KUSAMA_ED,
+	ASSET_HUB_KUSAMA_ED,
+);

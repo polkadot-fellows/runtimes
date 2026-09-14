@@ -12,6 +12,9 @@ paste = { workspace = true }
 hex-literal = { workspace = true }
 
 # Substrate
+frame-support = { workspace = true, default-features = true }
+frame-system = { workspace = true, default-features = true }
+pallet-accumulate-and-forward = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 

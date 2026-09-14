@@ -69,8 +69,9 @@ impl<T: pallet_accumulate_and_forward::Config> OnRuntimeUpgrade
 }
 
 /// [`pallet_accumulate_and_forward::Forwarder`] teleporting to Asset Hub to burn there, since
-/// Kusama tracks `TotalIssuance` on Asset Hub. A failed send rolls back; once queued, a failure
-/// on arrival traps the assets.
+/// Kusama tracks `TotalIssuance` on Asset Hub. A failed send rolls back. Once queued, only a
+/// `BurnAsset` failure traps the assets; a barrier rejection or a failed `ReceiveTeleportedAsset`
+/// leaves the KSM burned here with Asset Hub untouched.
 pub struct TeleportAndBurnForwarder<XcmConfig, Dest, NativeAsset>(
 	PhantomData<(XcmConfig, Dest, NativeAsset)>,
 );

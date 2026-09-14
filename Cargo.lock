@@ -8254,7 +8254,10 @@ version = "1.0.0"
 dependencies = [
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
+ "frame-support",
+ "frame-system",
  "hex-literal",
+ "pallet-accumulate-and-forward",
  "pallet-balances",
  "pallet-message-queue",
  "pallet-xcm",
