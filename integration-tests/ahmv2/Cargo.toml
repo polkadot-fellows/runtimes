@@ -29,19 +29,23 @@ sp-tracing = { workspace = true, default-features = true }
 tokio = { features = ["macros", "rt-multi-thread", "sync"], workspace = true }
 xcm = { workspace = true, default-features = true }
 
-coretime-polkadot-runtime = { workspace = true, features = ["ahm-v2"] }
-polkadot-runtime = { workspace = true, features = ["ahm-v2"] }
-polkadot-runtime-constants = { workspace = true, default-features = true }
+# Runtimes for one network are compiled per build; see the `polkadot` and `kusama` features.
+coretime-polkadot-runtime = { workspace = true, optional = true, features = ["ahm-v2"] }
+polkadot-runtime = { workspace = true, optional = true, features = ["ahm-v2"] }
+polkadot-runtime-constants = { workspace = true, default-features = true, optional = true }
 
-# Only compiled with the `kusama` feature, so the default build pulls in one set of runtimes.
 coretime-kusama-runtime = { workspace = true, optional = true, features = ["ahm-v2"] }
 kusama-runtime = { workspace = true, optional = true, features = ["ahm-v2"] }
 kusama-runtime-constants = { workspace = true, default-features = true, optional = true }
 
 [features]
-default = []
-# Run the whole suite against Kusama instead of Polkadot. The tests are network-agnostic; this
-# only swaps which runtimes `mock::network` resolves to.
+default = ["polkadot"]
+# The network to run the suite against;
+polkadot = [
+	"dep:coretime-polkadot-runtime",
+	"dep:polkadot-runtime",
+	"dep:polkadot-runtime-constants",
+]
 kusama = [
 	"dep:coretime-kusama-runtime",
 	"dep:kusama-runtime",

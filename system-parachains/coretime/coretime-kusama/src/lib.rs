@@ -25,7 +25,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 extern crate alloc;
 
 // AHM v2 migration wiring; Avoids migrator pallets being part of the on-chain build.
-#[cfg(feature = "ahm-v2")]
+#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
 mod ahm_v2;
 mod coretime;
 // Genesis preset configurations.
@@ -695,7 +695,7 @@ construct_runtime!(
 		Broker: pallet_broker = 50,
 
 		// AHM v2 migrator.
-		#[cfg(feature = "ahm-v2")]
+		#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
 		CtMigrator: pallet_ct_migrator = 100,
 	}
 );

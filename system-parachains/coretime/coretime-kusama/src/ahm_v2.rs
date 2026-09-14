@@ -22,9 +22,6 @@
 
 use crate::{xcm_config::XcmRouter, Runtime, RuntimeEvent};
 
-#[cfg(feature = "on-chain-release-build")]
-compile_error!("the `ahm-v2` feature must not be enabled in a release build");
-
 impl pallet_ct_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = XcmRouter;

@@ -47,11 +47,15 @@ use xcm::{
 	VersionedXcm,
 };
 
-/// The runtimes under test, chosen by the `kusama` feature.
+#[cfg(not(any(feature = "polkadot", feature = "kusama")))]
+compile_error!("enable a network: the `polkadot` or the `kusama` feature");
+
+/// The runtimes under test, chosen by the network feature.
 ///
 /// Everything else in this crate goes through these aliases, so the suite is written once and runs
-/// against either network. Nothing outside this module may name a network directly.
-#[cfg(not(feature = "kusama"))]
+/// against either network. Nothing outside this module may name a network directly. Enabling both
+/// networks resolves to Kusama rather than failing.
+#[cfg(all(feature = "polkadot", not(feature = "kusama")))]
 pub mod network {
 	pub use coretime_polkadot_runtime as ct;
 	pub use polkadot_runtime as relay;

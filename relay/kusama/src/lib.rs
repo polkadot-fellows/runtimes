@@ -145,7 +145,7 @@ pub const LOG_TARGET: &str = "runtime::kusama";
 pub mod genesis_config_presets;
 
 // AHM v2 migration wiring; Avoids migrator pallets being part of the on-chain build.
-#[cfg(feature = "ahm-v2")]
+#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
 mod ahm_v2;
 
 // Weights used in the runtime.
@@ -2096,7 +2096,7 @@ construct_runtime! {
 		RcMigrator: pallet_rc_migrator = 255,
 		// AHM v2 migrator. Below `MessageQueue` for the same reason as `RcMigrator`: its
 		// `on_initialize` has to see the block's inbound messages.
-		#[cfg(feature = "ahm-v2")]
+		#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
 		Rc2Migrator: pallet_rc2_migrator = 254,
 	}
 }
