@@ -274,6 +274,7 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
+	"kusama-runtime-constants/try-runtime",
 	"pallet-asset-tx-payment/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-aura/try-runtime",
