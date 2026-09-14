@@ -1487,7 +1487,7 @@ fn dust_goes_to_dap_and_is_deactivated() {
 	});
 }
 
-/// `Preserve` keeps staging above its ED, so it is never reapable and the chain in
+/// `Preserve` keeps staging at exactly its ED, so it is never reapable and the chain in
 /// https://github.com/paritytech/polkadot-sdk/issues/12130 never starts.
 #[test]
 fn dap_staging_account_keeps_ed_through_drain() {
@@ -1546,8 +1546,8 @@ fn dap_staging_account_keeps_ed_through_drain() {
 	});
 }
 
-/// And were it to start, it stops after one call: the deposit back into the emptied staging
-/// account fails `BelowMinimum`, so no fresh dust appears. Recursion would blow the stack.
+/// Even if that chain were to start, it stops after one call: the deposit back into the emptied
+/// staging account fails `BelowMinimum`, so no fresh dust appears. Recursion would blow the stack.
 #[test]
 #[should_panic(expected = "Failed to deposit slash to DAP staging account")]
 fn dust_removal_terminates_when_staging_is_dusted() {
