@@ -281,7 +281,8 @@ pub mod pallet {
 		/// Send a `pallet-ct-migrator` call to the Coretime chain.
 		fn send_to_ct(call: CtMigratorCall) -> Result<(), Error<T>> {
 			let call = CtRuntimeCall::CtMigrator(call);
-			// `Superuser` converts to Root on the Coretime chain; the receiving calls check for Root.
+			// `Superuser` converts to Root on the Coretime chain; the receiving calls check for
+			// Root.
 			let message = Xcm(vec![
 				UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 				Transact {

@@ -140,11 +140,11 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(3, 2))]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
-		    // relay chain origin converts to root.
+			// relay chain origin converts to root.
 			ensure_root(origin)?;
 
 			match CtMigrationStage::<T>::get() {
-			    // try send xcm before updating stage.
+				// try send xcm before updating stage.
 				MigrationStage::Pending => {
 					Self::send_to_rc(Rc2MigratorCall::CtReady)?;
 					Self::transition(MigrationStage::DataMigrationOngoing);
@@ -159,7 +159,7 @@ pub mod pallet {
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn finish_migration(origin: OriginFor<T>) -> DispatchResult {
-		    // rc origin
+			// rc origin
 			ensure_root(origin)?;
 
 			match CtMigrationStage::<T>::get() {
