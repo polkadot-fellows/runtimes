@@ -17,6 +17,7 @@
 use crate::{
 	mock::*, CtMigratorCall, CtRuntimeCall, Error, Event, MigrationStage, RcMigrationStage,
 };
+use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::DispatchError::BadOrigin;
 use xcm::prelude::*;
@@ -116,6 +117,38 @@ fn a_scheduled_migration_starts_once_the_clock_passes_it_and_not_before() {
 		assert_eq!(sent().len(), 1);
 		assert_eq!(sent()[0].0, Location::new(0, [Parachain(CT_PARA_ID)]));
 		assert_eq!(sent_call(0), CtRuntimeCall::CtMigrator(CtMigratorCall::StartMigration));
+	});
+}
+
+#[test]
+fn the_start_signal_is_the_message_the_coretime_chain_expects() {
+	// GIVEN a migration whose start has just passed.
+	new_test_ext().execute_with(|| {
+		let start = now_ms() + BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
+
+		// WHEN the machine sends its start signal.
+		run_blocks(2);
+
+		// THEN the message is what CT expects
+		assert_eq!(
+			sent(),
+			vec![(
+				Location::new(0, [Parachain(CT_PARA_ID)]),
+				Xcm(vec![
+				    // unpaid execution so the Coretime chain's barrier lets it in
+					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+					Transact {
+					    // call arrives with the root origin
+						origin_kind: OriginKind::Superuser,
+						fallback_max_weight: None,
+						call: CtRuntimeCall::CtMigrator(CtMigratorCall::StartMigration)
+							.encode()
+							.into(),
+					},
+				]),
+			)]
+		);
 	});
 }
 
@@ -326,34 +359,59 @@ fn the_machine_runs_from_pending_to_done() {
 
 #[test]
 fn the_stage_predicates_say_what_their_consumers_need() {
-	// Exhaustive over the stage enum, so a new stage has to classify itself here rather than
-	// inherit whatever the predicates happen to return.
-	let cases: [(Stage, bool, bool); 21] = [
-		//                                            ongoing, finished
-		(Stage::Pending, false, false),
-		(Stage::Scheduled { start: 10 }, false, false),
-		(Stage::Paused, true, false),
-		(Stage::WaitingForCt, true, false),
-		(Stage::AccountsInit, true, false),
-		(Stage::AccountsOngoing { last_key: None }, true, false),
-		(Stage::AccountsDone, true, false),
-		(Stage::ProxyInit, true, false),
-		(Stage::ProxyOngoing { last_key: None }, true, false),
-		(Stage::ProxyDone, true, false),
-		(Stage::RegistrarInit, true, false),
-		(Stage::RegistrarOngoing { last_key: None }, true, false),
-		(Stage::RegistrarDone, true, false),
-		(Stage::HrmpInit, true, false),
-		(Stage::HrmpOngoing { last_key: None }, true, false),
-		(Stage::HrmpDone, true, false),
-		(Stage::Sweep, true, false),
-		(Stage::SweepDust { last_key: None }, true, false),
-		(Stage::TiCorrection, true, false),
-		(Stage::CoolOff { end_at: 10 }, true, false),
-		(Stage::MigrationDone, false, true),
+	fn expected(stage: &Stage) -> (bool, bool) {
+		match stage {
+			//                              ongoing, finished
+			Stage::Pending => (false, false),
+			Stage::Scheduled { .. } => (false, false),
+			Stage::Paused => (true, false),
+			Stage::WaitingForCt => (true, false),
+			Stage::AccountsInit => (true, false),
+			Stage::AccountsOngoing { .. } => (true, false),
+			Stage::AccountsDone => (true, false),
+			Stage::ProxyInit => (true, false),
+			Stage::ProxyOngoing { .. } => (true, false),
+			Stage::ProxyDone => (true, false),
+			Stage::RegistrarInit => (true, false),
+			Stage::RegistrarOngoing { .. } => (true, false),
+			Stage::RegistrarDone => (true, false),
+			Stage::HrmpInit => (true, false),
+			Stage::HrmpOngoing { .. } => (true, false),
+			Stage::HrmpDone => (true, false),
+			Stage::Sweep => (true, false),
+			Stage::SweepDust { .. } => (true, false),
+			Stage::TiCorrection => (true, false),
+			Stage::CoolOff { .. } => (true, false),
+			Stage::MigrationDone => (false, true),
+		}
+	}
+
+	let cases = [
+		Stage::Pending,
+		Stage::Scheduled { start: 10 },
+		Stage::Paused,
+		Stage::WaitingForCt,
+		Stage::AccountsInit,
+		Stage::AccountsOngoing { last_key: None },
+		Stage::AccountsDone,
+		Stage::ProxyInit,
+		Stage::ProxyOngoing { last_key: None },
+		Stage::ProxyDone,
+		Stage::RegistrarInit,
+		Stage::RegistrarOngoing { last_key: None },
+		Stage::RegistrarDone,
+		Stage::HrmpInit,
+		Stage::HrmpOngoing { last_key: None },
+		Stage::HrmpDone,
+		Stage::Sweep,
+		Stage::SweepDust { last_key: None },
+		Stage::TiCorrection,
+		Stage::CoolOff { end_at: 10 },
+		Stage::MigrationDone,
 	];
 
-	for (stage, ongoing, finished) in cases {
+	for stage in cases {
+		let (ongoing, finished) = expected(&stage);
 		assert_eq!(stage.is_ongoing(), ongoing, "is_ongoing for {stage:?}");
 		assert_eq!(stage.is_finished(), finished, "is_finished for {stage:?}");
 	}

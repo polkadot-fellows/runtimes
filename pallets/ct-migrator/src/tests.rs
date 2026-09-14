@@ -17,6 +17,7 @@
 use crate::{
 	mock::*, CtMigrationStage, Error, Event, MigrationStage, Rc2MigratorCall, Rc2RuntimeCall,
 };
+use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::DispatchError::BadOrigin;
 use xcm::prelude::*;
@@ -74,6 +75,32 @@ fn a_start_opens_the_migration_and_answers_the_relay_chain() {
 		assert_eq!(sent().len(), 1);
 		assert_eq!(sent()[0].0, Location::parent());
 		assert_eq!(sent_call(0), Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady));
+	});
+}
+
+#[test]
+fn the_readiness_answer_is_the_message_the_relay_chain_expects() {
+	new_test_ext().execute_with(|| {
+		// WHEN this chain answers the RC.
+		assert_ok!(CtMigrator::start_migration(RuntimeOrigin::root()));
+
+		// THEN message is what RC expects
+		assert_eq!(
+			sent(),
+			vec![(
+				Location::parent(),
+				Xcm(vec![
+				    // unpaid execution so the RC's barrier lets it in
+					UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+					Transact {
+					    // arrives with this chain's parachain origin
+						origin_kind: OriginKind::Xcm,
+						fallback_max_weight: None,
+						call: Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady).encode().into(),
+					},
+				]),
+			)]
+		);
 	});
 }
 
@@ -197,14 +224,23 @@ fn force_set_stage_moves_anywhere() {
 
 #[test]
 fn the_stage_predicates_say_what_their_consumers_need() {
-	let cases: [(MigrationStage, bool, bool); 3] = [
-		//                                   ongoing, finished
-		(MigrationStage::Pending, false, false),
-		(MigrationStage::DataMigrationOngoing, true, false),
-		(MigrationStage::MigrationDone, false, true),
+	fn expected(stage: &MigrationStage) -> (bool, bool) {
+		match stage {
+			//                                 ongoing, finished
+			MigrationStage::Pending => (false, false),
+			MigrationStage::DataMigrationOngoing => (true, false),
+			MigrationStage::MigrationDone => (false, true),
+		}
+	}
+
+	let cases = [
+		MigrationStage::Pending,
+		MigrationStage::DataMigrationOngoing,
+		MigrationStage::MigrationDone,
 	];
 
-	for (stage, ongoing, finished) in cases {
+	for stage in cases {
+		let (ongoing, finished) = expected(&stage);
 		assert_eq!(stage.is_ongoing(), ongoing, "is_ongoing for {stage:?}");
 		assert_eq!(stage.is_finished(), finished, "is_finished for {stage:?}");
 	}
