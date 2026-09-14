@@ -32,6 +32,9 @@ pub mod snowbridge {
 }
 
 /// Asserts that a chain's accumulated funds are teleported to Asset Hub and burned there.
+///
+/// For Kusama-like chains, which burn. Polkadot chains forward to the DAP staging account instead
+/// and are covered by the SDK's `dap_helpers::test_accumulate_forward_transfers_to_asset_hub`.
 #[macro_export]
 macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 	( $chain:ident, $asset_hub:ident, $chain_ed:expr, $asset_hub_ed:expr $(,)? ) => {
