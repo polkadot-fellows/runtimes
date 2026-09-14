@@ -46,9 +46,8 @@ fn transitions() -> Vec<(MigrationStage, MigrationStage)> {
 fn the_migration_calls_are_root_only() {
 	// GIVEN a chain that has not been migrated into.
 	new_test_ext().execute_with(|| {
-		// WHEN a signed account drives the migration. THEN every call is refused. On the real
-		// chain Root is what the relay-chain location converts to, so this is the check that
-		// keeps a local account from driving a migration.
+		// WHEN a signed account drives the migration. THEN every call is refused: root is the
+		// only thing that drives this pallet.
 		assert_noop!(CtMigrator::start_migration(RuntimeOrigin::signed(ALICE)), BadOrigin);
 		assert_noop!(CtMigrator::finish_migration(RuntimeOrigin::signed(ALICE)), BadOrigin);
 		assert_noop!(
@@ -150,7 +149,8 @@ fn a_finish_closes_the_migration() {
 		// WHEN the relay chain signals the end.
 		assert_ok!(CtMigrator::finish_migration(RuntimeOrigin::root()));
 
-		// THEN this chain is done and nothing further was sent: the finish is one-directional.
+		// THEN this chain is done, and the only message sent is still the start's answer: the
+		// finish is one-directional.
 		assert_stage(MigrationStage::MigrationDone);
 		assert_eq!(sent().len(), 1);
 

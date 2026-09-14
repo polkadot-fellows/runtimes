@@ -36,12 +36,13 @@ impl frame_system::Config for Test {
 	type Block = Block;
 }
 
+// Somebody
 pub const ALICE: AccountId = 1;
 
 parameter_types! {
 	/// Every message the pallet successfully sent, in order.
 	pub static SentXcm: Vec<(Location, Xcm<()>)> = vec![];
-	/// Makes the router reject everything, to exercise the unanswerable-start path.
+	/// Makes the router reject everything.
 	pub static SendFails: bool = false;
 }
 

@@ -42,12 +42,13 @@ impl frame_system::Config for Test {
 
 /// The account the mock treats as the Coretime chain's dispatch origin.
 pub const CORETIME: AccountId = 1005;
-/// Any other account, to prove the origin check is not just "somebody".
+
+/// Somebody
 pub const ALICE: AccountId = 1;
 
 pub const CT_PARA_ID: u32 = 1005;
 pub const COOL_OFF: u64 = 10;
-/// Relay-chain block time, so the mock clock advances the way a real one does.
+/// Relay-chain block time
 pub const BLOCK_TIME_MS: u64 = 6_000;
 
 parameter_types! {
@@ -63,7 +64,7 @@ parameter_types! {
 	pub static MockNow: u64 = BLOCK_TIME_MS;
 }
 
-/// Stands in for `pallet_timestamp`, which the pallet only needs through [`Time`].
+/// Stands in for `pallet_timestamp`.
 pub struct MockTime;
 
 impl Time for MockTime {

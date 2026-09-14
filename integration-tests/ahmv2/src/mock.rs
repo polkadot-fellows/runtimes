@@ -57,7 +57,8 @@ pub mod network {
 	pub use polkadot_runtime as relay;
 	pub use polkadot_runtime_constants as constants;
 
-	pub const NAME: &str = "Polkadot";
+	pub const RELAY_NAME: &str = "Polkadot Relay";
+	pub const CT_NAME: &str = "Polkadot Coretime";
 }
 
 #[cfg(feature = "kusama")]
@@ -66,7 +67,8 @@ pub mod network {
 	pub use kusama_runtime as relay;
 	pub use kusama_runtime_constants as constants;
 
-	pub const NAME: &str = "Kusama";
+	pub const RELAY_NAME: &str = "Kusama Relay";
+	pub const CT_NAME: &str = "Kusama Coretime";
 }
 
 pub type RuntimeCallFor<P> = <<P as Para>::Runtime as frame_system::Config>::RuntimeCall;
@@ -74,9 +76,7 @@ type MqPallet<P> = pallet_message_queue::Pallet<<P as Para>::Runtime>;
 
 /// A parachain that takes part in the migration.
 ///
-/// Block production and message shuttling are generic over this, so each chain is one impl. The
-/// event bounds are satisfied by the `TryInto<pallet::Event>` impls that `construct_runtime`
-/// generates for every runtime.
+/// Block production and message shuttling are generic over this, so each chain is one impl.
 pub trait Para {
 	type Runtime: frame_system::Config<
 			RuntimeEvent: TryInto<pallet_message_queue::Event<Self::Runtime>>
@@ -116,11 +116,11 @@ pub enum Chain {
 }
 
 impl Chain {
-	/// Human-readable name for assertion and error messages.
+	/// Name for assertion and error messages.
 	pub const fn name(self) -> &'static str {
 		match self {
-			Chain::Relay => network::NAME,
-			Chain::Coretime => "Coretime",
+			Chain::Relay => network::RELAY_NAME,
+			Chain::Coretime => network::CT_NAME,
 		}
 	}
 
@@ -146,8 +146,6 @@ impl Chain {
 		}
 	}
 
-	/// The `just` recipe owns the RPC endpoints, so point the developer at it rather than
-	/// repeating them here.
 	fn missing_snapshot_help(self) -> String {
 		format!(
 			"\n\nSnapshot for the {} chain is missing or unreadable ({} is unset or wrong).\n\
@@ -161,8 +159,7 @@ impl Chain {
 /// Load the externalities of one chain from its snapshot.
 ///
 /// Runs on a worker thread so that `tokio::join!`-ed loads actually run in parallel (snapshot
-/// hydration is CPU-bound). Panics with instructions if the snapshot is not available: a missing
-/// snapshot must fail the test loudly, never skip it.
+/// hydration is CPU-bound). Panics with instructions if the snapshot is not available.
 pub async fn load(chain: Chain) -> TestExternalities {
 	tokio::spawn(async move {
 		sp_tracing::try_init_simple();
@@ -186,7 +183,12 @@ async fn load_snapshot_uncached(chain: Chain) -> RawSnapshot {
 	let abs = std::path::absolute(&path).expect("Could not get absolute path");
 	assert!(abs.exists(), "No file at {}.{}", abs.display(), chain.missing_snapshot_help());
 
-	log::info!("Loading {} snapshot from {}", chain.name(), abs.display());
+	log::info!(
+		target: chain.log_target(),
+		"Loading {} snapshot from {}",
+		chain.name(),
+		abs.display()
+	);
 	// The `Block` type is only used for header decoding in online mode; `RelayBlock` works for
 	// every chain when loading offline snapshots.
 	let ext = Builder::<RelayBlock>::default()
@@ -226,28 +228,23 @@ pub fn next_block_rc() {
 /// Relay-chain block time, so the harness clock advances the way the real one does.
 pub const RC_BLOCK_TIME_MS: u64 = 6_000;
 
-/// Move the Relay Chain clock on by one block.
-///
-/// Writes `Now` rather than calling `set_timestamp`, which would fire `OnTimestampSet` — Babe on a
-/// relay chain — and that asserts the timestamp's slot equals `CurrentSlot`. This harness does not
-/// run Babe, so its slot never moves.
+/// Move the Relay Chain clock on by one block
 fn advance_timestamp_rc() {
 	let now = pallet_timestamp::Now::<RelayRuntime>::get();
 	pallet_timestamp::Now::<RelayRuntime>::put(now + RC_BLOCK_TIME_MS);
 }
 
-/// The Relay Chain's current timestamp, in milliseconds.
+/// The Relay Chain's current timestamp, in milliseconds
 pub fn now_ms_rc() -> u64 {
 	pallet_timestamp::Now::<RelayRuntime>::get()
 }
 
-/// Set the Relay Chain's block number, to skip a wait the test is not trying to measure.
+/// Set the Relay Chain's block number
 pub fn set_block_number_rc(now: BlockNumberFor<RelayRuntime>) {
 	frame_system::Pallet::<RelayRuntime>::set_block_number(now);
 }
 
-/// Execute the next block on parachain `P`. Runs only `MessageQueue`; same per-block assertions
-/// as [`next_block_rc`].
+/// Execute the next block on parachain `P`
 pub fn next_block_para<P: Para>() {
 	next_block::<P::Runtime>(P::CHAIN, |now| {
 		let weight = <MqPallet<P> as OnInitialize<_>>::on_initialize(now);
@@ -258,8 +255,7 @@ pub fn next_block_para<P: Para>() {
 
 /// Shared block-execution skeleton: bump the block number, reset events, run the chain's hooks,
 /// then assert that no message failed processing and that the consumed weight stays below 80% of
-/// the block limit. The per-block assertions live here, in one place, so they cannot drift apart
-/// between the chains.
+/// the block limit.
 fn next_block<T>(chain: Chain, hooks: impl FnOnce(BlockNumberFor<T>) -> Weight)
 where
 	T: frame_system::Config + pallet_message_queue::Config,
@@ -324,9 +320,6 @@ pub fn take_ump<P: Para>() -> Vec<UpwardMessage> {
 }
 
 /// Enqueue DMP messages on the message queue of parachain `P`.
-///
-/// Goes straight to the message queue instead of through `set_validation_data`, which would need
-/// a relay-chain state proof the harness has no way to produce.
 pub fn enqueue_dmp<P: Para>(msgs: Vec<InboundDownwardMessage>) {
 	log::info!(target: P::CHAIN.log_target(), "Received {} DMP messages from RC", msgs.len());
 	for msg in msgs {
@@ -357,7 +350,8 @@ pub fn enqueue_ump(para: ParaId, msgs: Vec<UpwardMessage>) {
 }
 
 /// Decode a forwarded XCM and, for every `Transact` in it, check that the receiving runtime can
-/// decode the inner call. This is what catches encode/decode drift between the chains.
+/// decode the inner call.
+// Catches encode/decode drift between the chains.
 fn sanity_check_xcm<Call: Decode + GetDispatchInfo>(msg: &[u8]) {
 	let versioned = VersionedXcm::<Call>::decode(&mut &msg[..]).expect("Must decode forwarded XCM");
 	let xcm: Xcm<Call> =

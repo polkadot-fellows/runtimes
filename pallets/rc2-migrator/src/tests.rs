@@ -222,6 +222,21 @@ fn a_failed_send_leaves_the_stage_alone_for_a_retry() {
 		run_blocks(1);
 		assert_stage(Stage::WaitingForCt);
 		assert_eq!(sent().len(), 1);
+
+		// WHEN the finish signal is the one that cannot be sent. THEN the verification window
+		// stays open rather than closing on a signal the Coretime chain never received.
+		let end_at = System::block_number() + COOL_OFF;
+		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::CoolOff { end_at }));
+		SendFails::set(true);
+		run_blocks(COOL_OFF + 5);
+		assert_stage(Stage::CoolOff { end_at });
+		assert_eq!(sent().len(), 1);
+
+		// WHEN the router recovers. THEN the finish goes out and the machine closes.
+		SendFails::set(false);
+		run_blocks(1);
+		assert_stage(Stage::MigrationDone);
+		assert_eq!(sent_call(1), CtRuntimeCall::CtMigrator(CtMigratorCall::FinishMigration));
 	});
 }
 
@@ -293,7 +308,7 @@ fn the_machine_runs_from_pending_to_done() {
 		// in that order.
 		assert_stage(Stage::MigrationDone);
 		assert_eq!(
-			sent().iter().enumerate().map(|(i, _)| sent_call(i)).collect::<Vec<_>>(),
+			(0..sent().len()).map(sent_call).collect::<Vec<_>>(),
 			vec![
 				CtRuntimeCall::CtMigrator(CtMigratorCall::StartMigration),
 				CtRuntimeCall::CtMigrator(CtMigratorCall::FinishMigration),
