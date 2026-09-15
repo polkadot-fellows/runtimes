@@ -170,6 +170,9 @@ pub mod pallet {
 
 		/// How long the machine parks in [`MigrationStage::CoolOff`] before finishing.
 		type CoolOffPeriod: Get<BlockNumberFor<Self>>;
+
+		/// The origin that may schedule and force the migration.
+		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 	}
 
 	#[pallet::pallet]
@@ -212,7 +215,7 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn schedule_migration(origin: OriginFor<T>, start: MomentOf<T>) -> DispatchResult {
-			ensure_root(origin)?;
+			T::AdminOrigin::ensure_origin(origin)?;
 			ensure!(
 				RcMigrationStage::<T>::get() == MigrationStage::Pending,
 				Error::<T>::AlreadyScheduled
@@ -229,7 +232,7 @@ pub mod pallet {
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
-			ensure_root(origin)?;
+			T::AdminOrigin::ensure_origin(origin)?;
 
 			Self::transition(stage);
 			Ok(())

@@ -20,11 +20,13 @@
 //! Compiled only with the `ahm-v2` feature, which released runtimes do not enable. The
 //! integration tests turn it on to drive the real runtime.
 
-use crate::{xcm_config::XcmRouter, Runtime, RuntimeEvent};
+use crate::{xcm_config::XcmRouter, AccountId, Runtime, RuntimeEvent};
+use frame_system::EnsureRoot;
 
 impl pallet_ct_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = XcmRouter;
+	type AdminOrigin = EnsureRoot<AccountId>;
 }
 
 #[cfg(test)]

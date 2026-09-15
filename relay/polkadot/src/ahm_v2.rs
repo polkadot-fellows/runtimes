@@ -22,9 +22,10 @@
 
 use crate::{
 	xcm_config::{CoretimeLocation, XcmRouter},
-	BlockNumber, BrokerId, Runtime, RuntimeEvent,
+	AccountId, BlockNumber, BrokerId, Runtime, RuntimeEvent,
 };
 use frame_support::{parameter_types, traits::Equals};
+use frame_system::EnsureRoot;
 use pallet_xcm::EnsureXcm;
 use polkadot_runtime_constants::time::MINUTES;
 
@@ -40,6 +41,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type TimeProvider = crate::Timestamp;
 	type CtOrigin = EnsureXcm<Equals<CoretimeLocation>>;
 	type CoolOffPeriod = MigrationCoolOffPeriod;
+	type AdminOrigin = EnsureRoot<AccountId>;
 }
 
 #[cfg(test)]

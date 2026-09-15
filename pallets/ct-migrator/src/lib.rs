@@ -39,7 +39,7 @@ mod tests;
 pub use pallet::*;
 
 use alloc::vec;
-use frame_support::pallet_prelude::*;
+use frame_support::{pallet_prelude::*, traits::EnsureOrigin};
 use frame_system::pallet_prelude::*;
 use xcm::prelude::*;
 
@@ -107,6 +107,9 @@ pub mod pallet {
 
 		/// Router for XCM messages to the relay chain.
 		type SendXcm: SendXcm;
+
+		/// The origin that may force the migration stage on this chain.
+		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 	}
 
 	#[pallet::pallet]
@@ -175,7 +178,7 @@ pub mod pallet {
 		#[pallet::call_index(2)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
-			ensure_root(origin)?;
+			T::AdminOrigin::ensure_origin(origin)?;
 
 			Self::transition(stage);
 			Ok(())

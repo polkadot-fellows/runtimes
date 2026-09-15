@@ -18,6 +18,7 @@
 
 use crate as pallet_ct_migrator;
 use frame_support::{derive_impl, parameter_types};
+use frame_system::EnsureRoot;
 use sp_runtime::BuildStorage;
 use xcm::prelude::*;
 
@@ -75,6 +76,7 @@ impl SendXcm for RecordingRouter {
 impl pallet_ct_migrator::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = RecordingRouter;
+	type AdminOrigin = EnsureRoot<AccountId>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

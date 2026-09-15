@@ -21,7 +21,7 @@ use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{OnInitialize, Time},
 };
-use frame_system::EnsureSignedBy;
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_runtime::BuildStorage;
 use xcm::prelude::*;
 
@@ -112,6 +112,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type TimeProvider = MockTime;
 	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId>;
 	type CoolOffPeriod = CoolOffPeriod;
+	type AdminOrigin = EnsureRoot<AccountId>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
