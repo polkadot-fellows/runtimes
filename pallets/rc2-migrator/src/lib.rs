@@ -18,6 +18,10 @@
 //! Drives the migration stage machine: drains legacy `paras_registrar` and `hrmp` state together
 //! with their deposits and sends everything to the counterpart `pallet-ct-migrator` over XCM.
 //! Temporary pallet; removed once the migration is complete.
+//!
+//! The AHM v1 migrators are the reference for the stage machine, the manager and the origins.
+//! They were removed in polkadot-fellows/runtimes#1016; read them at
+//! `https://github.com/polkadot-fellows/runtimes/tree/985df25829b3385730ff66acc50161ac57f0692c/pallets/rc-migrator`.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -60,9 +64,12 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	},
 	/// Halts the machine without ending the migration. Entered and left only via
 	/// [`Pallet::force_set_stage`].
+	// TODO(ahm-v2): nothing to halt until the data stages exist.
 	Paused,
 	/// Waiting for the Coretime chain to confirm that it is ready to receive data.
 	WaitingForCt,
+	// TODO(ahm-v2): every variant from here to `TiCorrection` is declared but not driven --
+	// `progress_migration` goes from `WaitingForCt` straight to `CoolOff`.
 	/// Account balances, their reserves, and the holds those reserves become.
 	AccountsInit,
 	AccountsOngoing {
@@ -307,7 +314,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Ensure the origin is [`Config::AdminOrigin`] or signed by the [`Manager`].
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
-		    // TODO(ahm-v2): allow hardcoded local multisig to act as manager as well.
+			// TODO(ahm-v2): allow hardcoded local multisig to act as manager as well.
 			if let Ok(who) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().is_some_and(|manager| manager == who) {
 					return Ok(());
@@ -324,6 +331,9 @@ pub mod pallet {
 				// The scheduled start is compared against the clock, which at `on_initialize` still
 				// holds the previous block's timestamp -- so the migration begins on the first
 				// block after the one whose timestamp passed `start`.
+				// TODO(ahm-v2): Add warmup stagelock down before signalling. Both chains filter
+				// the calls whose state is about to move, then the machine waits for the UMP/DMP
+				//  queues to drain, and only then does the handshake begin.
 				MigrationStage::Scheduled { start } if T::TimeProvider::now() >= start => {
 					if Self::send_to_ct(CtMigratorCall::StartMigration).is_ok() {
 						Self::transition(MigrationStage::WaitingForCt);

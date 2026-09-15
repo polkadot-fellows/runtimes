@@ -146,6 +146,8 @@ pub mod pallet {
 			// relay chain origin converts to root.
 			ensure_root(origin)?;
 
+			// TODO(ahm-v2): lock this chain down before answering -- the calls whose state is
+			// about to move are filtered from here until the migration ends.
 			match CtMigrationStage::<T>::get() {
 				// try send xcm before updating stage.
 				MigrationStage::Pending => {
