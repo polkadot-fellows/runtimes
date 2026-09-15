@@ -54,8 +54,6 @@ pub const BLOCK_TIME_MS: u64 = 6_000;
 
 parameter_types! {
 	pub const CtParaId: u32 = CT_PARA_ID;
-	pub const WarmUpPeriod: u64 = WARM_UP;
-	pub const CoolOffPeriod: u64 = COOL_OFF;
 
 	/// Every message the pallet successfully sent, in order.
 	pub static SentXcm: Vec<(Location, Xcm<()>)> = vec![];
@@ -113,8 +111,6 @@ impl pallet_rc2_migrator::Config for Test {
 	type CtParaId = CtParaId;
 	type TimeProvider = MockTime;
 	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId>;
-	type WarmUpPeriod = WarmUpPeriod;
-	type CoolOffPeriod = CoolOffPeriod;
 	type AdminOrigin = EnsureRoot<AccountId>;
 }
 

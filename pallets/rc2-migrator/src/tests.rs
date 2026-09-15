@@ -63,10 +63,13 @@ fn a_pending_migration_does_nothing_at_all() {
 fn only_root_can_schedule_and_only_into_the_future() {
 	new_test_ext().execute_with(|| {
 		// WHEN a signed account tries to schedule. THEN it is refused.
-		assert_noop!(Rc2Migrator::schedule_migration(RuntimeOrigin::signed(ALICE), 10), BadOrigin);
+		assert_noop!(
+			Rc2Migrator::schedule_migration(RuntimeOrigin::signed(ALICE), 10, WARM_UP, COOL_OFF),
+			BadOrigin
+		);
 		// Being the Coretime chain confers no scheduling power either.
 		assert_noop!(
-			Rc2Migrator::schedule_migration(RuntimeOrigin::signed(CORETIME), 10),
+			Rc2Migrator::schedule_migration(RuntimeOrigin::signed(CORETIME), 10, WARM_UP, COOL_OFF),
 			BadOrigin
 		);
 
@@ -74,23 +77,33 @@ fn only_root_can_schedule_and_only_into_the_future() {
 		// past would begin the migration on the very next block.
 		let now = now_ms();
 		assert_noop!(
-			Rc2Migrator::schedule_migration(RuntimeOrigin::root(), now),
+			Rc2Migrator::schedule_migration(RuntimeOrigin::root(), now, WARM_UP, COOL_OFF),
 			Error::<Test>::StartInPast
 		);
 		assert_noop!(
-			Rc2Migrator::schedule_migration(RuntimeOrigin::root(), now - 1),
+			Rc2Migrator::schedule_migration(RuntimeOrigin::root(), now - 1, WARM_UP, COOL_OFF),
 			Error::<Test>::StartInPast
 		);
 
 		// WHEN root schedules a future moment. THEN the machine is armed.
 		let start = now + 5 * BLOCK_TIME_MS;
-		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::root(),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
 		assert_stage(Stage::Scheduled { start });
 
 		// WHEN root schedules again. THEN it is refused, so a second governance call cannot
 		// silently move a start date that is already committed.
 		assert_noop!(
-			Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start + BLOCK_TIME_MS),
+			Rc2Migrator::schedule_migration(
+				RuntimeOrigin::root(),
+				start + BLOCK_TIME_MS,
+				WARM_UP,
+				COOL_OFF
+			),
 			Error::<Test>::AlreadyScheduled
 		);
 	});
@@ -109,7 +122,12 @@ fn the_manager_drives_the_migration_but_cannot_appoint_one() {
 
 		// WHEN the manager schedules and cancels. THEN both are accepted.
 		let start = now_ms() + 5 * BLOCK_TIME_MS;
-		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::signed(ALICE), start));
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::signed(ALICE),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
 		assert_stage(Stage::Scheduled { start });
 		assert_ok!(Rc2Migrator::cancel_migration(RuntimeOrigin::signed(ALICE)));
 		assert_stage(Stage::Pending);
@@ -150,7 +168,12 @@ fn a_scheduled_migration_can_be_cancelled_and_scheduled_again() {
 	// GIVEN a scheduled migration.
 	new_test_ext().execute_with(|| {
 		let start = now_ms() + 5 * BLOCK_TIME_MS;
-		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::root(),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
 
 		// WHEN a signed account cancels. THEN it is refused.
 		assert_noop!(Rc2Migrator::cancel_migration(RuntimeOrigin::signed(ALICE)), BadOrigin);
@@ -160,7 +183,12 @@ fn a_scheduled_migration_can_be_cancelled_and_scheduled_again() {
 		assert_ok!(Rc2Migrator::cancel_migration(RuntimeOrigin::root()));
 		assert_stage(Stage::Pending);
 		let start = now_ms() + 2 * BLOCK_TIME_MS;
-		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::root(),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
 		assert_stage(Stage::Scheduled { start });
 
 		// WHEN the start has passed and the Coretime chain has been signalled. THEN cancelling is
@@ -179,7 +207,12 @@ fn a_scheduled_migration_starts_once_the_clock_passes_it_and_not_before() {
 	// GIVEN a migration scheduled two blocks' worth of time ahead.
 	new_test_ext().execute_with(|| {
 		let start = now_ms() + 2 * BLOCK_TIME_MS;
-		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::root(),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
 
 		// WHEN the blocks before it pass. THEN nothing is sent and the stage holds: the relay
 		// chain serves its users normally right up to the start.
@@ -202,7 +235,12 @@ fn the_start_signal_is_the_message_the_coretime_chain_expects() {
 	// GIVEN a migration whose start has just passed.
 	new_test_ext().execute_with(|| {
 		let start = now_ms() + BLOCK_TIME_MS;
-		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::root(),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
 
 		// WHEN the machine sends its start signal.
 		run_blocks(2);
@@ -248,7 +286,15 @@ fn waiting_for_coretime_never_advances_on_its_own() {
 fn only_the_coretime_chain_can_confirm_readiness() {
 	// GIVEN a machine waiting for the Coretime chain.
 	new_test_ext().execute_with(|| {
-		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::WaitingForCt));
+		let start = now_ms() + BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::root(),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
+		run_blocks(2);
+		assert_stage(Stage::WaitingForCt);
 
 		// WHEN anyone else confirms, root included. THEN it is refused.
 		assert_noop!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(ALICE)), BadOrigin);
@@ -313,7 +359,12 @@ fn a_failed_send_leaves_the_stage_alone_for_a_retry() {
 	// GIVEN a scheduled migration and a router that refuses everything.
 	new_test_ext().execute_with(|| {
 		let start = now_ms() + BLOCK_TIME_MS;
-		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::root(),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
 		SendFails::set(true);
 
 		// WHEN the start passes. THEN the machine has not advanced and nothing was sent: a lost
@@ -395,7 +446,12 @@ fn the_machine_runs_from_pending_to_done() {
 	// GIVEN a scheduled migration and a Coretime chain that answers.
 	new_test_ext().execute_with(|| {
 		let start = now_ms() + BLOCK_TIME_MS;
-		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::root(),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
 
 		// WHEN the start passes.
 		run_blocks(2);
@@ -439,10 +495,46 @@ fn the_machine_runs_from_pending_to_done() {
 }
 
 #[test]
+fn the_scheduled_windows_are_the_ones_the_machine_holds_for() {
+	// GIVEN a migration scheduled with windows shorter than the ones the other tests use.
+	new_test_ext().execute_with(|| {
+		let short_warm_up = WARM_UP - 2;
+		let short_cool_off = COOL_OFF - 5;
+		let start = now_ms() + BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::root(),
+			start,
+			short_warm_up,
+			short_cool_off
+		));
+
+		// WHEN the handshake completes. THEN the warm-up runs for the scheduled window.
+		run_blocks(2);
+		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)));
+		assert_stage(Stage::WarmUp { end_at: System::block_number() + short_warm_up });
+
+		// WHEN it elapses. THEN the cool-off runs for the scheduled window too.
+		run_blocks(short_warm_up);
+		assert_stage(Stage::CoolOff { end_at: System::block_number() + short_cool_off });
+
+		// WHEN it elapses. THEN the machine is done.
+		run_blocks(short_cool_off);
+		assert_stage(Stage::MigrationDone);
+	});
+}
+
+#[test]
 fn the_warm_up_holds_for_its_period_and_can_be_halted() {
 	// GIVEN a machine the Coretime chain has just confirmed.
 	new_test_ext().execute_with(|| {
-		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::WaitingForCt));
+		let start = now_ms() + BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::root(),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
+		run_blocks(2);
 		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)));
 		let end_at = System::block_number() + WARM_UP;
 		let sent_so_far = sent().len();

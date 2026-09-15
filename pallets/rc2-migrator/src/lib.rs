@@ -179,12 +179,6 @@ pub mod pallet {
 		/// The origin that the Coretime chain's messages dispatch with on this chain.
 		type CtOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
-		/// How long the machine parks in [`MigrationStage::WarmUp`] before sending any data.
-		type WarmUpPeriod: Get<BlockNumberFor<Self>>;
-
-		/// How long the machine parks in [`MigrationStage::CoolOff`] before finishing.
-		type CoolOffPeriod: Get<BlockNumberFor<Self>>;
-
 		/// The origin that may schedule and force the migration.
 		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 	}
@@ -195,6 +189,14 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::unbounded]
 	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageOf<T>, ValueQuery>;
+
+	/// How long [`MigrationStage::WarmUp`] holds, as the scheduled migration set it.
+	#[pallet::storage]
+	pub type WarmUpPeriod<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+
+	/// How long [`MigrationStage::CoolOff`] holds, as the scheduled migration set it.
+	#[pallet::storage]
+	pub type CoolOffPeriod<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
 	/// An account that may drive the migration alongside [`Config::AdminOrigin`], except that it
 	/// cannot appoint a manager itself.
@@ -235,10 +237,18 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Schedule the migration to begin at `start`.
 		///
+		/// `warm_up` is how long both chains stay locked down before any data moves, and
+		/// `cool_off` how long they stay locked down after it, for verification.
+		///
 		/// The only way out of [`MigrationStage::Pending`] other than `force_set_stage`.
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
-		pub fn schedule_migration(origin: OriginFor<T>, start: MomentOf<T>) -> DispatchResult {
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 3))]
+		pub fn schedule_migration(
+			origin: OriginFor<T>,
+			start: MomentOf<T>,
+			warm_up: BlockNumberFor<T>,
+			cool_off: BlockNumberFor<T>,
+		) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 			ensure!(
 				RcMigrationStage::<T>::get() == MigrationStage::Pending,
@@ -246,6 +256,8 @@ pub mod pallet {
 			);
 			ensure!(start > T::TimeProvider::now(), Error::<T>::StartInPast);
 
+			WarmUpPeriod::<T>::put(warm_up);
+			CoolOffPeriod::<T>::put(cool_off);
 			Self::transition(MigrationStage::Scheduled { start });
 			Ok(())
 		}
@@ -275,7 +287,7 @@ pub mod pallet {
 				Error::<T>::NotWaitingForCt
 			);
 
-			let end_at = frame_system::Pallet::<T>::block_number() + T::WarmUpPeriod::get();
+			let end_at = frame_system::Pallet::<T>::block_number() + WarmUpPeriod::<T>::get();
 			Self::transition(MigrationStage::WarmUp { end_at });
 			Ok(())
 		}
@@ -348,10 +360,11 @@ pub mod pallet {
 				},
 				// TODO(ahm-v2): the data stages run from here, once they exist.
 				MigrationStage::WarmUp { end_at } if now >= end_at => {
-					let end_at = now + T::CoolOffPeriod::get();
+					let end_at = now + CoolOffPeriod::<T>::get();
 					Self::transition(MigrationStage::CoolOff { end_at });
 					T::DbWeight::get().reads_writes(2, 2)
 				},
+				// wait cool off period before finishing migration
 				MigrationStage::CoolOff { end_at } if now >= end_at => {
 					if Self::send_to_ct(CtMigratorCall::FinishMigration).is_ok() {
 						Self::transition(MigrationStage::MigrationDone);
