@@ -356,30 +356,31 @@ fn the_machine_runs_from_pending_to_done() {
 
 #[test]
 fn the_stage_predicates_say_what_their_consumers_need() {
-	fn expected(stage: &Stage) -> (bool, bool) {
+	fn expected(stage: &Stage) -> (bool, bool, bool) {
 		match stage {
-			//                              ongoing, finished
-			Stage::Pending => (false, false),
-			Stage::Scheduled { .. } => (false, false),
-			Stage::Paused => (true, false),
-			Stage::WaitingForCt => (true, false),
-			Stage::AccountsInit => (true, false),
-			Stage::AccountsOngoing { .. } => (true, false),
-			Stage::AccountsDone => (true, false),
-			Stage::ProxyInit => (true, false),
-			Stage::ProxyOngoing { .. } => (true, false),
-			Stage::ProxyDone => (true, false),
-			Stage::RegistrarInit => (true, false),
-			Stage::RegistrarOngoing { .. } => (true, false),
-			Stage::RegistrarDone => (true, false),
-			Stage::HrmpInit => (true, false),
-			Stage::HrmpOngoing { .. } => (true, false),
-			Stage::HrmpDone => (true, false),
-			Stage::Sweep => (true, false),
-			Stage::SweepDust { .. } => (true, false),
-			Stage::TiCorrection => (true, false),
-			Stage::CoolOff { .. } => (true, false),
-			Stage::MigrationDone => (false, true),
+			//                              ongoing, started, finished
+			Stage::Pending => (false, false, false),
+			Stage::Scheduled { .. } => (false, false, false),
+			Stage::Paused => (true, true, false),
+			Stage::WaitingForCt => (true, true, false),
+			Stage::AccountsInit => (true, true, false),
+			Stage::AccountsOngoing { .. } => (true, true, false),
+			Stage::AccountsDone => (true, true, false),
+			Stage::ProxyInit => (true, true, false),
+			Stage::ProxyOngoing { .. } => (true, true, false),
+			Stage::ProxyDone => (true, true, false),
+			Stage::RegistrarInit => (true, true, false),
+			Stage::RegistrarOngoing { .. } => (true, true, false),
+			Stage::RegistrarDone => (true, true, false),
+			Stage::HrmpInit => (true, true, false),
+			Stage::HrmpOngoing { .. } => (true, true, false),
+			Stage::HrmpDone => (true, true, false),
+			Stage::Sweep => (true, true, false),
+			Stage::SweepDust { .. } => (true, true, false),
+			Stage::TiCorrection => (true, true, false),
+			Stage::CoolOff { .. } => (true, true, false),
+			// `has_started` stays true after the end: what closed when it started must not reopen.
+			Stage::MigrationDone => (false, true, true),
 		}
 	}
 
@@ -408,8 +409,9 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 	];
 
 	for stage in cases {
-		let (ongoing, finished) = expected(&stage);
+		let (ongoing, started, finished) = expected(&stage);
 		assert_eq!(stage.is_ongoing(), ongoing, "is_ongoing for {stage:?}");
+		assert_eq!(stage.has_started(), started, "has_started for {stage:?}");
 		assert_eq!(stage.is_finished(), finished, "is_finished for {stage:?}");
 	}
 }

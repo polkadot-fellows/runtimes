@@ -118,6 +118,12 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(self, Self::Pending | Self::Scheduled { .. } | Self::MigrationDone)
 	}
+
+	/// Whether the machine has left [`Self::Pending`]/[`Self::Scheduled`]. Stays true after
+	/// [`Self::MigrationDone`].
+	pub fn has_started(&self) -> bool {
+		self.is_ongoing() || self.is_finished()
+	}
 }
 
 /// `CtMigrator`'s pallet index in the Coretime (receiver) chain.
