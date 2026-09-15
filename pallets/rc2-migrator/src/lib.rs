@@ -182,6 +182,11 @@ pub mod pallet {
 	#[pallet::unbounded]
 	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageOf<T>, ValueQuery>;
 
+	/// An account that may drive the migration alongside [`Config::AdminOrigin`], except that it
+	/// cannot appoint a manager itself.
+	#[pallet::storage]
+	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The migration can only be scheduled while it is pending.
@@ -194,12 +199,15 @@ pub mod pallet {
 		XcmSendFailed,
 		/// The migration can only be cancelled while it is scheduled.
 		NotScheduled,
+		/// An account that is referenced cannot be appointed manager.
+		AccountReferenced,
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		StageTransition { old: MigrationStageOf<T>, new: MigrationStageOf<T> },
+		ManagerSet { old: Option<T::AccountId>, new: Option<T::AccountId> },
 	}
 
 	#[pallet::hooks]
@@ -217,7 +225,7 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn schedule_migration(origin: OriginFor<T>, start: MomentOf<T>) -> DispatchResult {
-			T::AdminOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 			ensure!(
 				RcMigrationStage::<T>::get() == MigrationStage::Pending,
 				Error::<T>::AlreadyScheduled
@@ -234,7 +242,7 @@ pub mod pallet {
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
-			T::AdminOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 
 			Self::transition(stage);
 			Ok(())
@@ -264,7 +272,7 @@ pub mod pallet {
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn cancel_migration(origin: OriginFor<T>) -> DispatchResult {
-			T::AdminOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 			ensure!(
 				matches!(RcMigrationStage::<T>::get(), MigrationStage::Scheduled { .. }),
 				Error::<T>::NotScheduled
@@ -273,9 +281,42 @@ pub mod pallet {
 			Self::transition(MigrationStage::Pending);
 			Ok(())
 		}
+
+		/// Appoint or remove the [`Manager`].
+		///
+		/// The account must be unreferenced, so that the migration can reap it at the end.
+		#[pallet::call_index(4)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
+			T::AdminOrigin::ensure_origin(origin)?;
+			if let Some(ref who) = new {
+				ensure!(
+					frame_system::Pallet::<T>::consumers(who) == 0,
+					Error::<T>::AccountReferenced
+				);
+				// TODO(ahm-v2): Manager account will be preserved and kept funded until
+				// the cool-off reaps it.
+			}
+			let old = Manager::<T>::get();
+			Manager::<T>::set(new.clone());
+			Self::deposit_event(Event::ManagerSet { old, new });
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Ensure the origin is [`Config::AdminOrigin`] or signed by the [`Manager`].
+		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
+		    // TODO(ahm-v2): allow hardcoded local multisig to act as manager as well.
+			if let Ok(who) = ensure_signed(origin.clone()) {
+				if Manager::<T>::get().is_some_and(|manager| manager == who) {
+					return Ok(());
+				}
+			}
+			T::AdminOrigin::ensure_origin(origin)?;
+			Ok(())
+		}
+
 		/// One block of the stage machine.
 		// TODO(ahm-v2): proper benchmark
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {

@@ -15,7 +15,7 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	mock::*, CtMigratorCall, CtRuntimeCall, Error, Event, MigrationStage, RcMigrationStage,
+	mock::*, CtMigratorCall, CtRuntimeCall, Error, Event, Manager, MigrationStage, RcMigrationStage,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -93,6 +93,55 @@ fn only_root_can_schedule_and_only_into_the_future() {
 			Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start + BLOCK_TIME_MS),
 			Error::<Test>::AlreadyScheduled
 		);
+	});
+}
+
+#[test]
+fn the_manager_drives_the_migration_but_cannot_appoint_one() {
+	// GIVEN Alice appointed manager by the admin origin.
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Rc2Migrator::set_manager(RuntimeOrigin::signed(ALICE), Some(ALICE)),
+			BadOrigin
+		);
+		assert_ok!(Rc2Migrator::set_manager(RuntimeOrigin::root(), Some(ALICE)));
+		assert_eq!(Manager::<Test>::get(), Some(ALICE));
+
+		// WHEN the manager schedules and cancels. THEN both are accepted.
+		let start = now_ms() + 5 * BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::signed(ALICE), start));
+		assert_stage(Stage::Scheduled { start });
+		assert_ok!(Rc2Migrator::cancel_migration(RuntimeOrigin::signed(ALICE)));
+		assert_stage(Stage::Pending);
+
+		// WHEN the manager forces a stage. THEN it is accepted: the manager has the admin
+		// origin's powers over the machine.
+		assert_ok!(Rc2Migrator::force_set_stage(
+			RuntimeOrigin::signed(ALICE),
+			Stage::MigrationDone
+		));
+		assert_stage(Stage::MigrationDone);
+
+		// WHEN the manager appoints a manager. THEN it is refused, so the appointment stays with
+		// the admin origin alone.
+		assert_noop!(
+			Rc2Migrator::set_manager(RuntimeOrigin::signed(ALICE), Some(CORETIME)),
+			BadOrigin
+		);
+
+		// WHEN the admin origin appoints an account that something else references. THEN it is
+		// refused: the migration reaps the manager account at the end.
+		frame_system::Pallet::<Test>::inc_providers(&CORETIME);
+		assert_ok!(frame_system::Pallet::<Test>::inc_consumers(&CORETIME));
+		assert_noop!(
+			Rc2Migrator::set_manager(RuntimeOrigin::root(), Some(CORETIME)),
+			Error::<Test>::AccountReferenced
+		);
+
+		// WHEN the admin origin removes the manager. THEN Alice loses the powers.
+		assert_ok!(Rc2Migrator::set_manager(RuntimeOrigin::root(), None));
+		assert_eq!(Manager::<Test>::get(), None);
+		assert_noop!(Rc2Migrator::cancel_migration(RuntimeOrigin::signed(ALICE)), BadOrigin);
 	});
 }
 
