@@ -22,14 +22,11 @@
 
 use crate::{
 	xcm_config::{CoretimeLocation, XcmRouter},
-	AccountId, BlockNumber, BrokerId, Runtime, RuntimeEvent,
+	AccountId, BrokerId, Runtime, RuntimeEvent,
 };
-use frame_support::{parameter_types, traits::Equals};
+use frame_support::traits::Equals;
 use frame_system::EnsureRoot;
 use pallet_xcm::EnsureXcm;
-use polkadot_runtime_constants::time::MINUTES;
-
-parameter_types! {}
 
 impl pallet_rc2_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;

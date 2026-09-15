@@ -19,6 +19,9 @@
 //! with their deposits and sends everything to the counterpart `pallet-ct-migrator` over XCM.
 //! Temporary pallet; removed once the migration is complete.
 //!
+//! Every `TODO(ahm-v2)` here and in `pallet-ct-migrator` is work this migration needs before it
+//! runs for real. Go through all of them before release.
+//!
 //! The AHM v1 migrators are the reference for the stage machine, the manager and the origins.
 //! They were removed in polkadot-fellows/runtimes#1016; read them at
 //! `https://github.com/polkadot-fellows/runtimes/tree/985df25829b3385730ff66acc50161ac57f0692c/pallets/rc-migrator`.
