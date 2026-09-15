@@ -6,6 +6,9 @@ on:
     paths: [ "CHANGELOG.md" ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   collect-release-information:
     runs-on: self-hosted
@@ -47,15 +50,6 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
-
-      - name: Cache target dir
-        uses: actions/cache@v4
-        with:
-          path: "${{ github.workspace }}/${{ matrix.runtime.path }}/target"
-          key: srtool-target-${{ matrix.runtime.path }}-${{ matrix.runtime.name }}-${{ github.sha }}
-          restore-keys: |
-            srtool-target-${{ matrix.runtime.path }}-${{ matrix.runtime.name }}-
-            srtool-target-${{ matrix.runtime.path }}-
 
       - name: Build ${{ matrix.runtime.name }}
         id: srtool_build
@@ -112,6 +106,8 @@ jobs:
   publish-release:
     runs-on: self-hosted
     needs: [ build-runtimes, collect-release-information ]
+    permissions:
+      contents: write
     outputs:
       release_url: ${{ steps.create-release.outputs.html_url }}
       asset_upload_url: ${{ steps.create-release.outputs.upload_url }}
@@ -193,6 +189,8 @@ jobs:
     needs: [ runtime-matrix, publish-release ]
     continue-on-error: true
     runs-on: self-hosted
+    permissions:
+      contents: write
     env:
       RUNTIME_DIR: runtime
     strategy:
@@ -226,6 +224,8 @@ jobs:
   package-try-runtime-and-logging-enabled-wasms:
     needs: [ build-runtimes, publish-release ]
     runs-on: self-hosted
+    permissions:
+      contents: write
     steps:
       - name: Download compact artfacts
         uses: actions/download-artifact@v4

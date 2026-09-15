@@ -14,11 +14,20 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 codec = { features = ["derive"], workspace = true }
 hex-literal = { workspace = true }
+log = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
-serde = { optional = true, features = [
-	"derive",
-], workspace = true }
 serde_json = { features = ["alloc"], workspace = true }
+
+# Bulletin
+bulletin-pallets-common = { workspace = true }
+bulletin-transaction-storage-primitives = { workspace = true }
+pallet-bulletin-data-renewal = { workspace = true }
+pallet-bulletin-hop-promotion = { workspace = true }
+pallet-bulletin-transaction-storage = { workspace = true }
+pallet-bulletin-transaction-storage-runtime-api = { workspace = true }
+sp-hop = { workspace = true }
+
+# Substrate
 frame-benchmarking = { optional = true, workspace = true }
 frame-executive = { workspace = true }
 frame-metadata-hash-extension = { workspace = true }
@@ -39,6 +48,7 @@ pallet-utility = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 sp-api = { workspace = true }
 sp-block-builder = { workspace = true }
+sp-transaction-storage-proof = { workspace = true }
 sp-consensus-aura = { workspace = true }
 sp-core = { workspace = true }
 sp-genesis-builder = { workspace = true }
@@ -49,7 +59,6 @@ sp-session = { workspace = true }
 sp-storage = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
-sp-weights = { workspace = true }
 
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
@@ -62,7 +71,7 @@ xcm-executor = { workspace = true }
 xcm-runtime-apis = { workspace = true }
 
 cumulus-pallet-aura-ext = { workspace = true }
-cumulus-pallet-parachain-system = { workspace = true }
+cumulus-pallet-parachain-system = { features = ["transaction-index"], workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
 cumulus-pallet-weight-reclaim = { workspace = true }
 cumulus-pallet-xcm = { workspace = true }
@@ -74,10 +83,14 @@ cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
 parachain-info = { workspace = true }
 parachains-common = { workspace = true }
+system-parachains-common = { workspace = true }
 system-parachains-constants = { workspace = true }
 
 [dev-dependencies]
+bulletin-transaction-storage-primitives = { workspace = true, features = ["std"] }
 parachains-runtimes-test-utils = { workspace = true }
+pallet-bulletin-data-renewal = { workspace = true, features = ["std"] }
+pallet-bulletin-transaction-storage = { workspace = true, features = ["std"] }
 sp-io = { workspace = true }
 sp-keyring = { workspace = true }
 
@@ -87,6 +100,8 @@ substrate-wasm-builder = { optional = true, workspace = true }
 [features]
 default = ["std"]
 std = [
+	"bulletin-pallets-common/std",
+	"bulletin-transaction-storage-primitives/std",
 	"codec/std",
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-pallet-parachain-system/std",
@@ -105,9 +120,14 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
+	"log/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
 	"pallet-balances/std",
+	"pallet-bulletin-data-renewal/std",
+	"pallet-bulletin-hop-promotion/std",
+	"pallet-bulletin-transaction-storage-runtime-api/std",
+	"pallet-bulletin-transaction-storage/std",
 	"pallet-collator-selection/std",
 	"pallet-message-queue/std",
 	"pallet-session/std",
@@ -124,13 +144,13 @@ std = [
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
 	"scale-info/std",
-	"serde",
 	"serde_json/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
 	"sp-core/std",
 	"sp-genesis-builder/std",
+	"sp-hop/std",
 	"sp-inherents/std",
 	"sp-io/std",
 	"sp-offchain/std",
@@ -138,9 +158,10 @@ std = [
 	"sp-session/std",
 	"sp-storage/std",
 	"sp-transaction-pool/std",
+	"sp-transaction-storage-proof/std",
 	"sp-version/std",
-	"sp-weights/std",
 	"substrate-wasm-builder",
+	"system-parachains-common/std",
 	"system-parachains-constants/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
@@ -148,6 +169,7 @@ std = [
 	"xcm/std",
 ]
 runtime-benchmarks = [
+	"bulletin-pallets-common/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-weight-reclaim/runtime-benchmarks",
@@ -159,6 +181,9 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-bulletin-data-renewal/runtime-benchmarks",
+	"pallet-bulletin-hop-promotion/runtime-benchmarks",
+	"pallet-bulletin-transaction-storage/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-session/runtime-benchmarks",
@@ -173,6 +198,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"system-parachains-common/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
@@ -180,6 +206,7 @@ runtime-benchmarks = [
 	"xcm/runtime-benchmarks",
 ]
 try-runtime = [
+	"bulletin-pallets-common/try-runtime",
 	"cumulus-pallet-aura-ext/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
 	"cumulus-pallet-weight-reclaim/try-runtime",
@@ -192,6 +219,9 @@ try-runtime = [
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
 	"pallet-balances/try-runtime",
+	"pallet-bulletin-data-renewal/try-runtime",
+	"pallet-bulletin-hop-promotion/try-runtime",
+	"pallet-bulletin-transaction-storage/try-runtime",
 	"pallet-collator-selection/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-session/try-runtime",
@@ -204,6 +234,7 @@ try-runtime = [
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
+	"system-parachains-common/try-runtime",
 	"system-parachains-constants/try-runtime",
 ]
 

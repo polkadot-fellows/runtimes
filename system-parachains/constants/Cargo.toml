@@ -19,6 +19,7 @@ polkadot-core-primitives = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-constants = { workspace = true }
 sp-core = { workspace = true }
+sp-dap = { workspace = true }
 sp-runtime = { workspace = true }
 xcm = { workspace = true }
 
@@ -33,6 +34,7 @@ std = [
 	"polkadot-primitives/std",
 	"polkadot-runtime-constants/std",
 	"sp-core/std",
+	"sp-dap/std",
 	"sp-runtime/std",
 	"xcm/std",
 ]

@@ -22,7 +22,7 @@ use pallet_revive::AddressMapper;
 use parachains_common::AssetHubPolkadotAuraId;
 use sp_core::sr25519;
 use sp_genesis_builder::PresetId;
-use system_parachains_constants::genesis_presets::*;
+use system_parachains_constants::{genesis_presets::*, polkadot::INDIVIDUALITY_NETWORK_SUFFIX};
 use xcm::latest::prelude::*;
 use xcm_builder::GlobalConsensusConvertsFor;
 use xcm_executor::traits::ConvertLocation;
@@ -55,7 +55,12 @@ fn asset_hub_polkadot_genesis(
 		.cloned()
 		.map(|k| (k, ASSET_HUB_POLKADOT_ED * 4096 * 4096))
 		.collect();
-	balances.push((Dap::buffer_account(), ASSET_HUB_POLKADOT_ED));
+	// The DAP buffer receives slashes and is the reward pot for the election signed phase. Reward
+	// payouts transfer with `Preservation::Preserve`, so it needs spendable balance above ED,
+	// sized in rounds of `RewardBase`.
+	balances
+		.push((Dap::buffer_account(), ASSET_HUB_POLKADOT_ED + staking::RewardBase::get() * 1_000));
+	// The staging account only receives, so ED is enough for it to exist.
 	balances.push((Dap::staging_account(), ASSET_HUB_POLKADOT_ED));
 
 	serde_json::json!({
@@ -87,6 +92,10 @@ fn asset_hub_polkadot_genesis(
 		},
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
+		},
+		"networkSuffix": NetworkSuffixConfig {
+			network_suffix: INDIVIDUALITY_NETWORK_SUFFIX.to_vec().try_into().expect("network suffix fits"),
+			..Default::default()
 		},
 		"staking": {
 			"validatorCount": 600,

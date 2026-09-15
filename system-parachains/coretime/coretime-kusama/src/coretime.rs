@@ -34,7 +34,7 @@ use pallet_broker::{
 use parachains_common::{AccountId, Balance};
 use sp_runtime::traits::{AccountIdConversion, MaybeConvert};
 use xcm::latest::prelude::*;
-use xcm_config::LocationToAccountId;
+use xcm_config::{AssetHubLocation, LocationToAccountId, UniversalLocation};
 use xcm_executor::traits::{ConvertLocation, TransactAsset};
 
 /// A type containing the encoding of the coretime pallet in the Relay chain runtime. Used to
@@ -86,8 +86,10 @@ impl OnUnbalanced<Credit<AccountId, Balances>> for BurnCoretimeRevenue {
 
 type AssetTransactor = <xcm_config::XcmConfig as xcm_executor::Config>::AssetTransactor;
 
-fn burn_at_relay(stash: &AccountId, value: Balance) -> Result<(), XcmError> {
-	let dest = Location::parent();
+/// Teleports `value` from `stash` to Asset Hub and burns it there. KSM issuance is tracked on Asset
+/// Hub, so a burn anywhere else would not show in the supply.
+fn burn_at_asset_hub(stash: &AccountId, value: Balance) -> Result<(), XcmError> {
+	let dest = AssetHubLocation::get();
 	let stash_location =
 		Junction::AccountId32 { network: None, id: stash.clone().into() }.into_location();
 	let asset = Asset { id: AssetId(Location::parent()), fun: Fungible(value) };
@@ -98,18 +100,18 @@ fn burn_at_relay(stash: &AccountId, value: Balance) -> Result<(), XcmError> {
 	// TODO https://github.com/polkadot-fellows/runtimes/issues/404
 	AssetTransactor::can_check_out(&dest, &asset, &dummy_xcm_context)?;
 
-	let parent_assets = withdrawn.reanchored_assets(&dest, &Here);
+	let assets = withdrawn.reanchored_assets(&dest, &UniversalLocation::get());
 
 	PolkadotXcm::send_xcm(
 		Here,
-		Location::parent(),
+		dest.clone(),
 		Xcm(vec![
 			Instruction::UnpaidExecution {
 				weight_limit: WeightLimit::Unlimited,
 				check_origin: None,
 			},
-			ReceiveTeleportedAsset(parent_assets.clone()),
-			BurnAsset(parent_assets),
+			ReceiveTeleportedAsset(assets.clone()),
+			BurnAsset(assets),
 		]),
 	)?;
 
@@ -208,59 +210,42 @@ impl CoretimeInterface for CoretimeAllocator {
 	) {
 		use crate::coretime::CoretimeProviderCalls::AssignCore;
 
-		// The relay chain currently only allows `assign_core` to be called with a complete mask
-		// and only ever with increasing `begin`. The assignments must be truncated to avoid
-		// dropping that core's assignment completely.
+		// A maximum of 28 assignments fit in one message. Fortunately the relay chain allows
+		// chunking, so we just split the assignments into chunks of 28 and send multiple messages.
+		// This will get reassembled into a full list of assignments on the relay chain side.
 
-		// This shadowing of `assignment` is temporary and can be removed when the relay can accept
-		// multiple messages to assign a single core.
-		let assignment = if assignment.len() > 28 {
-			let mut total_parts = 0u16;
-			// Account for missing parts with a new `Idle` assignment at the start as
-			// `assign_core` on the relay assumes this is sorted. We'll add the rest of the
-			// assignments and sum the parts in one pass, so this is just initialized to 0.
-			let mut assignment_truncated = vec![(CoreAssignment::Idle, 0)];
-			// Truncate to first 27 non-idle assignments.
-			assignment_truncated.extend(
-				assignment
-					.into_iter()
-					.filter(|(a, _)| *a != CoreAssignment::Idle)
-					.take(27)
-					.inspect(|(_, parts)| total_parts += *parts)
-					.collect::<Vec<_>>(),
-			);
+		for chunk in assignment.chunks(28) {
+			let partial_assignment = chunk.to_vec();
 
-			// Set the parts of the `Idle` assignment we injected at the start of the vec above.
-			assignment_truncated[0].1 = 57_600u16.saturating_sub(total_parts);
-			assignment_truncated
-		} else {
-			assignment
-		};
+			let assign_core_call = RelayRuntimePallets::Coretime(AssignCore(
+				core,
+				begin,
+				partial_assignment,
+				end_hint,
+			));
 
-		let assign_core_call =
-			RelayRuntimePallets::Coretime(AssignCore(core, begin, assignment, end_hint));
+			let message = Xcm(vec![
+				Instruction::UnpaidExecution {
+					weight_limit: WeightLimit::Unlimited,
+					check_origin: None,
+				},
+				Instruction::Transact {
+					origin_kind: OriginKind::Native,
+					fallback_max_weight: None,
+					call: assign_core_call.encode().into(),
+				},
+			]);
 
-		let message = Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			Instruction::Transact {
-				origin_kind: OriginKind::Native,
-				fallback_max_weight: None,
-				call: assign_core_call.encode().into(),
-			},
-		]);
-
-		match PolkadotXcm::send_xcm(Here, Location::parent(), message) {
-			Ok(_) => log::debug!(
-				target: "runtime::coretime",
-				"Core assignment sent successfully."
-			),
-			Err(e) => log::error!(
-				target: "runtime::coretime",
-				"Core assignment failed to send: {e:?}"
-			),
+			match PolkadotXcm::send_xcm(Here, Location::parent(), message) {
+				Ok(_) => log::debug!(
+					target: "runtime::coretime",
+					"Core assignment sent successfully."
+				),
+				Err(e) => log::error!(
+					target: "runtime::coretime",
+					"Core assignment failed to send: {e:?}"
+				),
+			}
 		}
 	}
 
@@ -279,13 +264,13 @@ impl CoretimeInterface for CoretimeAllocator {
 			Balances::reducible_balance(&stash, Preservation::Expendable, Fortitude::Polite);
 
 		if value > 0 {
-			log::debug!(target: "runtime::coretime", "Going to burn {value} stashed tokens at RC");
-			match burn_at_relay(&stash, value) {
+			log::debug!(target: "runtime::coretime", "Going to burn {value} stashed tokens on Asset Hub");
+			match burn_at_asset_hub(&stash, value) {
 				Ok(()) => {
 					log::debug!(target: "runtime::coretime", "Succesfully burnt {value} tokens");
 				},
 				Err(err) => {
-					log::error!(target: "runtime::coretime", "burn_at_relay failed: {err:?}");
+					log::error!(target: "runtime::coretime", "burn_at_asset_hub failed: {err:?}");
 				},
 			}
 		}

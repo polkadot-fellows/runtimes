@@ -56,6 +56,8 @@ fn bulletin_polkadot_live_genesis(id: ParaId) -> serde_json::Value {
 		Vec::new(),
 		0,
 		id,
+		Vec::new(),
+		Vec::new(),
 	)
 }
 
@@ -64,6 +66,8 @@ fn bulletin_polkadot_genesis(
 	endowed_accounts: Vec<AccountId>,
 	endowment: Balance,
 	id: ParaId,
+	account_authorizations: Vec<(AccountId, u32, u64)>,
+	allowed_authorizers: Vec<(AccountId, u32, u64)>,
 ) -> serde_json::Value {
 	build_struct_json_patch!(RuntimeGenesisConfig {
 		balances: BalancesConfig {
@@ -87,7 +91,24 @@ fn bulletin_polkadot_genesis(
 				.collect(),
 		},
 		polkadot_xcm: PolkadotXcmConfig { safe_xcm_version: Some(SAFE_XCM_VERSION) },
+		transaction_storage: TransactionStorageConfig {
+			account_authorizations,
+			allowed_authorizers,
+			..Default::default()
+		},
 	})
+}
+
+/// Authorizer for the `dev` and `local_testnet` presets: `//Eve`, granted a 100k-transaction
+/// and 100 GiB allowance so those chains can authorize storage from genesis.
+fn testnet_authorizers() -> Vec<(AccountId, u32, u64)> {
+	vec![(get_account_id_from_seed::<sr25519::Public>("Eve"), 100_000, 100 * 1024 * 1024 * 1024)]
+}
+
+/// Account authorization for the `dev` and `local_testnet` presets: `//Alice`, allowed 100
+/// transactions and 10 MiB, so it can store immediately without a prior `authorize_account`.
+fn testnet_account_authorizations() -> Vec<(AccountId, u32, u64)> {
+	vec![(get_account_id_from_seed::<sr25519::Public>("Alice"), 100, 10 * 1024 * 1024)]
 }
 
 /// Provides the JSON representation of predefined genesis config for given `id`.
@@ -100,6 +121,8 @@ pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 			testnet_accounts(),
 			DOT * 1_000_000,
 			BULLETIN_PARA_ID,
+			testnet_account_authorizations(),
+			testnet_authorizers(),
 		),
 		sp_genesis_builder::DEV_RUNTIME_PRESET => bulletin_polkadot_genesis(
 			// initial collators.
@@ -115,6 +138,8 @@ pub fn get_preset(id: &PresetId) -> Option<Vec<u8>> {
 			],
 			DOT * 1_000_000,
 			BULLETIN_PARA_ID,
+			testnet_account_authorizations(),
+			testnet_authorizers(),
 		),
 		_ => return None,
 	};

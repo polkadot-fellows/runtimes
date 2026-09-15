@@ -15,6 +15,8 @@
 
 //! Tests that run against a state snapshot.
 
+mod psm;
+
 use super::*;
 use frame_support::{assert_ok, traits::fungible::Inspect as FungibleInspect};
 use remote_externalities::{Builder, Mode, OfflineConfig};

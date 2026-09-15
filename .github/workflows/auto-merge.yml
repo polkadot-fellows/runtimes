@@ -5,6 +5,9 @@ on:
   issue_comment:
     types: [created]
 
+permissions:
+  contents: read
+
 jobs:
   set-auto-merge:
     runs-on: ubuntu-24.04
@@ -14,7 +17,7 @@ jobs:
     if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/merge') }}
     steps:
       - name: Get the GitHub handle of the fellows
-        uses: paritytech/get-fellows-action@v1.3.2
+        uses: paritytech/get-fellows-action@v1.4.0
         timeout-minutes: 5
         id: fellows
       - name: Generate a token

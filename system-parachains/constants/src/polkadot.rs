@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// Network suffix used to derive Individuality product contexts on Polkadot system chains.
+pub const INDIVIDUALITY_NETWORK_SUFFIX: &[u8] = b"polkadot";
+
 /// Universally recognized accounts.
 pub mod account {
 	use frame_support::PalletId;
@@ -35,6 +38,9 @@ pub mod account {
 	pub const FELLOWSHIP_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/feltr");
 	/// Ambassador treasury pallet ID
 	pub const AMBASSADOR_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/ambtr");
+	/// Accumulate-and-forward pallet ID. Derives the account on the Coretime chain that gathers
+	/// coretime revenue before it is forwarded to the DAP on Asset Hub.
+	pub const ACCUMULATE_FORWARD_PALLET_ID: PalletId = PalletId(*b"acf/dott");
 }
 
 /// Consensus-related.
@@ -60,6 +66,8 @@ pub mod consensus {
 
 	/// Parameters enabling elastic scaling functionality.
 	pub mod elastic_scaling {
+		use parachains_common::BlockNumber;
+
 		/// Build with an offset of 1 behind the relay chain.
 		pub const RELAY_PARENT_OFFSET: u32 = 1;
 
@@ -73,6 +81,17 @@ pub mod consensus {
 		/// into the relay chain.
 		pub const UNINCLUDED_SEGMENT_CAPACITY: u32 =
 			(3 + RELAY_PARENT_OFFSET) * BLOCK_PROCESSING_VELOCITY;
+
+		/// The average expected block time, in milliseconds, of a chain running at
+		/// [`BLOCK_PROCESSING_VELOCITY`].
+		pub const MILLISECS_PER_BLOCK: u64 =
+			(super::RELAY_CHAIN_SLOT_DURATION_MILLIS / BLOCK_PROCESSING_VELOCITY) as u64;
+
+		// Time is measured by number of blocks. Use these, not the six-second-basis
+		// `async_backing` ones, for anything the runtime measures against its own block number.
+		pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+		pub const HOURS: BlockNumber = MINUTES * 60;
+		pub const DAYS: BlockNumber = HOURS * 24;
 	}
 }
 
@@ -126,7 +145,8 @@ pub mod fee {
 
 pub mod locations {
 	use frame_support::{parameter_types, traits::Contains};
-	use xcm::latest::prelude::{Junction::*, Location, NetworkId};
+	use sp_runtime::traits::AccountIdConversion;
+	use xcm::latest::prelude::{InteriorLocation, Junction::*, Location, NetworkId};
 
 	parameter_types! {
 		pub RelayChainLocation: Location = Location::parent();
@@ -138,6 +158,14 @@ pub mod locations {
 		pub GovernanceLocation: Location = Location::parent();
 
 		pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
+
+		/// The DAP staging account on Asset Hub. `pallet-dap` drains it into the DAP buffer and
+		/// deactivates the funds, so inflows meant for the DAP must target this account.
+		pub DapStagingLocation: InteriorLocation = AccountId32 {
+			network: None,
+			id: sp_dap::DAP_PALLET_ID.into_sub_account_truncating(sp_dap::DAP_STAGING_ACCOUNT_ID),
+		}
+		.into();
 	}
 
 	/// `Contains` implementation for the asset hub location pluralities.

@@ -90,13 +90,15 @@ fn testnet_accounts() -> Vec<AccountId> {
 }
 
 fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primitives::BlockNumber> {
-	use polkadot_primitives::{MAX_CODE_SIZE, MAX_POV_SIZE};
+	use polkadot_primitives::MAX_POV_SIZE;
 
 	runtime_parachains::configuration::HostConfiguration {
 		validation_upgrade_cooldown: 2u32,
 		validation_upgrade_delay: 2,
 		code_retention_period: 1200,
-		max_code_size: MAX_CODE_SIZE,
+		// Keep below the 5 MiB block length so code-upgrade benchmarks aren't filtered as
+		// oversized. TODO: https://github.com/paritytech/polkadot-sdk/issues/12969
+		max_code_size: 3 * 1024 * 1024,
 		max_pov_size: MAX_POV_SIZE,
 		max_head_data_size: 32 * 1024,
 		max_upward_queue_count: 8,
