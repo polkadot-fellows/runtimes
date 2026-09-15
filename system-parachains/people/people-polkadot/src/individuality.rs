@@ -387,7 +387,8 @@ pub const ASSET_HUB_MEMBERS_SUBSCRIBER_INDEX: u8 = 97;
 ///
 /// Seeded into storage by the single-use `SeedSubscriptionWhitelist` migration that shipped in
 /// 2.5.0 and has since been removed. This as well as the coresponding
-/// `tests::asset_hub_subscription_whitelist_matches_asset_hub` can stay as temporary record of what was seeded.
+/// `tests::asset_hub_subscription_whitelist_matches_asset_hub` can stay as temporary record of what
+/// was seeded.
 ///
 /// This is what lets Asset Hub Polkadot subscribe without a governance call: the collections,
 /// their exponents and the subscriber pallet index are fixed here, so the permissionless call can
