@@ -64,12 +64,16 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	},
 	/// Halts the machine without ending the migration. Entered and left only via
 	/// [`Pallet::force_set_stage`].
-	// TODO(ahm-v2): nothing to halt until the data stages exist.
 	Paused,
 	/// Waiting for the Coretime chain to confirm that it is ready to receive data.
 	WaitingForCt,
+	/// Both chains are locked down and nothing has moved yet: the window for the queues to drain
+	/// and for an operator to halt the migration before any data is sent.
+	WarmUp {
+		end_at: BlockNumber,
+	},
 	// TODO(ahm-v2): every variant from here to `TiCorrection` is declared but not driven --
-	// `progress_migration` goes from `WaitingForCt` straight to `CoolOff`.
+	// `progress_migration` goes from `WarmUp` straight to `CoolOff`.
 	/// Account balances, their reserves, and the holds those reserves become.
 	AccountsInit,
 	AccountsOngoing {
@@ -175,6 +179,9 @@ pub mod pallet {
 		/// The origin that the Coretime chain's messages dispatch with on this chain.
 		type CtOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
+		/// How long the machine parks in [`MigrationStage::WarmUp`] before sending any data.
+		type WarmUpPeriod: Get<BlockNumberFor<Self>>;
+
 		/// How long the machine parks in [`MigrationStage::CoolOff`] before finishing.
 		type CoolOffPeriod: Get<BlockNumberFor<Self>>;
 
@@ -268,8 +275,8 @@ pub mod pallet {
 				Error::<T>::NotWaitingForCt
 			);
 
-			let end_at = frame_system::Pallet::<T>::block_number() + T::CoolOffPeriod::get();
-			Self::transition(MigrationStage::CoolOff { end_at });
+			let end_at = frame_system::Pallet::<T>::block_number() + T::WarmUpPeriod::get();
+			Self::transition(MigrationStage::WarmUp { end_at });
 			Ok(())
 		}
 
@@ -331,14 +338,19 @@ pub mod pallet {
 				// The scheduled start is compared against the clock, which at `on_initialize` still
 				// holds the previous block's timestamp -- so the migration begins on the first
 				// block after the one whose timestamp passed `start`.
-				// TODO(ahm-v2): Add warmup stagelock down before signalling. Both chains filter
-				// the calls whose state is about to move, then the machine waits for the UMP/DMP
-				//  queues to drain, and only then does the handshake begin.
+				// TODO(ahm-v2): start filtering the calls whose state is about to move, so that
+				// the warm-up drains queues that nothing is refilling.
 				MigrationStage::Scheduled { start } if T::TimeProvider::now() >= start => {
 					if Self::send_to_ct(CtMigratorCall::StartMigration).is_ok() {
 						Self::transition(MigrationStage::WaitingForCt);
 					}
 					T::DbWeight::get().reads_writes(3, 3)
+				},
+				// TODO(ahm-v2): the data stages run from here, once they exist.
+				MigrationStage::WarmUp { end_at } if now >= end_at => {
+					let end_at = now + T::CoolOffPeriod::get();
+					Self::transition(MigrationStage::CoolOff { end_at });
+					T::DbWeight::get().reads_writes(2, 2)
 				},
 				MigrationStage::CoolOff { end_at } if now >= end_at => {
 					if Self::send_to_ct(CtMigratorCall::FinishMigration).is_ok() {

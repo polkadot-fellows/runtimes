@@ -30,6 +30,9 @@ use kusama_runtime_constants::time::MINUTES;
 use pallet_xcm::EnsureXcm;
 
 parameter_types! {
+	/// Lockdown window between the Coretime chain confirming and the first data stage, so the
+	/// message queues drain before anything moves.
+	pub const MigrationWarmUpPeriod: BlockNumber = 30 * MINUTES;
 	/// Manual verification window between the last data stage and finishing.
 	pub const MigrationCoolOffPeriod: BlockNumber = 30 * MINUTES;
 }
@@ -40,6 +43,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type CtParaId = BrokerId;
 	type TimeProvider = crate::Timestamp;
 	type CtOrigin = EnsureXcm<Equals<Broker>>;
+	type WarmUpPeriod = MigrationWarmUpPeriod;
 	type CoolOffPeriod = MigrationCoolOffPeriod;
 	type AdminOrigin = EnsureRoot<AccountId>;
 }

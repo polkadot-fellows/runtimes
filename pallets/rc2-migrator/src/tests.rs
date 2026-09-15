@@ -255,11 +255,10 @@ fn only_the_coretime_chain_can_confirm_readiness() {
 		assert_noop!(Rc2Migrator::ct_ready(RuntimeOrigin::root()), BadOrigin);
 		assert_stage(Stage::WaitingForCt);
 
-		// WHEN the Coretime chain confirms. THEN the machine is admitted to the next stage,
-		// which with no data stages implemented is the verification window.
+		// WHEN the Coretime chain confirms. THEN the machine warms up.
 		let now = System::block_number();
 		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)));
-		assert_stage(Stage::CoolOff { end_at: now + COOL_OFF });
+		assert_stage(Stage::WarmUp { end_at: now + WARM_UP });
 	});
 }
 
@@ -402,8 +401,14 @@ fn the_machine_runs_from_pending_to_done() {
 		run_blocks(2);
 		assert_stage(Stage::WaitingForCt);
 
-		// WHEN the Coretime chain confirms.
+		// WHEN the Coretime chain confirms. THEN the machine warms up: both chains are locked
+		// down and nothing is sent yet.
 		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)));
+		let warm_up_end = System::block_number() + WARM_UP;
+		assert_stage(Stage::WarmUp { end_at: warm_up_end });
+
+		// WHEN the warm-up elapses. THEN the verification window opens.
+		run_blocks(WARM_UP);
 		let end_at = System::block_number() + COOL_OFF;
 		assert_stage(Stage::CoolOff { end_at });
 
@@ -425,10 +430,35 @@ fn the_machine_runs_from_pending_to_done() {
 			vec![
 				(Stage::Pending, Stage::Scheduled { start }),
 				(Stage::Scheduled { start }, Stage::WaitingForCt),
-				(Stage::WaitingForCt, Stage::CoolOff { end_at }),
+				(Stage::WaitingForCt, Stage::WarmUp { end_at: warm_up_end }),
+				(Stage::WarmUp { end_at: warm_up_end }, Stage::CoolOff { end_at }),
 				(Stage::CoolOff { end_at }, Stage::MigrationDone),
 			]
 		);
+	});
+}
+
+#[test]
+fn the_warm_up_holds_for_its_period_and_can_be_halted() {
+	// GIVEN a machine the Coretime chain has just confirmed.
+	new_test_ext().execute_with(|| {
+		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::WaitingForCt));
+		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)));
+		let end_at = System::block_number() + WARM_UP;
+		let sent_so_far = sent().len();
+
+		// WHEN the blocks before the warm-up ends pass. THEN the stage holds and nothing is sent:
+		// the window exists so the queues drain before any data moves.
+		run_blocks(WARM_UP - 1);
+		assert_stage(Stage::WarmUp { end_at });
+		assert_eq!(sent().len(), sent_so_far);
+
+		// WHEN an operator halts inside the window. THEN the machine stops there, having sent
+		// nothing.
+		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::Paused));
+		run_blocks(WARM_UP);
+		assert_stage(Stage::Paused);
+		assert_eq!(sent().len(), sent_so_far);
 	});
 }
 
@@ -441,6 +471,7 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 			Stage::Scheduled { .. } => (false, false, false),
 			Stage::Paused => (true, true, false),
 			Stage::WaitingForCt => (true, true, false),
+			Stage::WarmUp { .. } => (true, true, false),
 			Stage::AccountsInit => (true, true, false),
 			Stage::AccountsOngoing { .. } => (true, true, false),
 			Stage::AccountsDone => (true, true, false),
@@ -467,6 +498,7 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 		Stage::Scheduled { start: 10 },
 		Stage::Paused,
 		Stage::WaitingForCt,
+		Stage::WarmUp { end_at: 10 },
 		Stage::AccountsInit,
 		Stage::AccountsOngoing { last_key: None },
 		Stage::AccountsDone,
