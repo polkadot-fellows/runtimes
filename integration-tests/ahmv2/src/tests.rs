@@ -23,6 +23,7 @@
 use crate::mock::*;
 use codec::Encode;
 use frame_support::assert_ok;
+use polkadot_runtime_constants::system_parachain;
 use xcm::latest::prelude::*;
 
 /// An XCM program that executes `call` on the destination with the sender's sovereign-account
@@ -153,6 +154,8 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 		assert_ok!(pallet_rc2_migrator::Pallet::<network::relay::Runtime>::schedule_migration(
 			network::relay::RuntimeOrigin::root(),
 			start,
+			WARM_UP,
+			COOL_OFF,
 		));
 
 		next_block_rc();
@@ -177,19 +180,24 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 	});
 	assert!(!ump.is_empty(), "the Coretime chain queued no answer for the relay chain");
 
-	// The answer admits the machine to the verification window and, with no data stages
-	// implemented, straight on to the finish.
+	// The answer admits the machine to the warm-up and, with no data stages implemented, on
+	// through the verification window to the finish.
 	let dmp = rc.execute_with(|| {
 		enqueue_ump(CoretimePara::PARA_ID.into(), ump);
 		next_block_rc();
 
-		let RcStage::CoolOff { end_at } = rc_stage() else {
-			panic!("readiness did not admit the machine to the cool-off: {:?}", rc_stage())
+		let RcStage::WarmUp { end_at } = rc_stage() else {
+			panic!("readiness did not admit the machine to the warm-up: {:?}", rc_stage())
 		};
 		let now = frame_system::Pallet::<network::relay::Runtime>::block_number();
-		assert!(end_at > now, "the verification window must not be already over");
+		assert_eq!(end_at, now + WARM_UP, "the warm-up must run for the scheduled window");
 
-		// The window's length is a runtime constant, not what this test is measuring.
+		set_block_number_rc(end_at - 1);
+		next_block_rc();
+
+		let RcStage::CoolOff { end_at } = rc_stage() else {
+			panic!("the warm-up did not open the cool-off: {:?}", rc_stage())
+		};
 		set_block_number_rc(end_at - 1);
 		next_block_rc();
 		assert_eq!(rc_stage(), RcStage::MigrationDone);
@@ -219,9 +227,17 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 	});
 }
 
-/// A para that is not the Coretime chain. Deliberately one the live snapshot holds no message
-/// queue for, so the replayed message is the only thing its queue has to deliver.
-const IMPOSTOR_PARA: u32 = 4242;
+/// The windows this suite schedules with. Long enough that the machine cannot cross one by
+/// accident, short enough to skip to their end with `set_block_number_rc`.
+const WARM_UP: u32 = 10;
+const COOL_OFF: u32 = 10;
+
+/// A para the relay chain's barrier turns away outright, because it is not a system chain.
+const OUTSIDER_PARA: u32 = 4242;
+
+/// A system para that is not the Coretime chain. The barrier lets its message in, so the only
+/// thing standing between it and the migration is `CtOrigin`.
+const SYSTEM_IMPOSTOR_PARA: u32 = system_parachain::ASSET_HUB_ID;
 
 /// Readiness is only accepted from the Coretime chain.
 #[tokio::test(flavor = "multi_thread")]
@@ -247,12 +263,19 @@ async fn readiness_from_another_parachain_is_refused() {
 	});
 	assert!(!ump.is_empty(), "the Coretime chain queued no answer to copy");
 
-	// WHEN another parachain sends that same message.
+	// WHEN a para that is not a system chain sends that same message. THEN the barrier turns it
+	// away before it executes, and the relay chain is still waiting.
 	rc.execute_with(|| {
-		enqueue_ump(IMPOSTOR_PARA.into(), ump);
+		enqueue_ump(OUTSIDER_PARA.into(), ump.clone());
 		next_block_rc_expecting_rejection();
+		assert_eq!(rc_stage(), RcStage::WaitingForCt);
+	});
 
-		// THEN the relay chain is still waiting: only the Coretime chain opens the migration.
+	// WHEN a system para sends it. THEN the barrier admits the message and `Transact` runs, so
+	// this is `CtOrigin` refusing the call rather than the barrier refusing the message.
+	rc.execute_with(|| {
+		enqueue_ump(SYSTEM_IMPOSTOR_PARA.into(), ump);
+		next_block_rc();
 		assert_eq!(rc_stage(), RcStage::WaitingForCt);
 	});
 }
