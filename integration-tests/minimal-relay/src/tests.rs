@@ -828,6 +828,11 @@ async fn accounts_migrate_rc_to_ct() {
 
 /// The full migration pipeline RC -> CT: accounts, registrar, HRMP, cool-off, done.
 ///
+/// The lockdown windows this suite schedules with: long enough to be visible as their own stages,
+/// short enough not to pad every run.
+const WARM_UP: u32 = 5;
+const COOL_OFF: u32 = 5;
+
 /// Drives `pallet-rc2-migrator` from `Scheduled` to `MigrationDone` against the real snapshots,
 /// shuttling DMP after every burst of RC blocks, and asserts the end state on both chains:
 /// registrar and HRMP state drained from the RC and landed on Coretime, deposits re-attributed
@@ -1071,14 +1076,22 @@ async fn full_migration_rc_to_ct() {
 
 	// WHEN the whole migration runs, DMP shuttled after every burst of RC blocks.
 	rc.execute_with(|| {
-		let start = frame_system::Pallet::<Rc>::block_number() + 1;
-		pallet_rc2_migrator::Pallet::<Rc>::force_set_stage(
+		let start = now_ms_rc() + RC_BLOCK_TIME_MS;
+		pallet_rc2_migrator::Pallet::<Rc>::schedule_migration(
 			crate::mock::network::relay::RuntimeOrigin::root(),
-			RcStage::Scheduled { start },
+			start,
+			WARM_UP,
+			COOL_OFF,
 		)
-		.expect("root may set the stage");
+		.expect("root may schedule the migration");
 	});
 	rc.commit_all().unwrap();
+
+	// The Coretime chain's answer to the handshake, carried up on the next round.
+	let mut ct_ump: Vec<polkadot_primitives::UpwardMessage> = Vec::new();
+	// Every stage the machine was seen in, so the run proves it passed through the handshake and
+	// the warm-up rather than only that it reached the end.
+	let mut seen: Vec<RcStage> = Vec::new();
 
 	let mut rounds = 0;
 	loop {
@@ -1086,6 +1099,7 @@ async fn full_migration_rc_to_ct() {
 		assert!(rounds <= 40, "migration must finish within 40 shuttle rounds");
 
 		let (ct_dmp, ah_dmp, rc_stage) = rc.execute_with(|| {
+			enqueue_ump(CoretimePara::PARA_ID.into(), core::mem::take(&mut ct_ump));
 			for _ in 0..3 {
 				next_block_rc();
 			}
@@ -1102,6 +1116,7 @@ async fn full_migration_rc_to_ct() {
 			for _ in 0..3 {
 				next_block_para::<CoretimePara>();
 			}
+			ct_ump = take_ump::<CoretimePara>();
 		});
 		ct.commit_all().unwrap();
 
@@ -1199,10 +1214,20 @@ async fn full_migration_rc_to_ct() {
 		});
 		rc.commit_all().unwrap();
 
+		seen.push(rc_stage.clone());
 		if rc_stage == RcStage::MigrationDone {
 			break;
 		}
 	}
+
+	assert!(
+		seen.contains(&RcStage::WaitingForCt),
+		"the migration must wait for the Coretime chain before moving data: {seen:?}"
+	);
+	assert!(
+		seen.iter().any(|stage| matches!(stage, RcStage::WarmUp { .. })),
+		"the migration must warm up before moving data: {seen:?}"
+	);
 
 	// Drain both directions until quiet, so anything either side queued during the migration is
 	// delivered before the after-state is asserted on. The queues are serviced a batch at a time,

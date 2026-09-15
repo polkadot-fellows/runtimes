@@ -35,22 +35,24 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-use alloc::vec::Vec;
-use hrmp_primitives::{MigratedChannel, ReceiveMigratedChannels};
-use registrar_primitives::{MigratedPara, MigratedParaState, ReceiveMigratedParas};
+use alloc::{vec, vec::Vec};
 use frame_support::{
 	defensive_assert,
 	pallet_prelude::*,
 	traits::{
 		fungible::{Inspect, InspectHold, Mutate, MutateHold, Unbalanced, UnbalancedHold},
 		tokens::{Fortitude, Precision, Preservation},
+		EnsureOrigin,
 	},
 };
 use frame_system::pallet_prelude::*;
+use hrmp_primitives::{MigratedChannel, ReceiveMigratedChannels};
+use registrar_primitives::{MigratedPara, MigratedParaState, ReceiveMigratedParas};
 use sp_runtime::{
 	traits::{Saturating, Zero},
 	SaturatedConversion,
 };
+use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::ct-migrator";
 
@@ -81,6 +83,9 @@ pub enum MigrationStage {
 	#[default]
 	Pending,
 	DataMigrationOngoing,
+	/// All data received and reconciled; this chain stays locked down until the relay chain's
+	/// verification window closes.
+	CoolOff,
 	MigrationDone,
 }
 
@@ -90,8 +95,25 @@ impl MigrationStage {
 	}
 
 	pub fn is_ongoing(&self) -> bool {
-		matches!(self, Self::DataMigrationOngoing)
+		matches!(self, Self::DataMigrationOngoing | Self::CoolOff)
 	}
+}
+
+/// `Rc2Migrator`'s pallet index in the relay `construct_runtime!`.
+pub const RC2_MIGRATOR_PALLET_INDEX: u8 = 254;
+
+/// Calls on the relay chain, as this chain must encode them.
+#[derive(Encode, Decode, PartialEq, Eq, Debug)]
+#[repr(u8)]
+pub enum Rc2RuntimeCall {
+	Rc2Migrator(Rc2MigratorCall) = RC2_MIGRATOR_PALLET_INDEX,
+}
+
+/// Indices are the `#[pallet::call_index]`es in `pallet-rc2-migrator`.
+#[derive(Encode, Decode, PartialEq, Eq, Debug)]
+pub enum Rc2MigratorCall {
+	#[codec(index = 2)]
+	CtReady,
 }
 
 #[frame_support::pallet]
@@ -133,6 +155,12 @@ pub mod pallet {
 
 		/// Where migrated HRMP channels are handed over. Normally `pallet-hrmp-para`.
 		type HrmpReceiver: ReceiveMigratedChannels;
+
+		/// Router for XCM messages to the relay chain.
+		type SendXcm: SendXcm;
+
+		/// The origin that may force the migration stage on this chain.
+		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 	}
 
 	#[pallet::composite_enum]
@@ -182,7 +210,7 @@ pub mod pallet {
 
 	/// Total balance minted on this chain by the accounts stage.
 	///
-	/// Reconciled against the relay chain's burned total in `finish_migration`.
+	/// Reconciled against the relay chain's burned total in `reconcile_balances`.
 	#[pallet::storage]
 	pub type CtMintedTotal<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
@@ -238,6 +266,12 @@ pub mod pallet {
 		FailedToReattribute,
 		/// Failed to integrate a migrated proxy set.
 		FailedToProcessProxy,
+		/// Sending an XCM message to the relay chain failed.
+		XcmSendFailed,
+		/// The migration has already received everything it is going to.
+		AlreadyFinished,
+		/// The relay chain signalled the end of a migration that has not finished sending.
+		NotReconciled,
 	}
 
 	#[pallet::event]
@@ -387,14 +421,68 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// The relay chain signals that all data has been sent.
+		/// The relay chain asks whether this chain can receive migrated state.
+		///
+		/// Answering opens the migration here and unblocks the relay chain's warm-up. A repeat is
+		/// answered again without reopening, so a resent signal is harmless.
+		// TODO(ahm-v2): lock this chain down before answering -- the calls whose state is about
+		// to move are filtered from here until the migration ends.
+		#[pallet::call_index(6)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(3, 2))]
+		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
+			// relay chain origin converts to root.
+			ensure_root(origin)?;
+
+			match CtMigrationStage::<T>::get() {
+				// try send xcm before updating stage.
+				MigrationStage::Pending => {
+					Self::send_to_rc(Rc2MigratorCall::CtReady)?;
+					Self::transition(MigrationStage::DataMigrationOngoing);
+				},
+				MigrationStage::DataMigrationOngoing => Self::send_to_rc(Rc2MigratorCall::CtReady)?,
+				MigrationStage::CoolOff | MigrationStage::MigrationDone =>
+					return Err(Error::<T>::AlreadyFinished.into()),
+			}
+			Ok(())
+		}
+
+		/// The relay chain's verification window has closed: lift this chain's call filters.
+		///
+		/// Separate from `reconcile_balances` because the two happen at different times. The
+		/// reconciliation has to be inspectable *during* the window; the unlock comes after it.
+		#[pallet::call_index(7)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		pub fn end_lockdown(origin: OriginFor<T>) -> DispatchResult {
+			ensure_root(origin)?;
+
+			match CtMigrationStage::<T>::get() {
+				MigrationStage::CoolOff => Self::transition(MigrationStage::MigrationDone),
+				MigrationStage::MigrationDone => (),
+				MigrationStage::Pending | MigrationStage::DataMigrationOngoing =>
+					return Err(Error::<T>::NotReconciled.into()),
+			}
+			Ok(())
+		}
+
+		/// Set the migration stage directly. See `pallet-rc2-migrator`'s equivalent.
+		#[pallet::call_index(8)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
+			T::AdminOrigin::ensure_origin(origin)?;
+
+			Self::transition(stage);
+			Ok(())
+		}
+
+		/// All data has been sent: reconcile it, and hold the lockdown until the relay chain's
+		/// verification window closes.
 		///
 		/// Carries the relay-side balance bookkeeping so this chain can reconcile what it minted
 		/// against what the relay chain burned. A mismatch is loudly reported, never hidden: the
 		/// stage still advances so the cool-off verification can inspect the discrepancy.
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(3, 2))]
-		pub fn finish_migration(
+		pub fn reconcile_balances(
 			origin: OriginFor<T>,
 			rc_kept: BalanceOf<T>,
 			rc_migrated: BalanceOf<T>,
@@ -409,12 +497,33 @@ pub mod pallet {
 				);
 			}
 			Self::deposit_event(Event::MigrationFinished { rc_kept, rc_migrated, ct_minted });
-			Self::transition(MigrationStage::MigrationDone);
+			Self::transition(MigrationStage::CoolOff);
 			Ok(())
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Send a `pallet-rc2-migrator` call to the relay chain.
+		fn send_to_rc(call: Rc2MigratorCall) -> Result<(), Error<T>> {
+			let call = Rc2RuntimeCall::Rc2Migrator(call);
+			// This is dispatched as `Origin::Xcm(<this chain>)`; the relay chain's `CtOrigin`
+			// checks the message came from here.
+			let message = Xcm(vec![
+				UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+				Transact {
+					origin_kind: OriginKind::Xcm,
+					fallback_max_weight: None,
+					call: call.encode().into(),
+				},
+			]);
+
+			send_xcm::<T::SendXcm>(Location::parent(), message).map_err(|e| {
+				log::error!(target: LOG_TARGET, "Sending to RC failed: {e:?}");
+				Error::<T>::XcmSendFailed
+			})?;
+			Ok(())
+		}
+
 		/// Integrate a batch item-by-item, each in its own transaction so one bad item cannot
 		/// poison the batch: a failed item is rolled back whole and handed to `park` (which logs
 		/// it and stores it verbatim for manual recovery). `on_good` folds the successes.
@@ -511,7 +620,12 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 		) -> Result<(), DispatchError> {
 			<T as Config>::Currency::increase_balance(who, amount, Precision::Exact)?;
-			<T as Config>::Currency::decrease_balance_on_hold(reason, who, amount, Precision::Exact)?;
+			<T as Config>::Currency::decrease_balance_on_hold(
+				reason,
+				who,
+				amount,
+				Precision::Exact,
+			)?;
 			Ok(())
 		}
 
@@ -553,7 +667,12 @@ pub mod pallet {
 			who: &T::AccountId,
 			amount: BalanceOf<T>,
 		) -> Result<(), DispatchError> {
-			<T as Config>::Currency::increase_balance_on_hold(reason, who, amount, Precision::Exact)?;
+			<T as Config>::Currency::increase_balance_on_hold(
+				reason,
+				who,
+				amount,
+				Precision::Exact,
+			)?;
 			<T as Config>::Currency::decrease_balance(
 				who,
 				amount,
@@ -658,7 +777,8 @@ pub mod pallet {
 			// making it free balance — and re-reserve below only what the recreated entry needs.
 			// The difference stays free on this chain, in the delegator's hands.
 			let proxy_reason: T::RuntimeHoldReason = HoldReason::ProxyDeposit.into();
-			let migrated = <T as Config>::Currency::balance_on_hold(&proxy_reason, &proxy.delegator);
+			let migrated =
+				<T as Config>::Currency::balance_on_hold(&proxy_reason, &proxy.delegator);
 			if !migrated.is_zero() {
 				Self::release_hold(&proxy_reason, &proxy.delegator, migrated)
 					.map_err(|_| Error::<T>::FailedToProcessProxy)?;

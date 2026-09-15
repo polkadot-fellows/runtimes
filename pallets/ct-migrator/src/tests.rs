@@ -163,8 +163,9 @@ fn receive_accounts_parks_bad_account_without_poisoning_batch() {
 		assert_eq!(FailedAccounts::<Test>::get(&dave), Some(bad));
 		assert_eq!(free(&dave), 0, "the failed account must be fully rolled back");
 		assert_eq!(CtMintedTotal::<Test>::get(), 60, "only successful mints are tracked");
-		assert!(migrator_events()
-			.contains(&Event::AccountsReceived { count_good: 1, count_bad: 1 }));
+		assert!(
+			migrator_events().contains(&Event::AccountsReceived { count_good: 1, count_bad: 1 })
+		);
 	});
 }
 
@@ -208,8 +209,9 @@ fn receive_registrar_releases_the_deposit_and_hands_the_para_over() {
 		assert_eq!(ReceivedNextFreeParaId::get(), Some(3000));
 		// AND releasing never mints.
 		assert_eq!(total_issuance(), ti_before);
-		assert!(migrator_events()
-			.contains(&Event::RegistrarReceived { count_good: 1, count_bad: 0 }));
+		assert!(
+			migrator_events().contains(&Event::RegistrarReceived { count_good: 1, count_bad: 0 })
+		);
 	});
 }
 
@@ -400,8 +402,7 @@ fn receive_proxies_recreates_defs_and_resizes_deposit_to_local_rates() {
 		assert_eq!(pallet_balances::Pallet::<Test>::reserved_balance(&pure), 120);
 		assert_eq!(held(HoldReason::ProxyDeposit, &pure), 0);
 		assert_eq!(free(&pure), ED + 400 - 120);
-		assert!(migrator_events()
-			.contains(&Event::ProxiesReceived { count_good: 1, count_bad: 0 }));
+		assert!(migrator_events().contains(&Event::ProxiesReceived { count_good: 1, count_bad: 0 }));
 	});
 }
 
@@ -435,7 +436,12 @@ fn receive_proxies_merges_with_existing_local_defs_and_dedups() {
 		let local = acc(11); // local delegate, added before the migration reaches this chain
 		let migrated = acc(12); // delegate arriving from the sender chain
 		<Balances as Mutate<AccountId32>>::mint_into(&dan, 1_000).unwrap();
-		assert_ok!(Proxy::add_proxy(RuntimeOrigin::signed(dan.clone()), local.clone(), ProxyType::Any, 0));
+		assert_ok!(Proxy::add_proxy(
+			RuntimeOrigin::signed(dan.clone()),
+			local.clone(),
+			ProxyType::Any,
+			0
+		));
 		assert_eq!(pallet_balances::Pallet::<Test>::reserved_balance(&dan), 120);
 
 		let delegates = |list: Vec<AccountId32>| PortableProxy {
@@ -488,8 +494,7 @@ fn receive_proxies_writes_entry_even_when_deposit_cannot_be_reserved() {
 		let (defs, deposit) = pallet_proxy::Proxies::<Test>::get(&broke);
 		assert_eq!(defs.len(), 1);
 		assert_eq!(deposit, 0);
-		assert!(migrator_events()
-			.contains(&Event::ProxiesReceived { count_good: 1, count_bad: 0 }));
+		assert!(migrator_events().contains(&Event::ProxiesReceived { count_good: 1, count_bad: 0 }));
 	});
 }
 
@@ -499,7 +504,12 @@ fn receive_proxies_overflowing_merged_set_is_parked_and_rolled_back() {
 		let max = acc(10); // delegator already at MaxProxies (= 4 in this mock)
 		<Balances as Mutate<AccountId32>>::mint_into(&max, 10_000).unwrap();
 		for i in 41..45u8 {
-			assert_ok!(Proxy::add_proxy(RuntimeOrigin::signed(max.clone()), acc(i), ProxyType::Any, 0));
+			assert_ok!(Proxy::add_proxy(
+				RuntimeOrigin::signed(max.clone()),
+				acc(i),
+				ProxyType::Any,
+				0
+			));
 		}
 		give_hold(&max, HoldReason::ProxyDeposit, 400);
 		let (defs_before, deposit_before) = pallet_proxy::Proxies::<Test>::get(&max);
@@ -522,13 +532,12 @@ fn receive_proxies_overflowing_merged_set_is_parked_and_rolled_back() {
 		let (defs_after, deposit_after) = pallet_proxy::Proxies::<Test>::get(&max);
 		assert_eq!(defs_after, defs_before);
 		assert_eq!(deposit_after, deposit_before);
-		assert!(migrator_events()
-			.contains(&Event::ProxiesReceived { count_good: 0, count_bad: 1 }));
+		assert!(migrator_events().contains(&Event::ProxiesReceived { count_good: 0, count_bad: 1 }));
 	});
 }
 
 #[test]
-fn finish_migration_reports_and_completes() {
+fn reconcile_balances_reconciles_and_holds_the_lockdown() {
 	new_test_ext().execute_with(|| {
 		let alice = acc(1);
 		// GIVEN some minted total from the accounts stage.
@@ -540,9 +549,12 @@ fn finish_migration_reports_and_completes() {
 
 		// WHEN the sender signals completion (with a mismatching burn total: reporting must not
 		// block completion).
-		assert_ok!(CtMigrator::finish_migration(root(), 0, 150));
+		assert_ok!(CtMigrator::reconcile_balances(root(), 0, 150));
 
-		assert_eq!(CtMigrationStage::<Test>::get(), MigrationStage::MigrationDone);
+		// THEN this chain is reconciled but still locked down: the relay chain's verification
+		// window has not closed yet.
+		assert_eq!(CtMigrationStage::<Test>::get(), MigrationStage::CoolOff);
+		assert!(CtMigrationStage::<Test>::get().is_ongoing());
 		let events = migrator_events();
 		assert!(events.contains(&Event::MigrationFinished {
 			rc_kept: 0,
@@ -551,8 +563,53 @@ fn finish_migration_reports_and_completes() {
 		}));
 		assert!(events.contains(&Event::StageTransition {
 			old: MigrationStage::DataMigrationOngoing,
-			new: MigrationStage::MigrationDone,
+			new: MigrationStage::CoolOff,
 		}));
+
+		// WHEN the relay chain closes the window. THEN the lockdown ends.
+		assert_ok!(CtMigrator::end_lockdown(root()));
+		assert_eq!(CtMigrationStage::<Test>::get(), MigrationStage::MigrationDone);
+
+		// WHEN the same signal arrives again. THEN it is a no-op: a resent message is not worth
+		// failing an XCM over.
+		assert_ok!(CtMigrator::end_lockdown(root()));
+		assert_eq!(CtMigrationStage::<Test>::get(), MigrationStage::MigrationDone);
+	});
+}
+
+#[test]
+fn the_handshake_answers_the_relay_chain_and_opens_the_migration() {
+	new_test_ext().execute_with(|| {
+		// WHEN the relay chain asks whether this chain is ready.
+		assert_ok!(CtMigrator::start_migration(root()));
+
+		// THEN the migration is open here and exactly one answer went upwards.
+		assert_eq!(CtMigrationStage::<Test>::get(), MigrationStage::DataMigrationOngoing);
+		assert_eq!(sent().len(), 1);
+		assert_eq!(sent()[0].0, Location::parent());
+
+		// WHEN the same ask arrives again. THEN it is answered again without reopening, so a
+		// relay chain rewound to `Scheduled` can redo the handshake.
+		assert_ok!(CtMigrator::start_migration(root()));
+		assert_eq!(CtMigrationStage::<Test>::get(), MigrationStage::DataMigrationOngoing);
+		assert_eq!(sent().len(), 2);
+
+		// WHEN the migration has finished. THEN a start is refused rather than reopening a chain
+		// that is already serving its new control plane.
+		assert_ok!(CtMigrator::reconcile_balances(root(), 0, 0));
+		assert_noop!(CtMigrator::start_migration(root()), Error::<Test>::AlreadyFinished);
+	});
+}
+
+#[test]
+fn an_unfinished_migration_cannot_be_completed() {
+	new_test_ext().execute_with(|| {
+		// WHEN the relay chain closes a window that never opened. THEN it is refused, so a stray
+		// or reordered message cannot unlock this chain mid-migration.
+		assert_noop!(CtMigrator::end_lockdown(root()), Error::<Test>::NotReconciled);
+		assert_ok!(CtMigrator::start_migration(root()));
+		assert_noop!(CtMigrator::end_lockdown(root()), Error::<Test>::NotReconciled);
+		assert_eq!(CtMigrationStage::<Test>::get(), MigrationStage::DataMigrationOngoing);
 	});
 }
 
@@ -565,6 +622,9 @@ fn all_receive_calls_require_root() {
 		assert_noop!(CtMigrator::receive_hrmp(signed.clone(), vec![]), BadOrigin);
 		assert_noop!(CtMigrator::receive_proxies(signed.clone(), vec![]), BadOrigin);
 		assert_noop!(CtMigrator::receive_hrmp_requests(signed.clone(), vec![]), BadOrigin);
-		assert_noop!(CtMigrator::finish_migration(signed, 0, 0), BadOrigin);
+		assert_noop!(CtMigrator::reconcile_balances(signed.clone(), 0, 0), BadOrigin);
+		assert_noop!(CtMigrator::start_migration(signed.clone()), BadOrigin);
+		assert_noop!(CtMigrator::end_lockdown(signed.clone()), BadOrigin);
+		assert_noop!(CtMigrator::force_set_stage(signed, MigrationStage::MigrationDone), BadOrigin);
 	});
 }

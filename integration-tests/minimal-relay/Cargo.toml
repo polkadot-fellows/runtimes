@@ -48,6 +48,7 @@ polkadot-runtime = { workspace = true, default-features = true }
 kusama-runtime = { workspace = true, default-features = true }
 pallet-society = { workspace = true, default-features = true }
 pallet-preimage = { workspace = true, default-features = true }
+pallet-timestamp = { workspace = true, default-features = true }
 pallet-multisig = { workspace = true, default-features = true }
 pallet-delegated-staking = { workspace = true, default-features = true }
 pallet-referenda = { workspace = true, default-features = true }

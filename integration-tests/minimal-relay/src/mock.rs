@@ -256,7 +256,19 @@ pub fn next_block_rc() {
 		<network::relay::Rc2Migrator as OnFinalize<_>>::on_finalize(now);
 		weight
 	});
+	// The timestamp inherent is an extrinsic, so it lands after `on_initialize` -- which is why a
+	// migration scheduled for `start` begins on the block *after* the one whose timestamp passed
+	// it. The snapshot's clock is frozen at scrape time and only moves here.
+	pallet_timestamp::Now::<Polkadot>::mutate(|t| *t = t.saturating_add(RC_BLOCK_TIME_MS));
 	crate::events::emit_rc_block();
+}
+
+/// Milliseconds per relay-chain block, as the timestamp inherent would advance it.
+pub const RC_BLOCK_TIME_MS: u64 = 6_000;
+
+/// The relay chain's wall clock, as `pallet-rc2-migrator` reads it when deciding to start.
+pub fn now_ms_rc() -> u64 {
+	pallet_timestamp::Now::<Polkadot>::get()
 }
 
 /// Rotate the Relay Chain into its next session, running the full parachains initializer.

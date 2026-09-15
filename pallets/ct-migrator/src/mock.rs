@@ -22,6 +22,7 @@ use frame_support::{
 	derive_impl, parameter_types,
 	traits::{fungible::Mutate, ConstU32, InstanceFilter},
 };
+use frame_system::EnsureRoot;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
@@ -183,6 +184,37 @@ impl hrmp_primitives::ReceiveMigratedChannels for RecordingHrmp {
 	}
 }
 
+/// Records what this chain sends upwards, so the handshake answer can be asserted on.
+pub struct RecordingRouter;
+impl SendXcm for RecordingRouter {
+	type Ticket = (Location, Xcm<()>);
+
+	fn validate(
+		dest: &mut Option<Location>,
+		msg: &mut Option<Xcm<()>>,
+	) -> SendResult<Self::Ticket> {
+		if SendFails::get() {
+			return Err(SendError::Transport("test-induced failure"));
+		}
+		Ok(((dest.take().unwrap(), msg.take().unwrap()), Assets::new()))
+	}
+
+	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+		SentXcm::mutate(|sent| sent.push(ticket));
+		Ok(XcmHash::default())
+	}
+}
+
+frame_support::parameter_types! {
+	pub static SendFails: bool = false;
+	pub static SentXcm: Vec<(Location, Xcm<()>)> = Vec::new();
+}
+
+/// The messages sent upwards so far, destination and all.
+pub fn sent() -> Vec<(Location, Xcm<()>)> {
+	SentXcm::get()
+}
+
 impl pallet_ct_migrator::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -191,6 +223,8 @@ impl pallet_ct_migrator::Config for Test {
 	type RcBlockTimeRatio = ConstU32<2>;
 	type RegistrarReceiver = RecordingRegistrar;
 	type HrmpReceiver = RecordingHrmp;
+	type SendXcm = RecordingRouter;
+	type AdminOrigin = EnsureRoot<AccountId32>;
 }
 
 /// What each migrated hold becomes locally; mirrors the Coretime runtime's mapping.

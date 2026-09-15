@@ -2077,6 +2077,9 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type SweepAccounts = SweepAccounts;
 	type SweepBeneficiary = SweepBeneficiary;
 	type TiCorrection = TiCorrection;
+	type TimeProvider = Timestamp;
+	type CtOrigin = pallet_xcm::EnsureXcm<frame_support::traits::Equals<xcm_config::Broker>>;
+	type AdminOrigin = EnsureRoot<AccountId>;
 }
 
 construct_runtime! {

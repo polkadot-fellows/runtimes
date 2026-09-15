@@ -10122,6 +10122,7 @@ dependencies = [
  "scale-info",
  "sp-io 48.0.0",
  "sp-runtime 48.0.0",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -12450,6 +12451,7 @@ dependencies = [
  "pallet-scheduler",
  "pallet-session",
  "pallet-society",
+ "pallet-timestamp",
  "pallet-xcm",
  "parity-scale-codec",
  "polkadot-primitives",

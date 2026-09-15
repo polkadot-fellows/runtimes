@@ -91,7 +91,11 @@ fn build_expected_reserves_indexes_every_deposit_source() {
 		fund(&frank, 500);
 		add_proxy(&frank, &eve, ProxyType::Any);
 		fund(&eve, 500);
-		assert_ok!(Proxy::announce(RuntimeOrigin::signed(eve.clone()), frank.clone(), H256::zero())); // 25 + 6 = 31 reserved
+		assert_ok!(Proxy::announce(
+			RuntimeOrigin::signed(eve.clone()),
+			frank.clone(),
+			H256::zero()
+		)); // 25 + 6 = 31 reserved
 
 		// WHEN the index is built.
 		let records = AccountsMigrator::<Test>::build_expected_reserves();
@@ -178,8 +182,9 @@ fn withdraw_refunds_deposits_whose_purpose_ends_here() {
 		// The refund joins the liquid balance; with no CT-bound hold there is no buffer either.
 		assert!(w.ct.is_none());
 		assert_eq!(w.ah, Some((carol.clone(), 500)));
-		assert!(migrator_events()
-			.contains(&Event::DepositRefunded { who: carol.clone(), amount: 44 }));
+		assert!(
+			migrator_events().contains(&Event::DepositRefunded { who: carol.clone(), amount: 44 })
+		);
 	});
 }
 
@@ -191,23 +196,18 @@ fn withdraw_attributes_shortfall_in_priority_order() {
 		<Balances as ReservableCurrency<AccountId32>>::reserve(&dave, 100).unwrap();
 		// Recorded expectations exceed the live 100: CT-bound deposits are made whole first,
 		// proxy deposits second, refunds last. (Set directly: only the split math is under test.)
-		ExpectedReserves::<Test>::insert(
-			&dave,
-			ExpectedReserve { ct: 50, proxy: 30, refund: 40 },
-		);
+		ExpectedReserves::<Test>::insert(&dave, ExpectedReserve { ct: 50, proxy: 30, refund: 40 });
 
 		let w = withdraw(&dave).expect("migrates");
 
 		assert_eq!(
 			ct_holds(&w),
-			vec![
-				(PortableHoldReason::UnnamedReserve, 50),
-				(PortableHoldReason::ProxyDeposit, 30),
-			]
+			vec![(PortableHoldReason::UnnamedReserve, 50), (PortableHoldReason::ProxyDeposit, 30),]
 		);
 		// Of the refundable 40 only 20 reserve was left; it becomes liquid.
-		assert!(migrator_events()
-			.contains(&Event::DepositRefunded { who: dave.clone(), amount: 20 }));
+		assert!(
+			migrator_events().contains(&Event::DepositRefunded { who: dave.clone(), amount: 20 })
+		);
 		// liquid = 100 free + 20 refunded; buffer 100 stays with the deposit, 20 teleports.
 		assert_eq!(w.ct.as_ref().unwrap().free, 100);
 		assert_eq!(w.ah, Some((dave.clone(), 20)));
@@ -540,8 +540,16 @@ fn announcement_records_of_migrated_announcers_are_dropped() {
 		add_proxy(&frank, &ada, ProxyType::Any);
 		fund(&eve, 500);
 		fund(&ada, 500);
-		assert_ok!(Proxy::announce(RuntimeOrigin::signed(eve.clone()), frank.clone(), H256::zero()));
-		assert_ok!(Proxy::announce(RuntimeOrigin::signed(ada.clone()), frank.clone(), H256::zero()));
+		assert_ok!(Proxy::announce(
+			RuntimeOrigin::signed(eve.clone()),
+			frank.clone(),
+			H256::zero()
+		));
+		assert_ok!(Proxy::announce(
+			RuntimeOrigin::signed(ada.clone()),
+			frank.clone(),
+			H256::zero()
+		));
 		<Balances as LockableCurrency<AccountId32>>::set_lock(
 			*b"testlock",
 			&ada,
@@ -645,14 +653,12 @@ fn hrmp_stage_copies_requests_and_channels_and_keeps_them_deposit_free() {
 		// ...and the request stays here so the session boundary can still promote it, with the
 		// deposit zeroed so a cancellation does not refund money that has left the chain. The
 		// counts stay too: the relay chain still bounds requests per para.
-		let request_id = HrmpChannelId { sender: ParaId::from(2000), recipient: ParaId::from(2002) };
+		let request_id =
+			HrmpChannelId { sender: ParaId::from(2000), recipient: ParaId::from(2002) };
 		let request = parachains_hrmp::HrmpOpenChannelRequests::<Test>::get(&request_id)
 			.expect("the open request must stay on the relay chain");
 		assert_eq!(request.sender_deposit, 0);
-		assert_eq!(
-			parachains_hrmp::HrmpOpenChannelRequestsList::<Test>::get(),
-			vec![request_id]
-		);
+		assert_eq!(parachains_hrmp::HrmpOpenChannelRequestsList::<Test>::get(), vec![request_id]);
 		assert_eq!(
 			parachains_hrmp::HrmpOpenChannelRequestCount::<Test>::get(ParaId::from(2000)),
 			1
@@ -679,7 +685,8 @@ fn hrmp_stage_copies_requests_and_channels_and_keeps_them_deposit_free() {
 		);
 
 		// ...and the channel stays here, deposit-free, so messages still route.
-		let channel_id = HrmpChannelId { sender: ParaId::from(2000), recipient: ParaId::from(2001) };
+		let channel_id =
+			HrmpChannelId { sender: ParaId::from(2000), recipient: ParaId::from(2001) };
 		let channel = parachains_hrmp::HrmpChannels::<Test>::get(&channel_id)
 			.expect("the channel must stay on the relay chain: it is what routes messages");
 		assert_eq!(channel.sender_deposit, 0);
@@ -768,7 +775,7 @@ fn ti_correction_burns_the_audited_phantom_and_signals_finish() {
 		assert!(events.contains(&Event::TiCorrected { expected: 50, unaccounted: 50, burned: 50 }));
 		assert_eq!(
 			decode_ct_calls(&take_sent_xcm()),
-			vec![CtMigratorCall::FinishMigration { rc_kept: 0, rc_migrated: 0 }]
+			vec![CtMigratorCall::ReconcileBalances { rc_kept: 0, rc_migrated: 0 }]
 		);
 	});
 }
@@ -808,6 +815,106 @@ fn ti_correction_never_burns_more_than_measured_and_reports_anomalies() {
 }
 
 // ---------------------------------------------------------------------------
+// Scheduling and the control plane
+// ---------------------------------------------------------------------------
+
+#[test]
+fn only_the_admin_origin_or_manager_drives_the_machine() {
+	new_test_ext().execute_with(|| {
+		let alice = acc(1); // appointed manager
+		let start = now_ms() + 5 * BLOCK_TIME_MS;
+
+		// WHEN a signed account with no appointment drives anything. THEN it is refused.
+		let signed = RuntimeOrigin::signed(alice.clone());
+		assert_noop!(
+			Rc2Migrator::schedule_migration(signed.clone(), start, WARM_UP, COOL_OFF),
+			BadOrigin
+		);
+		assert_noop!(Rc2Migrator::cancel_migration(signed.clone()), BadOrigin);
+		assert_noop!(Rc2Migrator::force_set_stage(signed.clone(), Stage::Paused), BadOrigin);
+		assert_noop!(Rc2Migrator::set_manager(signed.clone(), Some(alice.clone())), BadOrigin);
+
+		// WHEN the admin origin appoints it manager. THEN it drives the machine, but still
+		// cannot appoint a manager itself.
+		assert_ok!(Rc2Migrator::set_manager(root(), Some(alice.clone())));
+		assert_ok!(Rc2Migrator::schedule_migration(signed.clone(), start, WARM_UP, COOL_OFF));
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::Scheduled { start });
+		assert_noop!(Rc2Migrator::set_manager(signed.clone(), None), BadOrigin);
+
+		// WHEN the admin origin removes it. THEN it loses the powers.
+		assert_ok!(Rc2Migrator::set_manager(root(), None));
+		assert_noop!(Rc2Migrator::cancel_migration(signed), BadOrigin);
+	});
+}
+
+#[test]
+fn a_scheduled_migration_can_be_cancelled_and_rescheduled() {
+	new_test_ext().execute_with(|| {
+		// WHEN the start is now or earlier. THEN it is refused: a start already past would begin
+		// the migration on the very next block.
+		assert_noop!(
+			Rc2Migrator::schedule_migration(root(), now_ms(), WARM_UP, COOL_OFF),
+			Error::<Test>::StartInPast
+		);
+
+		// GIVEN a scheduled migration.
+		let start = now_ms() + 5 * BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(root(), start, WARM_UP, COOL_OFF));
+
+		// WHEN it is scheduled again. THEN it is refused, so a second call cannot silently move
+		// a start date that is already committed.
+		assert_noop!(
+			Rc2Migrator::schedule_migration(root(), start + 1, WARM_UP, COOL_OFF),
+			Error::<Test>::AlreadyScheduled
+		);
+
+		// WHEN it is cancelled. THEN the machine is pending again and can take a new start.
+		assert_ok!(Rc2Migrator::cancel_migration(root()));
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::Pending);
+		assert_ok!(Rc2Migrator::schedule_migration(root(), start, WARM_UP, COOL_OFF));
+
+		// WHEN the handshake has begun. THEN cancelling is refused: the Coretime chain has been
+		// told something this call cannot take back.
+		run_blocks(6);
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::WaitingForCt);
+		assert_noop!(Rc2Migrator::cancel_migration(root()), Error::<Test>::NotScheduled);
+	});
+}
+
+#[test]
+fn nothing_moves_until_the_coretime_chain_confirms() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a machine that has sent its handshake.
+		let start = now_ms() + BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(root(), start, WARM_UP, COOL_OFF));
+		run_blocks(2);
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::WaitingForCt);
+
+		// WHEN many blocks pass with no answer. THEN the machine holds and sends nothing more:
+		// a Coretime chain that never confirms must not be sent data anyway.
+		let sent_so_far = sent_xcm().len();
+		run_blocks(20);
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::WaitingForCt);
+		assert_eq!(sent_xcm().len(), sent_so_far);
+
+		// WHEN anyone other than the Coretime chain confirms, root included. THEN it is refused.
+		assert_noop!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(acc(1))), BadOrigin);
+		assert_noop!(Rc2Migrator::ct_ready(root()), BadOrigin);
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::WaitingForCt);
+
+		// WHEN the Coretime chain confirms. THEN the warm-up runs for the scheduled window, and
+		// only then does the first data stage begin.
+		let at = System::block_number();
+		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(coretime())));
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::WarmUp { end_at: at + WARM_UP });
+		run_blocks(WARM_UP - 1);
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::WarmUp { end_at: at + WARM_UP });
+		run_blocks(1);
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::AccountsInit);
+	});
+}
+
+// ---------------------------------------------------------------------------
 // The whole machine
 // ---------------------------------------------------------------------------
 
@@ -831,19 +938,37 @@ fn full_stage_machine_drains_the_chain_to_zero() {
 		TiCorrection::set(50);
 		let ti_start = total_issuance();
 
-		// WHEN the machine runs from Scheduled to Done, one stage per block.
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::Scheduled { start: 2 }));
-		for _ in 0..40 {
+		// WHEN the migration is scheduled and the clock passes its start.
+		let start = now_ms() + BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(root(), start, WARM_UP, COOL_OFF));
+		run_blocks(2);
+
+		// THEN nothing has moved: the relay chain is waiting for the Coretime chain to confirm.
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::WaitingForCt);
+		assert_eq!(
+			decode_ct_calls(&sent_xcm()),
+			vec![CtMigratorCall::StartMigration],
+			"the first thing sent is the handshake, before any data"
+		);
+
+		// WHEN the Coretime chain confirms, and the machine runs to Done one stage per block.
+		let handshake_at = System::block_number();
+		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(coretime())));
+		assert_eq!(
+			RcMigrationStage::<Test>::get(),
+			Stage::WarmUp { end_at: handshake_at + WARM_UP }
+		);
+		for _ in 0..60 {
 			if RcMigrationStage::<Test>::get().is_finished() {
 				break;
 			}
-			run_block();
+			run_blocks(1);
 		}
 
-		// THEN it finishes on schedule: 16 working blocks (the dust pass is its own stage) +
-		// the cool-off window.
+		// THEN it finishes on schedule, measured from the handshake: the warm-up, then 15 working
+		// blocks (the dust pass is its own stage), then the cool-off window.
 		assert_eq!(RcMigrationStage::<Test>::get(), Stage::MigrationDone);
-		assert_eq!(System::block_number(), 17 + COOL_OFF_BLOCKS);
+		assert_eq!(System::block_number(), handshake_at + WARM_UP + 15 + COOL_OFF);
 
 		// The records Coretime now owns outright are drained...
 		assert!(paras_registrar::Paras::<Test>::iter().next().is_none());

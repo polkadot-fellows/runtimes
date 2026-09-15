@@ -739,6 +739,8 @@ impl pallet_ct_migrator::Config for Runtime {
 	// deposits at this chain's rates rather than inheriting the relay chain's amounts.
 	type RegistrarReceiver = RegistrarPara;
 	type HrmpReceiver = HrmpPara;
+	type SendXcm = xcm_config::XcmRouter;
+	type AdminOrigin = EnsureRoot<AccountId>;
 }
 
 /// What each hold migrated from the relay chain becomes on this chain.

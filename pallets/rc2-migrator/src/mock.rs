@@ -18,10 +18,10 @@
 use crate as pallet_rc2_migrator;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
-	derive_impl, parameter_types,
-	traits::{Currency, InstanceFilter, ReservableCurrency},
+	derive_impl, ord_parameter_types, parameter_types,
+	traits::{Currency, InstanceFilter, ReservableCurrency, Time},
 };
-use frame_system::EnsureRoot;
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::{
@@ -246,11 +246,7 @@ impl pallet_preimage::Config for Test {
 		AccountId32,
 		Balances,
 		PreimageHoldReason,
-		frame_support::traits::LinearStoragePrice<
-			PreimageBaseDeposit,
-			PreimageByteDeposit,
-			u128,
-		>,
+		frame_support::traits::LinearStoragePrice<PreimageBaseDeposit, PreimageByteDeposit, u128>,
 	>;
 }
 
@@ -349,8 +345,7 @@ pub fn decode_teleports(msgs: &[(Location, Xcm<()>)]) -> Vec<Vec<(AccountId32, u
 						let Fungibility::Fungible(amount) = assets.get(0).unwrap().fun else {
 							panic!("fungible")
 						};
-						let Some(Junction::AccountId32 { id, .. }) =
-							beneficiary.interior().first()
+						let Some(Junction::AccountId32 { id, .. }) = beneficiary.interior().first()
 						else {
 							panic!("account beneficiary")
 						};
@@ -382,6 +377,34 @@ parameter_types! {
 	pub SweepBeneficiary: AccountId32 = acc(200);
 	/// Audited phantom issuance; set per test.
 	pub static TiCorrection: u128 = 0;
+	/// The mock's wall clock, advanced by `run_blocks`.
+	pub static MockNow: u64 = 0;
+}
+
+ord_parameter_types! {
+	/// The account the mock treats as the Coretime chain's dispatch origin.
+	pub const CoretimeAccount: AccountId32 = AccountId32::new([205u8; 32]);
+}
+
+/// How long the migration holds in each of its two lockdown windows, in this mock.
+pub const WARM_UP: u32 = 4;
+pub const COOL_OFF: u32 = 10;
+
+/// Milliseconds per block, so the wall clock and the block number stay in step.
+pub const BLOCK_TIME_MS: u64 = 6_000;
+
+/// Wall clock the schedule is compared against.
+pub struct MockTime;
+impl Time for MockTime {
+	type Moment = u64;
+	fn now() -> Self::Moment {
+		MockNow::get()
+	}
+}
+
+/// The mock clock's current value.
+pub fn now_ms() -> u64 {
+	MockTime::now()
 }
 
 impl pallet_rc2_migrator::Config for Test {
@@ -395,6 +418,9 @@ impl pallet_rc2_migrator::Config for Test {
 	type SweepAccounts = SweepAccounts;
 	type SweepBeneficiary = SweepBeneficiary;
 	type TiCorrection = TiCorrection;
+	type TimeProvider = MockTime;
+	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId32>;
+	type AdminOrigin = EnsureRoot<AccountId32>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
@@ -422,6 +448,25 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 pub fn acc(n: u8) -> AccountId32 {
 	AccountId32::new([n; 32])
+}
+
+/// The Coretime chain, as an origin this mock can dispatch from.
+pub fn coretime() -> AccountId32 {
+	CoretimeAccount::get()
+}
+
+/// Run `n` blocks of the stage machine.
+///
+/// The clock moves *after* the block's hooks, mirroring the timestamp inherent, which is an
+/// extrinsic and so runs after `on_initialize`.
+pub fn run_blocks(n: u32) {
+	use frame_support::traits::OnInitialize;
+	for _ in 0..n {
+		let now = System::block_number() + 1;
+		System::set_block_number(now);
+		Rc2Migrator::on_initialize(now);
+		MockNow::set(u64::from(now).saturating_mul(BLOCK_TIME_MS));
+	}
 }
 
 /// A pallet (module) account: the kind the migration leaves for the sweep stage.
@@ -503,9 +548,7 @@ pub fn open_request(sender: u32, recipient: u32, deposit: u128) {
 		},
 	);
 	parachains_hrmp::HrmpOpenChannelRequestsList::<Test>::mutate(|list| list.push(id));
-	parachains_hrmp::HrmpOpenChannelRequestCount::<Test>::mutate(ParaId::from(sender), |c| {
-		*c += 1
-	});
+	parachains_hrmp::HrmpOpenChannelRequestCount::<Test>::mutate(ParaId::from(sender), |c| *c += 1);
 }
 
 /// Grant a proxy through the real pallet path; reserves the deposit at this chain's rates.
