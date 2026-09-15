@@ -52,8 +52,7 @@ fn a_pending_migration_does_nothing_at_all() {
 		// WHEN blocks pass.
 		run_blocks(20);
 
-		// THEN the machine has not moved, nothing was sent, and no event was emitted. This is
-		// what makes the pallet safe to carry in a runtime before anyone commits to a migration.
+		// THEN the machine has not moved, nothing was sent, and no event was emitted.
 		assert_stage(Stage::Pending);
 		assert_eq!(sent().len(), 0);
 		assert_eq!(transitions(), vec![]);
@@ -161,9 +160,7 @@ fn waiting_for_coretime_never_advances_on_its_own() {
 		// WHEN many blocks pass without an answer.
 		run_blocks(50);
 
-		// THEN it is still waiting. No timeout is deliberate: nothing has been drained yet, so
-		// the right response to silence is a human with `force_set_stage`, not a machine that
-		// proceeds into a chain that may not have upgraded.
+		// THEN it is still waiting. There is no timeout.
 		assert_stage(Stage::WaitingForCt);
 		assert_eq!(sent().len(), 0);
 	});

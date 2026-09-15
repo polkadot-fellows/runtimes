@@ -126,13 +126,9 @@ where
 
 /// The migration's stage machine, driven end to end over live relay-chain and Coretime state.
 ///
-/// This is what the unit tests cannot prove: that the two chains' hand-encoded calls decode
-/// against each other's real `RuntimeCall`, that the relay chain's XCM router and the Coretime
-/// chain's barrier actually carry the handshake, and that each side's origin converter grants the
-/// authority the receiving call checks for — `Superuser` downwards, the parachain origin upwards.
-///
-/// It also asserts that nothing moves: the machine has no data stages, so a full run must leave
-/// both chains' issuance exactly as the snapshot had it.
+/// Ensures the two chains' hand-encoded calls decode against each other's real `RuntimeCall`, the
+/// RC's XCM router and the CT's barrier carry the handshake, and each side's origin converter
+/// grants the authority the receiving call checks for (Superuser downwards, para origin upwards).
 #[tokio::test(flavor = "multi_thread")]
 async fn the_migration_runs_to_completion_and_moves_nothing() {
 	use pallet_rc2_migrator::MigrationStage as RcStage;
