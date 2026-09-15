@@ -192,6 +192,8 @@ pub mod pallet {
 		NotWaitingForCt,
 		/// Sending an XCM message to the Coretime chain failed.
 		XcmSendFailed,
+		/// The migration can only be cancelled while it is scheduled.
+		NotScheduled,
 	}
 
 	#[pallet::event]
@@ -253,6 +255,22 @@ pub mod pallet {
 
 			let end_at = frame_system::Pallet::<T>::block_number() + T::CoolOffPeriod::get();
 			Self::transition(MigrationStage::CoolOff { end_at });
+			Ok(())
+		}
+
+		/// Return the machine to [`MigrationStage::Pending`] so it can be rescheduled.
+		///
+		/// Only valid before the handshake, so the Coretime chain has not been told anything yet.
+		#[pallet::call_index(3)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
+		pub fn cancel_migration(origin: OriginFor<T>) -> DispatchResult {
+			T::AdminOrigin::ensure_origin(origin)?;
+			ensure!(
+				matches!(RcMigrationStage::<T>::get(), MigrationStage::Scheduled { .. }),
+				Error::<T>::NotScheduled
+			);
+
+			Self::transition(MigrationStage::Pending);
 			Ok(())
 		}
 	}

@@ -97,6 +97,35 @@ fn only_root_can_schedule_and_only_into_the_future() {
 }
 
 #[test]
+fn a_scheduled_migration_can_be_cancelled_and_scheduled_again() {
+	// GIVEN a scheduled migration.
+	new_test_ext().execute_with(|| {
+		let start = now_ms() + 5 * BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
+
+		// WHEN a signed account cancels. THEN it is refused.
+		assert_noop!(Rc2Migrator::cancel_migration(RuntimeOrigin::signed(ALICE)), BadOrigin);
+		assert_stage(Stage::Scheduled { start });
+
+		// WHEN root cancels. THEN the machine is pending again and a new start can be set.
+		assert_ok!(Rc2Migrator::cancel_migration(RuntimeOrigin::root()));
+		assert_stage(Stage::Pending);
+		let start = now_ms() + 2 * BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(RuntimeOrigin::root(), start));
+		assert_stage(Stage::Scheduled { start });
+
+		// WHEN the start has passed and the Coretime chain has been signalled. THEN cancelling is
+		// refused: the two chains have begun a handshake that this call cannot take back.
+		run_blocks(3);
+		assert_stage(Stage::WaitingForCt);
+		assert_noop!(
+			Rc2Migrator::cancel_migration(RuntimeOrigin::root()),
+			Error::<Test>::NotScheduled
+		);
+	});
+}
+
+#[test]
 fn a_scheduled_migration_starts_once_the_clock_passes_it_and_not_before() {
 	// GIVEN a migration scheduled two blocks' worth of time ahead.
 	new_test_ext().execute_with(|| {
