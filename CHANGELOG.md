@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Coretime Polkadot & Kusama, Asset Hub Polkadot: coretime bulk revenue is no longer teleported to the relay chain to be burnt. Polkadot forwards revenue, and now also dust from reaped accounts, to the DAP staging account on Asset Hub through `pallet-accumulate-and-forward`, and Asset Hub grants system-chain accumulation accounts free execution. Asset Hub Polkadot must be upgraded before Coretime Polkadot, otherwise the forwards are rejected and the teleported DOT is lost. Kusama teleports it to Asset Hub and burns it there, since KSM issuance is tracked on Asset Hub. A migration retires the `py/ctbrn` holding account on Coretime Polkadot. ([#1282](https://github.com/polkadot-fellows/runtimes/pull/1282)).
+- People Polkadot & Kusama: admit `unbind_username`, `remove_username` and `kill_username` through the `NonTransfer` proxy filter. `pallet-identity` gained the three calls after the allow-list was written; none moves a deposit out of the proxied account, so rejecting them contradicted the proxy type's documented contract ([#1241](https://github.com/polkadot-fellows/runtimes/issues/1241), [#1243](https://github.com/polkadot-fellows/runtimes/pull/1243)).
 
 ## [2.5.0] 01.09.2026
 
@@ -34,8 +35,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Asset Hub Polkadot: add support for multiple independent PSMs ([#1252](https://github.com/polkadot-fellows/runtimes/pull/1252), integrates [paritytech/polkadot-sdk#12952](https://github.com/paritytech/polkadot-sdk/pull/12952)).
 - All system parachains: add the `cumulus_pallet_parachain_system::Config::SchedulingSignatureVerifier` associated type (set to `()`) and implement `RelayParentOffsetApi` v2 (`max_claim_queue_offset`); preparation for candidate-descriptor v3, with V3 scheduling left disabled ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#10742](https://github.com/paritytech/polkadot-sdk/pull/10742)).
 - People Polkadot: pay XCM execution fees in any asset governance registered a rate for in `pallet-asset-rate`, not only HOLLAR and DOT. `XcmPaymentApi::query_acceptable_payment_assets` lists every rated asset ([#1257](https://github.com/polkadot-fellows/runtimes/pull/1257)).
-
-
 
 ### Changed
 
