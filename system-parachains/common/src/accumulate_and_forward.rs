@@ -69,9 +69,9 @@ impl<T: pallet_accumulate_and_forward::Config> OnRuntimeUpgrade
 }
 
 /// [`pallet_accumulate_and_forward::Forwarder`] teleporting to Asset Hub to burn there, since
-/// Kusama tracks `TotalIssuance` on Asset Hub. A failed send rolls back. Once queued, only a
-/// `BurnAsset` failure traps the assets; a barrier rejection or a failed `ReceiveTeleportedAsset`
-/// leaves the KSM burned here with Asset Hub untouched.
+/// Kusama tracks `TotalIssuance` on Asset Hub. A failed send rolls back. Once queued nothing can
+/// be trapped: `BurnAsset` takes from holding and cannot fail, and if `ReceiveTeleportedAsset`
+/// fails holding is left empty, leaving the KSM burned here with Asset Hub untouched.
 pub struct TeleportAndBurnForwarder<XcmConfig, Dest, NativeAsset>(
 	PhantomData<(XcmConfig, Dest, NativeAsset)>,
 );
@@ -101,6 +101,15 @@ where
 			&dest,
 			&<XcmConfig as xcm_executor::Config>::UniversalLocation::get(),
 		);
+		// `reanchored_assets` drops what it cannot convert, so an empty set would burn nothing
+		// while the funds are already withdrawn. Bail out and let the rollback return them.
+		if assets.is_none() {
+			log::error!(
+				target: LOG_TARGET,
+				"🚨 could not reanchor {asset:?} for {dest:?}; not forwarding"
+			);
+			return Err(XcmError::AssetNotFound);
+		}
 
 		send_xcm::<<XcmConfig as xcm_executor::Config>::XcmSender>(
 			dest.clone(),

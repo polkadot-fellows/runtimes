@@ -31,7 +31,8 @@ pub mod snowbridge {
 	}
 }
 
-/// Asserts that a chain's accumulated funds are teleported to Asset Hub and burned there.
+/// Asserts that funds teleported into a chain's accumulation account are forwarded back to Asset
+/// Hub and burned there, leaving Asset Hub's checking account and the chain's issuance in step.
 ///
 /// For Kusama-like chains, which burn. Polkadot chains forward to the DAP staging account instead
 /// and are covered by the SDK's `dap_helpers::test_accumulate_forward_transfers_to_asset_hub`.
@@ -41,72 +42,85 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 		#[test]
 		fn accumulated_funds_are_burnt_on_asset_hub() {
 			use $crate::{
-				frame_support::traits::{
-					fungible::{Inspect as _, Mutate as _},
-					Hooks as _,
-				},
-				pallet_accumulate_and_forward, Chain, Weight,
+				frame_support::traits::{fungible::Inspect as _, Hooks as _},
+				pallet_accumulate_and_forward, Assets, Chain, Junction, Location, Weight,
+				WeightLimit,
 			};
 
 			type ChainRuntime = <$chain as Chain>::Runtime;
 			type ChainEvent = <$chain as Chain>::RuntimeEvent;
 			type AssetHubRuntime = <$asset_hub as Chain>::Runtime;
 			type AssetHubEvent = <$asset_hub as Chain>::RuntimeEvent;
+			type ChainBalances = $crate::pallet_balances::Pallet<ChainRuntime>;
+			type AssetHubBalances = $crate::pallet_balances::Pallet<AssetHubRuntime>;
 
 			let accumulation_account = $chain::execute_with(|| {
 				pallet_accumulate_and_forward::Pallet::<ChainRuntime>::accumulation_account()
 			});
-			let amount = 2 * $chain::execute_with(|| {
-				<ChainRuntime as pallet_accumulate_and_forward::Config>::MinTransferAmount::get()
-			});
-			$chain::fund_accounts(vec![(accumulation_account.clone(), amount)]);
-
-			// The emulated chain minted that KSM itself, so top up the checking account.
 			let check_account =
 				$asset_hub::execute_with($crate::pallet_xcm::Pallet::<AssetHubRuntime>::check_account);
-			$asset_hub::execute_with(|| {
-				assert!($crate::pallet_balances::Pallet::<AssetHubRuntime>::mint_into(
-					&check_account,
-					amount + $asset_hub_ed,
-				)
-				.is_ok());
+			// Enough that the forward still clears `MinTransferAmount` after arrival fees.
+			let teleported = 10 * $chain::execute_with(|| {
+				<ChainRuntime as pallet_accumulate_and_forward::Config>::MinTransferAmount::get()
 			});
+
 			let (asset_hub_issuance_before, check_balance_before) = $asset_hub::execute_with(|| {
-				(
-					$crate::pallet_balances::Pallet::<AssetHubRuntime>::total_issuance(),
-					$crate::pallet_balances::Pallet::<AssetHubRuntime>::balance(&check_account),
-				)
+				(AssetHubBalances::total_issuance(), AssetHubBalances::balance(&check_account))
+			});
+			let chain_issuance_before =
+				$chain::execute_with(|| ChainBalances::total_issuance());
+
+			// GIVEN a real teleport out of Asset Hub into the accumulation account. The KSM moves
+			// into Asset Hub's checking account, which is how it comes to sit on this chain at all.
+			let sender = $crate::paste::paste! { [<$asset_hub Sender>]::get() };
+
+			$asset_hub::execute_with(|| {
+				let dest = <$asset_hub as Para>::sibling_location_of(<$chain as Para>::para_id());
+				let beneficiary: Location = Junction::AccountId32 {
+					network: None,
+					id: accumulation_account.clone().into(),
+				}
+				.into();
+				let assets: Assets = (Location::parent(), teleported).into();
+
+				assert_ok!($crate::pallet_xcm::Pallet::<AssetHubRuntime>::limited_teleport_assets(
+					<$asset_hub as Chain>::RuntimeOrigin::signed(sender.clone()),
+					bx!(dest.into()),
+					bx!(beneficiary.into()),
+					bx!(assets.into()),
+					0,
+					WeightLimit::Unlimited,
+				));
 			});
 
-			let forwarded = amount - $chain_ed;
+			let accumulated = $chain::execute_with(|| {
+				assert_eq!(
+					ChainBalances::total_issuance(),
+					chain_issuance_before + teleported,
+					"the whole teleported amount should land on this chain"
+				);
+				ChainBalances::balance(&accumulation_account)
+			});
+			let forwarded = accumulated - $chain_ed;
 
+			// WHEN the forward runs.
 			$chain::execute_with(|| {
-				let issuance_before =
-					$crate::pallet_balances::Pallet::<ChainRuntime>::total_issuance();
 				let period =
 					<ChainRuntime as pallet_accumulate_and_forward::Config>::TransferPeriod::get();
-
 				$crate::frame_system::Pallet::<ChainRuntime>::set_block_number(period);
 				pallet_accumulate_and_forward::Pallet::<ChainRuntime>::on_idle(period, Weight::MAX);
 
-				// Emptied down to the ED; the KSM has left this chain.
 				assert_expected_events!(
 					$chain,
 					vec![ChainEvent::AccumulateForward(
 						pallet_accumulate_and_forward::Event::ForwardSucceeded { .. }
 					) => {},]
 				);
-				assert_eq!(
-					$crate::pallet_balances::Pallet::<ChainRuntime>::balance(&accumulation_account),
-					$chain_ed
-				);
-				assert_eq!(
-					$crate::pallet_balances::Pallet::<ChainRuntime>::total_issuance(),
-					issuance_before - forwarded
-				);
+				// Emptied down to the ED; the KSM has left this chain.
+				assert_eq!(ChainBalances::balance(&accumulation_account), $chain_ed);
 			});
 
-			// Asset Hub burns it: issuance and checking account drop alike.
+			// THEN Asset Hub burns it.
 			$asset_hub::execute_with(|| {
 				assert_expected_events!(
 					$asset_hub,
@@ -115,14 +129,23 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 					) => {},]
 				);
 				assert_eq!(
-					$crate::pallet_balances::Pallet::<AssetHubRuntime>::total_issuance(),
-					asset_hub_issuance_before - forwarded
-				);
-				assert_eq!(
-					$crate::pallet_balances::Pallet::<AssetHubRuntime>::balance(&check_account),
-					check_balance_before - forwarded
+					AssetHubBalances::total_issuance(),
+					asset_hub_issuance_before - forwarded,
+					"the burn should move Asset Hub's total issuance"
 				);
 			});
+
+			// AND the checking account still matches what this chain holds: both moved by the
+			// teleport in minus the burn, which is the invariant the whole change exists for.
+			let check_balance_after =
+				$asset_hub::execute_with(|| AssetHubBalances::balance(&check_account));
+			let chain_issuance_after = $chain::execute_with(|| ChainBalances::total_issuance());
+			assert_eq!(
+				check_balance_after - check_balance_before,
+				chain_issuance_after - chain_issuance_before,
+				"Asset Hub's checking account must track this chain's issuance"
+			);
+			assert_eq!(check_balance_after - check_balance_before, teleported - forwarded);
 		}
 	};
 }
