@@ -341,11 +341,11 @@ fn cool_off_holds_for_its_period_and_then_finishes() {
 		assert_stage(Stage::CoolOff { end_at });
 		assert_eq!(sent().len(), 0);
 
-		// WHEN it elapses. THEN the finish signal is sent and both chains are done.
+		// WHEN it elapses. THEN the completion signal is sent and both chains are done.
 		run_blocks(1);
 		assert_stage(Stage::MigrationDone);
 		assert_eq!(sent().len(), 1);
-		assert_eq!(sent_call(0), CtRuntimeCall::CtMigrator(CtMigratorCall::FinishMigration));
+		assert_eq!(sent_call(0), CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown));
 
 		// WHEN more blocks pass. THEN a finished migration stays finished and sends nothing more.
 		run_blocks(10);
@@ -379,7 +379,7 @@ fn a_failed_send_leaves_the_stage_alone_for_a_retry() {
 		assert_stage(Stage::WaitingForCt);
 		assert_eq!(sent().len(), 1);
 
-		// WHEN the finish signal is the one that cannot be sent. THEN the verification window
+		// WHEN the completion signal is the one that cannot be sent. THEN the verification window
 		// stays open rather than closing on a signal the Coretime chain never received.
 		let end_at = System::block_number() + COOL_OFF;
 		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::CoolOff { end_at }));
@@ -388,11 +388,11 @@ fn a_failed_send_leaves_the_stage_alone_for_a_retry() {
 		assert_stage(Stage::CoolOff { end_at });
 		assert_eq!(sent().len(), 1);
 
-		// WHEN the router recovers. THEN the finish goes out and the machine closes.
+		// WHEN the router recovers. THEN the completion goes out and the machine closes.
 		SendFails::set(false);
 		run_blocks(1);
 		assert_stage(Stage::MigrationDone);
-		assert_eq!(sent_call(1), CtRuntimeCall::CtMigrator(CtMigratorCall::FinishMigration));
+		assert_eq!(sent_call(1), CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown));
 	});
 }
 
@@ -471,14 +471,14 @@ fn the_machine_runs_from_pending_to_done() {
 		// WHEN the verification window elapses.
 		run_blocks(COOL_OFF);
 
-		// THEN the migration is done, and the two signals it sent are the start and the finish,
-		// in that order.
+		// THEN the migration is done, and the two signals it sent are the start and the
+		// completion, in that order.
 		assert_stage(Stage::MigrationDone);
 		assert_eq!(
 			(0..sent().len()).map(sent_call).collect::<Vec<_>>(),
 			vec![
 				CtRuntimeCall::CtMigrator(CtMigratorCall::StartMigration),
-				CtRuntimeCall::CtMigrator(CtMigratorCall::FinishMigration),
+				CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown),
 			]
 		);
 		assert_eq!(

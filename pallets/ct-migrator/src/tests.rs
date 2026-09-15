@@ -48,7 +48,7 @@ fn the_migration_calls_are_root_only() {
 		// WHEN a signed account drives the migration. THEN every call is refused: root is the
 		// only thing that drives this pallet.
 		assert_noop!(CtMigrator::start_migration(RuntimeOrigin::signed(ALICE)), BadOrigin);
-		assert_noop!(CtMigrator::finish_migration(RuntimeOrigin::signed(ALICE)), BadOrigin);
+		assert_noop!(CtMigrator::end_lockdown(RuntimeOrigin::signed(ALICE)), BadOrigin);
 		assert_noop!(
 			CtMigrator::force_set_stage(
 				RuntimeOrigin::signed(ALICE),
@@ -131,7 +131,7 @@ fn a_start_after_the_migration_finished_is_rejected() {
 	// GIVEN a chain that has already been migrated into.
 	new_test_ext().execute_with(|| {
 		assert_ok!(CtMigrator::start_migration(RuntimeOrigin::root()));
-		assert_ok!(CtMigrator::finish_migration(RuntimeOrigin::root()));
+		assert_ok!(CtMigrator::end_lockdown(RuntimeOrigin::root()));
 
 		// WHEN a start arrives. THEN it is refused: re-opening a finished migration would
 		// re-arm the filters on a chain that is already serving its new control plane.
@@ -166,22 +166,22 @@ fn a_start_this_chain_cannot_answer_changes_nothing() {
 }
 
 #[test]
-fn a_finish_closes_the_migration() {
+fn a_completion_closes_the_migration() {
 	// GIVEN a migration under way.
 	new_test_ext().execute_with(|| {
 		assert_ok!(CtMigrator::start_migration(RuntimeOrigin::root()));
 
-		// WHEN the relay chain signals the end.
-		assert_ok!(CtMigrator::finish_migration(RuntimeOrigin::root()));
+		// WHEN the relay chain closes its verification window.
+		assert_ok!(CtMigrator::end_lockdown(RuntimeOrigin::root()));
 
 		// THEN this chain is done, and the only message sent is still the start's answer: the
-		// finish is one-directional.
+		// completion is one-directional.
 		assert_stage(MigrationStage::MigrationDone);
 		assert_eq!(sent().len(), 1);
 
 		// WHEN the same signal arrives again. THEN it is accepted as a no-op — a duplicated
 		// message is not worth failing an XCM over.
-		assert_ok!(CtMigrator::finish_migration(RuntimeOrigin::root()));
+		assert_ok!(CtMigrator::end_lockdown(RuntimeOrigin::root()));
 		assert_stage(MigrationStage::MigrationDone);
 		assert_eq!(
 			transitions(),
@@ -194,14 +194,11 @@ fn a_finish_closes_the_migration() {
 }
 
 #[test]
-fn a_finish_for_a_migration_that_never_started_is_rejected() {
+fn a_completion_for_a_migration_that_never_started_is_rejected() {
 	new_test_ext().execute_with(|| {
-		// WHEN a finish arrives first. THEN it is refused, so a stray or reordered message
+		// WHEN a completion arrives first. THEN it is refused, so a stray or reordered message
 		// cannot mark this chain migrated without it ever having received anything.
-		assert_noop!(
-			CtMigrator::finish_migration(RuntimeOrigin::root()),
-			Error::<Test>::NotStarted
-		);
+		assert_noop!(CtMigrator::end_lockdown(RuntimeOrigin::root()), Error::<Test>::NotStarted);
 		assert_stage(MigrationStage::Pending);
 	});
 }

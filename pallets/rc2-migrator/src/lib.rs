@@ -156,7 +156,7 @@ pub enum CtMigratorCall {
 	#[codec(index = 0)]
 	StartMigration,
 	#[codec(index = 1)]
-	FinishMigration,
+	EndLockdown,
 }
 
 #[frame_support::pallet]
@@ -369,7 +369,7 @@ pub mod pallet {
 				},
 				// wait cool off period before finishing migration
 				MigrationStage::CoolOff { end_at } if now >= end_at => {
-					if Self::send_to_ct(CtMigratorCall::FinishMigration).is_ok() {
+					if Self::send_to_ct(CtMigratorCall::EndLockdown).is_ok() {
 						Self::transition(MigrationStage::MigrationDone);
 					}
 					T::DbWeight::get().reads_writes(3, 3)

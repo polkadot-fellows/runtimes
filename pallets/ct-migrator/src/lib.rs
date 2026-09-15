@@ -160,10 +160,14 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// The relay chain signals that all data has been sent.
+		/// The relay chain's verification window has closed: lift this chain's call filters.
+		// TODO(ahm-v2): the data stages add a `reconcile_balances` ahead of this one, carrying
+		// the relay side's bookkeeping to check against. That one arrives at the start of the
+		// window so a mismatch is visible while it can still be acted on; this one stays at the
+		// end, because the filters must hold until the relay chain says they may drop.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
-		pub fn finish_migration(origin: OriginFor<T>) -> DispatchResult {
+		pub fn end_lockdown(origin: OriginFor<T>) -> DispatchResult {
 			// rc origin
 			ensure_root(origin)?;
 

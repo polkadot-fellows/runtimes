@@ -44,8 +44,8 @@ mod tests {
 				.encode(),
 		);
 		assert_eq!(
-			CtRuntimeCall::CtMigrator(CtMigratorCall::FinishMigration).encode(),
-			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::finish_migration {})
+			CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown).encode(),
+			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::end_lockdown {})
 				.encode(),
 		);
 	}
