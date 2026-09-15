@@ -251,7 +251,6 @@ fn governance_authorize_upgrade_works() {
 	>(GovernanceOrigin::Location(AssetHubLocation::get())));
 }
 
-
 /// Exhaustive, so a new `pallet_identity` call upstream breaks the build.
 #[test]
 fn nontransfer_proxy_pins_every_identity_call() {
