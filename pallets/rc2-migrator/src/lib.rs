@@ -353,8 +353,10 @@ pub mod pallet {
 				// The scheduled start is compared against the clock, which at `on_initialize` still
 				// holds the previous block's timestamp -- so the migration begins on the first
 				// block after the one whose timestamp passed `start`.
-				// TODO(ahm-v2): start filtering the calls whose state is about to move, so that
-				// the warm-up drains queues that nothing is refilling.
+				// TODO(ahm-v2): lock down here, which is two things. Filter the calls whose
+				// state is about to move, and refuse inbound XCM from anyone but the Coretime
+				// chain.
+				// TODO(ahm-v2): give the Coretime chain's queue priority.
 				MigrationStage::Scheduled { start } if T::TimeProvider::now() >= start => {
 					if Self::send_to_ct(CtMigratorCall::StartMigration).is_ok() {
 						Self::transition(MigrationStage::WaitingForCt);

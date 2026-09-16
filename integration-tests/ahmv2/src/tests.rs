@@ -23,7 +23,7 @@
 use crate::mock::*;
 use codec::Encode;
 use frame_support::assert_ok;
-use polkadot_runtime_constants::system_parachain;
+use polkadot_runtime_constants::{system_parachain, time::MINUTES};
 use xcm::latest::prelude::*;
 
 /// An XCM program that executes `call` on the destination with the sender's sovereign-account
@@ -266,18 +266,79 @@ async fn readiness_from_another_parachain_is_refused() {
 	// WHEN a para that is not a system chain sends that same message. THEN the barrier turns it
 	// away before it executes, and the relay chain is still waiting.
 	rc.execute_with(|| {
+		drain_inbound_queues(OUTSIDER_PARA);
+		drain_inbound_queues(SYSTEM_IMPOSTOR_PARA);
 		enqueue_ump(OUTSIDER_PARA.into(), ump.clone());
-		next_block_rc_expecting_rejection();
+		assert_eq!(
+			ump_outcome(OUTSIDER_PARA),
+			Some(false),
+			"the barrier must refuse a message from a para that is not a system chain"
+		);
 		assert_eq!(rc_stage(), RcStage::WaitingForCt);
 	});
 
 	// WHEN a system para sends it. THEN the barrier admits the message and `Transact` runs, so
 	// this is `CtOrigin` refusing the call rather than the barrier refusing the message.
+	//
+	// The message is processed successfully. Note: this does not tell the outcome of Transact
+	// itself.
 	rc.execute_with(|| {
 		enqueue_ump(SYSTEM_IMPOSTOR_PARA.into(), ump);
-		next_block_rc();
+		assert_eq!(
+			ump_outcome(SYSTEM_IMPOSTOR_PARA),
+			Some(true),
+			"a system para's message must reach `Transact`, not stop at the barrier"
+		);
 		assert_eq!(rc_stage(), RcStage::WaitingForCt);
 	});
+}
+
+/// Run relay-chain blocks until `para`'s upward queue is empty, and say how many it took.
+/// `None` if it was still not empty after `limit` blocks.
+fn blocks_to_drain_ump(para: u32, limit: u32) -> Option<u32> {
+	for blocks in 0..limit {
+		if !has_queued_ump(para) {
+			return Some(blocks);
+		}
+		next_block_rc_unchecked();
+	}
+	None
+}
+
+/// Empty `para`'s queue
+fn drain_inbound_queues(para: u32) {
+	blocks_to_drain_ump(para, 5 * MINUTES)
+		.unwrap_or_else(|| panic!("para {para}'s queue did not drain"));
+}
+
+/// Whether `para`'s upward queue still holds an undelivered page.
+fn has_queued_ump(para: u32) -> bool {
+	let queue = UmpOrigin::Ump(UmpQueue::Para(para.into()));
+	pallet_message_queue::Pages::<network::relay::Runtime>::iter_keys()
+		.any(|(origin, _page)| origin == queue)
+}
+
+/// Run relay-chain blocks until the message queue reports on a message from `para`'s upward queue,
+/// and say whether the executor accepted it. `None` if none was reported at all.
+fn ump_outcome(para: u32) -> Option<bool> {
+	use pallet_message_queue::Event::{Processed, ProcessingFailed};
+	let queue = UmpOrigin::Ump(UmpQueue::Para(para.into()));
+
+	for _ in 0..10 {
+		next_block_rc_unchecked();
+		for record in frame_system::Pallet::<network::relay::Runtime>::events() {
+			match record.event {
+				network::relay::RuntimeEvent::MessageQueue(Processed {
+					origin, success, ..
+				}) if origin == queue => return Some(success),
+				network::relay::RuntimeEvent::MessageQueue(ProcessingFailed { origin, .. })
+					if origin == queue =>
+					return Some(false),
+				_ => (),
+			}
+		}
+	}
+	None
 }
 
 fn rc_stage() -> pallet_rc2_migrator::MigrationStageOf<network::relay::Runtime> {

@@ -33,6 +33,9 @@ use network::{
 	relay::{Block as RelayBlock, Runtime as RelayRuntime},
 };
 use remote_externalities::{Builder, Mode, OfflineConfig};
+pub use runtime_parachains::inclusion::{
+	AggregateMessageOrigin as UmpOrigin, UmpQueueId as UmpQueue,
+};
 use runtime_parachains::{
 	configuration::ActiveConfig,
 	dmp::{self, DownwardMessageQueues},
@@ -227,6 +230,11 @@ pub fn next_block_rc_expecting_rejection() {
 	next_block_rc_with(InboundMessages::MustBeRejected)
 }
 
+/// Execute the next Relay Chain block w/o any assertions.
+pub fn next_block_rc_unchecked() {
+	next_block_rc_with(InboundMessages::Unchecked)
+}
+
 fn next_block_rc_with(inbound: InboundMessages) {
 	next_block::<RelayRuntime>(Chain::Relay, inbound, |now| {
 		let weight = <network::relay::MessageQueue as OnInitialize<_>>::on_initialize(now);
@@ -275,6 +283,8 @@ pub enum InboundMessages {
 	MustSucceed,
 	/// At least one message must be refused, by the barrier or by the call it dispatches.
 	MustBeRejected,
+	/// The caller asserts on the outcome itself, per message origin.
+	Unchecked,
 }
 
 /// Shared block-execution skeleton: bump the block number, reset events, run the chain's hooks,
@@ -308,6 +318,7 @@ fn next_block<T>(
 		.collect();
 
 	match inbound {
+		InboundMessages::Unchecked => (),
 		InboundMessages::MustSucceed =>
 			assert!(rejected.is_empty(), "{name}: message processing failure: {rejected:?}"),
 		InboundMessages::MustBeRejected =>
