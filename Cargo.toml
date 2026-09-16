@@ -230,7 +230,6 @@ pallet-xcm-bridge-hub-router = { version = "0.27.0", default-features = false }
 parachain-info = { version = "0.28.0", default-features = false, package = "staging-parachain-info" }
 parachains-common = { version = "35.0.0", default-features = false }
 parachains-runtimes-test-utils = { version = "36.0.0" }
-paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
 penpal-runtime = { version = "0.44.0" }
 people-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-kusama" }
@@ -312,7 +311,6 @@ system-parachains-common = { path = "system-parachains/common", default-features
 tokio = { version = "1.45.0" }
 xcm = { version = "24.1.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "29.0.1", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = { version = "0.34.0" }
 xcm-executor = { version = "28.0.1", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.16.0", default-features = false }
 anyhow = { version = "1.0.82" }
