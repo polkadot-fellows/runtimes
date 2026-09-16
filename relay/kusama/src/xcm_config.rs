@@ -23,7 +23,7 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Disabled, Equals, Everything, Nothing},
+	traits::{Contains, ContainsPair, Disabled, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::CENTS, system_parachain::*};
@@ -196,6 +196,18 @@ pub type TrustedTeleporters = (
 	xcm_builder::Case<KsmForPeople>,
 );
 
+/// Teleport trust, withdrawn for good once the AHM v2 migration starts.
+///
+/// This chain's balances drain to Asset Hub and the Coretime chain and must not come back. This
+/// chain keeps no teleport checking account (`NoTeleportTracking`), so an inbound teleport it
+/// accepts mints fresh issuance.
+pub struct TrustedTeleportersBeforeMigration;
+impl ContainsPair<Asset, Location> for TrustedTeleportersBeforeMigration {
+	fn contains(asset: &Asset, origin: &Location) -> bool {
+		TrustedTeleporters::contains(asset, origin) && !crate::ahm_v2_started()
+	}
+}
+
 pub struct OnlyParachains;
 impl Contains<Location> for OnlyParachains {
 	fn contains(loc: &Location) -> bool {
@@ -253,7 +265,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = LocalOriginConverter;
 	type IsReserve = ();
-	type IsTeleporter = TrustedTeleporters;
+	type IsTeleporter = TrustedTeleportersBeforeMigration;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<

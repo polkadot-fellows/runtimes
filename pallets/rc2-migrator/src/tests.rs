@@ -24,13 +24,15 @@
 use crate::{accounts::AccountsMigrator, mock::*, *};
 use frame_support::{
 	assert_noop, assert_ok, hypothetically,
-	traits::{LockableCurrency, OnInitialize, ReservableCurrency, WithdrawReasons},
+	traits::{
+		LockableCurrency, OnInitialize, OnRuntimeUpgrade, ReservableCurrency, WithdrawReasons,
+	},
 	weights::Weight,
 };
 use migrator_types::{PortableProxyDelegate, PortableProxyType};
 use runtime_parachains::hrmp as parachains_hrmp;
-use sp_core::H256;
-use sp_runtime::{traits::BadOrigin, AccountId32};
+use sp_core::{sr25519, Pair, H256};
+use sp_runtime::{traits::BadOrigin, AccountId32, MultiSignature, MultiSigner};
 
 type Stage = MigrationStageOf<Test>;
 
@@ -837,12 +839,16 @@ fn only_the_admin_origin_or_manager_drives_the_machine() {
 		// WHEN the admin origin appoints it manager. THEN it drives the machine, but still
 		// cannot appoint a manager itself.
 		assert_ok!(Rc2Migrator::set_manager(root(), Some(alice.clone())));
+		assert!(
+			migrator_events().contains(&Event::ManagerSet { old: None, new: Some(alice.clone()) })
+		);
 		assert_ok!(Rc2Migrator::schedule_migration(signed.clone(), start, WARM_UP, COOL_OFF));
 		assert_eq!(RcMigrationStage::<Test>::get(), Stage::Scheduled { start });
 		assert_noop!(Rc2Migrator::set_manager(signed.clone(), None), BadOrigin);
 
 		// WHEN the admin origin removes it. THEN it loses the powers.
 		assert_ok!(Rc2Migrator::set_manager(root(), None));
+		assert!(migrator_events().contains(&Event::ManagerSet { old: Some(alice), new: None }));
 		assert_noop!(Rc2Migrator::cancel_migration(signed), BadOrigin);
 	});
 }
@@ -907,10 +913,168 @@ fn nothing_moves_until_the_coretime_chain_confirms() {
 		let at = System::block_number();
 		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(coretime())));
 		assert_eq!(RcMigrationStage::<Test>::get(), Stage::WarmUp { end_at: at + WARM_UP });
+
+		// WHEN it confirms again, as it does after a re-run handshake. THEN nothing changes.
+		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(coretime())));
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::WarmUp { end_at: at + WARM_UP });
 		run_blocks(WARM_UP - 1);
 		assert_eq!(RcMigrationStage::<Test>::get(), Stage::WarmUp { end_at: at + WARM_UP });
 		run_blocks(1);
 		assert_eq!(RcMigrationStage::<Test>::get(), Stage::AccountsInit);
+	});
+}
+
+/// A multisig member: the keypair that signs, and the account the pallet knows it by.
+fn member(seed: u8) -> (sr25519::Pair, AccountId32) {
+	let pair = sr25519::Pair::from_seed(&[seed; 32]);
+	let who = MultiSigner::Sr25519(pair.public()).into_account();
+	(pair, who)
+}
+
+/// One member's signed vote for `call` in the current round, ready to submit.
+fn vote(
+	pair: &sr25519::Pair,
+	call: RuntimeCall,
+) -> (Box<ManagerMultisigVote<Test>>, MultiSignature) {
+	let payload = ManagerMultisigVote::<Test>::new(
+		MultiSigner::Sr25519(pair.public()),
+		call,
+		ManagerMultisigRound::<Test>::get(),
+	);
+	let sig = MultiSignature::Sr25519(pair.sign(&payload.encode_with_bytes_wrapper()));
+	(Box::new(payload), sig)
+}
+
+#[test]
+fn the_manager_multisig_drives_the_machine_once_its_threshold_is_met() {
+	new_test_ext().execute_with(|| {
+		let (alice, alice_id) = member(1); // multisig member
+		let (bob, bob_id) = member(2); // multisig member
+		let (_carol, carol_id) = member(3); // multisig member who never votes
+		MultisigMembers::set(vec![alice_id.clone(), bob_id.clone(), carol_id]);
+
+		// GIVEN the runtime upgrade seeded this network's round, and a scheduled migration.
+		<Rc2Migrator as OnRuntimeUpgrade>::on_runtime_upgrade();
+		assert_eq!(ManagerMultisigRound::<Test>::get(), MultisigStartRound::get());
+		let start = now_ms() + 5 * BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(root(), start, WARM_UP, COOL_OFF));
+		let cancel = RuntimeCall::Rc2Migrator(crate::Call::<Test>::cancel_migration {});
+
+		// WHEN one member votes to cancel. THEN the vote is recorded and nothing is dispatched.
+		let (payload, sig) = vote(&alice, cancel.clone());
+		assert_ok!(Rc2Migrator::vote_manager_multisig(RuntimeOrigin::none(), payload, sig));
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::Scheduled { start });
+		assert!(migrator_events().contains(&Event::ManagerMultisigVoted { votes: 1 }));
+
+		// WHEN the same member votes again for the same call. THEN it is refused.
+		let (payload, sig) = vote(&alice, cancel.clone());
+		assert_noop!(
+			Rc2Migrator::vote_manager_multisig(RuntimeOrigin::none(), payload, sig),
+			Error::<Test>::DuplicateVote
+		);
+
+		// WHEN a second member votes. THEN the threshold is met, the call is dispatched as the
+		// multisig's account, and the round advances so the votes cannot be replayed.
+		let (payload, sig) = vote(&bob, cancel.clone());
+		assert_ok!(Rc2Migrator::vote_manager_multisig(RuntimeOrigin::none(), payload, sig));
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::Pending);
+		assert!(migrator_events().contains(&Event::ManagerMultisigDispatched { res: Ok(()) }));
+		assert_eq!(ManagerMultisigRound::<Test>::get(), MultisigStartRound::get() + 1);
+		assert_eq!(ManagerMultisigs::<Test>::iter().count(), 0);
+		assert_eq!(ManagerVotesInCurrentRound::<Test>::iter().count(), 0);
+
+		// WHEN a vote from the previous round arrives. THEN it is refused as stale.
+		let stale = ManagerMultisigVote::<Test>::new(
+			MultiSigner::Sr25519(alice.public()),
+			cancel.clone(),
+			MultisigStartRound::get(),
+		);
+		let sig = MultiSignature::Sr25519(alice.sign(&stale.encode_with_bytes_wrapper()));
+		assert_noop!(
+			Rc2Migrator::vote_manager_multisig(RuntimeOrigin::none(), Box::new(stale), sig),
+			Error::<Test>::UnsignedValidationFailed
+		);
+	});
+}
+
+#[test]
+fn only_members_with_a_valid_signature_may_vote() {
+	new_test_ext().execute_with(|| {
+		let (alice, alice_id) = member(1); // multisig member
+		let (mallory, _) = member(9); // not a member
+		MultisigMembers::set(vec![alice_id]);
+		let cancel = RuntimeCall::Rc2Migrator(crate::Call::<Test>::cancel_migration {});
+
+		// WHEN a non-member votes. THEN it is refused.
+		let (payload, sig) = vote(&mallory, cancel.clone());
+		assert_noop!(
+			Rc2Migrator::vote_manager_multisig(RuntimeOrigin::none(), payload, sig),
+			Error::<Test>::UnsignedValidationFailed
+		);
+
+		// WHEN a member's vote carries somebody else's signature. THEN it is refused.
+		let (payload, _) = vote(&alice, cancel.clone());
+		let forged = MultiSignature::Sr25519(mallory.sign(&payload.encode_with_bytes_wrapper()));
+		assert_noop!(
+			Rc2Migrator::vote_manager_multisig(RuntimeOrigin::none(), payload, forged),
+			Error::<Test>::UnsignedValidationFailed
+		);
+
+		// WHEN a vote is submitted signed rather than as an inherent. THEN it is refused: the
+		// point of the unsigned path is that members need no funded account here.
+		let (payload, sig) = vote(&alice, cancel);
+		assert_noop!(
+			Rc2Migrator::vote_manager_multisig(RuntimeOrigin::signed(acc(1)), payload, sig),
+			BadOrigin
+		);
+	});
+}
+
+#[test]
+fn the_manager_stays_funded_until_the_end_and_is_then_reaped() {
+	new_test_ext().execute_with(|| {
+		let manager = acc(40); // governance-appointed manager
+		fund(&manager, 1_000);
+		assert_ok!(Rc2Migrator::set_manager(root(), Some(manager.clone())));
+
+		// GIVEN a migration the manager scheduled and the Coretime chain confirmed.
+		let start = now_ms() + BLOCK_TIME_MS;
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::signed(manager.clone()),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
+		run_blocks(2);
+		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(coretime())));
+
+		// WHEN the accounts stage has run. THEN the manager still has its balance: it is the one
+		// account the drain leaves alone, so it can keep paying for the calls that drive this.
+		for _ in 0..40 {
+			if RcMigrationStage::<Test>::get() == Stage::AccountsDone {
+				break;
+			}
+			run_blocks(1);
+		}
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::AccountsDone);
+		assert_eq!(Balances::free_balance(&manager), 1_000);
+
+		// WHEN the migration ends. THEN the appointment is over and the balance has left for the
+		// same account on Asset Hub.
+		for _ in 0..60 {
+			if RcMigrationStage::<Test>::get().is_finished() {
+				break;
+			}
+			run_blocks(1);
+		}
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::MigrationDone);
+		assert_eq!(Manager::<Test>::get(), None);
+		assert_eq!(Balances::free_balance(&manager), 0);
+		assert!(migrator_events()
+			.contains(&Event::ManagerReaped { who: manager.clone(), amount: 1_000 }));
+		assert!(decode_teleports(&sent_xcm())
+			.iter()
+			.any(|batch| batch.contains(&(manager.clone(), 1_000))));
 	});
 }
 

@@ -22,27 +22,36 @@
 //! every parachain flow stops, silently — a call filtered inside XCM surfaces only as a `Transact`
 //! that did nothing.
 
-use frame_support::traits::Contains;
-use pallet_rc2_migrator::{MigrationStage, RcMigrationStage};
-use polkadot_primitives::HrmpChannelId;
-use polkadot_runtime::{PostAhmFilter, Runtime, RuntimeCall};
-use polkadot_runtime_common::paras_registrar;
+use frame_support::{
+	traits::{Contains, PalletsInfoAccess},
+	weights::Weight,
+};
+use pallet_rc2_migrator::{MigrationStageOf, RcMigrationStage};
+use polkadot_primitives::{AccountId, HrmpChannelId};
+use polkadot_runtime::{
+	xcm_config::XcmConfig, AllPalletsWithSystem, PostAhmFilter, Runtime, RuntimeCall,
+};
+use polkadot_runtime_common::{crowdloan, paras_registrar};
+use polkadot_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
 use runtime_parachains::hrmp;
-use sp_runtime::{AccountId32, BuildStorage};
+use sp_runtime::BuildStorage;
+use xcm::latest::prelude::*;
+use xcm_executor::XcmExecutor;
 
-type Stage = MigrationStage<AccountId32, u32>;
+type Stage = MigrationStageOf<Runtime>;
 
 /// The filter reads the migration stage, so it needs storage. `Pending` is the default, and is
 /// what a fresh runtime upgrade lands in.
 fn allowed_at(stage: Stage, call: &RuntimeCall) -> bool {
-	let mut ext: sp_io::TestExternalities =
-		frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap().into();
+	let mut ext: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
+		.build_storage()
+		.unwrap()
+		.into();
 	ext.execute_with(|| {
 		RcMigrationStage::<Runtime>::put(stage);
 		PostAhmFilter::contains(call)
 	})
 }
-
 
 /// The registrar's own calls: served until the migration starts, closed from then on.
 ///
@@ -147,11 +156,11 @@ fn calls_that_cannot_be_forwarded_stay_closed() {
 /// still reach any relay-chain pallet nobody thought to filter.
 mod origins {
 	use frame_support::traits::EnsureOrigin;
-	use runtime_parachains::origin as parachains_origin;
 	use polkadot_runtime::{
 		para_control::EnsureAnyParaSelf, xcm_config::SystemChildParachainAsNative, RuntimeOrigin,
 	};
 	use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, BROKER_ID};
+	use runtime_parachains::origin as parachains_origin;
 	use xcm::latest::prelude::*;
 	use xcm_executor::traits::ConvertOrigin;
 
@@ -177,14 +186,14 @@ mod origins {
 		// plane's own origin, which is accepted by the nine calls a para dispatches for itself and
 		// by nothing else. Two properties, and the second is the one that matters:
 		for para in [2000u32, 2004, 3367] {
-			let origin = native_origin(para).unwrap_or_else(|_| {
-				panic!("para {para} must dispatch here as itself, or it cannot reach the forwarders")
-			});
+			let origin =
+				native_origin(para).unwrap_or_else(|_| {
+					panic!("para {para} must dispatch here as itself, or it cannot reach the forwarders")
+				});
 
 			// It resolves to the para, for the calls that accept it.
 			assert_eq!(
-				<EnsureAnyParaSelf as EnsureOrigin<RuntimeOrigin>>::try_origin(origin.clone())
-					.ok(),
+				<EnsureAnyParaSelf as EnsureOrigin<RuntimeOrigin>>::try_origin(origin.clone()).ok(),
 				Some(para.into()),
 				"para {para} must resolve through the control-plane origin"
 			);
@@ -197,6 +206,271 @@ mod origins {
 				)
 				.is_err(),
 				"para {para} must not obtain the system-chain parachain origin"
+			);
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// What the migration closes for good, from its first block
+// ---------------------------------------------------------------------------
+
+const ALICE: AccountId = AccountId::new([1u8; 32]);
+
+/// Every stage in which the relay chain still serves its users, and every stage in which it must
+/// not. `MigrationDone` sits with the latter: what the migration closes does not reopen.
+fn open_stages() -> [Stage; 2] {
+	[Stage::Pending, Stage::Scheduled { start: 1_000 }]
+}
+fn closed_stages() -> [Stage; 5] {
+	[
+		Stage::WaitingForCt,
+		Stage::AccountsOngoing { last_key: None },
+		Stage::Paused,
+		Stage::CoolOff { end_at: 10 },
+		Stage::MigrationDone,
+	]
+}
+
+fn every_stage() -> impl Iterator<Item = Stage> {
+	open_stages().into_iter().chain(closed_stages())
+}
+
+fn assert_closes_at_migration_start(call: RuntimeCall) {
+	for stage in open_stages() {
+		assert!(allowed_at(stage.clone(), &call), "{call:?} must stay open at {stage:?}");
+	}
+	for stage in closed_stages() {
+		assert!(!allowed_at(stage.clone(), &call), "{call:?} must be closed at {stage:?}");
+	}
+}
+
+/// The calls a signed origin could use to move value or resize a reserve while the accounts stage
+/// is draining them.
+///
+/// One per pallet the filter names: the arms match on the pallet, so a single call witnesses each.
+#[test]
+fn value_movers_close_when_the_migration_starts() {
+	for call in [
+		RuntimeCall::Balances(pallet_balances::Call::<Runtime>::transfer_allow_death {
+			dest: ALICE.into(),
+			value: UNITS,
+		}),
+		RuntimeCall::XcmPallet(pallet_xcm::Call::<Runtime>::transfer_assets {
+			dest: Box::new(Parachain(ASSET_HUB_ID).into_location().into_versioned()),
+			beneficiary: Box::new(
+				Location::new(0, [AccountId32 { network: None, id: ALICE.into() }])
+					.into_versioned(),
+			),
+			assets: Box::new(Assets::from(vec![(Here, UNITS).into()]).into()),
+			fee_asset_item: 0,
+			weight_limit: Unlimited,
+		}),
+		RuntimeCall::Multisig(pallet_multisig::Call::<Runtime>::approve_as_multi {
+			threshold: 2,
+			other_signatories: vec![ALICE],
+			maybe_timepoint: None,
+			call_hash: [0u8; 32],
+			max_weight: Weight::zero(),
+		}),
+		RuntimeCall::Preimage(pallet_preimage::Call::<Runtime>::note_preimage {
+			bytes: vec![1, 2, 3],
+		}),
+		RuntimeCall::OnDemand(
+			runtime_parachains::on_demand::Call::<Runtime>::place_order_allow_death {
+				max_amount: UNITS,
+				para_id: 2000.into(),
+			},
+		),
+		RuntimeCall::Crowdloan(crowdloan::Call::<Runtime>::withdraw {
+			who: ALICE,
+			index: 0.into(),
+		}),
+	] {
+		assert_closes_at_migration_start(call);
+	}
+}
+
+/// Using a proxy is not a value movement; changing the proxy map or an announcement is, because
+/// both resize a reserve.
+#[test]
+fn proxies_keep_working_but_stop_changing() {
+	let add = RuntimeCall::Proxy(pallet_proxy::Call::<Runtime>::add_proxy {
+		delegate: ALICE.into(),
+		proxy_type: polkadot_runtime::TransparentProxyType(
+			polkadot_runtime_constants::proxy::ProxyType::Any,
+		),
+		delay: 0,
+	});
+	assert_closes_at_migration_start(add);
+
+	let announce = RuntimeCall::Proxy(pallet_proxy::Call::<Runtime>::announce {
+		real: ALICE.into(),
+		call_hash: Default::default(),
+	});
+	assert_closes_at_migration_start(announce);
+
+	let poke = RuntimeCall::Proxy(pallet_proxy::Call::<Runtime>::poke_deposit {});
+	assert_closes_at_migration_start(poke);
+
+	// The wrapper stays dispatchable throughout.
+	let use_proxy = RuntimeCall::Proxy(pallet_proxy::Call::<Runtime>::proxy {
+		real: ALICE.into(),
+		force_proxy_type: None,
+		call: Box::new(RuntimeCall::System(frame_system::Call::<Runtime>::remark {
+			remark: vec![],
+		})),
+	});
+	for stage in every_stage() {
+		assert!(allowed_at(stage.clone(), &use_proxy), "using a proxy must survive {stage:?}");
+	}
+}
+
+/// The filter is a list, not a mode: a call it does not name is unaffected at every stage.
+#[test]
+fn calls_the_migration_does_not_name_are_untouched() {
+	let call = RuntimeCall::System(frame_system::Call::<Runtime>::remark { remark: vec![1, 2, 3] });
+	for stage in every_stage() {
+		assert!(allowed_at(stage.clone(), &call), "{call:?} must be unaffected at {stage:?}");
+	}
+}
+
+/// The filter names the pallets it closes and lets every other call through, so a pallet added to
+/// this runtime is reachable under the drain unless someone decides otherwise.
+///
+/// This list is that decision, recorded. Adding or removing a pallet fails here, and the fix is to
+/// say which side of `PostAhmFilter` the new one belongs on.
+#[test]
+fn every_pallet_has_been_weighed_against_the_filter() {
+	let mut present = <AllPalletsWithSystem as PalletsInfoAccess>::infos()
+		.into_iter()
+		.map(|pallet| pallet.name)
+		.collect::<Vec<_>>();
+	present.sort_unstable();
+
+	let considered = vec![
+		"AssetRate",
+		"Auctions",
+		"AuthorityDiscovery",
+		"Authorship",
+		"Babe",
+		"Balances",
+		"Beefy",
+		"BeefyMmrLeaf",
+		"Bounties",
+		"ChildBounties",
+		"Claims",
+		"Configuration",
+		"ConvictionVoting",
+		"Coretime",
+		"Crowdloan",
+		"DelegatedStaking",
+		"Dmp",
+		"ElectionProviderMultiPhase",
+		"FastUnstake",
+		"Grandpa",
+		"Historical",
+		"Hrmp",
+		"HrmpRelay",
+		"Indices",
+		"Initializer",
+		"MessageQueue",
+		"Mmr",
+		"Multisig",
+		"NominationPools",
+		"Offences",
+		"OnDemand",
+		"Origins",
+		"ParaInclusion",
+		"ParaInherent",
+		"ParaScheduler",
+		"ParaSessionInfo",
+		"ParachainsOrigin",
+		"Parameters",
+		"Paras",
+		"ParasDisputes",
+		"ParasShared",
+		"ParasSlashing",
+		"Preimage",
+		"Proxy",
+		"Rc2Migrator",
+		"RcMigrator",
+		"Referenda",
+		"Registrar",
+		"RegistrarRelay",
+		"Scheduler",
+		"Session",
+		"Slots",
+		"Staking",
+		"StakingAhClient",
+		"System",
+		"Timestamp",
+		"TransactionPayment",
+		"Treasury",
+		"Utility",
+		"Vesting",
+		"VoterList",
+		"Whitelist",
+		"XcmPallet",
+	];
+
+	assert_eq!(present, considered);
+}
+
+/// The executor's teleport trust, which a call filter cannot cover: an inbound
+/// `ReceiveTeleportedAsset` dispatches nothing on this chain.
+mod inbound_teleports {
+	use super::*;
+
+	fn teleport_from_asset_hub(stage: Stage) -> Outcome {
+		let mut ext: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
+			.unwrap()
+			.into();
+		ext.execute_with(|| {
+			RcMigrationStage::<Runtime>::put(stage);
+			let message = Xcm::<RuntimeCall>(vec![
+				ReceiveTeleportedAsset(Assets::from(vec![(Here, 10 * UNITS).into()])),
+				DepositAsset {
+					assets: AllCounted(1).into(),
+					beneficiary: Location::new(
+						0,
+						[AccountId32 { network: None, id: ALICE.into() }],
+					),
+				},
+			]);
+			let weight = Weight::from_parts(10_000_000_000, 1_000_000);
+			XcmExecutor::<XcmConfig>::prepare_and_execute(
+				Parachain(ASSET_HUB_ID),
+				message,
+				&mut [0u8; 32],
+				weight,
+				weight,
+			)
+		})
+	}
+
+	#[test]
+	fn a_system_chain_can_teleport_here_until_the_migration_starts() {
+		for stage in open_stages() {
+			assert_eq!(
+				teleport_from_asset_hub(stage.clone()).ensure_complete(),
+				Ok(()),
+				"teleports must still land at {stage:?}"
+			);
+		}
+	}
+
+	#[test]
+	fn no_one_can_teleport_here_once_the_migration_starts() {
+		for stage in closed_stages() {
+			let error = teleport_from_asset_hub(stage.clone())
+				.ensure_complete()
+				.expect_err("teleport must be refused");
+			assert_eq!(
+				error.error,
+				XcmError::UntrustedTeleportLocation,
+				"teleport must be refused as untrusted at {stage:?}"
 			);
 		}
 	}

@@ -367,6 +367,11 @@ pub const AH_PARA_ID: u32 = 1000;
 
 parameter_types! {
 	pub const CtParaId: u32 = CT_PARA_ID;
+	/// Members of the manager multisig; set per test.
+	pub static MultisigMembers: Vec<AccountId32> = vec![];
+	pub const MultisigThreshold: u32 = 2;
+	pub const MultisigMaxVotesPerRound: u32 = 3;
+	pub const MultisigStartRound: u32 = 7;
 	pub const AhParaId: u32 = AH_PARA_ID;
 	/// Working buffer that follows deposits to the Coretime chain.
 	pub const CtFreeBuffer: u128 = 100;
@@ -421,6 +426,11 @@ impl pallet_rc2_migrator::Config for Test {
 	type TimeProvider = MockTime;
 	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId32>;
 	type AdminOrigin = EnsureRoot<AccountId32>;
+	type RuntimeCall = RuntimeCall;
+	type MultisigMembers = MultisigMembers;
+	type MultisigThreshold = MultisigThreshold;
+	type MultisigMaxVotesPerRound = MultisigMaxVotesPerRound;
+	type MultisigStartRound = MultisigStartRound;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

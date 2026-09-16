@@ -23,7 +23,7 @@ use super::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Disabled, Equals, Everything, Nothing},
+	traits::{Contains, ContainsPair, Disabled, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
@@ -206,6 +206,18 @@ pub type TrustedTeleporters = (
 	Case<DotForBulletin>,
 );
 
+/// Teleport trust, withdrawn for good once the AHM v2 migration starts.
+///
+/// This chain's balances drain to Asset Hub and the Coretime chain and must not come back. This
+/// chain keeps no teleport checking account (`NoTeleportTracking`), so an inbound teleport it
+/// accepts mints fresh issuance.
+pub struct TrustedTeleportersBeforeMigration;
+impl ContainsPair<Asset, Location> for TrustedTeleportersBeforeMigration {
+	fn contains(asset: &Asset, origin: &Location) -> bool {
+		TrustedTeleporters::contains(asset, origin) && !crate::ahm_v2_started()
+	}
+}
+
 pub type Fellows = IsFellowshipVoice<CollectivesLocation>;
 
 pub struct OnlyParachains;
@@ -270,7 +282,7 @@ impl xcm_executor::Config for XcmConfig {
 	type OriginConverter = LocalOriginConverter;
 	// Polkadot Relay recognises no chains which act as reserves.
 	type IsReserve = ();
-	type IsTeleporter = TrustedTeleporters;
+	type IsTeleporter = TrustedTeleportersBeforeMigration;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<

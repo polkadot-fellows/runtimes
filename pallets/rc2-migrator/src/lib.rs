@@ -35,14 +35,17 @@ mod tests;
 
 pub use pallet::*;
 
-use alloc::{vec, vec::Vec};
+use alloc::{boxed::Box, vec, vec::Vec};
 use frame_support::{
 	defensive,
+	dispatch::GetDispatchInfo,
 	pallet_prelude::*,
 	traits::{
 		fungible::{Inspect, Mutate, Unbalanced},
+		tokens::{Fortitude, Precision, Preservation},
 		EnsureOrigin, ReservableCurrency, Time,
 	},
+	PalletId,
 };
 use frame_system::pallet_prelude::*;
 use migrator_types::{
@@ -51,7 +54,10 @@ use migrator_types::{
 };
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
-use sp_runtime::AccountId32;
+use sp_runtime::{
+	traits::{AccountIdConversion, Dispatchable, IdentifyAccount, Saturating, Verify},
+	AccountId32, MultiSignature, MultiSigner,
+};
 use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::rc2-migrator";
@@ -335,6 +341,23 @@ pub mod pallet {
 
 		/// The origin that may schedule and force the migration.
 		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
+
+		/// Calls the manager multisig may dispatch once it reaches its threshold.
+		type RuntimeCall: Parameter
+			+ Dispatchable<RuntimeOrigin = <Self as frame_system::Config>::RuntimeOrigin>
+			+ GetDispatchInfo;
+
+		/// Members of a multisig that can submit unsigned txs and act as the manager.
+		type MultisigMembers: Get<Vec<AccountId32>>;
+
+		/// Threshold of `MultisigMembers`.
+		type MultisigThreshold: Get<u32>;
+
+		/// Limit the number of votes of each participant per round.
+		type MultisigMaxVotesPerRound: Get<u32>;
+
+		/// Round the vote counter starts at. Must differ per network.
+		type MultisigStartRound: Get<u32>;
 	}
 
 	#[pallet::pallet]
@@ -353,9 +376,24 @@ pub mod pallet {
 	pub type CoolOffPeriod<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
 	/// An account that may drive the migration alongside [`Config::AdminOrigin`], except that it
-	/// cannot appoint a manager itself.
+	/// cannot appoint a manager itself. Kept funded through the migration and reaped when it ends.
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
+	/// The multisig members that voted to execute a specific call.
+	#[pallet::storage]
+	#[pallet::unbounded]
+	pub type ManagerMultisigs<T: Config> =
+		StorageMap<_, Twox64Concat, <T as Config>::RuntimeCall, Vec<AccountId32>, ValueQuery>;
+
+	/// The current round of the multisig voting. Votes are only valid for the current round.
+	#[pallet::storage]
+	pub type ManagerMultisigRound<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+	/// How often each member voted in the current round. Cleared at the end of each round.
+	#[pallet::storage]
+	pub type ManagerVotesInCurrentRound<T: Config> =
+		StorageMap<_, Blake2_128Concat, AccountId32, u32, ValueQuery>;
 
 	/// Balance kept on the relay chain versus migrated away. Set up by the accounts stage.
 	#[pallet::storage]
@@ -390,6 +428,14 @@ pub mod pallet {
 		NotScheduled,
 		/// An account that is referenced cannot be appointed manager.
 		AccountReferenced,
+		/// The unsigned multisig vote did not validate.
+		UnsignedValidationFailed,
+		/// The vote carries a round that is no longer open.
+		RoundStale,
+		/// The member has used up its votes for this round.
+		MaxVotesPerRound,
+		/// The member has already voted for this call in this round.
+		DuplicateVote,
 	}
 
 	#[pallet::event]
@@ -475,12 +521,35 @@ pub mod pallet {
 		HusksReaped {
 			count: u32,
 		},
+		/// The manager multisig dispatched a call.
+		ManagerMultisigDispatched {
+			res: DispatchResult,
+		},
+		/// The manager multisig received a vote.
+		ManagerMultisigVoted {
+			votes: u32,
+		},
+		/// The manager's remaining balance left for Asset Hub and the appointment ended.
+		ManagerReaped {
+			who: T::AccountId,
+			amount: u128,
+		},
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			Self::progress_migration(now)
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			// A vote is signed over (who, call, round) and nothing else, so two chains sitting at
+			// the same round would accept each other's signatures. Each network starts its
+			// counter somewhere different.
+			if !ManagerMultisigRound::<T>::exists() {
+				ManagerMultisigRound::<T>::put(T::MultisigStartRound::get());
+			}
+			T::DbWeight::get().reads_writes(1, 1)
 		}
 	}
 
@@ -516,7 +585,9 @@ pub mod pallet {
 		/// Set the migration stage directly.
 		///
 		/// Recovery hook for a lost message or a stage that needs re-running; the stage machine
-		/// normally advances itself in `on_initialize`.
+		/// normally advances itself in `on_initialize`. Does not touch [`WarmUpPeriod`] or
+		/// [`CoolOffPeriod`]: a machine forced past `Pending` without a prior `schedule_migration`
+		/// holds each window for zero blocks.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
@@ -529,18 +600,22 @@ pub mod pallet {
 		/// The Coretime chain confirms that it can receive migrated state.
 		///
 		/// Sent by `pallet-ct-migrator` in response to [`CtMigratorCall::StartMigration`]. Nothing
-		/// is drained before it arrives.
+		/// is drained before it arrives. A repeated confirmation during the warm-up is accepted
+		/// and changes nothing; one at any other stage is an error.
 		#[pallet::call_index(2)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 2))]
 		pub fn ct_ready(origin: OriginFor<T>) -> DispatchResult {
 			T::CtOrigin::ensure_origin(origin)?;
-			ensure!(
-				RcMigrationStage::<T>::get() == MigrationStage::WaitingForCt,
-				Error::<T>::NotWaitingForCt
-			);
 
-			let end_at = frame_system::Pallet::<T>::block_number() + WarmUpPeriod::<T>::get();
-			Self::transition(MigrationStage::WarmUp { end_at });
+			match RcMigrationStage::<T>::get() {
+				MigrationStage::WaitingForCt => {
+					let end_at = frame_system::Pallet::<T>::block_number()
+						.saturating_add(WarmUpPeriod::<T>::get());
+					Self::transition(MigrationStage::WarmUp { end_at });
+				},
+				MigrationStage::WarmUp { .. } => (),
+				_ => return Err(Error::<T>::NotWaitingForCt.into()),
+			}
 			Ok(())
 		}
 
@@ -572,22 +647,125 @@ pub mod pallet {
 					frame_system::Pallet::<T>::consumers(who) == 0,
 					Error::<T>::AccountReferenced
 				);
-				// TODO(ahm-v2): Manager account will be preserved and kept funded until
-				// the cool-off reaps it.
 			}
 			let old = Manager::<T>::get();
 			Manager::<T>::set(new.clone());
 			Self::deposit_event(Event::ManagerSet { old, new });
 			Ok(())
 		}
+
+		/// Vote on behalf of any of the members in [`Config::MultisigMembers`].
+		///
+		/// Unsigned extrinsic, requiring the `payload` to be signed. Members therefore need no
+		/// funded account on this chain, which is the point: this chain is being drained.
+		///
+		/// Each call adds the member to `ManagerMultisigs` under `payload.call`. Once
+		/// [`Config::MultisigThreshold`] members have voted for the same call it is dispatched as
+		/// the multisig's account, the map is cleared and the round advances, which is what stops
+		/// an old round's signatures from being replayed.
+		#[pallet::call_index(5)]
+		#[pallet::weight(Weight::from_parts(10_000_000, 1000))]
+		pub fn vote_manager_multisig(
+			origin: OriginFor<T>,
+			payload: Box<ManagerMultisigVote<T>>,
+			sig: MultiSignature,
+		) -> DispatchResult {
+			ensure_none(origin)?;
+
+			Self::do_validate_unsigned(&payload, &sig)
+				.map_err(|_| Error::<T>::UnsignedValidationFailed)?;
+			let who = payload.who.clone().into_account();
+
+			ensure!(ManagerMultisigRound::<T>::get() == payload.round, Error::<T>::RoundStale);
+			let num_votes = ManagerVotesInCurrentRound::<T>::get(&who);
+			ensure!(num_votes < T::MultisigMaxVotesPerRound::get(), Error::<T>::MaxVotesPerRound);
+			ManagerVotesInCurrentRound::<T>::insert(&who, num_votes.saturating_add(1));
+
+			let mut votes_for_call = ManagerMultisigs::<T>::get(&payload.call);
+			ensure!(!votes_for_call.contains(&who), Error::<T>::DuplicateVote);
+			votes_for_call.push(who);
+
+			if votes_for_call.len() >= T::MultisigThreshold::get() as usize {
+				let origin: <T as frame_system::Config>::RuntimeOrigin =
+					frame_system::RawOrigin::Signed(Self::manager_multisig_id()).into();
+				let res = payload.call.clone().dispatch(origin);
+				let _ = ManagerMultisigs::<T>::clear(u32::MAX, None);
+				let _ = ManagerVotesInCurrentRound::<T>::clear(u32::MAX, None);
+				ManagerMultisigRound::<T>::mutate(|round| *round = round.saturating_add(1));
+
+				Self::deposit_event(Event::ManagerMultisigDispatched {
+					res: res.map(|_| ()).map_err(|e| e.error),
+				});
+			} else {
+				Self::deposit_event(Event::ManagerMultisigVoted {
+					votes: votes_for_call.len() as u32,
+				});
+				ManagerMultisigs::<T>::insert(payload.call.clone(), votes_for_call);
+			}
+			Ok(())
+		}
+	}
+
+	/// One member's vote for `call`, signed offline and submitted by anyone.
+	#[derive(
+		Encode,
+		Decode,
+		DecodeWithMemTracking,
+		DebugNoBound,
+		CloneNoBound,
+		PartialEqNoBound,
+		EqNoBound,
+		TypeInfo,
+	)]
+	#[scale_info(skip_type_params(T))]
+	pub struct ManagerMultisigVote<T: Config> {
+		pub who: MultiSigner,
+		pub call: <T as Config>::RuntimeCall,
+		pub round: u32,
+	}
+
+	impl<T: Config> ManagerMultisigVote<T> {
+		pub fn new(who: MultiSigner, call: <T as Config>::RuntimeCall, round: u32) -> Self {
+			Self { who, call, round }
+		}
+
+		/// The bytes a member signs. The wrapper is what wallet `signRaw` prepends.
+		pub fn encode_with_bytes_wrapper(&self) -> Vec<u8> {
+			(b"<Bytes>", self, b"</Bytes>").encode()
+		}
+	}
+
+	// `ValidateUnsigned` is deprecated in favour of `#[pallet::authorize]`
+	// (paritytech/polkadot-sdk#2415). Kept as v1 wrote it; this pallet is deleted after the
+	// migration.
+	#[allow(deprecated)]
+	#[pallet::validate_unsigned]
+	impl<T: Config> ValidateUnsigned for Pallet<T> {
+		type Call = Call<T>;
+
+		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
+			if let Call::vote_manager_multisig { payload, sig } = call {
+				Self::do_validate_unsigned(payload, sig)
+			} else {
+				InvalidTransaction::Call.into()
+			}
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
-		/// Ensure the origin is [`Config::AdminOrigin`] or signed by the [`Manager`].
+		/// The account the manager multisig dispatches as, once it reaches its threshold.
+		pub fn manager_multisig_id() -> T::AccountId {
+			PalletId(*b"rc2migmt").into_account_truncating()
+		}
+
+		/// Ensure the origin is [`Config::AdminOrigin`], or signed by the [`Manager`] or by the
+		/// manager multisig.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
-			// TODO(ahm-v2): allow hardcoded local multisig to act as manager as well.
 			if let Ok(who) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().is_some_and(|manager| manager == who) {
+					return Ok(());
+				}
+				if who == Self::manager_multisig_id() {
 					return Ok(());
 				}
 			}
@@ -595,13 +773,46 @@ pub mod pallet {
 			Ok(())
 		}
 
+		fn do_validate_unsigned(
+			payload: &ManagerMultisigVote<T>,
+			sig: &MultiSignature,
+		) -> TransactionValidity {
+			let account = payload.who.clone().into_account();
+
+			if !T::MultisigMembers::get().contains(&account) {
+				return InvalidTransaction::BadSigner.into();
+			}
+			if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &account) {
+				return InvalidTransaction::BadProof.into();
+			}
+			if ManagerMultisigRound::<T>::get() != payload.round {
+				return InvalidTransaction::Stale.into();
+			}
+			if ManagerVotesInCurrentRound::<T>::get(&account) >= T::MultisigMaxVotesPerRound::get()
+			{
+				return InvalidTransaction::Stale.into();
+			}
+
+			ValidTransaction::with_tag_prefix("Ahm2Multisig")
+				.priority(sp_runtime::traits::Bounded::max_value())
+				.and_provides(vec![("ahm2_multi", account).encode()])
+				.propagate(true)
+				.longevity(30)
+				.build()
+		}
+
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
 			match RcMigrationStage::<T>::get() {
 				// The scheduled start is compared against the clock, which at `on_initialize` still
 				// holds the previous block's timestamp -- so the migration begins on the first
 				// block after the one whose timestamp passed `start`.
-				// TODO(ahm-v2): start filtering the calls whose state is about to move, so that
-				// the warm-up drains queues that nothing is refilling.
+				// TODO(ahm-v2): inbound XCM from anyone but the Coretime chain while the migration
+				// runs. The call filter (`PostAhmFilter`) does nothing about UMP, which arrives
+				// with candidates, and the warm-up cannot drain queues that paras keep
+				// refilling; the Coretime chain's answers also share one service budget with
+				// every other para. Pausing the other queues (`QueuePausedQuery`), refusing at
+				// the barrier, or v1's `force_set_head` priority are the options; the first
+				// subsumes the third.
 				MigrationStage::Scheduled { start } if T::TimeProvider::now() >= start => {
 					if Self::send_to_ct(CtMigratorCall::StartMigration).is_ok() {
 						Self::transition(MigrationStage::WaitingForCt);
@@ -730,17 +941,23 @@ pub mod pallet {
 				MigrationStage::TiCorrection => {
 					Self::migrate_stage_once(
 						Self::correct_total_issuance,
-						MigrationStage::CoolOff { end_at: now + CoolOffPeriod::<T>::get() },
+						MigrationStage::CoolOff {
+							end_at: now.saturating_add(CoolOffPeriod::<T>::get()),
+						},
 					);
 					T::DbWeight::get().reads_writes(10, 10)
 				},
 				// The Coretime chain holds its lockdown until this signal: the relay chain owns
 				// the lifecycle, and the two chains share no clock to hold to on their own.
 				MigrationStage::CoolOff { end_at } if now >= end_at => {
-					if Self::send_to_ct(CtMigratorCall::EndLockdown).is_ok() {
-						Self::transition(MigrationStage::MigrationDone);
-					}
-					T::DbWeight::get().reads_writes(3, 3)
+					Self::migrate_stage_once(
+						|| {
+							Self::send_to_ct(CtMigratorCall::EndLockdown)?;
+							Self::reap_manager()
+						},
+						MigrationStage::MigrationDone,
+					);
+					T::DbWeight::get().reads_writes(6, 6)
 				},
 				_ => T::DbWeight::get().reads(1),
 			}
@@ -882,7 +1099,6 @@ pub mod pallet {
 		/// Empty the configured leftover pots; teleport the proceeds to the sweep beneficiary
 		/// on Asset Hub. One-shot: the pot list is a short config item.
 		fn sweep_pots() -> Result<(), Error<T>> {
-			use frame_support::traits::tokens::{Fortitude, Precision, Preservation};
 			let mut total: u128 = 0;
 
 			// The configured pots (old treasury etc.): full free balance, no reserves expected.
@@ -982,6 +1198,37 @@ pub mod pallet {
 			Ok(maybe_last_key)
 		}
 
+		/// End the manager's appointment and teleport what it has left to the same account on
+		/// Asset Hub. Nothing to do if no manager was appointed, or it has nothing left.
+		fn reap_manager() -> Result<(), Error<T>> {
+			let Some(who) = Manager::<T>::take() else { return Ok(()) };
+			let amount = <T as Config>::Currency::reducible_balance(
+				&who,
+				Preservation::Expendable,
+				Fortitude::Polite,
+			);
+			if amount == 0 {
+				Self::deposit_event(Event::ManagerReaped { who, amount });
+				return Ok(());
+			}
+			let burned = <T as Config>::Currency::burn_from(
+				&who,
+				amount,
+				Preservation::Expendable,
+				Precision::Exact,
+				Fortitude::Polite,
+			)
+			.map_err(|_| Error::<T>::FailedToWithdrawAccount)?;
+			RcMigratedBalance::<T>::try_mutate(|t| {
+				t.kept = t.kept.checked_sub(burned).ok_or(Error::<T>::BalanceAccounting)?;
+				t.ah_free = t.ah_free.checked_add(burned).ok_or(Error::<T>::BalanceAccounting)?;
+				Ok::<(), Error<T>>(())
+			})?;
+			let dest = accounts::AccountsMigrator::<T>::translate_destination(&who);
+			Self::deposit_event(Event::ManagerReaped { who, amount: burned });
+			Self::send_teleport(vec![(dest, burned)])
+		}
+
 		/// Book `total` swept out of the kept balance and teleport it to the sweep beneficiary.
 		fn book_and_teleport_swept(total: u128) -> Result<(), Error<T>> {
 			if total == 0 {
@@ -997,15 +1244,19 @@ pub mod pallet {
 
 		/// Burn the audited phantom issuance and send the finish signal.
 		///
-		/// By this stage the accounts and sweep stages have drained every account to zero, so
-		/// whatever issuance the ledger still counts is held by nobody — no O(accounts) scan is
-		/// needed. (Once the migration manager lands it stays funded through `CoolOff` and its
-		/// balance must be subtracted here.) Burns `min(expected, measured)` and reports via
-		/// events: a remainder above the expectation stays on the books for investigation, a
-		/// measurement below it is an explicit anomaly.
+		/// By this stage the accounts and sweep stages have drained every account to zero except
+		/// the manager, which stays funded through `CoolOff`, so whatever issuance the ledger
+		/// still counts beyond the manager's balance is held by nobody — no O(accounts) scan is
+		/// needed. Burns `min(expected, measured)` and reports via events: a remainder above the
+		/// expectation stays on the books for investigation, a measurement below it is an
+		/// explicit anomaly.
 		fn correct_total_issuance() -> Result<(), Error<T>> {
 			let expected = T::TiCorrection::get();
-			let unaccounted = pallet_balances::TotalIssuance::<T>::get();
+			let total = pallet_balances::TotalIssuance::<T>::get();
+			let manager_balance = Manager::<T>::get()
+				.map(|who| <T as Config>::Currency::total_balance(&who))
+				.unwrap_or_default();
+			let unaccounted = total.saturating_sub(manager_balance);
 			let burned = expected.min(unaccounted);
 
 			if unaccounted < expected {
@@ -1019,7 +1270,7 @@ pub mod pallet {
 			// No account holds this balance, so there is nothing to burn *from*: the correction
 			// is a direct issuance write, mirrored in the migration tracker so the conservation
 			// invariant stays exact.
-			pallet_balances::TotalIssuance::<T>::put(unaccounted.saturating_sub(burned));
+			pallet_balances::TotalIssuance::<T>::put(total.saturating_sub(burned));
 			RcMigratedBalance::<T>::try_mutate(|t| {
 				t.kept = t.kept.checked_sub(burned).ok_or(Error::<T>::BalanceAccounting)?;
 				t.ti_corrected =
@@ -1086,6 +1337,9 @@ pub mod pallet {
 					fallback_max_weight: None,
 					call: call.encode().into(),
 				},
+				// A call that fails inside `Transact` does not fail the XCM by itself; this makes
+				// it fail, so the Coretime chain reports it instead of a success.
+				ExpectTransactStatus(MaybeErrorCode::Success),
 			]);
 
 			let dest = Location::new(0, [Parachain(T::CtParaId::get())]);

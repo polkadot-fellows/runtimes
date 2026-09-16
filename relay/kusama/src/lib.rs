@@ -204,12 +204,41 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 2;
 }
 
+/// Whether the AHM v2 migration has started. What it closes stays closed afterwards.
+pub(crate) fn ahm_v2_started() -> bool {
+	pallet_rc2_migrator::RcMigrationStage::<Runtime>::get().has_started()
+}
+
 /// Pallets that are blocked for user calls after the AHM.
 pub struct PostAhmFilter;
 impl Contains<RuntimeCall> for PostAhmFilter {
 	fn contains(call: &RuntimeCall) -> bool {
 		use RuntimeCall::*;
 		match call {
+			// --- AHM v2 ---
+
+			// The ways a signed origin can move value or resize a reserve while the accounts stage
+			// is draining them. A reserve created after that stage has passed its owner is backed
+			// by no pallet record, and an unattributable reserve holds the whole account back on
+			// this chain.
+			Balances(..) |
+			XcmPallet(..) |
+			Multisig(..) |
+			Preimage(..) |
+			OnDemandAssignmentProvider(..) |
+			Crowdloan(..)
+				if ahm_v2_started() =>
+				false,
+
+			// Using a proxy stays open; anything that creates or resizes a proxy or announcement
+			// deposit does not. Named this way round so a call added to `pallet_proxy` is closed
+			// by default rather than open by omission.
+			Proxy(
+				pallet_proxy::Call::<Runtime>::proxy { .. } |
+				pallet_proxy::Call::<Runtime>::proxy_announced { .. },
+			) => true,
+			Proxy(..) if ahm_v2_started() => false,
+
 			Scheduler(..) |
 			Indices(..) |
 			Staking(..) |
@@ -1721,6 +1750,16 @@ parameter_types! {
 	/// One KSM, mirroring Polkadot's one DOT — the two are different amounts of money, and the
 	/// point is a usable buffer on each chain rather than a matching number.
 	pub const CtFreeBuffer: Balance = UNITS;
+	/// The accounts that may drive the migration collectively. Governance seeds the real set
+	/// before a migration is scheduled; empty means only root and the appointed manager can act.
+	pub MigrationMultisigMembers: alloc::vec::Vec<AccountId> = alloc::vec::Vec::new();
+	/// Votes needed from distinct members.
+	pub const MigrationMultisigThreshold: u32 = 3;
+	/// Votes one member may cast per round.
+	pub const MigrationMultisigMaxVotesPerRound: u32 = 5;
+	/// A vote is signed over (who, call, round) and nothing else, so two networks sitting at the
+	/// same round would accept each other's signatures. This is what keeps them apart.
+	pub const MigrationMultisigStartRound: u32 = 200;
 	/// Asset Hub's existential deposit; mirrors
 	/// `system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT`
 	/// without pulling that crate into the relay runtime.
@@ -2080,6 +2119,11 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type TimeProvider = Timestamp;
 	type CtOrigin = pallet_xcm::EnsureXcm<frame_support::traits::Equals<xcm_config::Broker>>;
 	type AdminOrigin = EnsureRoot<AccountId>;
+	type RuntimeCall = RuntimeCall;
+	type MultisigMembers = MigrationMultisigMembers;
+	type MultisigThreshold = MigrationMultisigThreshold;
+	type MultisigMaxVotesPerRound = MigrationMultisigMaxVotesPerRound;
+	type MultisigStartRound = MigrationMultisigStartRound;
 }
 
 construct_runtime! {

@@ -429,6 +429,12 @@ impl<T: Config> AccountsMigrator<T> {
 	}
 
 	pub fn can_migrate(who: &T::AccountId, info: &AccountInfoFor<T>) -> bool {
+		// The manager pays for the calls that drive the migration, so it is the one account that
+		// stays funded here until the migration ends.
+		if Manager::<T>::get().is_some_and(|manager| manager == *who) {
+			log::info!(target: LOG_TARGET, "Keeping the manager account {who:?} on the RC");
+			return false;
+		}
 		if Self::is_unmigrated(who) {
 			log::info!(target: LOG_TARGET, "Keeping sovereign/module account {who:?} on the RC");
 			return false;

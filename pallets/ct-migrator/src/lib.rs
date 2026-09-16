@@ -425,8 +425,11 @@ pub mod pallet {
 		///
 		/// Answering opens the migration here and unblocks the relay chain's warm-up. A repeat is
 		/// answered again without reopening, so a resent signal is harmless.
-		// TODO(ahm-v2): lock this chain down before answering -- the calls whose state is about
-		// to move are filtered from here until the migration ends.
+		// TODO(ahm-v2): inbound XCM from anyone but the relay chain while the migration runs.
+		// The call filter (`ProxyMutationsDuringMigration`) is in place; the migration data itself
+		// arrives as DMP and shares one service budget with every sibling, so a flood from one of
+		// them starves it. Pausing sibling queues (`QueuePausedQuery`) or v1's
+		// `force_dmp_queue_priority` duty cycle are the options; the first subsumes the second.
 		#[pallet::call_index(6)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(3, 2))]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
@@ -453,6 +456,7 @@ pub mod pallet {
 		#[pallet::call_index(7)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn end_lockdown(origin: OriginFor<T>) -> DispatchResult {
+			// relay chain origin converts to root.
 			ensure_root(origin)?;
 
 			match CtMigrationStage::<T>::get() {
@@ -515,6 +519,9 @@ pub mod pallet {
 					fallback_max_weight: None,
 					call: call.encode().into(),
 				},
+				// A call that fails inside `Transact` does not fail the XCM by itself; this makes
+				// it fail, so the relay chain reports it instead of a success.
+				ExpectTransactStatus(MaybeErrorCode::Success),
 			]);
 
 			send_xcm::<T::SendXcm>(Location::parent(), message).map_err(|e| {
