@@ -8,6 +8,7 @@ description = "Bridge Hub Polkadot emulated chain used for integration tests"
 publish = false
 
 [dependencies]
+hex-literal = { workspace = true }
 
 # Substrate
 sp-core = { workspace = true, default-features = true }

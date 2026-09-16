@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use crate::*;
-use integration_tests_helpers::test_parachain_is_trusted_teleporter;
+use emulated_integration_tests_common::test_parachain_is_trusted_teleporter;
 
 #[test]
 fn teleport_via_transfer_assets_from_and_to_relay() {

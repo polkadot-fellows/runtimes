@@ -26,16 +26,11 @@ polkadot-parachain-primitives = { workspace = true }
 encointer-kusama-runtime = { workspace = true }
 kusama-emulated-chain = { workspace = true }
 
-
-# Emulated tests
-integration-tests-helpers = { workspace = true }
-
 [features]
 runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
 	"encointer-kusama-runtime/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
-	"integration-tests-helpers/runtime-benchmarks",
 	"kusama-emulated-chain/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",

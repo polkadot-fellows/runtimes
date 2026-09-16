@@ -17,13 +17,15 @@ use asset_hub_polkadot_runtime::{
 	xcm_config::{CheckingAccount, TreasuryAccount},
 	Dap,
 };
+use bridge_hub_polkadot_emulated_chain::snowbridge::{
+	EthLocation, WethLocation, MIN_ETHER_BALANCE,
+};
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, PenpalALocation,
 	PenpalAPen2TeleportableAssetLocation, PenpalASiblingSovereignAccount, PenpalBLocation,
 	PenpalBPen2TeleportableAssetLocation, PenpalBSiblingSovereignAccount, RESERVABLE_ASSET_ID,
 	SAFE_XCM_VERSION,
 };
-use integration_tests_helpers::common::snowbridge::{EthLocation, WethLocation, MIN_ETHER_BALANCE};
 use parachains_common::{AccountId, Balance};
 use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 use xcm::prelude::*;

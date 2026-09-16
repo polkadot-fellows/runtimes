@@ -14,13 +14,15 @@
 // limitations under the License.
 
 use asset_hub_kusama_runtime::xcm_config::{CheckingAccount, StakingPot, TreasuryAccount};
+use bridge_hub_polkadot_emulated_chain::snowbridge::{
+	EthLocation, WethLocation, MIN_ETHER_BALANCE,
+};
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, collators, xcm_emulator::ConvertLocation, PenpalALocation,
 	PenpalAPen2TeleportableAssetLocation, PenpalASiblingSovereignAccount, PenpalBLocation,
 	PenpalBPen2TeleportableAssetLocation, PenpalBSiblingSovereignAccount, RESERVABLE_ASSET_ID,
 	SAFE_XCM_VERSION,
 };
-use integration_tests_helpers::common::snowbridge::{EthLocation, WethLocation, MIN_ETHER_BALANCE};
 use parachains_common::{AccountId, Balance};
 use sp_keyring::Sr25519Keyring as Keyring;
 use xcm::prelude::*;
