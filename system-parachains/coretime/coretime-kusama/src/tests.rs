@@ -283,7 +283,7 @@ fn governance_authorize_upgrade_works() {
 /// would not show in the network total that Asset Hub tracks.
 #[test]
 fn dust_accumulates_instead_of_being_burned() {
-	use frame_support::traits::{tokens::Preservation, OnRuntimeUpgrade};
+	use frame_support::traits::tokens::Preservation;
 
 	const BOB: [u8; 32] = [2u8; 32];
 

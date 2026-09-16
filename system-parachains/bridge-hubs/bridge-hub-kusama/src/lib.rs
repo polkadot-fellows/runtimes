@@ -1544,7 +1544,6 @@ mod accumulate_and_forward_tests {
 		traits::{
 			fungible::{Inspect, Mutate},
 			tokens::Preservation,
-			OnRuntimeUpgrade,
 		},
 	};
 	use parachains_runtimes_test_utils::ExtBuilder;

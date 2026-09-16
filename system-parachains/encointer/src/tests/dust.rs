@@ -20,7 +20,6 @@ use frame_support::{
 	traits::{
 		fungible::{Inspect, Mutate},
 		tokens::Preservation,
-		OnRuntimeUpgrade,
 	},
 };
 use parachains_common::AccountId;

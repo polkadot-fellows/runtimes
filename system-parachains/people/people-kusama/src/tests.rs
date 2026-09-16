@@ -180,7 +180,6 @@ fn dust_accumulates_instead_of_being_burned() {
 	use frame_support::traits::{
 		fungible::{Inspect, Mutate},
 		tokens::Preservation,
-		OnRuntimeUpgrade,
 	};
 	use parachains_runtimes_test_utils::ExtBuilder;
 
