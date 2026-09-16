@@ -16,7 +16,7 @@ jobs:
       should-release: ${{ steps.run.outputs.should-release }}
       version: ${{ steps.run.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - id: run
         run: |
           echo "should-release=$(.github/changelog-processor.py CHANGELOG.md --should-release)" >> $GITHUB_OUTPUT
@@ -30,7 +30,7 @@ jobs:
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - id: runtime
         run: |
           TASKS=$(echo $(cat .github/workflows/runtimes-matrix.json) | sed 's/ //g' )
@@ -49,11 +49,11 @@ jobs:
       TRY_RUNTIME_LOGGING_FEATURES: "--features try-runtime,metadata-hash"
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Build ${{ matrix.runtime.name }}
         id: srtool_build
-        uses: paritytech/srtool-actions@v0.9.4
+        uses: paritytech/srtool-actions@b78be6ffeaf80fbcf09fb9e5df1a458de3ee7352 # v0.9.4
         env:
           BUILD_OPTS: ${{ env.PROD_FEATURES }}
         with:
@@ -67,13 +67,13 @@ jobs:
           echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.runtime.name }}_srtool_output.json
 
       - name: Upload ${{ matrix.runtime.name }} srtool json
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ matrix.runtime.name }}-srtool-json
           path: ${{ matrix.runtime.name }}_srtool_output.json
 
       - name: Upload  ${{ matrix.runtime.name }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ matrix.runtime.name }}
           path: |
@@ -88,7 +88,7 @@ jobs:
 
       - name: Build ${{ matrix.runtime.name }} (try-runtime & logging)
         id: srtool_compact
-        uses: paritytech/srtool-actions@v0.9.4
+        uses: paritytech/srtool-actions@b78be6ffeaf80fbcf09fb9e5df1a458de3ee7352 # v0.9.4
         env:
           BUILD_OPTS: ${{ env.TRY_RUNTIME_LOGGING_FEATURES }}
         with:
@@ -98,7 +98,7 @@ jobs:
           profile: "release"
 
       - name: Upload ${{ matrix.runtime.name }} Wasm (try-runtime & logging)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ matrix.runtime.name }}-compact
           path: ${{ steps.srtool_compact.outputs.wasm_compressed }}
@@ -113,13 +113,13 @@ jobs:
       release_tag: ${{ format('v{0}', needs.collect-release-information.outputs.version) }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Download srtool json output
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
 
       - name: Archive context output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: release-notes-context
           path: |
@@ -175,7 +175,7 @@ jobs:
 
       - name: Create release
         id: create-release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -183,6 +183,10 @@ jobs:
           name: Runtimes ${{ needs.collect-release-information.outputs.version }}
           body_path: DRAFT
           draft: false
+          # `actions/create-release` tagged the triggering commit; without this the tag lands on
+          # whatever `main` is once the runtimes are built.
+          target_commitish: ${{ github.sha }}
+          make_latest: true
 
   publish-runtimes:
     needs: [ runtime-matrix, publish-release ]
@@ -197,10 +201,10 @@ jobs:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
 
       - name: Get runtime info
         env:
@@ -214,15 +218,16 @@ jobs:
           # `softprops/action-gh-release` uploads under the file name, so rename before uploading.
           RELEASE_ASSET="${{ matrix.runtime.name }}_runtime-v${SPEC}.compact.compressed.wasm"
           mv "$ASSET" "$RELEASE_ASSET"
-          >>$GITHUB_ENV echo RELEASE_ASSET=$RELEASE_ASSET
+          >>"$GITHUB_ENV" echo "RELEASE_ASSET=$RELEASE_ASSET"
 
       - name: Upload compressed ${{ matrix.runtime.name }} v${{ env.SPEC }} wasm
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.publish-release.outputs.release_tag }}
           files: ${{ env.RELEASE_ASSET }}
+          fail_on_unmatched_files: true
 
   package-try-runtime-and-logging-enabled-wasms:
     needs: [ build-runtimes, publish-release ]
@@ -231,7 +236,7 @@ jobs:
       contents: write
     steps:
       - name: Download compact artfacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: '*-compact'
 
@@ -240,9 +245,10 @@ jobs:
           zip -j runtimes-with-try-runtime-and-logging.zip */*.compact.compressed.wasm
 
       - name: Upload archive to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.publish-release.outputs.release_tag }}
           files: runtimes-with-try-runtime-and-logging.zip
+          fail_on_unmatched_files: true
