@@ -116,8 +116,8 @@ fn bulk_revenue_is_burnt() {
 			// Coretime burn pot gets the funds.
 			assert!(Balances::balance(&coretime_burn_account) > burn_balance_before);
 
-			// They're burnt when a day has passed on chain.
-			// This needs to be asserted in an emulated test.
+			// They're burnt on Asset Hub when a day has passed on chain. This is asserted in the
+			// emulated test `coretime_revenue_is_burnt_on_asset_hub`.
 		});
 }
 
