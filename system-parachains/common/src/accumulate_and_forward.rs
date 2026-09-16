@@ -65,7 +65,8 @@ where
 			})?;
 		let remote_xcm = Xcm(vec![BurnAsset(remote_asset.into())]);
 
-		// The XCM flow: `ReceiveTeleportedAsset → UnpaidExecution → BurnAsset`.
+		// The XCM flow: `ReceiveTeleportedAsset → AliasOrigin(source) → UnpaidExecution →
+		// BurnAsset`. Asset Hub allows the aliased accumulation account through its unpaid barrier.
 		let xcm: Xcm<XcmConfig::RuntimeCall> = Xcm(vec![
 			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 			DescendOrigin(Junction::AccountId32 { network: None, id: source.into() }.into()),
@@ -73,7 +74,7 @@ where
 			InitiateTransfer {
 				destination: dest,
 				remote_fees: None,
-				preserve_origin: false,
+				preserve_origin: true,
 				assets: BoundedVec::truncate_from(vec![AssetTransferFilter::Teleport(Wild(
 					AllCounted(1),
 				))]),
