@@ -40,6 +40,7 @@ pub use pallet::*;
 use alloc::vec;
 use frame_support::{
 	pallet_prelude::*,
+	sp_runtime::traits::Saturating,
 	traits::{EnsureOrigin, Time},
 };
 use frame_system::pallet_prelude::*;
@@ -180,7 +181,7 @@ pub mod pallet {
 		type TimeProvider: Time;
 
 		/// The origin that the Coretime chain's messages dispatch with on this chain.
-		type CtOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+		type CtOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
 		/// The origin that may schedule and force the migration.
 		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
@@ -285,13 +286,17 @@ pub mod pallet {
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn ct_ready(origin: OriginFor<T>) -> DispatchResult {
 			T::CtOrigin::ensure_origin(origin)?;
-			ensure!(
-				RcMigrationStage::<T>::get() == MigrationStage::WaitingForCt,
-				Error::<T>::NotWaitingForCt
-			);
 
-			let end_at = frame_system::Pallet::<T>::block_number() + WarmUpPeriod::<T>::get();
-			Self::transition(MigrationStage::WarmUp { end_at });
+			match RcMigrationStage::<T>::get() {
+				MigrationStage::WaitingForCt => {
+					let end_at = frame_system::Pallet::<T>::block_number()
+						.saturating_add(WarmUpPeriod::<T>::get());
+					Self::transition(MigrationStage::WarmUp { end_at });
+				},
+				// A repeated confirmation during the warm-up is accepted and changes nothing; one at any other stage is an error.
+				MigrationStage::WarmUp { .. } => (),
+				_ => return Err(Error::<T>::NotWaitingForCt.into()),
+			}
 			Ok(())
 		}
 
@@ -365,7 +370,7 @@ pub mod pallet {
 				},
 				// TODO(ahm-v2): the data stages run from here, once they exist.
 				MigrationStage::WarmUp { end_at } if now >= end_at => {
-					let end_at = now + CoolOffPeriod::<T>::get();
+					let end_at = now.saturating_add(CoolOffPeriod::<T>::get());
 					Self::transition(MigrationStage::CoolOff { end_at });
 					T::DbWeight::get().reads_writes(2, 2)
 				},

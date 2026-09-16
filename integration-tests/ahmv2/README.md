@@ -5,7 +5,7 @@ from the Relay Chain to the Coretime chain.
 
 The Relay Chain and the Coretime chain are loaded from `try-runtime` snapshots of real network
 state. Blocks are produced by calling hooks directly and DMP/UMP messages are shuttled between the
-chains by hand (no nodes or networking). 
+chains by hand (no nodes or networking).
 
 ## The `ahm-v2` feature
 
@@ -48,6 +48,6 @@ SNAP_RC=... SNAP_CT=... cargo test -p polkadot-integration-tests-ahmv2 \
 Snapshots are cached in memory per test process and re-hydrated per test, so each test gets fresh
 externalities without reloading from disk.
 
-Every produced block asserts that no `MessageQueue::Processed { success: false }` event was emitted
-and that consumed weight stays below 80% of the block limit. Every shuttled message is decoded
+Every produced block asserts that consumed weight stays below 80% of the block limit and, unless
+a test opts out to judge one message itself, that no `MessageQueue` failure event was emitted. Every shuttled message is decoded
 against the receiving runtime's `RuntimeCall` (catches encode/decode drift between the chains).

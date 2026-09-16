@@ -13,9 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Receiver side of the AHM v2 migration.
-//! Note: This is usually CoreTime chain, but for networks (such as Paseo) w/o CT, we will use
-//! this on AH.
+//! Receiver side of the AHM v2 migration. Usually the Coretime chain; on a network without one
+//! (Paseo), this will be Asset Hub.
 //!
 //! Ingests state sent by `pallet-rc2-migrator`, writing through the same code paths as ordinary
 //! extrinsics so that migrated and natively created state are indistinguishable. Temporary
@@ -24,8 +23,9 @@
 //! Has no stage machine of its own; the relay chain drives every transition. The stage is stored
 //! so this chain can check locally whether the migration is over.
 //!
-//! Calls are gated by root. Any signal that is already acted on is accepted (so idempotent), and
-//! a signal out of order is an error.
+//! The relay chain's signals are gated by root; forcing a stage by [`Config::AdminOrigin`]. Any
+//! signal that is already acted on is accepted (so idempotent), and a signal out of order is an
+//! error.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -170,7 +170,7 @@ pub mod pallet {
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn end_lockdown(origin: OriginFor<T>) -> DispatchResult {
-			// rc origin
+			// relay chain origin converts to root.
 			ensure_root(origin)?;
 
 			match CtMigrationStage::<T>::get() {

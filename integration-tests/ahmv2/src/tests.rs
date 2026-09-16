@@ -138,6 +138,17 @@ where
 	});
 }
 
+/// The windows this suite schedules with.
+const WARM_UP: u32 = 10;
+const COOL_OFF: u32 = 10;
+
+/// A para the relay chain's barrier turns away outright, because it is not a system chain.
+const OUTSIDER_PARA: u32 = 4242;
+
+/// A system para that is not the Coretime chain. The barrier lets its message in, so the only
+/// thing standing between it and the migration is `CtOrigin`.
+const SYSTEM_IMPOSTOR_PARA: u32 = system_parachain::ASSET_HUB_ID;
+
 /// The migration's stage machine, driven end to end over live relay-chain and Coretime state.
 ///
 /// Ensures the two chains' hand-encoded calls decode against each other's real `RuntimeCall`, the
@@ -237,18 +248,6 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 		);
 	});
 }
-
-/// The windows this suite schedules with. Long enough that the machine cannot cross one by
-/// accident, short enough to skip to their end with `set_block_number_rc`.
-const WARM_UP: u32 = 10;
-const COOL_OFF: u32 = 10;
-
-/// A para the relay chain's barrier turns away outright, because it is not a system chain.
-const OUTSIDER_PARA: u32 = 4242;
-
-/// A system para that is not the Coretime chain. The barrier lets its message in, so the only
-/// thing standing between it and the migration is `CtOrigin`.
-const SYSTEM_IMPOSTOR_PARA: u32 = system_parachain::ASSET_HUB_ID;
 
 /// Readiness is only accepted from the Coretime chain.
 #[tokio::test(flavor = "multi_thread")]

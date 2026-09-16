@@ -22,7 +22,7 @@
 
 use crate::{
 	xcm_config::{CoretimeLocation, XcmRouter},
-	AccountId, BrokerId, Runtime, RuntimeEvent,
+	AccountId, BrokerId, Runtime, RuntimeEvent, Timestamp,
 };
 use frame_support::traits::Equals;
 use frame_system::EnsureRoot;
@@ -32,7 +32,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = XcmRouter;
 	type CtParaId = BrokerId;
-	type TimeProvider = crate::Timestamp;
+	type TimeProvider = Timestamp;
 	type CtOrigin = EnsureXcm<Equals<CoretimeLocation>>;
 	type AdminOrigin = EnsureRoot<AccountId>;
 }

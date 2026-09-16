@@ -222,7 +222,7 @@ pub fn next_block_rc() {
 	next_block_rc_with(InboundMessages::MustSucceed)
 }
 
-/// Execute the next Relay Chain block w/o any assertions.
+/// Execute the next Relay Chain block without asserting on its inbound messages.
 pub fn next_block_rc_unchecked() {
 	next_block_rc_with(InboundMessages::Unchecked)
 }

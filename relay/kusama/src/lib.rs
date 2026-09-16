@@ -144,7 +144,7 @@ pub const LOG_TARGET: &str = "runtime::kusama";
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 
-// AHM v2 migration wiring; Avoids migrator pallets being part of the on-chain build.
+// AHM v2 migration wiring. Kept out of the on-chain build.
 #[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
 mod ahm_v2;
 

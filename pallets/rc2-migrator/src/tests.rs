@@ -121,6 +121,7 @@ fn the_manager_drives_the_migration_but_cannot_appoint_one() {
 		// GIVEN Alice appointed manager by the admin origin.
 		assert_ok!(Rc2Migrator::set_manager(RuntimeOrigin::root(), Some(ALICE)));
 		assert_eq!(Manager::<Test>::get(), Some(ALICE));
+		System::assert_last_event(Event::ManagerSet { old: None, new: Some(ALICE) }.into());
 
 		// WHEN the manager schedules and cancels. THEN both are accepted.
 		let start = now_ms() + 5 * BLOCK_TIME_MS;
@@ -161,6 +162,7 @@ fn the_manager_drives_the_migration_but_cannot_appoint_one() {
 		// WHEN the admin origin removes the manager. THEN Alice loses the powers.
 		assert_ok!(Rc2Migrator::set_manager(RuntimeOrigin::root(), None));
 		assert_eq!(Manager::<Test>::get(), None);
+		System::assert_last_event(Event::ManagerSet { old: Some(ALICE), new: None }.into());
 		assert_noop!(Rc2Migrator::cancel_migration(RuntimeOrigin::signed(ALICE)), BadOrigin);
 	});
 }
@@ -309,6 +311,13 @@ fn only_the_coretime_chain_can_confirm_readiness() {
 		let now = System::block_number();
 		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)));
 		assert_stage(Stage::WarmUp { end_at: now + WARM_UP });
+
+		// WHEN it confirms again, as it does after a re-run handshake. THEN nothing changes: the
+		// warm-up keeps its end block and no second transition is recorded.
+		let transitions_so_far = transitions().len();
+		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)));
+		assert_stage(Stage::WarmUp { end_at: now + WARM_UP });
+		assert_eq!(transitions().len(), transitions_so_far);
 	});
 }
 
