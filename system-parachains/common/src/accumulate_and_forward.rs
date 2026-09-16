@@ -72,6 +72,8 @@ impl<T: pallet_accumulate_and_forward::Config> OnRuntimeUpgrade
 /// Kusama tracks `TotalIssuance` on Asset Hub. A failed send rolls back. Once queued nothing can
 /// be trapped: `BurnAsset` takes from holding and cannot fail, and if `ReceiveTeleportedAsset`
 /// fails holding is left empty, leaving the KSM burned here with Asset Hub untouched.
+// TODO: drop this and use `xcm_builder::TeleportForwarderForAccountId32` once it is reusable
+// for teleport-and-burn: https://github.com/paritytech/polkadot-sdk/issues/13238
 pub struct TeleportAndBurnForwarder<XcmConfig, Dest, NativeAsset>(
 	PhantomData<(XcmConfig, Dest, NativeAsset)>,
 );
