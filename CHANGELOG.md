@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- People Polkadot: move the lite-people onboarding cohort size into the dynamic parameter `LitePersonhood::OnboardingSize` (settable by root or the `technical_maintenance` track) and lower its default from 3 to 1.
+
 ## [2.5.0] 01.09.2026
 
 ### Added

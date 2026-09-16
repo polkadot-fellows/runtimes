@@ -109,8 +109,8 @@ parameter_types! {
 	/// Ring exponent for the lite people collection.
 	pub const LitePeopleRingExponent: RingExponent = RingExponent::R2e9;
 
-	/// Number of queued lite people onboarded into a ring at a time.
-	pub const LitePeopleOnboardingSize: u32 = 3;
+	/// Capacity of a lite people ring, the upper bound on the onboarding cohort size.
+	pub LitePeopleRingCapacity: u32 = LitePeopleRingExponent::get().ring_capacity();
 
 	/// Ring exponent for coinage's recycler collections.
 	///
@@ -219,7 +219,7 @@ impl indiv_pallet_people_lite::Config for Runtime {
 	type MemberService = Members;
 	type CollectionOwner = LitePeopleCollectionOwner;
 	type LiteRingExponent = LitePeopleRingExponent;
-	type LiteOnboardingSize = LitePeopleOnboardingSize;
+	type LiteOnboardingSize = crate::parameters::LitePeopleOnboardingSize;
 	type AttestationSignature = Signature;
 	type LiteConsumerRegistrar = Resources;
 	type AccountContexts = LiteAccountContexts;
@@ -1008,7 +1008,7 @@ pub mod benchmark_utils {
 			Members::create_collection(
 				LitePeopleCollectionOwner::get(),
 				indiv_pallet_people_lite::LITE_PEOPLE_MEMBER_IDENTIFIER,
-				LitePeopleOnboardingSize::get(),
+				crate::parameters::LitePeopleOnboardingSize::get(),
 				RingMode::AppendOnly,
 				ring_exponent,
 				None,
