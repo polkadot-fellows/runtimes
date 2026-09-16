@@ -68,12 +68,8 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 				$asset_hub::execute_with($crate::pallet_collator_selection::Pallet::<
 					AssetHubRuntime,
 				>::account_id);
-			let (asset_hub_issuance_before, check_balance_before, pot_before) = $asset_hub::execute_with(|| {
-				(
-					AssetHubBalances::total_issuance(),
-					AssetHubBalances::balance(&check_account),
-					AssetHubBalances::balance(&staking_pot),
-				)
+			let (asset_hub_issuance_before, check_balance_before) = $asset_hub::execute_with(|| {
+				(AssetHubBalances::total_issuance(), AssetHubBalances::balance(&check_account))
 			});
 			let chain_issuance_before =
 				$chain::execute_with(|| ChainBalances::total_issuance());
