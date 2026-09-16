@@ -63,21 +63,18 @@ where
 			.map_err(|asset| {
 				log::error!(target: LOG_TARGET, "🚨 could not reanchor {asset:?} for {dest:?}");
 			})?;
-		let remote_xcm = Xcm(vec![BurnAsset(remote_asset.into())]);
-
-		// The XCM flow: `ReceiveTeleportedAsset → AliasOrigin(source) → UnpaidExecution →
-		// BurnAsset`. Asset Hub allows the aliased accumulation account through its unpaid barrier.
+		// The XCM flow: `ReceiveTeleportedAsset → ClearOrigin → PayFees → RefundSurplus →
+		// BurnAsset`, which Asset Hub's existing paid barrier accepts unchanged.
+		let remote_xcm = Xcm(vec![RefundSurplus, BurnAsset(remote_asset.clone().into())]);
 		let xcm: Xcm<XcmConfig::RuntimeCall> = Xcm(vec![
 			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 			DescendOrigin(Junction::AccountId32 { network: None, id: source.into() }.into()),
-			WithdrawAsset(asset.into()),
+			WithdrawAsset(asset.clone().into()),
 			InitiateTransfer {
 				destination: dest,
-				remote_fees: None,
-				preserve_origin: true,
-				assets: BoundedVec::truncate_from(vec![AssetTransferFilter::Teleport(Wild(
-					AllCounted(1),
-				))]),
+				remote_fees: Some(AssetTransferFilter::Teleport(remote_asset.into())),
+				preserve_origin: false,
+				assets: BoundedVec::truncate_from(vec![]),
 				remote_xcm,
 			},
 		]);

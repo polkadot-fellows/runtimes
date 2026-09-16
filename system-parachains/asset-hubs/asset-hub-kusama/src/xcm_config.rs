@@ -40,18 +40,16 @@ use frame_support::{
 	},
 };
 use frame_system::EnsureRoot;
-use kusama_runtime_constants::{system_parachain, xcm::body::FELLOWSHIP_ADMIN_INDEX};
+use kusama_runtime_constants::xcm::body::FELLOWSHIP_ADMIN_INDEX;
 use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
 use parachains_common::xcm_config::{
 	AllSiblingSystemParachains, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
 	RelayOrOtherSystemParachains,
 };
-use polkadot_parachain_primitives::primitives::{IsSystem, Sibling};
+use polkadot_parachain_primitives::primitives::Sibling;
 use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
-use sp_runtime::traits::{AccountIdConversion, TryConvertInto};
-use system_parachains_constants::kusama::{
-	account::ACCUMULATE_FORWARD_PALLET_ID, fellowship::IsFellowshipVoice,
-};
+use sp_runtime::traits::TryConvertInto;
+use system_parachains_constants::kusama::fellowship::IsFellowshipVoice;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -266,28 +264,6 @@ impl Contains<Location> for LocalPlurality {
 	}
 }
 
-/// The `pallet-accumulate-and-forward` account on the relay chain or on a sibling system
-/// parachain. They forward what they would otherwise burn here, without paying fees.
-pub struct SystemChainAccumulationAccounts;
-impl Contains<Location> for SystemChainAccumulationAccounts {
-	fn contains(location: &Location) -> bool {
-		let accumulation_account: [u8; 32] = ACCUMULATE_FORWARD_PALLET_ID.into_account_truncating();
-		match location.unpack() {
-			(1, [AccountId32 { id, .. }]) => *id == accumulation_account,
-			(1, [Parachain(id), AccountId32 { id: account_id, .. }]) =>
-				ParaId::from(*id).is_system() &&
-					matches!(
-						*id,
-						system_parachain::ENCOINTER_ID |
-							system_parachain::BRIDGE_HUB_ID |
-							system_parachain::PEOPLE_ID |
-							system_parachain::BROKER_ID
-					) && *account_id == accumulation_account,
-			_ => false,
-		}
-	}
-}
-
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
 		DenyReserveTransferToRelayChain,
@@ -310,7 +286,6 @@ pub type Barrier = TrailingSetTopicAsId<
 							Equals<bridging::SiblingBridgeHub>,
 							IsFellowshipVoice,
 							IsSiblingSystemParachain<ParaId, parachain_info::Pallet<Runtime>>,
-							SystemChainAccumulationAccounts,
 						),
 						// Barriers run before any fee is taken: this must stay computation-only.
 						// Do not pass `TrustedAliasers` here.
@@ -676,35 +651,4 @@ pub mod bridging {
 			Some(alias.expect("we expect here BridgeHubKusama to Polkadot mapping at least"))
 		}
 	}
-}
-
-#[test]
-fn system_chain_accumulation_accounts_match_only_forwarder_origins() {
-	use polkadot_parachain_primitives::primitives::LOWEST_PUBLIC_ID;
-	use system_parachain::{BRIDGE_HUB_ID, BROKER_ID, ENCOINTER_ID, PEOPLE_ID};
-
-	let account: [u8; 32] = ACCUMULATE_FORWARD_PALLET_ID.into_account_truncating();
-	let on_parachain =
-		|para_id, id| Location::new(1, [Parachain(para_id), AccountId32 { network: None, id }]);
-
-	// The relay chain and every system parachain that forwards its burns.
-	assert!(SystemChainAccumulationAccounts::contains(&Location::new(
-		1,
-		[AccountId32 { network: None, id: account }]
-	)));
-	for para_id in [ENCOINTER_ID, BRIDGE_HUB_ID, PEOPLE_ID, BROKER_ID] {
-		assert!(SystemChainAccumulationAccounts::contains(&on_parachain(para_id, account)));
-	}
-	// Another account on a system chain.
-	assert!(!SystemChainAccumulationAccounts::contains(&on_parachain(BROKER_ID, [0u8; 32])));
-	// The accumulation account on a non-system parachain.
-	assert!(!SystemChainAccumulationAccounts::contains(&on_parachain(
-		LOWEST_PUBLIC_ID.into(),
-		account
-	)));
-	// The accumulation account as a local origin.
-	assert!(!SystemChainAccumulationAccounts::contains(&Location::new(
-		0,
-		[AccountId32 { network: None, id: account }]
-	)));
 }

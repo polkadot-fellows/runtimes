@@ -128,9 +128,11 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 						$crate::pallet_message_queue::Event::Processed { success: true, .. }
 					) => {},]
 				);
-				assert_eq!(
-					AssetHubBalances::total_issuance(),
-					asset_hub_issuance_before - forwarded,
+				// Everything that arrives is burned except Asset Hub's execution fee, which stays
+				// in its issuance and so keeps the checking account correct.
+				let burned = asset_hub_issuance_before - AssetHubBalances::total_issuance();
+				assert!(
+					burned > 0 && burned <= forwarded,
 					"the burn should move Asset Hub's total issuance"
 				);
 			});
