@@ -421,6 +421,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
+			// `SecretarySalary` pays out, so `NonTransfer` omits the Secretary calls.
+			(ProxyType::NonTransfer, ProxyType::Secretary) => false,
 			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
@@ -1545,5 +1547,73 @@ fn alliance_deposit_matches_documented_curve() {
 			"AllianceDeposit at {} proposals: expected {} plancks, got {}",
 			proposals, expected, actual
 		);
+	}
+}
+
+#[test]
+fn proxy_type_superset_relation_matches_call_filters() {
+	use frame_support::traits::InstanceFilter;
+
+	let all = [
+		ProxyType::Any,
+		ProxyType::NonTransfer,
+		ProxyType::CancelProxy,
+		ProxyType::Collator,
+		ProxyType::Alliance,
+		ProxyType::Fellowship,
+		ProxyType::Ambassador,
+		ProxyType::Secretary,
+	];
+	// A new variant breaks this match: add it above.
+	for proxy_type in all.iter() {
+		match proxy_type {
+			ProxyType::Any |
+			ProxyType::NonTransfer |
+			ProxyType::CancelProxy |
+			ProxyType::Collator |
+			ProxyType::Alliance |
+			ProxyType::Fellowship |
+			ProxyType::Ambassador |
+			ProxyType::Secretary => (),
+		}
+	}
+
+	// One call per filter boundary.
+	let calls = [
+		RuntimeCall::System(frame_system::Call::remark { remark: vec![] }),
+		RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive {
+			dest: AccountId::from([1u8; 32]).into(),
+			value: 1,
+		}),
+		RuntimeCall::CollatorSelection(pallet_collator_selection::Call::leave_intent {}),
+		RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }),
+		RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement {
+			delegate: AccountId::from([1u8; 32]).into(),
+			call_hash: sp_core::H256::zero(),
+		}),
+		RuntimeCall::SecretaryCollective(pallet_ranked_collective::Call::cleanup_poll {
+			poll_index: 0,
+			max: 0,
+		}),
+		RuntimeCall::SecretarySalary(pallet_salary::Call::induct {}),
+		RuntimeCall::FellowshipSalary(pallet_salary::Call::induct {}),
+		RuntimeCall::AmbassadorSalary(pallet_salary::Call::induct {}),
+	];
+
+	for superset in all.iter() {
+		for subset in all.iter() {
+			if !superset.is_superset(subset) {
+				continue;
+			}
+			for call in calls.iter() {
+				if subset.filter(call) {
+					assert!(
+						superset.filter(call),
+						"lattice violated: {superset:?} claims to be a superset of \
+						 {subset:?} but rejects {call:?}",
+					);
+				}
+			}
+		}
 	}
 }
