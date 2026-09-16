@@ -64,8 +64,16 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 				<ChainRuntime as pallet_accumulate_and_forward::Config>::MinTransferAmount::get()
 			});
 
-			let (asset_hub_issuance_before, check_balance_before) = $asset_hub::execute_with(|| {
-				(AssetHubBalances::total_issuance(), AssetHubBalances::balance(&check_account))
+			let staking_pot =
+				$asset_hub::execute_with($crate::pallet_collator_selection::Pallet::<
+					AssetHubRuntime,
+				>::account_id);
+			let (asset_hub_issuance_before, check_balance_before, pot_before) = $asset_hub::execute_with(|| {
+				(
+					AssetHubBalances::total_issuance(),
+					AssetHubBalances::balance(&check_account),
+					AssetHubBalances::balance(&staking_pot),
+				)
 			});
 			let chain_issuance_before =
 				$chain::execute_with(|| ChainBalances::total_issuance());
@@ -128,13 +136,23 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 						$crate::pallet_message_queue::Event::Processed { success: true, .. }
 					) => {},]
 				);
-				// Everything that arrives is burned except Asset Hub's execution fee, which stays
-				// in its issuance and so keeps the checking account correct.
+				// Everything that arrives is burned except Asset Hub's execution fee, which goes
+				// to the collator pot and so stays in its issuance.
 				let burned = asset_hub_issuance_before - AssetHubBalances::total_issuance();
-				assert!(
-					burned > 0 && burned <= forwarded,
-					"the burn should move Asset Hub's total issuance"
-				);
+				// The fee is deposited to the collator pot, so read it from the event rather than
+				// the pot balance, which collator payouts move in the same block.
+				let fee = $crate::frame_system::Pallet::<AssetHubRuntime>::events()
+					.iter()
+					.find_map(|record| match &record.event {
+						AssetHubEvent::Balances($crate::pallet_balances::Event::Deposit {
+							who,
+							amount,
+						}) if *who == staking_pot => Some(*amount),
+						_ => None,
+					})
+					.expect("the execution fee is deposited to the collator pot");
+				assert_eq!(burned + fee, forwarded, "all of it is either burned or paid as fee");
+				assert!(burned > 0, "the burn should move Asset Hub's total issuance");
 			});
 
 			// AND the checking account still matches what this chain holds: both moved by the

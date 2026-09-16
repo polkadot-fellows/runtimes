@@ -63,7 +63,7 @@ where
 			.map_err(|asset| {
 				log::error!(target: LOG_TARGET, "🚨 could not reanchor {asset:?} for {dest:?}");
 			})?;
-		// The XCM flow: `ReceiveTeleportedAsset → ClearOrigin → PayFees → RefundSurplus →
+		// The XCM flow: `ReceiveTeleportedAsset → PayFees → ClearOrigin → RefundSurplus →
 		// BurnAsset`, which Asset Hub's existing paid barrier accepts unchanged.
 		let remote_xcm = Xcm(vec![RefundSurplus, BurnAsset(remote_asset.clone().into())]);
 		let xcm: Xcm<XcmConfig::RuntimeCall> = Xcm(vec![
@@ -72,7 +72,7 @@ where
 			WithdrawAsset(asset.clone().into()),
 			InitiateTransfer {
 				destination: dest,
-				remote_fees: Some(AssetTransferFilter::Teleport(remote_asset.into())),
+				remote_fees: Some(AssetTransferFilter::Teleport(asset.clone().into())),
 				preserve_origin: false,
 				assets: BoundedVec::truncate_from(vec![]),
 				remote_xcm,

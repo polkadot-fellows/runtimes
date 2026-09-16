@@ -20,6 +20,7 @@ pub use frame_support;
 pub use frame_system;
 pub use pallet_accumulate_and_forward;
 pub use pallet_balances;
+pub use pallet_collator_selection;
 pub use pallet_message_queue;
 
 // Polkadot
