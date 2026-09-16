@@ -27,10 +27,10 @@ extern crate alloc;
 mod coretime;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
+pub mod para_control;
 #[cfg(test)]
 mod tests;
 mod weights;
-pub mod para_control;
 pub mod xcm_config;
 
 use alloc::{borrow::Cow, vec, vec::Vec};
@@ -751,6 +751,12 @@ impl cumulus_pallet_weight_reclaim::Config for Runtime {
 	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+	/// While the migration runs, the relay chain's downward queue is served first for this many
+	/// blocks out of every cycle, and every queue takes its turn for the rest.
+	pub const DmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
+}
+
 impl pallet_ct_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -763,6 +769,8 @@ impl pallet_ct_migrator::Config for Runtime {
 	type HrmpReceiver = HrmpPara;
 	type SendXcm = xcm_config::XcmRouter;
 	type AdminOrigin = EnsureRoot<AccountId>;
+	type MessageQueue = MessageQueue;
+	type DmpQueuePriorityPattern = DmpQueuePriorityPattern;
 }
 
 /// What each hold migrated from the relay chain becomes on this chain.

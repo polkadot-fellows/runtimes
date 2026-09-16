@@ -30,7 +30,10 @@ use frame_support::{
 	weights::Weight,
 };
 use migrator_types::{PortableProxyDelegate, PortableProxyType};
-use runtime_parachains::hrmp as parachains_hrmp;
+use runtime_parachains::{
+	hrmp as parachains_hrmp,
+	inclusion::{AggregateMessageOrigin, UmpQueueId},
+};
 use sp_core::{sr25519, Pair, H256};
 use sp_runtime::{traits::BadOrigin, AccountId32, MultiSignature, MultiSigner};
 
@@ -1075,6 +1078,67 @@ fn the_manager_stays_funded_until_the_end_and_is_then_reaped() {
 		assert!(decode_teleports(&sent_xcm())
 			.iter()
 			.any(|batch| batch.contains(&(manager.clone(), 1_000))));
+	});
+}
+
+#[test]
+fn the_coretime_queue_goes_first_on_a_duty_cycle_while_the_migration_runs() {
+	new_test_ext().execute_with(|| {
+		let ct_queue = AggregateMessageOrigin::Ump(UmpQueueId::Para(CT_PARA_ID.into()));
+		// The mock's pattern: three blocks of priority, one of round robin.
+		let prioritised_blocks = |from: u32, to: u32| -> Vec<AggregateMessageOrigin> {
+			(from..=to).filter(|n| n % 4 < 3).map(|_| ct_queue.clone()).collect()
+		};
+
+		// GIVEN a pending machine. WHEN blocks pass. THEN no queue is forced: there is nothing to
+		// protect yet.
+		run_blocks(8);
+		assert_eq!(ForcedHeads::get(), vec![]);
+
+		// GIVEN an ongoing migration. WHEN blocks pass. THEN the Coretime queue goes first on
+		// three blocks in four.
+		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::Paused));
+		let from = System::block_number() + 1;
+		run_blocks(8);
+		assert_eq!(ForcedHeads::get(), prioritised_blocks(from, from + 7));
+		assert_eq!(
+			migrator_events()
+				.iter()
+				.filter(|e| matches!(e, Event::CtUmpQueuePrioritised { cycle_period: 4, .. }))
+				.count(),
+			6
+		);
+
+		// WHEN the priority is disabled. THEN nothing is forced.
+		assert_ok!(Rc2Migrator::set_ct_ump_queue_priority(root(), QueuePriority::Disabled));
+		ForcedHeads::set(vec![]);
+		run_blocks(4);
+		assert_eq!(ForcedHeads::get(), vec![]);
+
+		// WHEN the pattern is overridden to one block in two. THEN that is the cycle.
+		assert_ok!(Rc2Migrator::set_ct_ump_queue_priority(
+			root(),
+			QueuePriority::OverrideConfig(1, 1)
+		));
+		let from = System::block_number() + 1;
+		run_blocks(4);
+		assert_eq!(ForcedHeads::get().len(), (from..from + 4).filter(|n| n % 2 == 0).count());
+
+		// WHEN the same configuration is set again, or one that never prioritises. THEN refused.
+		assert_noop!(
+			Rc2Migrator::set_ct_ump_queue_priority(root(), QueuePriority::OverrideConfig(1, 1)),
+			Error::<Test>::QueuePriorityAlreadySet
+		);
+		assert_noop!(
+			Rc2Migrator::set_ct_ump_queue_priority(root(), QueuePriority::OverrideConfig(0, 5)),
+			Error::<Test>::ZeroPriorityBlocks
+		);
+
+		// WHEN the migration is done. THEN the queue takes its turn like every other.
+		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::MigrationDone));
+		ForcedHeads::set(vec![]);
+		run_blocks(4);
+		assert_eq!(ForcedHeads::get(), vec![]);
 	});
 }
 

@@ -45,17 +45,20 @@ use frame_support::{
 		tokens::{Fortitude, Precision, Preservation},
 		EnsureOrigin, ReservableCurrency, Time,
 	},
+	weights::WeightMeter,
 	PalletId,
 };
 use frame_system::pallet_prelude::*;
 use migrator_types::{
 	with_rollback, PortableAccount, PortableHold, PortableHoldReason, PortableHrmpChannel,
-	PortableHrmpRequest, PortableParaInfo, PortableProxy, PortableProxyType,
+	PortableHrmpRequest, PortableParaInfo, PortableProxy, PortableProxyType, QueuePriority,
 };
+use pallet_message_queue::ForceSetHead;
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
+use runtime_parachains::inclusion::{AggregateMessageOrigin, UmpQueueId};
 use sp_runtime::{
-	traits::{AccountIdConversion, Dispatchable, IdentifyAccount, Saturating, Verify},
+	traits::{AccountIdConversion, Dispatchable, IdentifyAccount, One, Saturating, Verify, Zero},
 	AccountId32, MultiSignature, MultiSigner,
 };
 use xcm::prelude::*;
@@ -358,6 +361,14 @@ pub mod pallet {
 
 		/// Round the vote counter starts at. Must differ per network.
 		type MultisigStartRound: Get<u32>;
+
+		/// The message queue, so the Coretime chain's upward queue can be put first.
+		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
+
+		/// `(priority_blocks, round_robin_blocks)` for the Coretime chain's upward queue while the
+		/// migration runs; see [`QueuePriority`]. Overridable per migration through
+		/// [`CtUmpQueuePriorityConfig`].
+		type CtUmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
 	}
 
 	#[pallet::pallet]
@@ -394,6 +405,11 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type ManagerVotesInCurrentRound<T: Config> =
 		StorageMap<_, Blake2_128Concat, AccountId32, u32, ValueQuery>;
+
+	/// How the Coretime chain's upward queue is prioritised while the migration runs.
+	#[pallet::storage]
+	pub type CtUmpQueuePriorityConfig<T: Config> =
+		StorageValue<_, QueuePriority<BlockNumberFor<T>>, ValueQuery>;
 
 	/// Balance kept on the relay chain versus migrated away. Set up by the accounts stage.
 	#[pallet::storage]
@@ -436,6 +452,10 @@ pub mod pallet {
 		MaxVotesPerRound,
 		/// The member has already voted for this call in this round.
 		DuplicateVote,
+		/// The queue priority is already what was asked for.
+		QueuePriorityAlreadySet,
+		/// A priority pattern must give the queue at least one block.
+		ZeroPriorityBlocks,
 	}
 
 	#[pallet::event]
@@ -534,6 +554,16 @@ pub mod pallet {
 			who: T::AccountId,
 			amount: u128,
 		},
+		/// The Coretime chain's upward queue was put at the head of the service ring.
+		CtUmpQueuePrioritised {
+			cycle_block: BlockNumberFor<T>,
+			cycle_period: BlockNumberFor<T>,
+		},
+		/// The queue priority configuration changed.
+		CtUmpQueuePriorityConfigSet {
+			old: QueuePriority<BlockNumberFor<T>>,
+			new: QueuePriority<BlockNumberFor<T>>,
+		},
 	}
 
 	#[pallet::hooks]
@@ -550,6 +580,17 @@ pub mod pallet {
 				ManagerMultisigRound::<T>::put(T::MultisigStartRound::get());
 			}
 			T::DbWeight::get().reads_writes(1, 1)
+		}
+
+		fn on_finalize(now: BlockNumberFor<T>) {
+			if RcMigrationStage::<T>::get().is_ongoing() {
+				Self::force_ct_ump_queue_priority(now);
+			}
+		}
+
+		fn integrity_test() {
+			let (priority_blocks, _) = T::CtUmpQueuePriorityPattern::get();
+			assert!(!priority_blocks.is_zero(), "the Coretime queue must get at least one block");
 		}
 	}
 
@@ -704,6 +745,24 @@ pub mod pallet {
 			}
 			Ok(())
 		}
+
+		/// Change how the Coretime chain's upward queue is prioritised while the migration runs.
+		#[pallet::call_index(6)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		pub fn set_ct_ump_queue_priority(
+			origin: OriginFor<T>,
+			new: QueuePriority<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+			let old = CtUmpQueuePriorityConfig::<T>::get();
+			ensure!(old != new, Error::<T>::QueuePriorityAlreadySet);
+			if let QueuePriority::OverrideConfig(priority_blocks, _) = new {
+				ensure!(!priority_blocks.is_zero(), Error::<T>::ZeroPriorityBlocks);
+			}
+			CtUmpQueuePriorityConfig::<T>::put(new);
+			Self::deposit_event(Event::CtUmpQueuePriorityConfigSet { old, new });
+			Ok(())
+		}
 	}
 
 	/// One member's vote for `call`, signed offline and submitted by anyone.
@@ -773,6 +832,33 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Put the Coretime chain's upward queue at the head of the service ring for the next
+		/// block if the duty cycle says so. Every other queue is still served, just behind it.
+		fn force_ct_ump_queue_priority(now: BlockNumberFor<T>) {
+			let (priority_blocks, round_robin_blocks) = match CtUmpQueuePriorityConfig::<T>::get() {
+				QueuePriority::Config => T::CtUmpQueuePriorityPattern::get(),
+				QueuePriority::OverrideConfig(priority, round_robin) => (priority, round_robin),
+				QueuePriority::Disabled => return,
+			};
+			let period = priority_blocks.saturating_add(round_robin_blocks);
+			if period.is_zero() {
+				return;
+			}
+			let cycle_block = now % period;
+			if cycle_block >= priority_blocks {
+				return;
+			}
+			let queue = AggregateMessageOrigin::Ump(UmpQueueId::Para(T::CtParaId::get().into()));
+			// `Ok(false)` is an empty queue, `Err` one this chain has never seen -- which a fresh
+			// network has until the Coretime chain first speaks. Neither is a fault.
+			if T::MessageQueue::force_set_head(&mut WeightMeter::new(), &queue).unwrap_or(false) {
+				Self::deposit_event(Event::CtUmpQueuePrioritised {
+					cycle_block: cycle_block.saturating_add(One::one()),
+					cycle_period: period,
+				});
+			}
+		}
+
 		fn do_validate_unsigned(
 			payload: &ManagerMultisigVote<T>,
 			sig: &MultiSignature,
@@ -806,13 +892,6 @@ pub mod pallet {
 				// The scheduled start is compared against the clock, which at `on_initialize` still
 				// holds the previous block's timestamp -- so the migration begins on the first
 				// block after the one whose timestamp passed `start`.
-				// TODO(ahm-v2): inbound XCM from anyone but the Coretime chain while the migration
-				// runs. The call filter (`PostAhmFilter`) does nothing about UMP, which arrives
-				// with candidates, and the warm-up cannot drain queues that paras keep
-				// refilling; the Coretime chain's answers also share one service budget with
-				// every other para. Pausing the other queues (`QueuePausedQuery`), refusing at
-				// the barrier, or v1's `force_set_head` priority are the options; the first
-				// subsumes the third.
 				MigrationStage::Scheduled { start } if T::TimeProvider::now() >= start => {
 					if Self::send_to_ct(CtMigratorCall::StartMigration).is_ok() {
 						Self::transition(MigrationStage::WaitingForCt);

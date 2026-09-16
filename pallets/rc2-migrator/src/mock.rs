@@ -19,13 +19,16 @@ use crate as pallet_rc2_migrator;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
-	traits::{Currency, InstanceFilter, ReservableCurrency, Time},
+	traits::{Currency, InstanceFilter, OnFinalize, OnInitialize, ReservableCurrency, Time},
+	weights::WeightMeter,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
+use pallet_message_queue::ForceSetHead;
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::{
-	configuration, dmp, hrmp as parachains_hrmp, origin as parachains_origin, paras, shared,
+	configuration, dmp, hrmp as parachains_hrmp, inclusion::AggregateMessageOrigin,
+	origin as parachains_origin, paras, shared,
 };
 use scale_info::TypeInfo;
 use sp_runtime::{
@@ -372,6 +375,10 @@ parameter_types! {
 	pub const MultisigThreshold: u32 = 2;
 	pub const MultisigMaxVotesPerRound: u32 = 3;
 	pub const MultisigStartRound: u32 = 7;
+	/// Every queue the pallet forced to the head, in order.
+	pub static ForcedHeads: Vec<AggregateMessageOrigin> = vec![];
+	/// Three blocks of priority, one of round robin.
+	pub const CtUmpQueuePriorityPattern: (u32, u32) = (3, 1);
 	pub const AhParaId: u32 = AH_PARA_ID;
 	/// Working buffer that follows deposits to the Coretime chain.
 	pub const CtFreeBuffer: u128 = 100;
@@ -412,6 +419,15 @@ pub fn now_ms() -> u64 {
 	MockTime::now()
 }
 
+/// Records which queue was put first instead of touching a real message queue.
+pub struct RecordingHead;
+impl ForceSetHead<AggregateMessageOrigin> for RecordingHead {
+	fn force_set_head(_: &mut WeightMeter, origin: &AggregateMessageOrigin) -> Result<bool, ()> {
+		ForcedHeads::mutate(|forced| forced.push(origin.clone()));
+		Ok(true)
+	}
+}
+
 impl pallet_rc2_migrator::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -431,6 +447,8 @@ impl pallet_rc2_migrator::Config for Test {
 	type MultisigThreshold = MultisigThreshold;
 	type MultisigMaxVotesPerRound = MultisigMaxVotesPerRound;
 	type MultisigStartRound = MultisigStartRound;
+	type MessageQueue = RecordingHead;
+	type CtUmpQueuePriorityPattern = CtUmpQueuePriorityPattern;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
@@ -470,11 +488,11 @@ pub fn coretime() -> AccountId32 {
 /// The clock moves *after* the block's hooks, mirroring the timestamp inherent, which is an
 /// extrinsic and so runs after `on_initialize`.
 pub fn run_blocks(n: u32) {
-	use frame_support::traits::OnInitialize;
 	for _ in 0..n {
 		let now = System::block_number() + 1;
 		System::set_block_number(now);
 		Rc2Migrator::on_initialize(now);
+		Rc2Migrator::on_finalize(now);
 		MockNow::set(u64::from(now).saturating_mul(BLOCK_TIME_MS));
 	}
 }

@@ -20,6 +20,8 @@ pallet-proxy = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 sp-runtime = { workspace = true }
 xcm = { workspace = true }
+pallet-message-queue = { workspace = true }
+cumulus-primitives-core = { workspace = true }
 
 [dev-dependencies]
 pallet-balances = { workspace = true, features = ["std"] }
@@ -40,6 +42,8 @@ std = [
 	"scale-info/std",
 	"sp-runtime/std",
 	"xcm/std",
+	"pallet-message-queue/std",
+	"cumulus-primitives-core/std",
 ]
 runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
@@ -48,10 +52,13 @@ runtime-benchmarks = [
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
+	"cumulus-primitives-core/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-proxy/try-runtime",
 	"sp-runtime/try-runtime",
+	"pallet-message-queue/try-runtime",
 ]

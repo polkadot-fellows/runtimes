@@ -194,11 +194,7 @@ pub fn emit_pre_facts() {
 	fact("Proxy", "deposits", dot(deposits));
 	fact("Proxy", "zero-deposit entries", json!(zero_dep));
 	fact("Proxy", "live-deposit entries", json!(delegators - zero_dep));
-	fact(
-		"Proxy",
-		"announcements",
-		json!(pallet_proxy::Announcements::<Rc>::iter_keys().count()),
-	);
+	fact("Proxy", "announcements", json!(pallet_proxy::Announcements::<Rc>::iter_keys().count()));
 
 	// Registrar: recorded deposits vs what the managers actually hold in reserve.
 	let mut paras = 0u64;
@@ -405,6 +401,10 @@ fn emit_ct_block() {
 						"ct_minted": planck(ct_minted),
 					}),
 				),
+				// Which queue went first this block is not migration state; the stream carries
+				// the stage, not the service ring.
+				MigEvent::DmpQueuePrioritised { .. } |
+				MigEvent::DmpQueuePriorityConfigSet { .. } => (),
 			},
 			crate::mock::network::ct::RuntimeEvent::MessageQueue(
 				pallet_message_queue::Event::Processed { success, .. },

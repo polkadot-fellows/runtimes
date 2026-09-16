@@ -85,6 +85,9 @@ impl xcm_executor::traits::ConvertOrigin<RuntimeOrigin> for SystemChildParachain
 	}
 }
 
+use xcm_builder::DenyThenTry;
+use xcm_executor::traits::{DenyExecution, Properties};
+
 parameter_types! {
 	/// The location of the KSM token, from the context of this chain. Since this token is native to this
 	/// chain, we make it synonymous with it and thus it is the `Here` location, which means "equivalent to
@@ -229,29 +232,65 @@ impl Contains<Location> for AssetHubPlurality {
 	}
 }
 
+/// Refuse everything an ordinary parachain sends while the migration runs.
+///
+/// The call filter cannot do this: upward messages arrive with candidates, not as extrinsics, and
+/// a queue that paras keep refilling never drains in the warm-up. System chains are unaffected --
+/// the migration itself and Asset Hub's staking traffic travel that way. Ordinary parachains are
+/// admitted again once the migration is done, which is when their control-plane calls start
+/// forwarding to the Coretime chain.
+pub struct DenyOrdinaryParachainsDuringMigration;
+impl DenyExecution for DenyOrdinaryParachainsDuringMigration {
+	fn deny_execution<RuntimeCall>(
+		origin: &Location,
+		_instructions: &mut [Instruction<RuntimeCall>],
+		_max_weight: frame_support::weights::Weight,
+		_properties: &mut Properties,
+	) -> Result<(), frame_support::traits::ProcessMessageError> {
+		let ordinary_parachain =
+			OnlyParachains::contains(origin) && !IsChildSystemParachain::<ParaId>::contains(origin);
+		if ordinary_parachain &&
+			pallet_rc2_migrator::RcMigrationStage::<Runtime>::get().is_ongoing()
+		{
+			return Err(frame_support::traits::ProcessMessageError::Unsupported);
+		}
+		Ok(())
+	}
+}
+
 /// The barriers one of which must be passed for an XCM message to be executed.
-pub type Barrier = TrailingSetTopicAsId<(
-	// Weight that is paid for may be consumed.
-	TakeWeightCredit,
-	// Expected responses are OK.
-	AllowKnownQueryResponses<XcmPallet>,
-	WithComputedOrigin<
+pub type Barrier = TrailingSetTopicAsId<
+	DenyThenTry<
+		DenyOrdinaryParachainsDuringMigration,
 		(
-			// If the message is one that immediately attempts to pay for execution, then allow it.
-			AllowTopLevelPaidExecutionFrom<Everything>,
-			// Messages coming from system parachains need not pay for execution.
-			AllowExplicitUnpaidExecutionFrom<(IsChildSystemParachain<ParaId>, AssetHubPlurality)>,
-			// A parachain's own control-plane request executes unpaid: post-migration its
-			// sovereign account here is empty by design, and the work is priced on the Coretime
-			// chain instead. Deliberately shape-checked and rate-limited — see `para_control`.
-			crate::para_control::AllowUnpaidParaControlFrom<OnlyParachains>,
-			// Subscriptions for version tracking are OK.
-			AllowSubscriptionsFrom<OnlyParachains>,
+			// Weight that is paid for may be consumed.
+			TakeWeightCredit,
+			// Expected responses are OK.
+			AllowKnownQueryResponses<XcmPallet>,
+			WithComputedOrigin<
+				(
+					// If the message is one that immediately attempts to pay for execution, then
+					// allow it.
+					AllowTopLevelPaidExecutionFrom<Everything>,
+					// Messages coming from system parachains need not pay for execution.
+					AllowExplicitUnpaidExecutionFrom<(
+						IsChildSystemParachain<ParaId>,
+						AssetHubPlurality,
+					)>,
+					// A parachain's own control-plane request executes unpaid: post-migration its
+					// sovereign account here is empty by design, and the work is priced on the
+					// Coretime chain instead. Deliberately shape-checked and rate-limited —
+					// see `para_control`.
+					crate::para_control::AllowUnpaidParaControlFrom<OnlyParachains>,
+					// Subscriptions for version tracking are OK.
+					AllowSubscriptionsFrom<OnlyParachains>,
+				),
+				UniversalLocation,
+				ConstU32<8>,
+			>,
 		),
-		UniversalLocation,
-		ConstU32<8>,
 	>,
-)>;
+>;
 
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.

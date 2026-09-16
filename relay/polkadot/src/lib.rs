@@ -1970,6 +1970,9 @@ parameter_types! {
 	pub const MigrationMultisigMaxVotesPerRound: u32 = 5;
 	/// A vote is signed over (who, call, round) and nothing else, so two networks sitting at the
 	/// same round would accept each other's signatures. This is what keeps them apart.
+	/// While the migration runs, the Coretime chain's upward queue is served first for this many
+	/// blocks out of every cycle, and every queue takes its turn for the rest.
+	pub const CtUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
 	pub const MigrationMultisigStartRound: u32 = 100;
 	/// Asset Hub's existential deposit; mirrors
 	/// `system_parachains_constants::polkadot::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT`
@@ -1997,6 +2000,8 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type MultisigThreshold = MigrationMultisigThreshold;
 	type MultisigMaxVotesPerRound = MigrationMultisigMaxVotesPerRound;
 	type MultisigStartRound = MigrationMultisigStartRound;
+	type MessageQueue = MessageQueue;
+	type CtUmpQueuePriorityPattern = CtUmpQueuePriorityPattern;
 }
 
 construct_runtime! {

@@ -628,3 +628,58 @@ fn all_receive_calls_require_root() {
 		assert_noop!(CtMigrator::force_set_stage(signed, MigrationStage::MigrationDone), BadOrigin);
 	});
 }
+
+#[test]
+fn the_relay_chains_queue_goes_first_on_a_duty_cycle_while_the_migration_runs() {
+	new_test_ext().execute_with(|| {
+		// The mock's pattern: three blocks of priority, one of round robin.
+		let prioritised_blocks = |from: u64, to: u64| -> Vec<AggregateMessageOrigin> {
+			(from..=to)
+				.filter(|n| n % 4 < 3)
+				.map(|_| AggregateMessageOrigin::Parent)
+				.collect()
+		};
+
+		// GIVEN no migration. WHEN blocks pass. THEN no queue is forced.
+		run_blocks(8);
+		assert_eq!(ForcedHeads::get(), vec![]);
+
+		// GIVEN an open migration. WHEN blocks pass. THEN the relay chain's queue goes first on
+		// three blocks in four.
+		assert_ok!(CtMigrator::start_migration(root()));
+		let from = System::block_number() + 1;
+		run_blocks(8);
+		assert_eq!(ForcedHeads::get(), prioritised_blocks(from, from + 7));
+
+		// WHEN the priority is disabled. THEN nothing is forced.
+		assert_ok!(CtMigrator::set_dmp_queue_priority(root(), QueuePriority::Disabled));
+		ForcedHeads::set(vec![]);
+		run_blocks(4);
+		assert_eq!(ForcedHeads::get(), vec![]);
+
+		// WHEN the same configuration is set again, or one that never prioritises. THEN refused.
+		assert_noop!(
+			CtMigrator::set_dmp_queue_priority(root(), QueuePriority::Disabled),
+			Error::<Test>::QueuePriorityAlreadySet
+		);
+		assert_noop!(
+			CtMigrator::set_dmp_queue_priority(root(), QueuePriority::OverrideConfig(0, 5)),
+			Error::<Test>::ZeroPriorityBlocks
+		);
+		assert_noop!(
+			CtMigrator::set_dmp_queue_priority(
+				RuntimeOrigin::signed(acc(1)),
+				QueuePriority::Config
+			),
+			BadOrigin
+		);
+
+		// WHEN the lockdown ends. THEN the queue takes its turn like every other.
+		assert_ok!(CtMigrator::set_dmp_queue_priority(root(), QueuePriority::Config));
+		assert_ok!(CtMigrator::reconcile_balances(root(), 0, 0));
+		assert_ok!(CtMigrator::end_lockdown(root()));
+		ForcedHeads::set(vec![]);
+		run_blocks(4);
+		assert_eq!(ForcedHeads::get(), vec![]);
+	});
+}

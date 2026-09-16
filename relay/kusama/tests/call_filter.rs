@@ -33,10 +33,14 @@ use polkadot_runtime_common::{crowdloan, paras_registrar};
 use runtime_parachains::hrmp;
 use sp_runtime::BuildStorage;
 use staging_kusama_runtime::{
-	xcm_config::XcmConfig, AllPalletsWithSystem, PostAhmFilter, Runtime, RuntimeCall,
+	xcm_config::{Barrier, XcmConfig},
+	AllPalletsWithSystem, PostAhmFilter, Runtime, RuntimeCall,
 };
 use xcm::latest::prelude::*;
-use xcm_executor::XcmExecutor;
+use xcm_executor::{
+	traits::{Properties, ShouldExecute},
+	XcmExecutor,
+};
 
 type Stage = MigrationStageOf<Runtime>;
 
@@ -492,6 +496,79 @@ mod inbound_teleports {
 				error.error,
 				XcmError::UntrustedTeleportLocation,
 				"teleport must be refused as untrusted at {stage:?}"
+			);
+		}
+	}
+}
+
+/// The barrier, which a call filter cannot reach: upward messages arrive with candidates.
+mod inbound_messages {
+	use super::*;
+
+	fn barrier_admits(stage: Stage, origin: Location, mut message: Xcm<RuntimeCall>) -> bool {
+		let mut ext: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
+			.unwrap()
+			.into();
+		ext.execute_with(|| {
+			RcMigrationStage::<Runtime>::put(stage);
+			let weight = Weight::from_parts(10_000_000_000, 1_000_000);
+			let mut properties = Properties { weight_credit: Weight::zero(), message_id: None };
+			Barrier::should_execute(&origin, message.inner_mut(), weight, &mut properties).is_ok()
+		})
+	}
+
+	/// What any parachain may send: pay for execution up front.
+	fn paid_message() -> Xcm<RuntimeCall> {
+		Xcm(vec![
+			WithdrawAsset((Here, UNITS).into()),
+			BuyExecution { fees: (Here, UNITS).into(), weight_limit: Unlimited },
+			ClearOrigin,
+		])
+	}
+
+	/// What a system chain may send: execution it does not pay for.
+	fn unpaid_message() -> Xcm<RuntimeCall> {
+		Xcm(vec![UnpaidExecution { weight_limit: Unlimited, check_origin: None }, ClearOrigin])
+	}
+
+	/// Shut while the migration runs, open before it and again after it: the stages in which the
+	/// para's control-plane calls forward to the Coretime chain are the ones it may speak in.
+	#[test]
+	fn ordinary_parachains_are_refused_only_while_the_migration_runs() {
+		let para = Location::new(0, [Parachain(2000)]);
+		for stage in open_stages() {
+			assert!(
+				barrier_admits(stage.clone(), para.clone(), paid_message()),
+				"an ordinary para must be admitted at {stage:?}"
+			);
+		}
+		for stage in [
+			Stage::WaitingForCt,
+			Stage::AccountsOngoing { last_key: None },
+			Stage::Paused,
+			Stage::CoolOff { end_at: 10 },
+		] {
+			assert!(
+				!barrier_admits(stage.clone(), para.clone(), paid_message()),
+				"an ordinary para must be refused at {stage:?}"
+			);
+		}
+		assert!(
+			barrier_admits(Stage::MigrationDone, para, paid_message()),
+			"an ordinary para must be admitted again once the migration is done"
+		);
+	}
+
+	/// The migration's own traffic and Asset Hub's staking traffic travel as system-chain
+	/// messages; the gate must not touch them at any stage.
+	#[test]
+	fn system_chains_are_admitted_throughout() {
+		let asset_hub = Location::new(0, [Parachain(ASSET_HUB_ID)]);
+		for stage in every_stage() {
+			assert!(
+				barrier_admits(stage.clone(), asset_hub.clone(), unpaid_message()),
+				"a system chain must be admitted at {stage:?}"
 			);
 		}
 	}

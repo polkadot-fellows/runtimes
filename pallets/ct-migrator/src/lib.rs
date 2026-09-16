@@ -36,6 +36,7 @@ mod mock;
 mod tests;
 
 use alloc::{vec, vec::Vec};
+use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::{
 	defensive_assert,
 	pallet_prelude::*,
@@ -44,12 +45,14 @@ use frame_support::{
 		tokens::{Fortitude, Precision, Preservation},
 		EnsureOrigin,
 	},
+	weights::WeightMeter,
 };
 use frame_system::pallet_prelude::*;
 use hrmp_primitives::{MigratedChannel, ReceiveMigratedChannels};
+use pallet_message_queue::ForceSetHead;
 use registrar_primitives::{MigratedPara, MigratedParaState, ReceiveMigratedParas};
 use sp_runtime::{
-	traits::{Saturating, Zero},
+	traits::{One, Saturating, Zero},
 	SaturatedConversion,
 };
 use xcm::prelude::*;
@@ -161,6 +164,13 @@ pub mod pallet {
 
 		/// The origin that may force the migration stage on this chain.
 		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
+
+		/// The message queue, so the relay chain's downward queue can be put first.
+		type MessageQueue: ForceSetHead<AggregateMessageOrigin>;
+
+		/// `(priority_blocks, round_robin_blocks)` for the relay chain's downward queue while the
+		/// migration runs; see [`QueuePriority`]. Overridable through [`DmpQueuePriorityConfig`].
+		type DmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
 	}
 
 	#[pallet::composite_enum]
@@ -199,6 +209,11 @@ pub mod pallet {
 
 	#[pallet::storage]
 	pub type CtMigrationStage<T: Config> = StorageValue<_, MigrationStage, ValueQuery>;
+
+	/// How the relay chain's downward queue is prioritised while the migration runs.
+	#[pallet::storage]
+	pub type DmpQueuePriorityConfig<T: Config> =
+		StorageValue<_, QueuePriority<BlockNumberFor<T>>, ValueQuery>;
 
 	/// Accounts that failed to integrate, parked verbatim for manual recovery.
 	///
@@ -272,6 +287,10 @@ pub mod pallet {
 		AlreadyFinished,
 		/// The relay chain signalled the end of a migration that has not finished sending.
 		NotReconciled,
+		/// The queue priority is already what was asked for.
+		QueuePriorityAlreadySet,
+		/// A priority pattern must give the queue at least one block.
+		ZeroPriorityBlocks,
 	}
 
 	#[pallet::event]
@@ -322,6 +341,33 @@ pub mod pallet {
 			rc_migrated: BalanceOf<T>,
 			ct_minted: BalanceOf<T>,
 		},
+		/// The relay chain's downward queue was put at the head of the service ring.
+		DmpQueuePrioritised {
+			cycle_block: BlockNumberFor<T>,
+			cycle_period: BlockNumberFor<T>,
+		},
+		/// The queue priority configuration changed.
+		DmpQueuePriorityConfigSet {
+			old: QueuePriority<BlockNumberFor<T>>,
+			new: QueuePriority<BlockNumberFor<T>>,
+		},
+	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_finalize(now: BlockNumberFor<T>) {
+			if CtMigrationStage::<T>::get().is_ongoing() {
+				Self::force_dmp_queue_priority(now);
+			}
+		}
+
+		fn integrity_test() {
+			let (priority_blocks, _) = T::DmpQueuePriorityPattern::get();
+			assert!(
+				!priority_blocks.is_zero(),
+				"the relay chain's queue must get at least one block"
+			);
+		}
 	}
 
 	#[pallet::call]
@@ -425,11 +471,6 @@ pub mod pallet {
 		///
 		/// Answering opens the migration here and unblocks the relay chain's warm-up. A repeat is
 		/// answered again without reopening, so a resent signal is harmless.
-		// TODO(ahm-v2): inbound XCM from anyone but the relay chain while the migration runs.
-		// The call filter (`ProxyMutationsDuringMigration`) is in place; the migration data itself
-		// arrives as DMP and shares one service budget with every sibling, so a flood from one of
-		// them starves it. Pausing sibling queues (`QueuePausedQuery`) or v1's
-		// `force_dmp_queue_priority` duty cycle are the options; the first subsumes the second.
 		#[pallet::call_index(6)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(3, 2))]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
@@ -504,9 +545,54 @@ pub mod pallet {
 			Self::transition(MigrationStage::CoolOff);
 			Ok(())
 		}
+
+		/// Change how the relay chain's downward queue is prioritised while the migration runs.
+		#[pallet::call_index(9)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		pub fn set_dmp_queue_priority(
+			origin: OriginFor<T>,
+			new: QueuePriority<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			T::AdminOrigin::ensure_origin(origin)?;
+			let old = DmpQueuePriorityConfig::<T>::get();
+			ensure!(old != new, Error::<T>::QueuePriorityAlreadySet);
+			if let QueuePriority::OverrideConfig(priority_blocks, _) = new {
+				ensure!(!priority_blocks.is_zero(), Error::<T>::ZeroPriorityBlocks);
+			}
+			DmpQueuePriorityConfig::<T>::put(new);
+			Self::deposit_event(Event::DmpQueuePriorityConfigSet { old, new });
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Put the relay chain's downward queue at the head of the service ring for the next block
+		/// if the duty cycle says so. Every sibling's queue is still served, just behind it.
+		fn force_dmp_queue_priority(now: BlockNumberFor<T>) {
+			let (priority_blocks, round_robin_blocks) = match DmpQueuePriorityConfig::<T>::get() {
+				QueuePriority::Config => T::DmpQueuePriorityPattern::get(),
+				QueuePriority::OverrideConfig(priority, round_robin) => (priority, round_robin),
+				QueuePriority::Disabled => return,
+			};
+			let period = priority_blocks.saturating_add(round_robin_blocks);
+			if period.is_zero() {
+				return;
+			}
+			let cycle_block = now % period;
+			if cycle_block >= priority_blocks {
+				return;
+			}
+			// `Ok(false)` is an empty queue, `Err` one this chain has never seen. Neither is a
+			// fault.
+			let queue = AggregateMessageOrigin::Parent;
+			if T::MessageQueue::force_set_head(&mut WeightMeter::new(), &queue).unwrap_or(false) {
+				Self::deposit_event(Event::DmpQueuePrioritised {
+					cycle_block: cycle_block.saturating_add(One::one()),
+					cycle_period: period,
+				});
+			}
+		}
+
 		/// Send a `pallet-rc2-migrator` call to the relay chain.
 		fn send_to_rc(call: Rc2MigratorCall) -> Result<(), Error<T>> {
 			let call = Rc2RuntimeCall::Rc2Migrator(call);

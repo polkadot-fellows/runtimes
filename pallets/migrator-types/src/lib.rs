@@ -309,3 +309,28 @@ mod tests {
 		});
 	}
 }
+
+/// How a migrator prioritises the other chain's message queue while the migration runs.
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Clone,
+	Copy,
+	Default,
+	PartialEq,
+	Eq,
+	Debug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum QueuePriority<BlockNumber> {
+	/// The runtime's configured pattern.
+	#[default]
+	Config,
+	/// `(priority_blocks, round_robin_blocks)`: force the queue to the head of the service ring
+	/// for the first, let every queue take its turn for the second, repeat.
+	OverrideConfig(BlockNumber, BlockNumber),
+	/// No queue gets priority.
+	Disabled,
+}

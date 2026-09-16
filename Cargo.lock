@@ -10109,12 +10109,14 @@ dependencies = [
 name = "pallet-ct-migrator"
 version = "0.1.0"
 dependencies = [
+ "cumulus-primitives-core",
  "frame-support",
  "frame-system",
  "hrmp-primitives",
  "log",
  "migrator-types",
  "pallet-balances",
+ "pallet-message-queue",
  "pallet-proxy",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
@@ -11000,6 +11002,7 @@ dependencies = [
  "log",
  "migrator-types",
  "pallet-balances",
+ "pallet-message-queue",
  "pallet-multisig",
  "pallet-preimage",
  "pallet-proxy",

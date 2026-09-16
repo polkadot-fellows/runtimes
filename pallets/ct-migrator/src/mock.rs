@@ -18,11 +18,14 @@
 use crate as pallet_ct_migrator;
 use crate::*;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::{
 	derive_impl, parameter_types,
-	traits::{fungible::Mutate, ConstU32, InstanceFilter},
+	traits::{fungible::Mutate, ConstU32, InstanceFilter, OnFinalize},
+	weights::WeightMeter,
 };
 use frame_system::EnsureRoot;
+use pallet_message_queue::ForceSetHead;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
@@ -208,6 +211,28 @@ impl SendXcm for RecordingRouter {
 frame_support::parameter_types! {
 	pub static SendFails: bool = false;
 	pub static SentXcm: Vec<(Location, Xcm<()>)> = Vec::new();
+	/// Every queue the pallet forced to the head, in order.
+	pub static ForcedHeads: Vec<AggregateMessageOrigin> = Vec::new();
+	/// Three blocks of priority, one of round robin.
+	pub const DmpQueuePriorityPattern: (u64, u64) = (3, 1);
+}
+
+/// Records which queue was put first instead of touching a real message queue.
+pub struct RecordingHead;
+impl ForceSetHead<AggregateMessageOrigin> for RecordingHead {
+	fn force_set_head(_: &mut WeightMeter, origin: &AggregateMessageOrigin) -> Result<bool, ()> {
+		ForcedHeads::mutate(|forced| forced.push(origin.clone()));
+		Ok(true)
+	}
+}
+
+/// Run the pallet's hooks for the next `n` blocks.
+pub fn run_blocks(n: u64) {
+	for _ in 0..n {
+		let now = System::block_number() + 1;
+		System::set_block_number(now);
+		<CtMigrator as OnFinalize<u64>>::on_finalize(now);
+	}
 }
 
 /// The messages sent upwards so far, destination and all.
@@ -225,6 +250,8 @@ impl pallet_ct_migrator::Config for Test {
 	type HrmpReceiver = RecordingHrmp;
 	type SendXcm = RecordingRouter;
 	type AdminOrigin = EnsureRoot<AccountId32>;
+	type MessageQueue = RecordingHead;
+	type DmpQueuePriorityPattern = DmpQueuePriorityPattern;
 }
 
 /// What each migrated hold becomes locally; mirrors the Coretime runtime's mapping.
