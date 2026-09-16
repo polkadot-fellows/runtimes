@@ -60,9 +60,9 @@ fn a_pending_migration_does_nothing_at_all() {
 }
 
 #[test]
-fn only_the_admin_origin_can_schedule_and_only_into_the_future() {
+fn the_admin_origin_or_the_manager_schedules_and_only_into_the_future() {
 	new_test_ext().execute_with(|| {
-		// WHEN a signed account tries to schedule. THEN it is refused.
+		// WHEN a signed account with no appointment tries to schedule. THEN it is refused.
 		assert_noop!(
 			Rc2Migrator::schedule_migration(RuntimeOrigin::signed(ALICE), 10, WARM_UP, COOL_OFF),
 			BadOrigin
@@ -106,6 +106,27 @@ fn only_the_admin_origin_can_schedule_and_only_into_the_future() {
 			),
 			Error::<Test>::AlreadyScheduled
 		);
+
+		// GIVEN the machine pending again and Alice appointed manager.
+		assert_ok!(Rc2Migrator::cancel_migration(RuntimeOrigin::root()));
+		assert_stage(Stage::Pending);
+		assert_ok!(Rc2Migrator::set_manager(RuntimeOrigin::root(), Some(ALICE)));
+
+		// WHEN the manager schedules the present moment. THEN it is refused like it is for root.
+		assert_noop!(
+			Rc2Migrator::schedule_migration(RuntimeOrigin::signed(ALICE), now, WARM_UP, COOL_OFF),
+			Error::<Test>::StartInPast
+		);
+
+		// WHEN the manager schedules a future moment. THEN the machine is armed: the manager has
+		// the same scheduling power as the admin origin.
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::signed(ALICE),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
+		assert_stage(Stage::Scheduled { start });
 	});
 }
 
