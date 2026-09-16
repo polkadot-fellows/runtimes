@@ -284,7 +284,6 @@ fn governance_authorize_upgrade_works() {
 #[test]
 fn dust_accumulates_instead_of_being_burned() {
 	use frame_support::traits::{tokens::Preservation, OnRuntimeUpgrade};
-	use system_parachains_common::accumulate_and_forward::EnsureAccumulationAccountFunded;
 
 	const BOB: [u8; 32] = [2u8; 32];
 
@@ -297,8 +296,6 @@ fn dust_accumulates_instead_of_being_burned() {
 		.with_balances(vec![(accumulation_account.clone(), existential_deposit)])
 		.build()
 		.execute_with(|| {
-			EnsureAccumulationAccountFunded::<Runtime>::on_runtime_upgrade();
-
 			let alice = AccountId::from(ALICE);
 			let bob = AccountId::from(BOB);
 			assert_ok!(Balances::mint_into(&alice, existential_deposit));

@@ -155,7 +155,6 @@ pub mod migrations {
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
 		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
-		system_parachains_common::accumulate_and_forward::EnsureAccumulationAccountFunded<Runtime>,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
@@ -325,7 +324,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const AccumulateForwardPalletId: PalletId = ACCUMULATE_FORWARD_PALLET_ID;
 	pub const ForwardPeriod: BlockNumber = HOURS;
-	pub const MinForwardAmount: Balance = UNITS / 10;
+	pub const MinForwardAmount: Balance = UNITS;
 }
 
 impl pallet_accumulate_and_forward::Config for Runtime {
@@ -1549,7 +1548,6 @@ mod accumulate_and_forward_tests {
 		},
 	};
 	use parachains_runtimes_test_utils::ExtBuilder;
-	use system_parachains_common::accumulate_and_forward::EnsureAccumulationAccountFunded;
 
 	const ALICE: [u8; 32] = [1u8; 32];
 	const BOB: [u8; 32] = [2u8; 32];
@@ -1567,8 +1565,6 @@ mod accumulate_and_forward_tests {
 			.with_balances(vec![(accumulation_account.clone(), existential_deposit)])
 			.build()
 			.execute_with(|| {
-				EnsureAccumulationAccountFunded::<Runtime>::on_runtime_upgrade();
-
 				let alice = AccountId::from(ALICE);
 				let bob = AccountId::from(BOB);
 				assert_ok!(Balances::mint_into(&alice, existential_deposit));
