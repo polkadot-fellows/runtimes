@@ -101,12 +101,15 @@ pub mod dynamic_params {
 		pub static LitePeopleAllowanceRecovery: Balance = 3 * MILLICENTS;
 	}
 
-	/// Lite-person registration pricing.
+	/// Lite-person registration pricing and onboarding.
 	#[dynamic_pallet_params]
 	#[codec(index = 3)]
 	pub mod lite_personhood {
 		#[codec(index = 0)]
 		pub static RegistrationFee: Balance = 75 * UNITS;
+		/// Number of queued lite people onboarded into a ring at a time.
+		#[codec(index = 1)]
+		pub static OnboardingSize: u32 = 1;
 	}
 
 	/// Coinage deposits, both in DOT.
@@ -197,6 +200,13 @@ pub type LitePeopleAllowanceRecovery = AtLeast<
 pub type LitePersonRegistrationFee =
 	AtLeast<dynamic_params::lite_personhood::RegistrationFee, ExistentialDeposit>;
 
+/// Lite-people onboarding cohort size, kept non-zero and within the lite ring capacity, which the
+/// members pallet rejects exceeding.
+pub type LitePeopleOnboardingSize = AtMost<
+	AtLeastOne<dynamic_params::lite_personhood::OnboardingSize>,
+	crate::individuality::LitePeopleRingCapacity,
+>;
+
 /// Coinage load deposit price, kept non-zero so sponsored loads always take some collateral (the
 /// pallet's integrity test requires it).
 pub type CoinageLoadDepositPrice =
@@ -246,11 +256,12 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				OriginRestrictionKey::LitePeopleAllowanceMax(_) |
 				OriginRestrictionKey::LitePeopleAllowanceRecovery(_),
 			) |
-			RuntimeParametersKey::LitePersonhood(LitePersonhoodKey::RegistrationFee(_)) =>
-				<RootOrTechnicalMaintenance as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
-					origin.clone(),
-				)
-				.map(|_| ()),
+			RuntimeParametersKey::LitePersonhood(
+				LitePersonhoodKey::RegistrationFee(_) | LitePersonhoodKey::OnboardingSize(_),
+			) => <RootOrTechnicalMaintenance as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
+				origin.clone(),
+			)
+			.map(|_| ()),
 			// Where the chain sends data, and what coinage costs.
 			RuntimeParametersKey::BulletinStorage(
 				BulletinStorageKey::BulletinChainLocation(_) |
