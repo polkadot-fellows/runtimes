@@ -293,7 +293,8 @@ pub mod pallet {
 						.saturating_add(WarmUpPeriod::<T>::get());
 					Self::transition(MigrationStage::WarmUp { end_at });
 				},
-				// A repeated confirmation during the warm-up is accepted and changes nothing; one at any other stage is an error.
+				// A repeated confirmation during the warm-up is accepted and changes nothing; one
+				// at any other stage is an error.
 				MigrationStage::WarmUp { .. } => (),
 				_ => return Err(Error::<T>::NotWaitingForCt.into()),
 			}

@@ -23,9 +23,9 @@
 use crate::mock::*;
 use codec::Encode;
 use frame_support::assert_ok;
+use network::constants::{system_parachain, time::MINUTES};
 use pallet_message_queue::Event::{Processed, ProcessingFailed};
 use pallet_rc2_migrator::MigrationStage as RcStage;
-use polkadot_runtime_constants::{system_parachain, time::MINUTES};
 use xcm::{latest::prelude::*, VersionedXcm};
 
 /// An XCM program that executes `call` on the destination with the sender's sovereign-account
