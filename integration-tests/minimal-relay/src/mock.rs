@@ -60,8 +60,10 @@ pub mod network {
 	pub const CT_RPC: &str = "wss://kusama-coretime-rpc.polkadot.io:443";
 }
 
-use network::relay::{Block as RelayBlock, Runtime as Polkadot};
-use network::constants::system_parachain;
+use network::{
+	constants::system_parachain,
+	relay::{Block as RelayBlock, Runtime as Polkadot},
+};
 use remote_externalities::{Builder, Mode, OfflineConfig};
 use runtime_parachains::{
 	configuration::ActiveConfig,
@@ -101,6 +103,9 @@ pub trait Para {
 	const NAME: &'static str;
 	/// Which snapshot this chain loads from.
 	const CHAIN: Chain;
+
+	/// The chain's own end-of-block work, after the message queue's. Nothing by default.
+	fn on_finalize(_now: BlockNumberFor<Self::Runtime>) {}
 }
 
 pub struct AssetHubPara;
@@ -117,6 +122,11 @@ impl Para for CoretimePara {
 	const PARA_ID: u32 = system_parachain::BROKER_ID;
 	const NAME: &'static str = "runtime::coretime";
 	const CHAIN: Chain = Chain::Coretime;
+
+	/// The migrator's hook is what puts the relay chain's queue first while the migration runs.
+	fn on_finalize(now: BlockNumberFor<Self::Runtime>) {
+		<network::ct::CtMigrator as OnFinalize<_>>::on_finalize(now);
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -309,6 +319,7 @@ pub fn next_block_para<P: Para>() {
 	next_block::<P::Runtime>(P::NAME, |now| {
 		let weight = <MqPallet<P> as OnInitialize<_>>::on_initialize(now);
 		<MqPallet<P> as OnFinalize<_>>::on_finalize(now);
+		P::on_finalize(now);
 		weight
 	});
 	crate::events::emit_para_block(P::CHAIN);
