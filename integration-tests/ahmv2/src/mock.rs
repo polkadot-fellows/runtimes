@@ -39,7 +39,6 @@ pub use runtime_parachains::inclusion::{
 use runtime_parachains::{
 	configuration::ActiveConfig,
 	dmp::{self, DownwardMessageQueues},
-	inclusion::{AggregateMessageOrigin as RcMessageOrigin, UmpQueueId},
 };
 use sp_core::H256;
 use sp_io::TestExternalities;
@@ -223,13 +222,6 @@ pub fn next_block_rc() {
 	next_block_rc_with(InboundMessages::MustSucceed)
 }
 
-/// Execute the next Relay Chain block, requiring that an inbound message is rejected.
-///
-/// Proves that a message reached the chain and was refused.
-pub fn next_block_rc_expecting_rejection() {
-	next_block_rc_with(InboundMessages::MustBeRejected)
-}
-
 /// Execute the next Relay Chain block w/o any assertions.
 pub fn next_block_rc_unchecked() {
 	next_block_rc_with(InboundMessages::Unchecked)
@@ -281,8 +273,6 @@ pub fn next_block_para<P: Para>() {
 pub enum InboundMessages {
 	/// Every message the block processes must be accepted and execute without error.
 	MustSucceed,
-	/// At least one message must be refused, by the barrier or by the call it dispatches.
-	MustBeRejected,
 	/// The caller asserts on the outcome itself, per message origin.
 	Unchecked,
 }
@@ -306,8 +296,9 @@ fn next_block<T>(
 	let weight = hooks(now);
 
 	// A message the executor refused outright, such as one the barrier turned away, is discarded
-	// as `ProcessingFailed`; one that started executing and then errored is `Processed` with
-	// `success: false`.
+	// as `ProcessingFailed`; one whose XCM errored mid-execution is `Processed` with
+	// `success: false`. A `Transact` whose call fails is neither on its own -- the migrators
+	// follow every `Transact` with `ExpectTransactStatus` so that it becomes the latter.
 	let rejected: Vec<_> = frame_system::Pallet::<T>::events()
 		.into_iter()
 		.filter_map(|record| match record.event.try_into() {
@@ -321,8 +312,6 @@ fn next_block<T>(
 		InboundMessages::Unchecked => (),
 		InboundMessages::MustSucceed =>
 			assert!(rejected.is_empty(), "{name}: message processing failure: {rejected:?}"),
-		InboundMessages::MustBeRejected =>
-			assert!(!rejected.is_empty(), "{name}: expected a message to be rejected, none was"),
 	}
 
 	let limit = <T as frame_system::Config>::BlockWeights::get().max_block;
@@ -393,7 +382,7 @@ pub fn enqueue_ump(para: ParaId, msgs: Vec<UpwardMessage>) {
 		let bounded: BoundedVec<u8, _> = msg.try_into().expect("UMP message too big");
 		network::relay::MessageQueue::enqueue_message(
 			bounded.as_bounded_slice(),
-			RcMessageOrigin::Ump(UmpQueueId::Para(para)),
+			UmpOrigin::Ump(UmpQueue::Para(para)),
 		);
 	}
 }

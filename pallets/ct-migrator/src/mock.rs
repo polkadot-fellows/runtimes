@@ -17,6 +17,7 @@
 //! Test runtime for `pallet-ct-migrator`.
 
 use crate as pallet_ct_migrator;
+use codec::Decode;
 use frame_support::{derive_impl, parameter_types};
 use frame_system::EnsureRoot;
 use sp_runtime::BuildStorage;
@@ -97,7 +98,6 @@ pub fn sent() -> Vec<(Location, Xcm<()>)> {
 
 /// Decode the `Transact` payload of the `n`th sent message as a relay-chain runtime call.
 pub fn sent_call(n: usize) -> crate::Rc2RuntimeCall {
-	use codec::Decode;
 	let (_, Xcm(instructions)) = sent().get(n).expect("message was sent").clone();
 	for instruction in instructions {
 		if let Instruction::Transact { call, .. } = instruction {

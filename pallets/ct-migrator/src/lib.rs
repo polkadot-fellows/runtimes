@@ -211,6 +211,9 @@ pub mod pallet {
 					fallback_max_weight: None,
 					call: call.encode().into(),
 				},
+				// A call that fails inside `Transact` does not fail the XCM by itself; this makes
+				// it fail, so the relay chain reports it instead of a success.
+				ExpectTransactStatus(MaybeErrorCode::Success),
 			]);
 
 			send_xcm::<T::SendXcm>(Location::parent(), message).map_err(|e| {

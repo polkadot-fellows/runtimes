@@ -23,8 +23,10 @@
 use crate::mock::*;
 use codec::Encode;
 use frame_support::assert_ok;
+use pallet_message_queue::Event::{Processed, ProcessingFailed};
+use pallet_rc2_migrator::MigrationStage as RcStage;
 use polkadot_runtime_constants::{system_parachain, time::MINUTES};
-use xcm::latest::prelude::*;
+use xcm::{latest::prelude::*, VersionedXcm};
 
 /// An XCM program that executes `call` on the destination with the sender's sovereign-account
 /// origin. Both the RC and the system parachains grant each other unpaid execution, so no fee
@@ -41,9 +43,9 @@ fn unpaid_transact<Call: Encode>(call: Call) -> Xcm<()> {
 }
 
 // One block-production test per chain, so a failure names the chain that broke.
-// 10 blocks is enough for the message queues to drain whatever the live snapshot carries;
-// `next_block_*` asserts on every block that nothing fails processing and that the weight stays
-// under 80% of the block limit.
+// 10 blocks run the hooks against whatever the live snapshot carries; `next_block_*` asserts on
+// every block that nothing fails processing and that the weight stays under 80% of the block
+// limit.
 #[tokio::test(flavor = "multi_thread")]
 async fn relay_chain_produces_blocks() {
 	load(Chain::Relay).await.execute_with(|| {
@@ -91,17 +93,23 @@ where
 	let (mut rc, mut para) = tokio::join!(load(Chain::Relay), load(P::CHAIN));
 
 	// RC -> para.
+	let call: RuntimeCallFor<P> =
+		frame_system::Call::<P::Runtime>::remark_with_event { remark: b"ahmv2 dmp".to_vec() }
+			.into();
+	let xcm = unpaid_transact(call);
 	let dmp = rc.execute_with(|| {
-		let call: RuntimeCallFor<P> =
-			frame_system::Call::<P::Runtime>::remark_with_event { remark: b"ahmv2 dmp".to_vec() }
-				.into();
-		send_dmp(P::PARA_ID.into(), unpaid_transact(call));
+		send_dmp(P::PARA_ID.into(), xcm.clone());
 		next_block_rc();
 		take_dmp(P::PARA_ID.into())
 	});
 	// The live snapshot may have queued unrelated messages for this para, so only assert that
 	// ours is among them.
-	assert!(!dmp.is_empty(), "RC queued no DMP message for {}", P::CHAIN.name());
+	let encoded = VersionedXcm::from(xcm).encode();
+	assert!(
+		dmp.iter().any(|message| message.msg == encoded),
+		"RC did not queue the DMP message for {}",
+		P::CHAIN.name()
+	);
 
 	para.execute_with(|| {
 		enqueue_dmp::<P>(dmp);
@@ -110,13 +118,18 @@ where
 	});
 
 	// para -> RC.
+	let call: network::relay::RuntimeCall =
+		frame_system::Call::remark_with_event { remark: b"ahmv2 ump".to_vec() }.into();
+	let xcm = unpaid_transact(call);
 	let ump = para.execute_with(|| {
-		let call: network::relay::RuntimeCall =
-			frame_system::Call::remark_with_event { remark: b"ahmv2 ump".to_vec() }.into();
-		send_ump::<P>(unpaid_transact(call));
+		send_ump::<P>(xcm.clone());
 		take_ump::<P>()
 	});
-	assert!(!ump.is_empty(), "{} queued no UMP message for the RC", P::CHAIN.name());
+	assert!(
+		ump.contains(&VersionedXcm::from(xcm).encode()),
+		"{} did not queue the UMP message for the RC",
+		P::CHAIN.name()
+	);
 
 	rc.execute_with(|| {
 		enqueue_ump(P::PARA_ID.into(), ump);
@@ -132,8 +145,6 @@ where
 /// grants the authority the receiving call checks for (Superuser downwards, para origin upwards).
 #[tokio::test(flavor = "multi_thread")]
 async fn the_migration_runs_to_completion_and_moves_nothing() {
-	use pallet_rc2_migrator::MigrationStage as RcStage;
-
 	let (mut rc, mut ct) = tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN));
 
 	let rc_issuance_before =
@@ -242,8 +253,6 @@ const SYSTEM_IMPOSTOR_PARA: u32 = system_parachain::ASSET_HUB_ID;
 /// Readiness is only accepted from the Coretime chain.
 #[tokio::test(flavor = "multi_thread")]
 async fn readiness_from_another_parachain_is_refused() {
-	use pallet_rc2_migrator::MigrationStage as RcStage;
-
 	let (mut rc, mut ct) = tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN));
 
 	// GIVEN a relay chain waiting for the Coretime chain,
@@ -278,16 +287,14 @@ async fn readiness_from_another_parachain_is_refused() {
 	});
 
 	// WHEN a system para sends it. THEN the barrier admits the message and `Transact` runs, so
-	// this is `CtOrigin` refusing the call rather than the barrier refusing the message.
-	//
-	// The message is processed successfully. Note: this does not tell the outcome of Transact
-	// itself.
+	// this is `CtOrigin` refusing the call rather than the barrier refusing the message -- and
+	// the `ExpectTransactStatus` that follows the call turns that refusal into a failed message.
 	rc.execute_with(|| {
 		enqueue_ump(SYSTEM_IMPOSTOR_PARA.into(), ump);
 		assert_eq!(
 			ump_outcome(SYSTEM_IMPOSTOR_PARA),
-			Some(true),
-			"a system para's message must reach `Transact`, not stop at the barrier"
+			Some(false),
+			"a refused call must fail the message, not report success"
 		);
 		assert_eq!(rc_stage(), RcStage::WaitingForCt);
 	});
@@ -321,7 +328,6 @@ fn has_queued_ump(para: u32) -> bool {
 /// Run relay-chain blocks until the message queue reports on a message from `para`'s upward queue,
 /// and say whether the executor accepted it. `None` if none was reported at all.
 fn ump_outcome(para: u32) -> Option<bool> {
-	use pallet_message_queue::Event::{Processed, ProcessingFailed};
 	let queue = UmpOrigin::Ump(UmpQueue::Para(para.into()));
 
 	for _ in 0..10 {

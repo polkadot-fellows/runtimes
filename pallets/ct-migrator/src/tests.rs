@@ -42,11 +42,11 @@ fn transitions() -> Vec<(MigrationStage, MigrationStage)> {
 }
 
 #[test]
-fn the_migration_calls_are_root_only() {
+fn a_signed_account_drives_nothing() {
 	// GIVEN a chain that has not been migrated into.
 	new_test_ext().execute_with(|| {
-		// WHEN a signed account drives the migration. THEN every call is refused: root is the
-		// only thing that drives this pallet.
+		// WHEN a signed account drives the migration. THEN every call is refused: the relay
+		// chain's signals need root, and forcing a stage needs the admin origin.
 		assert_noop!(CtMigrator::start_migration(RuntimeOrigin::signed(ALICE)), BadOrigin);
 		assert_noop!(CtMigrator::end_lockdown(RuntimeOrigin::signed(ALICE)), BadOrigin);
 		assert_noop!(
@@ -98,6 +98,8 @@ fn the_readiness_answer_is_the_message_the_relay_chain_expects() {
 						fallback_max_weight: None,
 						call: Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady).encode().into(),
 					},
+					// so a refused call fails the message rather than vanishing
+					ExpectTransactStatus(MaybeErrorCode::Success),
 				]),
 			)]
 		);

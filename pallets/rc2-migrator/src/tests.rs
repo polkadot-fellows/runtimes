@@ -60,7 +60,7 @@ fn a_pending_migration_does_nothing_at_all() {
 }
 
 #[test]
-fn only_root_can_schedule_and_only_into_the_future() {
+fn only_the_admin_origin_can_schedule_and_only_into_the_future() {
 	new_test_ext().execute_with(|| {
 		// WHEN a signed account tries to schedule. THEN it is refused.
 		assert_noop!(
@@ -111,12 +111,14 @@ fn only_root_can_schedule_and_only_into_the_future() {
 
 #[test]
 fn the_manager_drives_the_migration_but_cannot_appoint_one() {
-	// GIVEN Alice appointed manager by the admin origin.
 	new_test_ext().execute_with(|| {
+		// WHEN a signed account appoints itself. THEN it is refused.
 		assert_noop!(
 			Rc2Migrator::set_manager(RuntimeOrigin::signed(ALICE), Some(ALICE)),
 			BadOrigin
 		);
+
+		// GIVEN Alice appointed manager by the admin origin.
 		assert_ok!(Rc2Migrator::set_manager(RuntimeOrigin::root(), Some(ALICE)));
 		assert_eq!(Manager::<Test>::get(), Some(ALICE));
 
@@ -261,6 +263,8 @@ fn the_start_signal_is_the_message_the_coretime_chain_expects() {
 							.encode()
 							.into(),
 					},
+					// so a refused call fails the message rather than vanishing
+					ExpectTransactStatus(MaybeErrorCode::Success),
 				]),
 			)]
 		);
@@ -397,9 +401,9 @@ fn a_failed_send_leaves_the_stage_alone_for_a_retry() {
 }
 
 #[test]
-fn force_set_stage_is_root_only_and_unconstrained() {
+fn force_set_stage_is_admin_only_and_unconstrained() {
 	new_test_ext().execute_with(|| {
-		// WHEN a non-root origin forces a stage. THEN it is refused.
+		// WHEN an origin without the admin's powers forces a stage. THEN it is refused.
 		assert_noop!(
 			Rc2Migrator::force_set_stage(RuntimeOrigin::signed(ALICE), Stage::MigrationDone),
 			BadOrigin

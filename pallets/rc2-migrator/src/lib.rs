@@ -267,7 +267,7 @@ pub mod pallet {
 
 		/// Set the migration stage directly.
 		///
-		/// Root-only escape hatch for a lost message or a stage that needs re-running.
+		/// Escape hatch for a lost message or a stage that needs re-running.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
@@ -398,6 +398,9 @@ pub mod pallet {
 					fallback_max_weight: None,
 					call: call.encode().into(),
 				},
+				// A call that fails inside `Transact` does not fail the XCM by itself; this makes
+				// it fail, so the Coretime chain reports it instead of a success.
+				ExpectTransactStatus(MaybeErrorCode::Success),
 			]);
 
 			let dest = Location::new(0, [Parachain(T::CtParaId::get())]);
