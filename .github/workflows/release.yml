@@ -109,8 +109,8 @@ jobs:
     permissions:
       contents: write
     outputs:
-      release_url: ${{ steps.create-release.outputs.html_url }}
-      asset_upload_url: ${{ steps.create-release.outputs.upload_url }}
+      release_url: ${{ steps.create-release.outputs.url }}
+      release_tag: ${{ format('v{0}', needs.collect-release-information.outputs.version) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -175,13 +175,12 @@ jobs:
 
       - name: Create release
         id: create-release
-        # TODO: Replace as it has been deprecated
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ format('v{0}', needs.collect-release-information.outputs.version) }}
-          release_name: Runtimes ${{ needs.collect-release-information.outputs.version }}
+          name: Runtimes ${{ needs.collect-release-information.outputs.version }}
           body_path: DRAFT
           draft: false
 
@@ -210,16 +209,20 @@ jobs:
           >>$GITHUB_ENV echo ASSET=$(find ${{ matrix.runtime.name }} -name '*.compact.compressed.wasm')
           >>$GITHUB_ENV echo SPEC=$(<${JSON} jq -r .runtimes.compact.subwasm.core_version.specVersion)
 
+      - name: Name the release asset
+        run: |
+          # `softprops/action-gh-release` uploads under the file name, so rename before uploading.
+          RELEASE_ASSET="${{ matrix.runtime.name }}_runtime-v${SPEC}.compact.compressed.wasm"
+          mv "$ASSET" "$RELEASE_ASSET"
+          >>$GITHUB_ENV echo RELEASE_ASSET=$RELEASE_ASSET
+
       - name: Upload compressed ${{ matrix.runtime.name }} v${{ env.SPEC }} wasm
-        # TODO: Replace as it has been deprecated
-        uses: actions/upload-release-asset@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
-          asset_path: ${{ env.ASSET }}
-          asset_name: ${{ matrix.runtime.name }}_runtime-v${{ env.SPEC }}.compact.compressed.wasm
-          asset_content_type: application/wasm
+          tag_name: ${{ needs.publish-release.outputs.release_tag }}
+          files: ${{ env.RELEASE_ASSET }}
 
   package-try-runtime-and-logging-enabled-wasms:
     needs: [ build-runtimes, publish-release ]
@@ -237,11 +240,9 @@ jobs:
           zip -j runtimes-with-try-runtime-and-logging.zip */*.compact.compressed.wasm
 
       - name: Upload archive to GitHub Release
-        uses: actions/upload-release-asset@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.publish-release.outputs.asset_upload_url }}
-          asset_path: runtimes-with-try-runtime-and-logging.zip
-          asset_name: runtimes-with-try-runtime-and-logging.zip
-          asset_content_type: application/zip
+          tag_name: ${{ needs.publish-release.outputs.release_tag }}
+          files: runtimes-with-try-runtime-and-logging.zip
