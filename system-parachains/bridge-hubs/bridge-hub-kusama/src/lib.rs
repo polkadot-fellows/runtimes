@@ -86,10 +86,7 @@ use parachains_common::{AccountId, Balance, BlockNumber, Hash, Header, Nonce, Si
 pub use system_parachains_constants::SLOT_DURATION;
 
 use system_parachains_constants::{
-	kusama::{
-		account::ACCUMULATE_FORWARD_PALLET_ID, consensus::*, currency::*, fee::WeightToFee,
-		fellowship::IsFellowshipVoice,
-	},
+	kusama::{consensus::*, currency::*, fee::WeightToFee, fellowship::IsFellowshipVoice},
 	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
 };
 
@@ -322,7 +319,8 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub const AccumulateForwardPalletId: PalletId = ACCUMULATE_FORWARD_PALLET_ID;
+	pub const AccumulateForwardPalletId: PalletId =
+		kusama_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
 	pub const ForwardPeriod: BlockNumber = HOURS;
 	pub const MinForwardAmount: Balance = UNITS;
 }
@@ -330,7 +328,7 @@ parameter_types! {
 impl pallet_accumulate_and_forward::Config for Runtime {
 	type Currency = Balances;
 	type PalletId = AccumulateForwardPalletId;
-	type Forwarder = system_parachains_common::accumulate_and_forward::TeleportAndBurnForwarder<
+	type Forwarder = kusama_runtime_constants::accumulate_and_forward::TeleportAndBurnForwarder<
 		xcm_config::XcmConfig,
 		AssetHubLocation,
 		RelayChainLocation,
