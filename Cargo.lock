@@ -1543,6 +1543,7 @@ dependencies = [
  "pallet-asset-conversion",
  "pallet-assets",
  "pallet-balances",
+ "pallet-collator-selection",
  "pallet-message-queue",
  "pallet-treasury",
  "pallet-utility",
@@ -20274,7 +20275,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
- "pallet-accumulate-and-forward",
  "pallet-balances",
  "pallet-xcm",
  "parity-scale-codec",
@@ -20284,7 +20284,6 @@ dependencies = [
  "sp-runtime 48.0.0",
  "sp-state-machine 0.53.0",
  "staging-xcm",
- "staging-xcm-executor",
 ]
 
 [[package]]

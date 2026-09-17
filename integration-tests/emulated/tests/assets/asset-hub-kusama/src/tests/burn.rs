@@ -89,10 +89,22 @@ fn relay_accumulated_funds_are_burnt_on_asset_hub() {
 			) => {},]
 		);
 		let forwarded = amount - KUSAMA_ED;
-		assert_eq!(
-			pallet_balances::Pallet::<AssetHubRuntime>::total_issuance(),
-			asset_hub_issuance_before - forwarded
-		);
+		// Everything that arrives is burned except Asset Hub's execution fee, which goes to the
+		// collator pot and so stays in its issuance. Read it from the event rather than the pot
+		// balance, which collator payouts move in the same block.
+		let staking_pot = pallet_collator_selection::Pallet::<AssetHubRuntime>::account_id();
+		let fee = frame_system::Pallet::<AssetHubRuntime>::events()
+			.iter()
+			.find_map(|record| match &record.event {
+				AssetHubEvent::Balances(pallet_balances::Event::Deposit { who, amount })
+					if *who == staking_pot =>
+					Some(*amount),
+				_ => None,
+			})
+			.expect("the execution fee is deposited to the collator pot");
+		let burned = asset_hub_issuance_before -
+			pallet_balances::Pallet::<AssetHubRuntime>::total_issuance();
+		assert_eq!(burned + fee, forwarded, "all of it is either burned or paid as fee");
 		assert_eq!(
 			pallet_balances::Pallet::<AssetHubRuntime>::balance(&check_account),
 			check_balance_before - forwarded

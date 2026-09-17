@@ -186,7 +186,6 @@ fn dust_accumulates_instead_of_being_burned() {
 		traits::{
 			fungible::{Inspect, Mutate},
 			tokens::Preservation,
-			OnRuntimeUpgrade,
 		},
 	};
 	use sp_runtime::BuildStorage;
@@ -211,10 +210,6 @@ fn dust_accumulates_instead_of_being_burned() {
 	.unwrap();
 
 	sp_io::TestExternalities::from(t).execute_with(|| {
-		kusama_runtime_constants::accumulate_and_forward::EnsureAccumulationAccountFunded::<
-			Runtime,
-		>::on_runtime_upgrade();
-
 		let issuance_before = Balances::total_issuance();
 		let accumulated_before = <Balances as Inspect<_>>::balance(&accumulation_account);
 

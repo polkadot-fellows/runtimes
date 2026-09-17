@@ -14,104 +14,34 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-//! XCM adapter for `pallet-accumulate-and-forward`.
+//! XCM adapter for `pallet-accumulate-and-forward`, shared by the Kusama relay and its
+//! system chains.
 
 use alloc::vec;
 use core::marker::PhantomData;
 use frame_support::{
 	storage::{with_transaction, TransactionOutcome},
-	traits::{Get, OnRuntimeUpgrade},
-	weights::Weight,
+	traits::Get,
+	BoundedVec,
 };
 use sp_runtime::DispatchError;
-use xcm::latest::prelude::*;
-use xcm_executor::traits::TransactAsset;
+use xcm::latest::{prelude::*, AssetTransferFilter};
+use xcm_executor::XcmExecutor;
 
 const LOG_TARGET: &str = "xcm::accumulate-forward";
 
-/// Fails `try-runtime` if the accumulation account lacks the ED, without which dust is burned.
-pub struct EnsureAccumulationAccountFunded<T>(PhantomData<T>);
-
-impl<T: pallet_accumulate_and_forward::Config> EnsureAccumulationAccountFunded<T> {
-	fn is_funded() -> bool {
-		use frame_support::traits::fungible::Inspect;
-
-		let account = pallet_accumulate_and_forward::Pallet::<T>::accumulation_account();
-		<T as pallet_accumulate_and_forward::Config>::Currency::balance(&account) >=
-			<T as pallet_accumulate_and_forward::Config>::Currency::minimum_balance()
-	}
-}
-
-impl<T: pallet_accumulate_and_forward::Config> OnRuntimeUpgrade
-	for EnsureAccumulationAccountFunded<T>
-{
-	fn on_runtime_upgrade() -> Weight {
-		if !Self::is_funded() {
-			log::error!(
-				target: LOG_TARGET,
-				"🚨 accumulation account is below the ED: its sinks will burn. Fund it."
-			);
-		}
-
-		<T as frame_system::Config>::DbWeight::get().reads(1)
-	}
-
-	#[cfg(feature = "try-runtime")]
-	fn post_upgrade(_state: alloc::vec::Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-		frame_support::ensure!(
-			Self::is_funded(),
-			"accumulation account is not funded with the existential deposit"
-		);
-		Ok(())
-	}
-}
-
 /// [`pallet_accumulate_and_forward::Forwarder`] teleporting to Asset Hub to burn there, since
-/// Kusama tracks `TotalIssuance` on Asset Hub. Check-out is a no-op: this relay tracks no
-/// teleports. A failed send rolls back; once queued, a failure on arrival traps the assets.
+/// Kusama tracks `TotalIssuance` on Asset Hub. The Polkadot counterpart is
+/// `xcm_builder::TeleportForwarderForAccountId32`, which deposits to DAP staging instead.
+///
+/// Execution failures roll back. Once the message is queued nothing can be trapped, since the only
+/// instruction after the receive burns exactly what it put in holding, but a rejection there
+/// leaves the KSM burned here with Asset Hub untouched.
+// TODO: drop this and use `xcm_builder::TeleportForwarderForAccountId32` once it is reusable
+// for teleport-and-burn: https://github.com/paritytech/polkadot-sdk/issues/13238
 pub struct TeleportAndBurnForwarder<XcmConfig, Dest, NativeAsset>(
 	PhantomData<(XcmConfig, Dest, NativeAsset)>,
 );
-
-impl<XcmConfig, Dest, NativeAsset> TeleportAndBurnForwarder<XcmConfig, Dest, NativeAsset>
-where
-	XcmConfig: xcm_executor::Config,
-	Dest: Get<Location>,
-	NativeAsset: Get<Location>,
-{
-	fn teleport_and_burn(source: [u8; 32], amount: u128) -> Result<(), XcmError> {
-		type Transactor<C> = <C as xcm_executor::Config>::AssetTransactor;
-
-		let dest = Dest::get();
-		let asset = Asset { id: AssetId(NativeAsset::get()), fun: Fungible(amount) };
-		let source_location: Location =
-			Junction::AccountId32 { network: None, id: source }.into_location();
-		let context = XcmContext { origin: None, message_id: [0; 32], topic: None };
-
-		let withdrawn = Transactor::<XcmConfig>::withdraw_asset(&asset, &source_location, None)?;
-
-		// TODO https://github.com/polkadot-fellows/runtimes/issues/404
-		Transactor::<XcmConfig>::can_check_out(&dest, &asset, &context)?;
-
-		let assets = withdrawn.reanchored_assets(
-			&dest,
-			&<XcmConfig as xcm_executor::Config>::UniversalLocation::get(),
-		);
-
-		send_xcm::<<XcmConfig as xcm_executor::Config>::XcmSender>(
-			dest.clone(),
-			Xcm(vec![
-				UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
-				ReceiveTeleportedAsset(assets.clone()),
-				BurnAsset(assets),
-			]),
-		)?;
-
-		Transactor::<XcmConfig>::check_out(&dest, &asset, &context);
-
-		Ok(())
-	}
-}
 
 impl<XcmConfig, Dest, NativeAsset, AccountId, Balance>
 	pallet_accumulate_and_forward::Forwarder<AccountId, Balance>
@@ -124,18 +54,50 @@ where
 	Balance: Into<u128>,
 {
 	fn forward(source: AccountId, amount: Balance) -> Result<(), ()> {
+		let dest = Dest::get();
+		let asset = Asset { id: AssetId(NativeAsset::get()), fun: Fungible(amount.into()) };
+
+		// `BurnAsset` takes concrete assets, so the amount has to be named as Asset Hub sees it.
+		let remote_asset = asset
+			.clone()
+			.reanchored(&dest, &XcmConfig::UniversalLocation::get())
+			.map_err(|asset| {
+				log::error!(target: LOG_TARGET, "🚨 could not reanchor {asset:?} for {dest:?}");
+			})?;
+		// The XCM flow: `ReceiveTeleportedAsset → PayFees → ClearOrigin → RefundSurplus →
+		// BurnAsset`, which Asset Hub's existing paid barrier accepts unchanged.
+		let remote_xcm = Xcm(vec![RefundSurplus, BurnAsset(remote_asset.clone().into())]);
+		let xcm: Xcm<XcmConfig::RuntimeCall> = Xcm(vec![
+			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+			DescendOrigin(Junction::AccountId32 { network: None, id: source.into() }.into()),
+			WithdrawAsset(asset.clone().into()),
+			InitiateTransfer {
+				destination: dest,
+				remote_fees: Some(AssetTransferFilter::Teleport(asset.clone().into())),
+				preserve_origin: false,
+				assets: BoundedVec::truncate_from(vec![]),
+				remote_xcm,
+			},
+		]);
+
 		with_transaction(|| -> TransactionOutcome<Result<(), DispatchError>> {
-			match Self::teleport_and_burn(source.into(), amount.into()) {
-				Ok(()) => TransactionOutcome::Commit(Ok(())),
-				Err(error) => {
+			let outcome = XcmExecutor::<XcmConfig>::prepare_and_execute(
+				Location::here(),
+				xcm,
+				&mut [0u8; 32],
+				Weight::MAX,
+				Weight::MAX,
+			);
+
+			match outcome {
+				Outcome::Complete { .. } => TransactionOutcome::Commit(Ok(())),
+				exec_error => {
 					log::debug!(
 						target: LOG_TARGET,
-						"accumulate-forward: teleport-and-burn failed: {error:?}"
+						"accumulate-forward: XCM execution failed: {exec_error:?}"
 					);
 
-					TransactionOutcome::Rollback(Err(DispatchError::Other(
-						"teleport-and-burn failed",
-					)))
+					TransactionOutcome::Rollback(Err(DispatchError::Other("XCM execution failed")))
 				},
 			}
 		})
