@@ -13,9 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod aliases;
-mod burn;
-mod claim_assets;
-mod governance;
-mod identity;
-mod teleport;
+use crate::*;
+
+integration_tests_helpers::test_accumulated_funds_are_burnt_on_asset_hub!(
+	EncointerKusama,
+	AssetHubKusama,
+	ENCOINTER_KUSAMA_ED,
+	ASSET_HUB_KUSAMA_ED,
+);

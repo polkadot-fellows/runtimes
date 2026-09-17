@@ -134,7 +134,6 @@ bridge-runtime-common = { features = [
 pallet-bridge-relayers = { workspace = true, features = ["integrity-test"] }
 sp-keyring = { workspace = true }
 snowbridge-runtime-test-common = { workspace = true }
-snowbridge-pallet-ethereum-client-fixtures = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
 
 [features]
@@ -286,7 +285,6 @@ runtime-benchmarks = [
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"snowbridge-core/runtime-benchmarks",
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
-	"snowbridge-pallet-ethereum-client-fixtures/runtime-benchmarks",
 	"snowbridge-pallet-ethereum-client/runtime-benchmarks",
 	"snowbridge-pallet-inbound-queue-fixtures",
 	"snowbridge-pallet-inbound-queue-fixtures?/runtime-benchmarks",

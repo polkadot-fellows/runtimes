@@ -13,6 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// Account-related.
+pub mod account {
+	use frame_support::PalletId;
+
+	pub const ACCUMULATE_FORWARD_PALLET_ID: PalletId = PalletId(*b"acf/ksmt");
+}
+
 /// Consensus-related.
 pub mod consensus {
 	/// Maximum number of blocks simultaneously accepted by the Runtime, not yet included
