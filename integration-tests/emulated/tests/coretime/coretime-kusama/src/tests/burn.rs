@@ -20,6 +20,7 @@ use frame_support::{
 	PalletId,
 };
 use kusama_runtime_constants::{system_parachain::coretime::TIMESLICE_PERIOD, time::DAYS};
+use kusama_system_emulated_network::asset_hub_kusama_emulated_chain::test_accumulated_funds_are_burnt_on_asset_hub;
 use pallet_broker::CoretimeInterface;
 use sp_runtime::traits::AccountIdConversion;
 
@@ -95,7 +96,7 @@ fn coretime_revenue_is_burnt_on_asset_hub() {
 	});
 }
 
-integration_tests_helpers::test_accumulated_funds_are_burnt_on_asset_hub!(
+test_accumulated_funds_are_burnt_on_asset_hub!(
 	CoretimeKusama,
 	AssetHubKusama,
 	CORETIME_KUSAMA_ED,

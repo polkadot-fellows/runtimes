@@ -12,11 +12,7 @@ paste = { workspace = true }
 hex-literal = { workspace = true }
 
 # Substrate
-frame-support = { workspace = true, default-features = true }
-frame-system = { workspace = true, default-features = true }
-pallet-accumulate-and-forward = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
-pallet-collator-selection = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 
 # Polkadot
@@ -32,11 +28,7 @@ emulated-integration-tests-common = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
-	"frame-support/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
-	"pallet-accumulate-and-forward/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
-	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",

@@ -14,8 +14,9 @@
 // limitations under the License.
 
 use crate::*;
+use kusama_system_emulated_network::asset_hub_kusama_emulated_chain::test_accumulated_funds_are_burnt_on_asset_hub;
 
-integration_tests_helpers::test_accumulated_funds_are_burnt_on_asset_hub!(
+test_accumulated_funds_are_burnt_on_asset_hub!(
 	BridgeHubKusama,
 	AssetHubKusama,
 	BRIDGE_HUB_KUSAMA_ED,
