@@ -215,6 +215,15 @@ pub mod pallet {
 	pub type DmpQueuePriorityConfig<T: Config> =
 		StorageValue<_, QueuePriority<BlockNumberFor<T>>, ValueQuery>;
 
+	/// Accounts that failed to integrate, parked verbatim for recovery after the migration.
+	///
+	/// The batch call never fails on a single bad account: it is rolled back, stored here, and the
+	/// rest of the batch continues. Each entry is balance the relay chain burned and this chain
+	/// never minted, so this map is both the record of the gap and the data needed to close it.
+	#[pallet::storage]
+	pub type FailedAccounts<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, PortableAccountOf<T>, OptionQuery>;
+
 	/// Total balance minted on this chain by the accounts stage.
 	///
 	/// Reconciled against the relay chain's burned total in `reconcile_balances`.
@@ -223,8 +232,23 @@ pub mod pallet {
 
 	// The migrated registrar and HRMP records are handed straight to the pallets that own them
 	// (`Config::RegistrarReceiver` / `Config::HrmpReceiver`) rather than being parked in stand-in
-	// storage here. A record that cannot be integrated fails its whole batch instead of being
-	// parked, so there is no partial state to reconcile afterwards.
+	// storage here. Only records that *fail* to integrate are kept, in the `Failed*` maps below,
+	// so nothing is lost and a failure can be worked through once the migration is over.
+
+	/// Registrar records that failed to integrate, parked verbatim for recovery.
+	#[pallet::storage]
+	pub type FailedParas<T: Config> =
+		StorageMap<_, Twox64Concat, u32, PortableParaInfoOf<T>, OptionQuery>;
+
+	/// HRMP channel records that failed to integrate, parked verbatim for recovery.
+	#[pallet::storage]
+	pub type FailedHrmpChannels<T: Config> =
+		StorageMap<_, Twox64Concat, (u32, u32), PortableHrmpChannelOf<T>, OptionQuery>;
+
+	/// Migrated proxy sets that failed to integrate, parked verbatim for recovery.
+	#[pallet::storage]
+	pub type FailedProxies<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, PortableProxyOf<T>, OptionQuery>;
 
 	/// Per-para shortfall between the registrar-recorded deposit and what actually arrived held.
 	///
@@ -277,22 +301,25 @@ pub mod pallet {
 			old: MigrationStage,
 			new: MigrationStage,
 		},
-		/// A batch of migrated accounts was integrated.
+		/// A batch of migrated accounts was processed.
 		AccountsReceived {
-			count: u32,
+			count_good: u32,
+			count_bad: u32,
 		},
-		/// A batch of migrated registrar records was integrated.
+		/// A batch of migrated registrar records was processed.
 		RegistrarReceived {
-			count: u32,
+			count_good: u32,
+			count_bad: u32,
 		},
 		/// A registrar deposit could not be fully re-attributed; the shortfall is parked.
 		DepositShortfallParked {
 			para_id: u32,
 			shortfall: BalanceOf<T>,
 		},
-		/// A batch of migrated HRMP channel records was integrated.
+		/// A batch of migrated HRMP channel records was processed.
 		HrmpReceived {
-			count: u32,
+			count_good: u32,
+			count_bad: u32,
 		},
 		/// An HRMP deposit could not be fully re-attributed; the shortfall is parked.
 		HrmpShortfallParked {
@@ -300,11 +327,12 @@ pub mod pallet {
 			recipient: u32,
 			shortfall: BalanceOf<T>,
 		},
-		/// A batch of migrated proxy sets was integrated.
+		/// A batch of migrated proxy sets was processed.
 		ProxiesReceived {
-			count: u32,
+			count_good: u32,
+			count_bad: u32,
 		},
-		/// A batch of pending HRMP open-channel requests was integrated.
+		/// A batch of pending HRMP open-channel requests was processed.
 		HrmpRequestsReceived {
 			count: u32,
 		},
@@ -362,7 +390,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_accounts(accounts)?;
+			Self::do_receive_accounts(accounts);
 			Ok(())
 		}
 
@@ -381,7 +409,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_registrar(paras, next_free_para_id)?;
+			Self::do_receive_registrar(paras, next_free_para_id);
 			Ok(())
 		}
 
@@ -396,7 +424,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_hrmp(channels)?;
+			Self::do_receive_hrmp(channels);
 			Ok(())
 		}
 
@@ -417,7 +445,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_proxies(proxies)?;
+			Self::do_receive_proxies(proxies);
 			Ok(())
 		}
 
@@ -436,7 +464,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_hrmp_requests(requests)?;
+			Self::do_receive_hrmp_requests(requests);
 			Ok(())
 		}
 
@@ -590,62 +618,64 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Integrate a batch item-by-item, stopping at the first failure.
+		/// Integrate a batch item-by-item, parking whatever fails.
 		///
-		/// An item that cannot be integrated aborts the whole batch: the error propagates out of
-		/// the `receive_*` extrinsic, which fails the dispatch, which fails the `Transact` the
-		/// relay chain sent. The relay chain learns of it through the `ReportTransactStatus`
-		/// appendix on that message and halts rather than sending the next batch.
+		/// One bad record never fails the batch: it is rolled back on its own and stored in the
+		/// caller's `Failed*` map, and the rest of the batch proceeds. The relay chain destroys
+		/// what it sends, so refusing the whole batch would strand every good record in it too,
+		/// and a mid-migration halt is not an action anyone can take — both chains are locked
+		/// down until the run finishes.
 		///
-		/// This is what keeps the two chains' ledgers in step. The relay chain burns a balance
-		/// before it sends it; an item silently dropped here would be burned there and never
-		/// minted here, and nothing before the end-of-migration reconciliation would notice.
-		/// `describe` names the offending item for the log, since the dispatch error alone
-		/// carries no payload back to the relay chain.
+		/// The consequence is deliberate and has to be handled after the run: a parked record is
+		/// balance the relay chain burned and this chain never minted. `reconcile_balances`
+		/// reports the total gap at the end, and the `Failed*` maps say exactly which records
+		/// make it up. Nothing here is lost — it is deferred.
 		fn receive_batch<I, R>(
 			items: Vec<I>,
 			integrate: impl Fn(&I) -> Result<R, Error<T>>,
 			mut on_good: impl FnMut(R),
-			describe: impl Fn(&I) -> alloc::string::String,
-		) -> Result<u32, Error<T>> {
-			let mut count = 0;
+			park: impl Fn(I, Error<T>),
+		) -> (u32, u32) {
+			let (mut count_good, mut count_bad) = (0, 0);
 			for item in items {
-				match integrate(&item) {
+				match with_rollback(|| integrate(&item)) {
 					Ok(r) => {
-						count += 1;
+						count_good += 1;
 						on_good(r);
 					},
 					Err(e) => {
-						log::error!(
-							target: LOG_TARGET,
-							"Failed to integrate {}: {e:?}; failing the batch",
-							describe(&item),
-						);
-						return Err(e);
+						count_bad += 1;
+						park(item, e);
 					},
 				}
 			}
-			Ok(count)
+			(count_good, count_bad)
 		}
 
-		fn do_receive_accounts(accounts: Vec<PortableAccountOf<T>>) -> Result<(), Error<T>> {
+		fn do_receive_accounts(accounts: Vec<PortableAccountOf<T>>) {
 			let stage = CtMigrationStage::<T>::get();
 			if stage == MigrationStage::Pending {
 				Self::transition(MigrationStage::DataMigrationOngoing);
 			}
 
 			let mut minted: BalanceOf<T> = Zero::zero();
-			let count = Self::receive_batch(
+			let (count_good, count_bad) = Self::receive_batch(
 				accounts,
 				Self::do_receive_account,
 				|amount| minted = minted.saturating_add(amount),
-				|account| alloc::format!("account {:?}", account.who),
-			)?;
+				|account, e| {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to integrate account {:?}: {e:?}; parking it",
+						account.who,
+					);
+					FailedAccounts::<T>::insert(account.who.clone(), account);
+				},
+			);
 			if !minted.is_zero() {
 				CtMintedTotal::<T>::mutate(|t| *t = t.saturating_add(minted));
 			}
-			Self::deposit_event(Event::AccountsReceived { count });
-			Ok(())
+			Self::deposit_event(Event::AccountsReceived { count_good, count_bad });
 		}
 
 		/// Returns the amount minted for this account; the caller tracks the batch total.
@@ -755,22 +785,25 @@ pub mod pallet {
 			Ok(())
 		}
 
-		fn do_receive_registrar(
-			paras: Vec<PortableParaInfoOf<T>>,
-			next_free: Option<u32>,
-		) -> Result<(), Error<T>> {
+		fn do_receive_registrar(paras: Vec<PortableParaInfoOf<T>>, next_free: Option<u32>) {
 			if let Some(id) = next_free {
 				T::RegistrarReceiver::receive_next_free_para_id(id);
 			}
 
-			let count = Self::receive_batch(
+			let (count_good, count_bad) = Self::receive_batch(
 				paras,
 				Self::do_receive_para,
 				|()| (),
-				|para| alloc::format!("para {}", para.para_id),
-			)?;
-			Self::deposit_event(Event::RegistrarReceived { count });
-			Ok(())
+				|para, e| {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to integrate para {}: {e:?}; parking it",
+						para.para_id,
+					);
+					FailedParas::<T>::insert(para.para_id, para);
+				},
+			);
+			Self::deposit_event(Event::RegistrarReceived { count_good, count_bad });
 		}
 
 		/// Hand one migrated registration to the registrar pallet.
@@ -822,15 +855,21 @@ pub mod pallet {
 			Ok(())
 		}
 
-		fn do_receive_proxies(proxies: Vec<PortableProxyOf<T>>) -> Result<(), Error<T>> {
-			let count = Self::receive_batch(
+		fn do_receive_proxies(proxies: Vec<PortableProxyOf<T>>) {
+			let (count_good, count_bad) = Self::receive_batch(
 				proxies,
 				Self::do_receive_proxy,
 				|()| (),
-				|proxy| alloc::format!("proxies of {:?}", proxy.delegator),
-			)?;
-			Self::deposit_event(Event::ProxiesReceived { count });
-			Ok(())
+				|proxy, e| {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to integrate proxies of {:?}: {e:?}; parking them",
+						proxy.delegator,
+					);
+					FailedProxies::<T>::insert(proxy.delegator.clone(), proxy);
+				},
+			);
+			Self::deposit_event(Event::ProxiesReceived { count_good, count_bad });
 		}
 
 		fn do_receive_proxy(proxy: &PortableProxyOf<T>) -> Result<(), Error<T>> {
@@ -882,49 +921,57 @@ pub mod pallet {
 			})
 		}
 
-		fn do_receive_hrmp(channels: Vec<PortableHrmpChannelOf<T>>) -> Result<(), Error<T>> {
-			let count = Self::receive_batch(
+		fn do_receive_hrmp(channels: Vec<PortableHrmpChannelOf<T>>) {
+			let (count_good, count_bad) = Self::receive_batch(
 				channels,
 				Self::do_receive_channel,
 				|()| (),
-				|channel| {
-					alloc::format!("channel {}->{}", channel.sender, channel.recipient)
+				|channel, e| {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to integrate channel {}->{}: {e:?}; parking it",
+						channel.sender, channel.recipient,
+					);
+					FailedHrmpChannels::<T>::insert((channel.sender, channel.recipient), channel);
 				},
-			)?;
-			Self::deposit_event(Event::HrmpReceived { count });
-			Ok(())
+			);
+			Self::deposit_event(Event::HrmpReceived { count_good, count_bad });
 		}
 
-		fn do_receive_hrmp_requests(
-			requests: Vec<PortableHrmpRequestOf<T>>,
-		) -> Result<(), Error<T>> {
-			let count = Self::receive_batch(
-				requests,
-				|request| {
-					Self::release_hrmp_deposit(
-						request.sender,
-						(request.sender, request.recipient, true),
-						request.sender_deposit,
-					)?;
-					// `confirmed` decides how many deposits are owed: an unconfirmed request is
-					// the sender's alone, which is exactly the distinction the receiving pallet
-					// draws between its `Pending` and `Open` states.
-					T::HrmpReceiver::receive_channel(MigratedChannel {
-						channel: hrmp_primitives::ChannelId {
-							sender: request.sender,
-							recipient: request.recipient,
-						},
-						confirmed: request.confirmed,
-					})
-					.map_err(|_| Error::<T>::FailedToReattribute)
-				},
-				|()| (),
-				|request| {
-					alloc::format!("request {}->{}", request.sender, request.recipient)
-				},
-			)?;
+		fn do_receive_hrmp_requests(requests: Vec<PortableHrmpRequestOf<T>>) {
+			let count = requests.len() as u32;
+			for request in requests {
+				// A failed release parks nothing: the deposit simply stays under
+				// `RcMigratedReserve` and surfaces in the parked-shortfall checks.
+				if let Err(e) = Self::release_hrmp_deposit(
+					request.sender,
+					(request.sender, request.recipient, true),
+					request.sender_deposit,
+				) {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to release request deposit {}->{}: {e:?}",
+						request.sender, request.recipient,
+					);
+				}
+				// `confirmed` decides how many deposits are owed: an unconfirmed request is the
+				// sender's alone, which is exactly the distinction the receiving pallet draws
+				// between its `Pending` and `Open` states.
+				if let Err(e) = T::HrmpReceiver::receive_channel(MigratedChannel {
+					channel: hrmp_primitives::ChannelId {
+						sender: request.sender,
+						recipient: request.recipient,
+					},
+					confirmed: request.confirmed,
+				}) {
+					log::error!(
+						target: LOG_TARGET,
+						"Failed to hand over request {}->{}: {e:?}",
+						request.sender, request.recipient,
+					);
+				}
+			}
 			Self::deposit_event(Event::HrmpRequestsReceived { count });
-			Ok(())
 		}
 
 		/// Release the HRMP deposit that arrived held on `para`'s sibling sovereign, so the HRMP

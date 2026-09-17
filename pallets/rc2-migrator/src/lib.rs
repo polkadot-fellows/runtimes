@@ -136,6 +136,9 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	},
 	/// Halts the machine while keeping the migration "ongoing" (call filters stay engaged).
 	/// Entered and left only via `force_set_stage`.
+	///
+	/// Nothing reaches this on its own: a batch the Coretime chain refuses is recorded and the
+	/// migration continues, because stopping leaves both chains locked down with no way forward.
 	Paused,
 	/// Waiting for the Coretime chain to confirm that it is ready to receive data.
 	WaitingForCt,
@@ -231,7 +234,8 @@ pub enum CtRuntimeCall {
 	CtMigrator(CtMigratorCall),
 }
 
-#[derive(Encode, Decode, PartialEq, Eq, Debug)]
+// Held in `UnconfirmedBatches` until the Coretime chain confirms it, hence the storage derives.
+#[derive(Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub enum CtMigratorCall {
 	#[codec(index = 0)]
 	ReceiveAccounts { accounts: Vec<PortableAccount<AccountId32, u128>> },
@@ -288,6 +292,21 @@ impl MigratedBalances<u128> {
 	pub fn migrated_ct(&self) -> u128 {
 		self.ct_reserved.saturating_add(self.ct_free)
 	}
+}
+
+/// A batch sent to the Coretime chain that has not been confirmed.
+///
+/// Carries the payload so it can be re-sent: the relay chain burns what a batch contains before
+/// sending it, so once a batch is in flight this is the only copy of that state anywhere.
+#[derive(Encode, Decode, DecodeWithMemTracking, CloneNoBound, PartialEq, Eq, DebugNoBound, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct UnconfirmedBatch<T: pallet::Config> {
+	/// The call as it was sent, ready to re-send verbatim.
+	pub call: CtMigratorCall,
+	/// The stage that sent it. Names the batch for an operator and scopes what a retry affects.
+	pub stage: MigrationStageOf<T>,
+	/// Block it was last sent at; the timeout is measured from here, so a retry resets it.
+	pub sent_at: BlockNumberFor<T>,
 }
 
 /// Registers a query whose response dispatches a call back into this pallet.
@@ -424,11 +443,18 @@ pub mod pallet {
 		/// [`CtUmpQueuePriorityConfig`].
 		type CtUmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
 
-		/// How long a batch sent to the Coretime chain may go unanswered before
-		/// [`Pallet::on_initialize`] halts the migration. Counted from the block the batch was
-		/// sent; see [`UnconfirmedBatches`].
+		/// How long a batch sent to the Coretime chain may go unanswered before it is reported.
+		/// Counted from the block the batch was sent; see [`UnconfirmedBatches`].
 		#[pallet::constant]
 		type XcmResponseTimeout: Get<BlockNumberFor<Self>>;
+
+		/// How many batches may be outstanding before the machine stops extracting more data.
+		///
+		/// The relay chain destroys what it sends, so it must not run arbitrarily far ahead of
+		/// what the Coretime chain has acknowledged. Overridable per migration through
+		/// [`UnprocessedMsgBuffer`].
+		#[pallet::constant]
+		type UnprocessedMsgBuffer: Get<u32>;
 
 		/// Registers the notify query that carries a batch's dispatch result back from the
 		/// Coretime chain. Normally `pallet-xcm`; see [`NotifyQueryHandler`].
@@ -454,12 +480,22 @@ pub mod pallet {
 	/// The migration does not advance while this is non-empty: the relay chain burns state before
 	/// it sends it, so running ahead of an unanswered batch risks draining more of a map whose
 	/// previous chunk never landed. An entry is removed when [`Pallet::receive_query_response`]
-	/// reports success; a failure or a timeout halts the machine with the entry still in place,
-	/// naming the batch an operator has to deal with.
+	/// reports success; a failure or a timeout halts the machine with the entry still in place.
+	///
+	/// The payload is kept, not just its id: the relay chain has already destroyed what the batch
+	/// carries, so this map is the only remaining copy. [`Pallet::retry_batch`] re-sends it.
 	#[pallet::storage]
 	#[pallet::unbounded]
 	pub type UnconfirmedBatches<T: Config> =
-		StorageMap<_, Twox64Concat, u64, (MigrationStageOf<T>, BlockNumberFor<T>), OptionQuery>;
+		StorageMap<_, Twox64Concat, u64, UnconfirmedBatch<T>, OptionQuery>;
+
+	/// How many batches are outstanding, so the per-block gate need not walk the map.
+	#[pallet::storage]
+	pub type UnconfirmedBatchCount<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+	/// Overrides [`Config::UnprocessedMsgBuffer`] for this migration; `None` uses the constant.
+	#[pallet::storage]
+	pub type UnprocessedMsgBuffer<T: Config> = StorageValue<_, u32, OptionQuery>;
 
 	/// How long [`MigrationStage::WarmUp`] holds, as the scheduled migration set it.
 	#[pallet::storage]
@@ -650,6 +686,23 @@ pub mod pallet {
 		CtUmpQueuePriorityConfigSet {
 			old: QueuePriority<BlockNumberFor<T>>,
 			new: QueuePriority<BlockNumberFor<T>>,
+		},
+		/// The outstanding-batch buffer was changed.
+		UnprocessedMsgBufferSet {
+			old: Option<u32>,
+			new: Option<u32>,
+		},
+		/// A batch was re-sent under a new query id; the old one is forgotten.
+		BatchRetried {
+			old_query_id: u64,
+			new_query_id: u64,
+			stage: MigrationStageOf<T>,
+		},
+		/// A batch was abandoned by an operator without being delivered. Its contents are lost:
+		/// the relay chain burned them before sending. Recorded so the loss is on the chain.
+		BatchAbandoned {
+			query_id: u64,
+			stage: MigrationStageOf<T>,
 		},
 		/// The Coretime chain integrated a batch; the stage machine may continue.
 		BatchConfirmed {
@@ -887,23 +940,91 @@ pub mod pallet {
 		) -> DispatchResult {
 			T::ResponseOrigin::ensure_origin(origin)?;
 
-			let (stage, _sent_at) =
-				UnconfirmedBatches::<T>::get(query_id).ok_or(Error::<T>::UnknownQuery)?;
+			let batch = UnconfirmedBatches::<T>::get(query_id).ok_or(Error::<T>::UnknownQuery)?;
+			let stage = batch.stage;
 			let Response::DispatchResult(result) = response else {
 				return Err(Error::<T>::UnexpectedResponse.into());
 			};
 
 			if result == MaybeErrorCode::Success {
-				UnconfirmedBatches::<T>::remove(query_id);
+				Self::clear_batch(query_id);
 				Self::deposit_event(Event::BatchConfirmed { query_id, stage });
 			} else {
+				// Reported, not acted on. Halting mid-run is not an available action — both
+				// chains are locked down until the migration finishes — so a stuck machine is
+				// worse than a recorded gap. The entry stays, so `retry_batch` can re-send it and
+				// the outstanding count keeps the machine from racing further ahead.
 				log::error!(
 					target: LOG_TARGET,
 					"Coretime chain rejected the batch sent in stage {stage:?}: {result:?}",
 				);
 				Self::deposit_event(Event::BatchFailed { query_id, stage, error: result });
-				Self::transition(MigrationStage::Paused);
 			}
+			Ok(())
+		}
+
+		/// Re-send an outstanding batch to the Coretime chain.
+		///
+		/// The recovery path for a batch the Coretime chain rejected or never answered. The
+		/// payload is re-sent verbatim under a fresh query; the old query id is forgotten, so a
+		/// late answer to it is ignored.
+		///
+		/// Usable while the migration runs — it does not stop for a failed batch — and afterwards,
+		/// which is when most of these will be worked through.
+		///
+		/// Idempotent in the way that matters: a batch the Coretime chain did integrate before the
+		/// report was lost is re-applied, and a double-mint would surface in `reconcile_balances`.
+		#[pallet::call_index(8)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(4, 4))]
+		pub fn retry_batch(origin: OriginFor<T>, query_id: u64) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+
+			let batch = UnconfirmedBatches::<T>::get(query_id).ok_or(Error::<T>::UnknownQuery)?;
+			Self::clear_batch(query_id);
+			let new_query_id = Self::dispatch_batch(batch.call, batch.stage.clone())?;
+
+			Self::deposit_event(Event::BatchRetried {
+				old_query_id: query_id,
+				new_query_id,
+				stage: batch.stage,
+			});
+			Ok(())
+		}
+
+		/// Give up on an outstanding batch.
+		///
+		/// Clears the slot so the outstanding count stops holding the machine back. **The batch's
+		/// contents stay lost**: the relay chain burned them before sending, and nothing
+		/// re-derives them. The event is the record, and `reconcile_balances` reports the gap.
+		///
+		/// Root only, and a last resort — [`Pallet::retry_batch`] first.
+		#[pallet::call_index(9)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(3, 3))]
+		pub fn abandon_batch(origin: OriginFor<T>, query_id: u64) -> DispatchResult {
+			ensure_root(origin)?;
+
+			let batch = UnconfirmedBatches::<T>::get(query_id).ok_or(Error::<T>::UnknownQuery)?;
+			Self::clear_batch(query_id);
+			log::error!(
+				target: LOG_TARGET,
+				"Batch {query_id} from stage {:?} abandoned; its contents are lost",
+				batch.stage,
+			);
+			Self::deposit_event(Event::BatchAbandoned { query_id, stage: batch.stage });
+			Ok(())
+		}
+
+		/// Change how many batches may be outstanding before data extraction pauses for a block.
+		#[pallet::call_index(10)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		pub fn set_unprocessed_msg_buffer(
+			origin: OriginFor<T>,
+			new: Option<u32>,
+		) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+			let old = UnprocessedMsgBuffer::<T>::get();
+			UnprocessedMsgBuffer::<T>::set(new);
+			Self::deposit_event(Event::UnprocessedMsgBufferSet { old, new });
 			Ok(())
 		}
 	}
@@ -1030,36 +1151,66 @@ pub mod pallet {
 				.build()
 		}
 
-		/// Hold the stage machine while a batch is unanswered, and halt it if one never arrives.
+		/// Whether this block's data extraction must be skipped.
 		///
-		/// Returns `true` if the caller must not advance this block. The relay chain destroys
-		/// state as it sends it, so a batch whose fate is unknown is a reason to stop rather than
-		/// to keep draining: `ExpectTransactStatus` has already made a failed integration
-		/// reportable, and this is what makes the report arrive before the next batch is built.
-		fn wait_for_pending_batches(now: BlockNumberFor<T>) -> bool {
+		/// Two reasons, both v1's: more batches are outstanding than [`UnprocessedMsgBuffer`]
+		/// allows — the relay chain runs ahead of what the Coretime chain has acknowledged, and
+		/// the queues would grow without bound — or a batch has gone unanswered past
+		/// [`Config::XcmResponseTimeout`], which is reported once and then simply keeps the
+		/// machine waiting rather than halting it.
+		///
+		/// Never transitions the stage. A migration that stops mid-run leaves both chains locked
+		/// down with no way forward, so nothing here stops it; the gap is recorded and settled
+		/// after the run.
+		fn should_hold_for_batches(now: BlockNumberFor<T>) -> bool {
+			let outstanding = UnconfirmedBatchCount::<T>::get();
+			if outstanding == 0 {
+				return false;
+			}
+
 			let timeout = T::XcmResponseTimeout::get();
-			let mut pending = false;
-			for (query_id, (stage, sent_at)) in UnconfirmedBatches::<T>::iter() {
-				pending = true;
-				if now.saturating_sub(sent_at) >= timeout {
+			for (query_id, batch) in UnconfirmedBatches::<T>::iter() {
+				if now.saturating_sub(batch.sent_at) == timeout {
+					// Once, on the block the deadline passes: the entry stays outstanding, so
+					// this would otherwise fire every block for the rest of the migration.
 					log::error!(
 						target: LOG_TARGET,
-						"Batch sent in stage {stage:?} went unanswered for {timeout:?} blocks",
+						"Batch {query_id} sent in stage {:?} unanswered after {timeout:?} blocks",
+						batch.stage,
 					);
-					Self::deposit_event(Event::BatchTimedOut { query_id, stage });
-					Self::transition(MigrationStage::Paused);
-					return true;
+					Self::deposit_event(Event::BatchTimedOut { query_id, stage: batch.stage });
 				}
 			}
-			pending
+
+			outstanding > Self::unprocessed_msg_buffer()
+		}
+
+		/// How many batches may be outstanding before the machine stops sending more.
+		pub fn unprocessed_msg_buffer() -> u32 {
+			UnprocessedMsgBuffer::<T>::get().unwrap_or_else(T::UnprocessedMsgBuffer::get)
+		}
+
+		/// Drop a batch from the outstanding set, keeping the count in step.
+		fn clear_batch(query_id: u64) {
+			if UnconfirmedBatches::<T>::take(query_id).is_some() {
+				UnconfirmedBatchCount::<T>::mutate(|n| *n = n.saturating_sub(1));
+			}
+		}
+
+		/// Record a batch as outstanding, keeping the count in step.
+		fn track_batch(query_id: u64, batch: UnconfirmedBatch<T>) {
+			if !UnconfirmedBatches::<T>::contains_key(query_id) {
+				UnconfirmedBatchCount::<T>::mutate(|n| n.saturating_inc());
+			}
+			UnconfirmedBatches::<T>::insert(query_id, batch);
 		}
 
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
 			let stage = RcMigrationStage::<T>::get();
-			// A stage that sends state must not build its next batch on one the Coretime chain
-			// has not accepted; the handshake and closing signals are exempt, each being a
+			// A stage that sends state must not run arbitrarily far ahead of what the Coretime
+			// chain has acknowledged; the handshake and closing signals are exempt, each being a
 			// single message whose own stage gates what follows it.
-			if stage.waits_for_confirmation() && Self::wait_for_pending_batches(now) {
+			if stage.waits_for_confirmation() && Self::should_hold_for_batches(now) {
 				return T::DbWeight::get().reads(2);
 			}
 
@@ -1590,7 +1741,20 @@ pub mod pallet {
 		/// The query id is held in [`UnconfirmedBatches`] until the answer arrives; the stage
 		/// machine will not send the next batch while an entry is outstanding.
 		fn send_to_ct(call: CtMigratorCall) -> Result<(), Error<T>> {
-			let call = CtRuntimeCall::CtMigrator(call);
+			let stage = RcMigrationStage::<T>::get();
+			Self::dispatch_batch(call, stage).map(|_| ())
+		}
+
+		/// Send one batch under a fresh notify query and record it as outstanding.
+		///
+		/// Shared by the stage machine and [`Pallet::retry_batch`], so a retry is byte-identical
+		/// to the original send; only the query id and the timeout clock are new. `stage` is the
+		/// stage that produced the payload, which a retry preserves rather than overwriting with
+		/// whatever stage the machine has since reached.
+		fn dispatch_batch(
+			call: CtMigratorCall,
+			stage: MigrationStageOf<T>,
+		) -> Result<u64, Error<T>> {
 			let now = frame_system::Pallet::<T>::block_number();
 			let timeout = now.saturating_add(T::XcmResponseTimeout::get());
 			let query_id = T::NotifyQueryHandler::new_notify_query(
@@ -1610,7 +1774,7 @@ pub mod pallet {
 				Transact {
 					origin_kind: OriginKind::Superuser,
 					fallback_max_weight: None,
-					call: call.encode().into(),
+					call: CtRuntimeCall::CtMigrator(call.clone()).encode().into(),
 				},
 				// A call that fails inside `Transact` does not fail the XCM by itself; this makes
 				// it fail, so the Coretime chain reports it instead of a success.
@@ -1622,8 +1786,8 @@ pub mod pallet {
 				log::error!(target: LOG_TARGET, "Sending to CT failed: {e:?}");
 				Error::<T>::XcmSendFailed
 			})?;
-			UnconfirmedBatches::<T>::insert(query_id, (RcMigrationStage::<T>::get(), now));
-			Ok(())
+			Self::track_batch(query_id, UnconfirmedBatch { call, stage, sent_at: now });
+			Ok(query_id)
 		}
 	}
 }

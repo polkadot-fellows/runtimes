@@ -810,9 +810,9 @@ async fn accounts_migrate_rc_to_ct() {
 			next_block_rc();
 		}
 		let unconfirmed_accounts: Vec<_> = pallet_rc2_migrator::UnconfirmedBatches::<Rc>::iter()
-			.filter(|(_, (stage, _))| {
+			.filter(|(_, batch)| {
 				matches!(
-					stage,
+					batch.stage,
 					RcStage::AccountsInit | RcStage::AccountsOngoing { .. } | RcStage::AccountsDone
 				)
 			})
@@ -1535,8 +1535,21 @@ async fn full_migration_rc_to_ct() {
 		use pallet_registrar_para::RegistrationState;
 
 		assert_eq!(CtMigrationStage::<Ct>::get(), MigrationStage::MigrationDone);
-		// Reaching `MigrationDone` already implies it, but state it: a batch the Coretime chain
-		// refused would have left its query unanswered and paused the relay chain short of here.
+		let failed_paras: Vec<u32> = FailedParas::<Ct>::iter_keys().collect();
+		assert!(
+			failed_paras.is_empty(),
+			"{} of {} paras failed to integrate: {failed_paras:?}",
+			failed_paras.len(),
+			paras_before.len(),
+		);
+		let failed_channels: Vec<_> = FailedHrmpChannels::<Ct>::iter_keys().collect();
+		assert!(
+			failed_channels.is_empty(),
+			"{} channels failed to integrate: {failed_channels:?}",
+			failed_channels.len(),
+		);
+		// Nothing may still be in flight once the migration reports itself done: the relay chain
+		// burned whatever an unconfirmed batch carries.
 		let unconfirmed: Vec<u64> =
 			pallet_rc2_migrator::UnconfirmedBatches::<Rc>::iter_keys().collect();
 		assert!(
@@ -1800,12 +1813,12 @@ async fn full_migration_rc_to_ct() {
 
 		// AND every portable definition was recreated in the REAL proxy pallet, so keyless
 		// (pure) delegators can dispatch here from day one.
-		let unconfirmed: Vec<u64> =
-			pallet_rc2_migrator::UnconfirmedBatches::<Rc>::iter_keys().collect();
+		assert!(FailedProxies::<Ct>::iter().next().is_none(), "no proxy set may fail");
+		let failed_accounts: Vec<_> = FailedAccounts::<Ct>::iter_keys().map(|w| ss58(&w)).collect();
 		assert!(
-			unconfirmed.is_empty(),
-			"{} batch(es) were never confirmed: {unconfirmed:?}",
-			unconfirmed.len(),
+			failed_accounts.is_empty(),
+			"{} account(s) failed to integrate: {failed_accounts:?}",
+			failed_accounts.len(),
 		);
 		for who in &ct_bound_proxies {
 			// Under the address the account continues at here: a child sovereign's balance, its

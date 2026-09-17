@@ -1253,36 +1253,39 @@ fn force_set_stage_requires_root() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn a_data_stage_holds_until_the_coretime_chain_answers() {
+fn data_extraction_pauses_once_too_many_batches_are_outstanding() {
 	new_test_ext().execute_with(|| {
-		// A manager with a registrar deposit: its hold is Coretime-bound, so draining it sends a
-		// batch there. A plain balance would only teleport to Asset Hub and confirm nothing.
-		let alice = acc(1);
+		// Allow nothing in flight, so a single unacknowledged batch trips the gate. The mock's
+		// fixture is far smaller than a real chain's, so this is how the threshold is reached.
+		assert_eq!(Rc2Migrator::unprocessed_msg_buffer(), 1);
+		assert_ok!(Rc2Migrator::set_unprocessed_msg_buffer(root(), Some(0)));
+		assert_eq!(Rc2Migrator::unprocessed_msg_buffer(), 0);
+		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
 		fund(&alice, 10_000);
 		register_para(2000, &alice);
 
-		// GIVEN the accounts stage has sent a batch.
 		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
 		run_blocks_without_ct(2);
+		let outstanding = UnconfirmedBatchCount::<Test>::get();
+		assert_eq!(outstanding, 1, "the accounts stage sent one batch");
 		let stalled_at = RcMigrationStage::<Test>::get();
-		assert_eq!(UnconfirmedBatches::<Test>::iter().count(), 1);
 
-		// WHEN the Coretime chain says nothing, THEN the machine stops where it is. The relay
-		// chain burns what it sends, so draining further would widen a gap it cannot see.
-		run_blocks_without_ct(3);
+		// WHEN nothing is acknowledged, THEN extraction stops where it is: the relay chain
+		// destroys what it sends, so it must not run arbitrarily far ahead of what landed.
+		run_blocks_without_ct(5);
 		assert_eq!(RcMigrationStage::<Test>::get(), stalled_at);
-		assert_eq!(UnconfirmedBatches::<Test>::iter().count(), 1);
+		assert_eq!(UnconfirmedBatchCount::<Test>::get(), outstanding, "no new batch was sent");
 
-		// WHEN it confirms, THEN the machine moves again.
+		// WHEN the Coretime chain catches up, THEN the machine moves again.
 		confirm_pending_batches();
-		assert_eq!(UnconfirmedBatches::<Test>::iter().count(), 0);
+		assert_eq!(UnconfirmedBatchCount::<Test>::get(), 0);
 		run_blocks_without_ct(1);
 		assert_ne!(RcMigrationStage::<Test>::get(), stalled_at);
 	});
 }
 
 #[test]
-fn a_rejected_batch_pauses_the_migration() {
+fn a_rejected_batch_is_reported_but_never_halts_the_migration() {
 	new_test_ext().execute_with(|| {
 		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
 		fund(&alice, 10_000);
@@ -1290,7 +1293,8 @@ fn a_rejected_batch_pauses_the_migration() {
 
 		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
 		run_blocks_without_ct(2);
-		let (query_id, (sent_in, _)) = UnconfirmedBatches::<Test>::iter().next().unwrap();
+		let (query_id, batch) = UnconfirmedBatches::<Test>::iter().next().unwrap();
+		let sent_in = batch.stage;
 
 		// WHEN the Coretime chain reports that the batch failed to dispatch.
 		assert_ok!(Rc2Migrator::receive_query_response(
@@ -1299,39 +1303,37 @@ fn a_rejected_batch_pauses_the_migration() {
 			Response::DispatchResult(MaybeErrorCode::Error(vec![1, 2].try_into().unwrap())),
 		));
 
-		// THEN the machine pauses and the batch stays on the books for the operator: the relay
-		// chain already burned what it carried, and only a human can decide what to do about it.
-		assert_eq!(RcMigrationStage::<Test>::get(), Stage::Paused);
+		// THEN it is recorded and the batch stays retryable — but the machine does NOT stop.
+		// Halting mid-run would leave both chains locked down with no way forward; the gap is
+		// settled after the migration, not during it.
+		assert_ne!(RcMigrationStage::<Test>::get(), Stage::Paused);
 		assert!(UnconfirmedBatches::<Test>::contains_key(query_id));
 		assert!(migrator_events().iter().any(|e| matches!(
 			e,
 			Event::BatchFailed { query_id: q, stage, .. } if *q == query_id && *stage == sent_in
 		)));
-
-		// AND it stays paused; `force_set_stage` is the only way out.
-		run_blocks_without_ct(5);
-		assert_eq!(RcMigrationStage::<Test>::get(), Stage::Paused);
 	});
 }
 
 #[test]
-fn an_unanswered_batch_pauses_the_migration_on_timeout() {
+fn an_unanswered_batch_is_reported_once_and_does_not_halt_the_migration() {
 	new_test_ext().execute_with(|| {
 		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
 		fund(&alice, 10_000);
 		register_para(2000, &alice);
-
 		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
 		run_blocks_without_ct(2);
 		let (query_id, _) = UnconfirmedBatches::<Test>::iter().next().unwrap();
 
-		// WHEN the response never arrives, THEN the machine stops waiting and pauses, rather than
-		// holding a migration open forever on a message that is not coming.
-		run_blocks_without_ct(XcmResponseTimeout::get());
-		assert_eq!(RcMigrationStage::<Test>::get(), Stage::Paused);
-		assert!(migrator_events()
+		// WHEN the response never arrives, THEN it is reported exactly once — the entry stays
+		// outstanding, so a per-block report would fire forever — and the stage is untouched.
+		run_blocks_without_ct(XcmResponseTimeout::get() + 3);
+		assert_ne!(RcMigrationStage::<Test>::get(), Stage::Paused);
+		let timeouts = migrator_events()
 			.iter()
-			.any(|e| matches!(e, Event::BatchTimedOut { query_id: q, .. } if *q == query_id)));
+			.filter(|e| matches!(e, Event::BatchTimedOut { query_id: q, .. } if *q == query_id))
+			.count();
+		assert_eq!(timeouts, 1, "the timeout is reported once, not every block");
 	});
 }
 
@@ -1400,5 +1402,99 @@ fn every_batch_carries_a_report_appendix_that_survives_a_failed_transact() {
 		let transact = msg.0.iter().position(|i| matches!(i, Transact { .. })).unwrap();
 		assert!(appendix < transact, "the appendix must be set before the Transact");
 		assert!(msg.0.iter().any(|i| matches!(i, ExpectTransactStatus(_))));
+	});
+}
+
+#[test]
+fn a_failed_batch_can_be_retried_under_a_fresh_query() {
+	new_test_ext().execute_with(|| {
+		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
+		fund(&alice, 10_000);
+		register_para(2000, &alice);
+		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
+		run_blocks_without_ct(2);
+		let (query_id, batch) = UnconfirmedBatches::<Test>::iter().next().unwrap();
+		let payload = batch.call.clone();
+		let sent_in = batch.stage;
+
+		// GIVEN the Coretime chain rejected the batch.
+		assert_ok!(Rc2Migrator::receive_query_response(
+			RuntimeOrigin::signed(coretime()),
+			query_id,
+			Response::DispatchResult(MaybeErrorCode::Error(vec![1].try_into().unwrap())),
+		));
+		take_sent_xcm();
+
+		// WHEN it is retried.
+		assert_ok!(Rc2Migrator::retry_batch(root(), query_id));
+
+		// THEN the same payload goes out again under a fresh query, and the old id is forgotten
+		// so a late answer to it cannot settle anything.
+		assert_eq!(decode_ct_calls(&take_sent_xcm()), vec![payload]);
+		assert!(!UnconfirmedBatches::<Test>::contains_key(query_id));
+		let (new_id, new_batch) = UnconfirmedBatches::<Test>::iter().next().unwrap();
+		assert_ne!(new_id, query_id);
+		assert_eq!(new_batch.stage, sent_in, "a retry keeps the stage that built the payload");
+		assert_eq!(UnconfirmedBatchCount::<Test>::get(), 1);
+		assert!(migrator_events().iter().any(|e| matches!(
+			e,
+			Event::BatchRetried { old_query_id, new_query_id, .. }
+				if *old_query_id == query_id && *new_query_id == new_id
+		)));
+
+		// AND confirming the retry clears it.
+		assert_ok!(Rc2Migrator::receive_query_response(
+			RuntimeOrigin::signed(coretime()),
+			new_id,
+			Response::DispatchResult(MaybeErrorCode::Success),
+		));
+		assert_eq!(UnconfirmedBatchCount::<Test>::get(), 0);
+	});
+}
+
+#[test]
+fn only_a_known_batch_can_be_recovered_and_abandoning_is_root_only() {
+	new_test_ext().execute_with(|| {
+		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
+		fund(&alice, 10_000);
+		register_para(2000, &alice);
+		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
+		run_blocks_without_ct(2);
+		let (query_id, _) = UnconfirmedBatches::<Test>::iter().next().unwrap();
+
+		assert_noop!(Rc2Migrator::retry_batch(root(), query_id + 99), Error::<Test>::UnknownQuery);
+		assert_noop!(
+			Rc2Migrator::retry_batch(RuntimeOrigin::signed(acc(9)), query_id),
+			BadOrigin
+		);
+		// Abandoning loses data, so it is root's alone — not the manager's.
+		assert_noop!(
+			Rc2Migrator::abandon_batch(RuntimeOrigin::signed(acc(9)), query_id),
+			BadOrigin
+		);
+	});
+}
+
+#[test]
+fn abandoning_a_batch_drops_it_and_records_the_loss() {
+	new_test_ext().execute_with(|| {
+		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
+		fund(&alice, 10_000);
+		register_para(2000, &alice);
+		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
+		run_blocks_without_ct(2);
+		let (query_id, batch) = UnconfirmedBatches::<Test>::iter().next().unwrap();
+		let sent_in = batch.stage;
+		take_sent_xcm();
+
+		assert_ok!(Rc2Migrator::abandon_batch(root(), query_id));
+
+		// The batch is gone and nothing was re-sent: its contents are lost, deliberately, and the
+		// event is the only record that they existed.
+		assert!(UnconfirmedBatches::<Test>::iter().next().is_none());
+		assert_eq!(UnconfirmedBatchCount::<Test>::get(), 0);
+		assert!(take_sent_xcm().is_empty());
+		assert!(migrator_events()
+			.contains(&Event::BatchAbandoned { query_id, stage: sent_in }));
 	});
 }

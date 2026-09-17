@@ -1767,6 +1767,10 @@ parameter_types! {
 	/// itself. Generous next to a round trip through both message queues: the point is to catch a
 	/// message that will never be answered, not to police latency.
 	pub const MigrationXcmResponseTimeout: BlockNumber = 100;
+	/// How many batches may be outstanding before data extraction pauses for a block. Keeps the
+	/// relay chain from running far ahead of what Coretime has acknowledged, without serialising
+	/// the migration on a full round trip per batch.
+	pub const MigrationUnprocessedMsgBuffer: u32 = 8;
 	/// Asset Hub's existential deposit; mirrors
 	/// `system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT`
 	/// without pulling that crate into the relay runtime.
@@ -2134,6 +2138,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type MessageQueue = MessageQueue;
 	type CtUmpQueuePriorityPattern = CtUmpQueuePriorityPattern;
 	type XcmResponseTimeout = MigrationXcmResponseTimeout;
+	type UnprocessedMsgBuffer = MigrationUnprocessedMsgBuffer;
 	type NotifyQueryHandler = Runtime;
 	type ResponseOrigin = pallet_xcm::EnsureResponse<frame_support::traits::Equals<xcm_config::Broker>>;
 }

@@ -450,6 +450,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type MessageQueue = RecordingHead;
 	type CtUmpQueuePriorityPattern = CtUmpQueuePriorityPattern;
 	type XcmResponseTimeout = XcmResponseTimeout;
+	type UnprocessedMsgBuffer = UnprocessedMsgBufferSize;
 	type NotifyQueryHandler = CountingQueries;
 	// The response arrives as a plain signed call from the Coretime account in these tests; the
 	// real runtime distinguishes a query response from a Coretime-chain call, which is a
@@ -459,6 +460,8 @@ impl pallet_rc2_migrator::Config for Test {
 
 parameter_types! {
 	pub const XcmResponseTimeout: u32 = 10;
+	/// One in flight at a time, so a test that sends two batches exercises the gate.
+	pub const UnprocessedMsgBufferSize: u32 = 1;
 }
 
 /// Hands out sequential query ids, so a test can name the query a given batch registered.

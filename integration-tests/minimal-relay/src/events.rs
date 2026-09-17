@@ -317,6 +317,18 @@ pub fn emit_rc_block() {
 					"batch_timed_out",
 					json!({ "query_id": query_id, "stage": stage_str(&stage) }),
 				),
+				MigEvent::BatchRetried { old_query_id, new_query_id, stage } => e(
+					"batch_retried",
+					json!({
+						"old_query_id": old_query_id,
+						"new_query_id": new_query_id,
+						"stage": stage_str(&stage),
+					}),
+				),
+				MigEvent::BatchAbandoned { query_id, stage } => e(
+					"batch_abandoned",
+					json!({ "query_id": query_id, "stage": stage_str(&stage) }),
+				),
 				_ => (),
 			},
 			crate::mock::network::relay::RuntimeEvent::MessageQueue(
@@ -340,8 +352,8 @@ pub fn emit_rc_block() {
 			"paras": polkadot_runtime_common::paras_registrar::Paras::<Rc>::iter_keys().count(),
 			"hrmp_channels": runtime_parachains::hrmp::HrmpChannels::<Rc>::iter_keys().count(),
 			"proxies": pallet_proxy::Proxies::<Rc>::iter_keys().count(),
-			// Batches the Coretime chain has not confirmed. A record it cannot integrate fails
-			// its whole batch, so a bad record surfaces here rather than in a parked map.
+			// Batches the Coretime chain has not acknowledged. Bounded by the outstanding-batch
+			// buffer while the migration runs; anything left at the end needs settling.
 			"unconfirmed_batches":
 				pallet_rc2_migrator::UnconfirmedBatches::<Rc>::iter_keys().count(),
 		}),
@@ -390,14 +402,18 @@ fn emit_ct_block() {
 			crate::mock::network::ct::RuntimeEvent::CtMigrator(ev) => match ev {
 				MigEvent::StageTransition { old, new } =>
 					e("stage", json!({ "old": stage_str(&old), "new": stage_str(&new) })),
-				MigEvent::AccountsReceived { count } => e("accounts_received", json!({ "count": count })),
-				MigEvent::RegistrarReceived { count } => e("registrar_received", json!({ "count": count })),
+				MigEvent::AccountsReceived { count_good, count_bad } =>
+					e("accounts_received", json!({ "good": count_good, "bad": count_bad })),
+				MigEvent::RegistrarReceived { count_good, count_bad } =>
+					e("registrar_received", json!({ "good": count_good, "bad": count_bad })),
 				MigEvent::DepositShortfallParked { para_id, shortfall } => e(
 					"deposit_shortfall_parked",
 					json!({ "para_id": para_id, "shortfall": planck(shortfall) }),
 				),
-				MigEvent::HrmpReceived { count } => e("hrmp_received", json!({ "count": count })),
-				MigEvent::ProxiesReceived { count } => e("proxies_received", json!({ "count": count })),
+				MigEvent::HrmpReceived { count_good, count_bad } =>
+					e("hrmp_received", json!({ "good": count_good, "bad": count_bad })),
+				MigEvent::ProxiesReceived { count_good, count_bad } =>
+					e("proxies_received", json!({ "good": count_good, "bad": count_bad })),
 				MigEvent::HrmpRequestsReceived { count } =>
 					e("hrmp_requests_received", json!({ "count": count })),
 				MigEvent::HrmpShortfallParked { sender, recipient, shortfall } => e(
@@ -447,6 +463,10 @@ fn emit_ct_block() {
 			"hrmp_requests": pallet_hrmp_para::Channels::<Ct>::iter_values()
 				.filter(|c| !matches!(c.state, pallet_hrmp_para::ChannelState::Open))
 				.count(),
+			"failed_accounts": pallet_ct_migrator::FailedAccounts::<Ct>::iter_keys().count(),
+			"failed_paras": pallet_ct_migrator::FailedParas::<Ct>::iter_keys().count(),
+			"failed_hrmp": pallet_ct_migrator::FailedHrmpChannels::<Ct>::iter_keys().count(),
+			"failed_proxies": pallet_ct_migrator::FailedProxies::<Ct>::iter_keys().count(),
 			"parked_shortfalls":
 				pallet_ct_migrator::ParkedDepositShortfalls::<Ct>::iter_keys().count(),
 			"parked_hrmp_shortfalls":
