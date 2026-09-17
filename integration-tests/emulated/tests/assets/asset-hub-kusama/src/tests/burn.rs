@@ -14,73 +14,74 @@
 // limitations under the License.
 
 use crate::*;
-use frame_support::traits::{
-	fungible::{Inspect as FungibleInspect, Mutate as FungibleMutate},
-	Hooks,
-};
+use frame_support::traits::{fungible::Inspect as FungibleInspect, Hooks};
 use parachains_common::AccountId;
 
-/// KSM accumulated on the relay is teleported to Asset Hub and burned where issuance is
-/// tracked.
+/// KSM teleported into the relay's accumulation account is forwarded back to Asset Hub and burned
+/// there, leaving Asset Hub's checking account and the relay's issuance in step.
 #[test]
 fn relay_accumulated_funds_are_burnt_on_asset_hub() {
 	type RelayRuntime = <Kusama as Chain>::Runtime;
 	type RelayEvent = <Kusama as Chain>::RuntimeEvent;
+	type RelayBalances = pallet_balances::Pallet<RelayRuntime>;
 	type AssetHubRuntime = <AssetHubKusama as Chain>::Runtime;
 	type AssetHubEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+	type AssetHubBalances = pallet_balances::Pallet<AssetHubRuntime>;
 
 	let accumulation_account: AccountId = Kusama::execute_with(|| {
 		pallet_accumulate_and_forward::Pallet::<RelayRuntime>::accumulation_account()
 	});
-	let amount = 2 * Kusama::execute_with(|| {
-		<RelayRuntime as pallet_accumulate_and_forward::Config>::MinTransferAmount::get()
-	});
-	Kusama::fund_accounts(vec![(accumulation_account.clone(), amount)]);
-
-	// The emulated relay minted that KSM itself, so top up the checking account.
 	let check_account: AccountId =
 		AssetHubKusama::execute_with(pallet_xcm::Pallet::<AssetHubRuntime>::check_account);
+	// Enough that the forward still clears `MinTransferAmount` after arrival fees.
+	let teleported = 10 *
+		Kusama::execute_with(|| {
+			<RelayRuntime as pallet_accumulate_and_forward::Config>::MinTransferAmount::get()
+		});
+
+	let (asset_hub_issuance_before, check_balance_before) = AssetHubKusama::execute_with(|| {
+		(AssetHubBalances::total_issuance(), AssetHubBalances::balance(&check_account))
+	});
+
+	// GIVEN a real teleport from Asset Hub into the accumulation account. The KSM moves into Asset
+	// Hub's checking account, which is how it comes to sit on the relay at all.
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(<pallet_balances::Pallet<AssetHubRuntime> as FungibleMutate<_>>::mint_into(
-			&check_account,
-			amount + ASSET_HUB_KUSAMA_ED,
+		let beneficiary: Location =
+			AccountId32Junction { network: None, id: accumulation_account.clone().into() }.into();
+		let assets: Assets = (Location::parent(), teleported).into();
+		assert_ok!(pallet_xcm::Pallet::<AssetHubRuntime>::limited_teleport_assets(
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
+			bx!(Location::parent().into()),
+			bx!(beneficiary.into()),
+			bx!(assets.into()),
+			0,
+			WeightLimit::Unlimited,
 		));
 	});
-	let (asset_hub_issuance_before, check_balance_before) = AssetHubKusama::execute_with(|| {
-		(
-			pallet_balances::Pallet::<AssetHubRuntime>::total_issuance(),
-			pallet_balances::Pallet::<AssetHubRuntime>::balance(&check_account),
-		)
-	});
+	let accumulated = Kusama::execute_with(|| RelayBalances::balance(&accumulation_account));
+	assert!(accumulated > 0, "the teleport should reach the accumulation account");
+	let forwarded = accumulated - KUSAMA_ED;
 
+	// WHEN the forward runs.
 	Kusama::execute_with(|| {
-		let issuance_before = pallet_balances::Pallet::<RelayRuntime>::total_issuance();
 		let period: u32 =
 			<RelayRuntime as pallet_accumulate_and_forward::Config>::TransferPeriod::get();
-
 		Dmp::make_parachain_reachable(AssetHubKusama::para_id());
 		frame_system::Pallet::<RelayRuntime>::set_block_number(period);
 		pallet_accumulate_and_forward::Pallet::<RelayRuntime>::on_idle(period, Weight::MAX);
 
-		// Emptied down to the ED; the KSM has left the relay.
 		assert_expected_events!(
 			Kusama,
 			vec![RelayEvent::AccumulateForward(
 				pallet_accumulate_and_forward::Event::ForwardSucceeded { .. }
 			) => {},]
 		);
-		let forwarded = amount - KUSAMA_ED;
-		assert_eq!(
-			pallet_balances::Pallet::<RelayRuntime>::balance(&accumulation_account),
-			KUSAMA_ED
-		);
-		assert_eq!(
-			pallet_balances::Pallet::<RelayRuntime>::total_issuance(),
-			issuance_before - forwarded
-		);
+		// Emptied down to the ED; the KSM has left the relay.
+		assert_eq!(RelayBalances::balance(&accumulation_account), KUSAMA_ED);
 	});
 
-	// Asset Hub burns it: issuance and checking account drop alike.
+	// THEN Asset Hub burns it, less the execution fee paid to the collator pot. Read the fee from
+	// its event, since collator payouts move the pot balance in the same block.
 	AssetHubKusama::execute_with(|| {
 		assert_expected_events!(
 			AssetHubKusama,
@@ -88,9 +89,6 @@ fn relay_accumulated_funds_are_burnt_on_asset_hub() {
 				pallet_message_queue::Event::Processed { success: true, .. }
 			) => {},]
 		);
-		let forwarded = amount - KUSAMA_ED;
-		// All of it is burned except the execution fee, which goes to the collator pot. Read the
-		// fee from its event, since collator payouts move the pot balance in the same block.
 		let staking_pot = pallet_collator_selection::Pallet::<AssetHubRuntime>::account_id();
 		let fee = frame_system::Pallet::<AssetHubRuntime>::events()
 			.iter()
@@ -101,12 +99,13 @@ fn relay_accumulated_funds_are_burnt_on_asset_hub() {
 				_ => None,
 			})
 			.expect("the execution fee is deposited to the collator pot");
-		let burned = asset_hub_issuance_before -
-			pallet_balances::Pallet::<AssetHubRuntime>::total_issuance();
+		let burned = asset_hub_issuance_before - AssetHubBalances::total_issuance();
 		assert_eq!(burned + fee, forwarded, "all of it is either burned or paid as fee");
-		assert_eq!(
-			pallet_balances::Pallet::<AssetHubRuntime>::balance(&check_account),
-			check_balance_before - forwarded
-		);
 	});
+
+	// AND the checking account keeps what stayed on the relay. Relay issuance isn't compared: the
+	// relay pays its arrival fee via `ToAuthor`, which burns it when the emulator has no author.
+	let check_balance_after =
+		AssetHubKusama::execute_with(|| AssetHubBalances::balance(&check_account));
+	assert_eq!(check_balance_after - check_balance_before, teleported - forwarded);
 }
