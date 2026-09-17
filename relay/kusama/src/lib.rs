@@ -435,9 +435,9 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const AccumulateForwardPalletId: PalletId =
 		kusama_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
-	/// Hourly at most, once 0.01 KSM has gathered; funds waiting still count towards issuance.
+	/// Hourly at most, once 1 KSM has gathered; funds waiting still count towards issuance.
 	pub const ForwardPeriod: BlockNumber = HOURS;
-	pub const MinForwardAmount: Balance = UNITS / 100;
+	pub const MinForwardAmount: Balance = UNITS;
 }
 
 impl pallet_accumulate_and_forward::Config for Runtime {
