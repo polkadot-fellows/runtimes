@@ -34,7 +34,6 @@ cumulus-pallet-parachain-system = { workspace = true, default-features = true }
 # Local
 polkadot-runtime-constants = { workspace = true, default-features = true }
 polkadot-runtime = { workspace = true }
-integration-tests-helpers = { workspace = true }
 coretime-polkadot-runtime = { workspace = true }
 polkadot-system-emulated-network = { workspace = true }
 
@@ -49,7 +48,6 @@ runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"integration-tests-helpers/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-broker/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",

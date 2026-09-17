@@ -14,6 +14,7 @@
 // limitations under the License.
 
 pub mod genesis;
+pub mod macros;
 
 // Substrate
 use frame_support::traits::OnInitialize;

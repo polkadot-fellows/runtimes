@@ -39,7 +39,6 @@ pallet-bridge-messages = { workspace = true, default-features = true }
 # Local
 bp-bridge-hub-kusama = { workspace = true, default-features = true }
 bridge-hub-kusama-runtime = { workspace = true }
-integration-tests-helpers = { workspace = true }
 kusama-polkadot-system-emulated-network = { workspace = true }
 kusama-system-emulated-network = { workspace = true }
 system-parachains-constants = { workspace = true, default-features = true }
@@ -58,7 +57,6 @@ runtime-benchmarks = [
 	"bridge-hub-kusama-runtime/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
-	"integration-tests-helpers/runtime-benchmarks",
 	"kusama-polkadot-system-emulated-network/runtime-benchmarks",
 	"kusama-system-emulated-network/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",

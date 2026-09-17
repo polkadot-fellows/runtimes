@@ -13,23 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod snowbridge {
-	use hex_literal::hex;
-	use xcm::latest::prelude::*;
-	use xcm_emulator::parameter_types;
-
-	// Weth (Wrapped Ether) contract address on Ethereum mainnet.
-	pub const WETH: [u8; 20] = hex!("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
-	// The minimum Ether balance required for an account to exist. Matches value on Polkadot
-	// mainnet.
-	pub const MIN_ETHER_BALANCE: u128 = 15_000_000_000_000;
-
-	parameter_types! {
-		pub EthereumNetwork: NetworkId = Ethereum { chain_id: 1 };
-		pub WethLocation: Location =  Location::new(2, [GlobalConsensus(EthereumNetwork::get()), AccountKey20 { network: None, key: WETH }]);
-		pub EthLocation: Location =  Location::new(2, [GlobalConsensus(EthereumNetwork::get())]);
-	}
-}
+pub use emulated_integration_tests_common::macros::{
+	pallet_balances, pallet_message_queue, pallet_xcm, paste, Assets, Chain, Junction, Location,
+	Weight, WeightLimit,
+};
+pub use frame_support;
+pub use frame_system;
+pub use pallet_accumulate_and_forward;
+pub use pallet_collator_selection;
 
 /// Asserts that funds teleported into a chain's accumulation account are forwarded back to Asset
 /// Hub and burned there, leaving Asset Hub's checking account and the chain's issuance in step.
@@ -41,7 +32,7 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 	( $chain:ident, $asset_hub:ident, $chain_ed:expr, $asset_hub_ed:expr $(,)? ) => {
 		#[test]
 		fn accumulated_funds_are_burnt_on_asset_hub() {
-			use $crate::{
+			use $crate::macros::{
 				frame_support::traits::{fungible::Inspect as _, Hooks as _},
 				pallet_accumulate_and_forward, Assets, Chain, Junction, Location, Weight,
 				WeightLimit,
@@ -51,21 +42,21 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 			type ChainEvent = <$chain as Chain>::RuntimeEvent;
 			type AssetHubRuntime = <$asset_hub as Chain>::Runtime;
 			type AssetHubEvent = <$asset_hub as Chain>::RuntimeEvent;
-			type ChainBalances = $crate::pallet_balances::Pallet<ChainRuntime>;
-			type AssetHubBalances = $crate::pallet_balances::Pallet<AssetHubRuntime>;
+			type ChainBalances = $crate::macros::pallet_balances::Pallet<ChainRuntime>;
+			type AssetHubBalances = $crate::macros::pallet_balances::Pallet<AssetHubRuntime>;
 
 			let accumulation_account = $chain::execute_with(|| {
 				pallet_accumulate_and_forward::Pallet::<ChainRuntime>::accumulation_account()
 			});
 			let check_account =
-				$asset_hub::execute_with($crate::pallet_xcm::Pallet::<AssetHubRuntime>::check_account);
+				$asset_hub::execute_with($crate::macros::pallet_xcm::Pallet::<AssetHubRuntime>::check_account);
 			// Enough that the forward still clears `MinTransferAmount` after arrival fees.
 			let teleported = 10 * $chain::execute_with(|| {
 				<ChainRuntime as pallet_accumulate_and_forward::Config>::MinTransferAmount::get()
 			});
 
 			let staking_pot =
-				$asset_hub::execute_with($crate::pallet_collator_selection::Pallet::<
+				$asset_hub::execute_with($crate::macros::pallet_collator_selection::Pallet::<
 					AssetHubRuntime,
 				>::account_id);
 			let (asset_hub_issuance_before, check_balance_before) = $asset_hub::execute_with(|| {
@@ -76,7 +67,7 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 
 			// GIVEN a real teleport out of Asset Hub into the accumulation account. The KSM moves
 			// into Asset Hub's checking account, which is how it comes to sit on this chain at all.
-			let sender = $crate::paste::paste! { [<$asset_hub Sender>]::get() };
+			let sender = $crate::macros::paste::paste! { [<$asset_hub Sender>]::get() };
 
 			$asset_hub::execute_with(|| {
 				let dest = <$asset_hub as Para>::sibling_location_of(<$chain as Para>::para_id());
@@ -87,7 +78,7 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 				.into();
 				let assets: Assets = (Location::parent(), teleported).into();
 
-				assert_ok!($crate::pallet_xcm::Pallet::<AssetHubRuntime>::limited_teleport_assets(
+				assert_ok!($crate::macros::pallet_xcm::Pallet::<AssetHubRuntime>::limited_teleport_assets(
 					<$asset_hub as Chain>::RuntimeOrigin::signed(sender.clone()),
 					bx!(dest.into()),
 					bx!(beneficiary.into()),
@@ -111,7 +102,7 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 			$chain::execute_with(|| {
 				let period =
 					<ChainRuntime as pallet_accumulate_and_forward::Config>::TransferPeriod::get();
-				$crate::frame_system::Pallet::<ChainRuntime>::set_block_number(period);
+				$crate::macros::frame_system::Pallet::<ChainRuntime>::set_block_number(period);
 				pallet_accumulate_and_forward::Pallet::<ChainRuntime>::on_idle(period, Weight::MAX);
 
 				assert_expected_events!(
@@ -129,7 +120,7 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 				assert_expected_events!(
 					$asset_hub,
 					vec![AssetHubEvent::MessageQueue(
-						$crate::pallet_message_queue::Event::Processed { success: true, .. }
+						$crate::macros::pallet_message_queue::Event::Processed { success: true, .. }
 					) => {},]
 				);
 				// Everything that arrives is burned except Asset Hub's execution fee, which goes
@@ -137,10 +128,10 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 				let burned = asset_hub_issuance_before - AssetHubBalances::total_issuance();
 				// The fee is deposited to the collator pot, so read it from the event rather than
 				// the pot balance, which collator payouts move in the same block.
-				let fee = $crate::frame_system::Pallet::<AssetHubRuntime>::events()
+				let fee = $crate::macros::frame_system::Pallet::<AssetHubRuntime>::events()
 					.iter()
 					.find_map(|record| match &record.event {
-						AssetHubEvent::Balances($crate::pallet_balances::Event::Deposit {
+						AssetHubEvent::Balances($crate::macros::pallet_balances::Event::Deposit {
 							who,
 							amount,
 						}) if *who == staking_pot => Some(*amount),

@@ -108,7 +108,6 @@ indiv-pallet-resources = { git = "https://github.com/paritytech/individuality-co
 indiv-precompile-personhood = { git = "https://github.com/paritytech/individuality-community", rev = "53482baa337278c6c4c8115fb8d2b4b5def08ccb", default-features = false, version = "*" }
 indiv-support = { git = "https://github.com/paritytech/individuality-community", rev = "53482baa337278c6c4c8115fb8d2b4b5def08ccb", default-features = false, version = "*" }
 verifiable = { version = "0.3.0", default-features = false }
-integration-tests-helpers = { path = "integration-tests/emulated/helpers" }
 kusama-emulated-chain = { path = "integration-tests/emulated/chains/relays/kusama" }
 kusama-polkadot-system-emulated-network = { path = "integration-tests/emulated/networks/kusama-polkadot-system" }
 kusama-runtime = { path = "relay/kusama", package = "staging-kusama-runtime" }
@@ -231,7 +230,6 @@ pallet-xcm-bridge-hub-router = { version = "0.27.0", default-features = false }
 parachain-info = { version = "0.28.0", default-features = false, package = "staging-parachain-info" }
 parachains-common = { version = "35.0.0", default-features = false }
 parachains-runtimes-test-utils = { version = "36.0.0" }
-paste = { version = "1.0.14" }
 penpal-emulated-chain = { path = "integration-tests/emulated/chains/parachains/testing/penpal" }
 penpal-runtime = { version = "0.44.0" }
 people-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/people/people-kusama" }
@@ -313,7 +311,6 @@ system-parachains-common = { path = "system-parachains/common", default-features
 tokio = { version = "1.45.0" }
 xcm = { version = "24.1.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "29.0.1", default-features = false, package = "staging-xcm-builder" }
-xcm-emulator = { version = "0.34.0" }
 xcm-executor = { version = "28.0.1", default-features = false, package = "staging-xcm-executor" }
 xcm-runtime-apis = { version = "0.16.0", default-features = false }
 anyhow = { version = "1.0.82" }
@@ -343,7 +340,6 @@ members = [
 	"integration-tests/emulated/chains/parachains/testing/penpal",
 	"integration-tests/emulated/chains/relays/kusama",
 	"integration-tests/emulated/chains/relays/polkadot",
-	"integration-tests/emulated/helpers",
 	"integration-tests/emulated/networks/kusama-polkadot-system",
 	"integration-tests/emulated/networks/kusama-system",
 	"integration-tests/emulated/networks/polkadot-system",
