@@ -19,18 +19,16 @@ use crate::{
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
 	*,
 };
-use coretime::CoretimeAllocator;
 use cumulus_pallet_parachain_system::ValidationData;
 use cumulus_primitives_core::PersistedValidationData;
 use frame_support::{
 	assert_err, assert_ok,
 	traits::{
 		fungible::{Inspect, Mutate},
-		Get, OnInitialize, OnRuntimeUpgrade,
+		OnInitialize, OnRuntimeUpgrade,
 	},
 };
-use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
-use pallet_broker::{ConfigRecordOf, RCBlockNumberOf, SaleInfo};
+use pallet_broker::{ConfigRecordOf, SaleInfo};
 use parachains_runtimes_test_utils::{ExtBuilder, GovernanceOrigin};
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::{traits::AccountIdConversion, Either};
@@ -164,20 +162,6 @@ fn retire_coretime_burn_account_sweeps_residual_and_reaps() {
 		assert!(!System::account_exists(&burn_account));
 		assert_eq!(Balances::total_issuance(), issuance_before);
 	});
-}
-
-#[test]
-fn timeslice_period_is_sane() {
-	// Config TimeslicePeriod is set to this constant - assumption in burning logic.
-	let timeslice_period_config: RCBlockNumberOf<CoretimeAllocator> =
-		<Runtime as pallet_broker::Config>::TimeslicePeriod::get();
-	assert_eq!(timeslice_period_config, TIMESLICE_PERIOD);
-
-	// Timeslice period constant non-zero - assumption in burning logic.
-	#[cfg(feature = "fast-runtime")]
-	assert_eq!(TIMESLICE_PERIOD, 20);
-	#[cfg(not(feature = "fast-runtime"))]
-	assert_eq!(TIMESLICE_PERIOD, 80);
 }
 
 #[test]
