@@ -307,7 +307,6 @@ try-runtime = [
 	"indiv-pallet-origin-restriction/try-runtime",
 	"indiv-pallet-pgas/try-runtime",
 	"indiv-precompile-personhood/try-runtime",
-	"kusama-runtime-constants/try-runtime",
 	"pallet-ah-ops/try-runtime",
 	"pallet-asset-conversion-precompiles/try-runtime",
 	"pallet-asset-conversion-tx-payment/try-runtime",

@@ -89,9 +89,8 @@ fn relay_accumulated_funds_are_burnt_on_asset_hub() {
 			) => {},]
 		);
 		let forwarded = amount - KUSAMA_ED;
-		// Everything that arrives is burned except Asset Hub's execution fee, which goes to the
-		// collator pot and so stays in its issuance. Read it from the event rather than the pot
-		// balance, which collator payouts move in the same block.
+		// All of it is burned except the execution fee, which goes to the collator pot. Read the
+		// fee from its event, since collator payouts move the pot balance in the same block.
 		let staking_pot = pallet_collator_selection::Pallet::<AssetHubRuntime>::account_id();
 		let fee = frame_system::Pallet::<AssetHubRuntime>::events()
 			.iter()

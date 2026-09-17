@@ -299,7 +299,6 @@ try-runtime = [
 	"frame-system/try-runtime",
 	"frame-try-runtime",
 	"frame-try-runtime/try-runtime",
-	"kusama-runtime-constants/try-runtime",
 	"pallet-accumulate-and-forward/try-runtime",
 	"pallet-asset-rate/try-runtime",
 	"pallet-authority-discovery/try-runtime",
