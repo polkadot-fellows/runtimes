@@ -18,6 +18,7 @@
 
 extern crate alloc;
 
+pub mod accumulate_and_forward;
 pub mod weights;
 
 /// Money matters.
@@ -141,6 +142,13 @@ pub mod system_parachain {
 
 /// Kusama Treasury pallet instance.
 pub const TREASURY_PALLET_ID: u8 = 18;
+
+/// Account-related.
+pub mod account {
+	use frame_support::PalletId;
+
+	pub const ACCUMULATE_FORWARD_PALLET_ID: PalletId = PalletId(*b"acf/ksmt");
+}
 
 pub mod proxy {
 	use pallet_remote_proxy::ProxyDefinition;

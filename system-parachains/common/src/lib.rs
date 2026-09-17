@@ -19,7 +19,6 @@
 
 extern crate alloc;
 
-pub mod accumulate_and_forward;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
 pub mod randomness;

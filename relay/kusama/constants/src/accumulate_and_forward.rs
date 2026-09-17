@@ -14,7 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-//! XCM adapter for `pallet-accumulate-and-forward` used by the Kusama system chains.
+//! XCM adapter for `pallet-accumulate-and-forward`, shared by the Kusama relay and its
+//! system chains.
 
 use alloc::vec;
 use core::marker::PhantomData;
