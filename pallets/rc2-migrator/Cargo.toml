@@ -22,6 +22,7 @@ polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 pallet-message-queue = { workspace = true }
+pallet-xcm = { workspace = true }
 sp-runtime = { workspace = true }
 xcm = { workspace = true }
 
@@ -45,6 +46,7 @@ std = [
 	"polkadot-runtime-common/std",
 	"runtime-parachains/std",
 	"pallet-message-queue/std",
+	"pallet-xcm/std",
 	"scale-info/std",
 	"sp-runtime/std",
 	"xcm/std",

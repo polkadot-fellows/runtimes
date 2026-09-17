@@ -11006,6 +11006,7 @@ dependencies = [
  "pallet-multisig",
  "pallet-preimage",
  "pallet-proxy",
+ "pallet-xcm",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common",

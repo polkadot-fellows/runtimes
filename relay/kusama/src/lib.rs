@@ -1763,6 +1763,10 @@ parameter_types! {
 	/// blocks out of every cycle, and every queue takes its turn for the rest.
 	pub const CtUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
 	pub const MigrationMultisigStartRound: u32 = 200;
+	/// How long a batch sent to the Coretime chain may go unanswered before the migration halts
+	/// itself. Generous next to a round trip through both message queues: the point is to catch a
+	/// message that will never be answered, not to police latency.
+	pub const MigrationXcmResponseTimeout: BlockNumber = 100;
 	/// Asset Hub's existential deposit; mirrors
 	/// `system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT`
 	/// without pulling that crate into the relay runtime.
@@ -2129,6 +2133,9 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type MultisigStartRound = MigrationMultisigStartRound;
 	type MessageQueue = MessageQueue;
 	type CtUmpQueuePriorityPattern = CtUmpQueuePriorityPattern;
+	type XcmResponseTimeout = MigrationXcmResponseTimeout;
+	type NotifyQueryHandler = Runtime;
+	type ResponseOrigin = pallet_xcm::EnsureResponse<frame_support::traits::Equals<xcm_config::Broker>>;
 }
 
 construct_runtime! {

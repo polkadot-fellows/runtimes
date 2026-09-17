@@ -17,8 +17,10 @@
 //!
 //! The pallet's contract, in the abstract: it receives portable payloads from a trusted (Root)
 //! origin, turns them into local state through the chain's regular APIs, and never invents
-//! balance — every re-attribution is capped by what actually arrived and every gap is parked
-//! loudly. The tests pin that contract with exact values.
+//! balance — every re-attribution is capped by what actually arrived. A record it cannot
+//! integrate fails the whole batch, so the relay chain hears about it and stops sending; an
+//! under-covered deposit is a shortfall, parked and reported, not a failure. The tests pin that
+//! contract with exact values.
 
 use crate::{mock::*, *};
 use frame_support::{assert_noop, assert_ok, hypothetically, traits::fungible::Mutate};
@@ -65,7 +67,7 @@ fn receive_accounts_mints_free_and_holds_exactly() {
 			old: MigrationStage::Pending,
 			new: MigrationStage::DataMigrationOngoing,
 		}));
-		assert!(events.contains(&Event::AccountsReceived { count_good: 2, count_bad: 0 }));
+		assert!(events.contains(&Event::AccountsReceived { count: 2 }));
 	});
 }
 
@@ -144,28 +146,35 @@ fn sub_ed_free_survives_proxy_deposit_resize() {
 }
 
 #[test]
-fn receive_accounts_parks_bad_account_without_poisoning_batch() {
+fn receive_accounts_fails_the_whole_batch_on_a_bad_account() {
 	new_test_ext().execute_with(|| {
 		let eve = acc(5); // integrates fine
-		let dave = acc(4); // mint overflows total issuance -> must park
+		let dave = acc(4); // mint overflows total issuance -> must fail the batch
 
 		// GIVEN some existing issuance so a u128::MAX mint overflows.
 		<Balances as Mutate<AccountId32>>::mint_into(&eve, 100).unwrap();
 
-		let bad = portable_account(&dave, u128::MAX, vec![]);
-		assert_ok!(CtMigrator::receive_accounts(
-			root(),
-			vec![portable_account(&eve, 60, vec![]), bad.clone()],
-		));
-
-		// THEN the good account integrated and the bad one is parked verbatim.
-		assert_eq!(free(&eve), 160);
-		assert_eq!(FailedAccounts::<Test>::get(&dave), Some(bad));
-		assert_eq!(free(&dave), 0, "the failed account must be fully rolled back");
-		assert_eq!(CtMintedTotal::<Test>::get(), 60, "only successful mints are tracked");
-		assert!(
-			migrator_events().contains(&Event::AccountsReceived { count_good: 1, count_bad: 1 })
+		// WHEN a batch carries an account that cannot be integrated.
+		assert_noop!(
+			CtMigrator::receive_accounts(
+				root(),
+				vec![
+					portable_account(&eve, 60, vec![]),
+					portable_account(&dave, u128::MAX, vec![]),
+				],
+			),
+			Error::<Test>::FailedToProcessAccount
 		);
+
+		// THEN nothing from the batch is applied, not even the account that preceded the bad one.
+		// The relay chain learns of this through the failed dispatch and stops sending; a batch
+		// that half-applied would leave balance burned there and never minted here.
+		assert_eq!(free(&eve), 100, "the good account in the batch is rolled back too");
+		assert_eq!(free(&dave), 0);
+		assert_eq!(CtMintedTotal::<Test>::get(), 0);
+		assert!(!migrator_events()
+			.iter()
+			.any(|e| matches!(e, Event::AccountsReceived { .. })));
 	});
 }
 
@@ -210,7 +219,7 @@ fn receive_registrar_releases_the_deposit_and_hands_the_para_over() {
 		// AND releasing never mints.
 		assert_eq!(total_issuance(), ti_before);
 		assert!(
-			migrator_events().contains(&Event::RegistrarReceived { count_good: 1, count_bad: 0 })
+			migrator_events().contains(&Event::RegistrarReceived { count: 1 })
 		);
 	});
 }
@@ -314,7 +323,7 @@ fn receive_hrmp_reattributes_both_sides_on_sibling_sovereigns() {
 				confirmed: true,
 			}]
 		);
-		assert!(migrator_events().contains(&Event::HrmpReceived { count_good: 1, count_bad: 0 }));
+		assert!(migrator_events().contains(&Event::HrmpReceived { count: 1 }));
 
 		// Hypothetically, had the recipient deposit not (fully) arrived, the gap parks under the
 		// (sender, recipient, side) key.
@@ -402,7 +411,7 @@ fn receive_proxies_recreates_defs_and_resizes_deposit_to_local_rates() {
 		assert_eq!(pallet_balances::Pallet::<Test>::reserved_balance(&pure), 120);
 		assert_eq!(held(HoldReason::ProxyDeposit, &pure), 0);
 		assert_eq!(free(&pure), ED + 400 - 120);
-		assert!(migrator_events().contains(&Event::ProxiesReceived { count_good: 1, count_bad: 0 }));
+		assert!(migrator_events().contains(&Event::ProxiesReceived { count: 1 }));
 	});
 }
 
@@ -494,12 +503,12 @@ fn receive_proxies_writes_entry_even_when_deposit_cannot_be_reserved() {
 		let (defs, deposit) = pallet_proxy::Proxies::<Test>::get(&broke);
 		assert_eq!(defs.len(), 1);
 		assert_eq!(deposit, 0);
-		assert!(migrator_events().contains(&Event::ProxiesReceived { count_good: 1, count_bad: 0 }));
+		assert!(migrator_events().contains(&Event::ProxiesReceived { count: 1 }));
 	});
 }
 
 #[test]
-fn receive_proxies_overflowing_merged_set_is_parked_and_rolled_back() {
+fn receive_proxies_overflowing_merged_set_fails_the_batch_and_rolls_back() {
 	new_test_ext().execute_with(|| {
 		let max = acc(10); // delegator already at MaxProxies (= 4 in this mock)
 		<Balances as Mutate<AccountId32>>::mint_into(&max, 10_000).unwrap();
@@ -524,15 +533,19 @@ fn receive_proxies_overflowing_merged_set_is_parked_and_rolled_back() {
 			.try_into()
 			.unwrap(),
 		};
-		assert_ok!(CtMigrator::receive_proxies(root(), vec![overflowing.clone()]));
+		assert_noop!(
+			CtMigrator::receive_proxies(root(), vec![overflowing]),
+			Error::<Test>::FailedToProcessProxy
+		);
 
-		// The whole item is rolled back — including the hold release — and parked for recovery.
-		assert_eq!(FailedProxies::<Test>::get(&max), Some(overflowing));
+		// The whole batch is rolled back, the hold release included.
 		assert_eq!(held(HoldReason::ProxyDeposit, &max), 400);
 		let (defs_after, deposit_after) = pallet_proxy::Proxies::<Test>::get(&max);
 		assert_eq!(defs_after, defs_before);
 		assert_eq!(deposit_after, deposit_before);
-		assert!(migrator_events().contains(&Event::ProxiesReceived { count_good: 0, count_bad: 1 }));
+		assert!(!migrator_events()
+			.iter()
+			.any(|e| matches!(e, Event::ProxiesReceived { .. })));
 	});
 }
 

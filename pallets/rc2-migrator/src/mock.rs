@@ -449,6 +449,30 @@ impl pallet_rc2_migrator::Config for Test {
 	type MultisigStartRound = MultisigStartRound;
 	type MessageQueue = RecordingHead;
 	type CtUmpQueuePriorityPattern = CtUmpQueuePriorityPattern;
+	type XcmResponseTimeout = XcmResponseTimeout;
+	type NotifyQueryHandler = CountingQueries;
+	// The response arrives as a plain signed call from the Coretime account in these tests; the
+	// real runtime distinguishes a query response from a Coretime-chain call, which is a
+	// distinction `pallet-xcm` draws and this mock has no executor to reproduce.
+	type ResponseOrigin = EnsureSignedBy<CoretimeAccount, AccountId32>;
+}
+
+parameter_types! {
+	pub const XcmResponseTimeout: u32 = 10;
+}
+
+/// Hands out sequential query ids, so a test can name the query a given batch registered.
+pub struct CountingQueries;
+impl pallet_rc2_migrator::NotifyQueryHandler<Test> for CountingQueries {
+	fn new_notify_query(_responder: Location, _timeout: u32) -> u64 {
+		let next = NextQueryId::get();
+		NextQueryId::set(next + 1);
+		next
+	}
+}
+
+parameter_types! {
+	pub static NextQueryId: u64 = 0;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
@@ -483,17 +507,41 @@ pub fn coretime() -> AccountId32 {
 	CoretimeAccount::get()
 }
 
-/// Run `n` blocks of the stage machine.
+/// Run `n` blocks of the stage machine, with a Coretime chain that accepts every batch.
+///
+/// Each block's outgoing batches are confirmed before the next one, which is what the stage
+/// machine waits for. Tests that care about a batch being rejected or ignored drive the blocks
+/// themselves; see [`run_blocks_without_ct`].
 ///
 /// The clock moves *after* the block's hooks, mirroring the timestamp inherent, which is an
 /// extrinsic and so runs after `on_initialize`.
 pub fn run_blocks(n: u32) {
+	for _ in 0..n {
+		run_blocks_without_ct(1);
+		confirm_pending_batches();
+	}
+}
+
+/// Run `n` blocks with no reply from the Coretime chain, leaving every batch unconfirmed.
+pub fn run_blocks_without_ct(n: u32) {
 	for _ in 0..n {
 		let now = System::block_number() + 1;
 		System::set_block_number(now);
 		Rc2Migrator::on_initialize(now);
 		Rc2Migrator::on_finalize(now);
 		MockNow::set(u64::from(now).saturating_mul(BLOCK_TIME_MS));
+	}
+}
+
+/// Answer every outstanding batch with a success, as a healthy Coretime chain would.
+pub fn confirm_pending_batches() {
+	for query_id in crate::UnconfirmedBatches::<Test>::iter_keys().collect::<Vec<_>>() {
+		Rc2Migrator::receive_query_response(
+			RuntimeOrigin::signed(coretime()),
+			query_id,
+			Response::DispatchResult(MaybeErrorCode::Success),
+		)
+		.expect("the mock Coretime chain accepts every batch");
 	}
 }
 

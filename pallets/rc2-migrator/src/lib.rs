@@ -63,6 +63,12 @@ use sp_runtime::{
 };
 use xcm::prelude::*;
 
+/// Weight allowed to `receive_query_response` when a batch's report lands back here.
+///
+/// The call reads one map and writes one stage; the margin is deliberate, since a report that
+/// cannot pay its own execution is a batch whose outcome is lost.
+const REPORT_RESPONSE_WEIGHT: Weight = Weight::from_parts(1_000_000_000, 100_000);
+
 const LOG_TARGET: &str = "runtime::rc2-migrator";
 
 pub type MigrationStageOf<T> =
@@ -192,6 +198,25 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 	pub fn has_started(&self) -> bool {
 		self.is_ongoing() || self.is_finished()
 	}
+
+	/// Whether this stage must wait for the Coretime chain to confirm the batches it has sent.
+	///
+	/// Every data stage destroys what it sends, so a second batch built on an unconfirmed first
+	/// widens a gap neither chain can see. Listed the other way round — what does *not* wait —
+	/// so that a data stage added later inherits the wait instead of silently skipping it:
+	/// the stages below either send nothing or are the single signals whose own stage already
+	/// gates what follows them.
+	pub fn waits_for_confirmation(&self) -> bool {
+		!matches!(
+			self,
+			Self::Pending |
+				Self::Scheduled { .. } |
+				Self::Paused | Self::WaitingForCt |
+				Self::WarmUp { .. } |
+				Self::CoolOff { .. } |
+				Self::MigrationDone
+		)
+	}
 }
 
 /// Payload of a `Transact` sent to the Coretime chain.
@@ -262,6 +287,35 @@ impl MigratedBalances<u128> {
 	/// Everything that went to the Coretime chain; what `reconcile_balances` reconciles against.
 	pub fn migrated_ct(&self) -> u128 {
 		self.ct_reserved.saturating_add(self.ct_free)
+	}
+}
+
+/// Registers a query whose response dispatches a call back into this pallet.
+///
+/// A seam over `pallet_xcm::new_notify_query` rather than a `pallet_xcm::Config` bound: the bound
+/// would drag an XCM executor into every mock that only ever needs a query id.
+pub trait NotifyQueryHandler<T: pallet::Config> {
+	/// Register a query answered by `responder`, to be reported to
+	/// [`pallet::Call::receive_query_response`], and return its id.
+	fn new_notify_query(responder: Location, timeout: BlockNumberFor<T>) -> u64;
+}
+
+impl<T, R> NotifyQueryHandler<T> for R
+where
+	T: pallet::Config,
+	R: pallet_xcm::Config<RuntimeCall: From<pallet::Call<T>>>,
+	BlockNumberFor<T>: Into<BlockNumberFor<R>>,
+{
+	fn new_notify_query(responder: Location, timeout: BlockNumberFor<T>) -> u64 {
+		pallet_xcm::Pallet::<R>::new_notify_query(
+			responder,
+			<R as pallet_xcm::Config>::RuntimeCall::from(pallet::Call::<T>::receive_query_response {
+				query_id: 0,
+				response: Response::Null,
+			}),
+			timeout.into(),
+			Location::here(),
+		)
 	}
 }
 
@@ -369,6 +423,22 @@ pub mod pallet {
 		/// migration runs; see [`QueuePriority`]. Overridable per migration through
 		/// [`CtUmpQueuePriorityConfig`].
 		type CtUmpQueuePriorityPattern: Get<(BlockNumberFor<Self>, BlockNumberFor<Self>)>;
+
+		/// How long a batch sent to the Coretime chain may go unanswered before
+		/// [`Pallet::on_initialize`] halts the migration. Counted from the block the batch was
+		/// sent; see [`UnconfirmedBatches`].
+		#[pallet::constant]
+		type XcmResponseTimeout: Get<BlockNumberFor<Self>>;
+
+		/// Registers the notify query that carries a batch's dispatch result back from the
+		/// Coretime chain. Normally `pallet-xcm`; see [`NotifyQueryHandler`].
+		type NotifyQueryHandler: NotifyQueryHandler<Self>;
+
+		/// The origin a query response from the Coretime chain dispatches with. Normally
+		/// `pallet_xcm::EnsureResponse`, which is a different origin from [`Self::CtOrigin`]: a
+		/// report answers a query this chain registered, rather than being a call the Coretime
+		/// chain chose to make.
+		type ResponseOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 	}
 
 	#[pallet::pallet]
@@ -377,6 +447,19 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::unbounded]
 	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageOf<T>, ValueQuery>;
+
+	/// Batches sent to the Coretime chain whose dispatch result has not come back yet, by the
+	/// notify-query id `send_to_ct` registered for each.
+	///
+	/// The migration does not advance while this is non-empty: the relay chain burns state before
+	/// it sends it, so running ahead of an unanswered batch risks draining more of a map whose
+	/// previous chunk never landed. An entry is removed when [`Pallet::receive_query_response`]
+	/// reports success; a failure or a timeout halts the machine with the entry still in place,
+	/// naming the batch an operator has to deal with.
+	#[pallet::storage]
+	#[pallet::unbounded]
+	pub type UnconfirmedBatches<T: Config> =
+		StorageMap<_, Twox64Concat, u64, (MigrationStageOf<T>, BlockNumberFor<T>), OptionQuery>;
 
 	/// How long [`MigrationStage::WarmUp`] holds, as the scheduled migration set it.
 	#[pallet::storage]
@@ -456,6 +539,10 @@ pub mod pallet {
 		QueuePriorityAlreadySet,
 		/// A priority pattern must give the queue at least one block.
 		ZeroPriorityBlocks,
+		/// The response names a query this pallet is not waiting on.
+		UnknownQuery,
+		/// The response to a batch was not a dispatch result.
+		UnexpectedResponse,
 	}
 
 	#[pallet::event]
@@ -563,6 +650,22 @@ pub mod pallet {
 		CtUmpQueuePriorityConfigSet {
 			old: QueuePriority<BlockNumberFor<T>>,
 			new: QueuePriority<BlockNumberFor<T>>,
+		},
+		/// The Coretime chain integrated a batch; the stage machine may continue.
+		BatchConfirmed {
+			query_id: u64,
+			stage: MigrationStageOf<T>,
+		},
+		/// The Coretime chain rejected a batch. The migration is paused.
+		BatchFailed {
+			query_id: u64,
+			stage: MigrationStageOf<T>,
+			error: MaybeErrorCode,
+		},
+		/// A batch went unanswered for [`Config::XcmResponseTimeout`]. The migration is paused.
+		BatchTimedOut {
+			query_id: u64,
+			stage: MigrationStageOf<T>,
 		},
 	}
 
@@ -763,6 +866,46 @@ pub mod pallet {
 			Self::deposit_event(Event::CtUmpQueuePriorityConfigSet { old, new });
 			Ok(())
 		}
+
+		/// The Coretime chain reports what it did with a batch.
+		///
+		/// Dispatched by `pallet-xcm` when the `ReportTransactStatus` appendix that [`send_to_ct`]
+		/// attached answers its notify query, so the origin is the response origin rather than the
+		/// Coretime chain's sovereign one.
+		///
+		/// A success clears the batch and lets the stage machine continue. A failure leaves the
+		/// entry in [`UnconfirmedBatches`] and halts the machine at [`MigrationStage::Paused`]:
+		/// the relay chain has already burned what that batch carried, so advancing would widen a
+		/// gap the two chains cannot close by themselves. Recovery is an operator's
+		/// `force_set_stage`, after they have decided what to do with the batch.
+		#[pallet::call_index(7)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(3, 3))]
+		pub fn receive_query_response(
+			origin: OriginFor<T>,
+			query_id: u64,
+			response: Response,
+		) -> DispatchResult {
+			T::ResponseOrigin::ensure_origin(origin)?;
+
+			let (stage, _sent_at) =
+				UnconfirmedBatches::<T>::get(query_id).ok_or(Error::<T>::UnknownQuery)?;
+			let Response::DispatchResult(result) = response else {
+				return Err(Error::<T>::UnexpectedResponse.into());
+			};
+
+			if result == MaybeErrorCode::Success {
+				UnconfirmedBatches::<T>::remove(query_id);
+				Self::deposit_event(Event::BatchConfirmed { query_id, stage });
+			} else {
+				log::error!(
+					target: LOG_TARGET,
+					"Coretime chain rejected the batch sent in stage {stage:?}: {result:?}",
+				);
+				Self::deposit_event(Event::BatchFailed { query_id, stage, error: result });
+				Self::transition(MigrationStage::Paused);
+			}
+			Ok(())
+		}
 	}
 
 	/// One member's vote for `call`, signed offline and submitted by anyone.
@@ -887,8 +1030,40 @@ pub mod pallet {
 				.build()
 		}
 
+		/// Hold the stage machine while a batch is unanswered, and halt it if one never arrives.
+		///
+		/// Returns `true` if the caller must not advance this block. The relay chain destroys
+		/// state as it sends it, so a batch whose fate is unknown is a reason to stop rather than
+		/// to keep draining: `ExpectTransactStatus` has already made a failed integration
+		/// reportable, and this is what makes the report arrive before the next batch is built.
+		fn wait_for_pending_batches(now: BlockNumberFor<T>) -> bool {
+			let timeout = T::XcmResponseTimeout::get();
+			let mut pending = false;
+			for (query_id, (stage, sent_at)) in UnconfirmedBatches::<T>::iter() {
+				pending = true;
+				if now.saturating_sub(sent_at) >= timeout {
+					log::error!(
+						target: LOG_TARGET,
+						"Batch sent in stage {stage:?} went unanswered for {timeout:?} blocks",
+					);
+					Self::deposit_event(Event::BatchTimedOut { query_id, stage });
+					Self::transition(MigrationStage::Paused);
+					return true;
+				}
+			}
+			pending
+		}
+
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
-			match RcMigrationStage::<T>::get() {
+			let stage = RcMigrationStage::<T>::get();
+			// A stage that sends state must not build its next batch on one the Coretime chain
+			// has not accepted; the handshake and closing signals are exempt, each being a
+			// single message whose own stage gates what follows it.
+			if stage.waits_for_confirmation() && Self::wait_for_pending_batches(now) {
+				return T::DbWeight::get().reads(2);
+			}
+
+			match stage {
 				// The scheduled start is compared against the clock, which at `on_initialize` still
 				// holds the previous block's timestamp -- so the migration begins on the first
 				// block after the one whose timestamp passed `start`.
@@ -1404,13 +1579,34 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Send a `pallet-ct-migrator` call to the Coretime chain.
+		/// Send a `pallet-ct-migrator` call to the Coretime chain and record it as unconfirmed.
+		///
+		/// The message carries its dispatch result back: a notify query is registered here, and
+		/// the `ReportTransactStatus` appendix answers it with the Transact Status Register once
+		/// the Coretime chain has run the call. The appendix is what makes a *failed* call
+		/// reportable — an appendix runs whether or not the message body succeeded, so the
+		/// preceding `ExpectTransactStatus` can abort the body and the report still goes out.
+		///
+		/// The query id is held in [`UnconfirmedBatches`] until the answer arrives; the stage
+		/// machine will not send the next batch while an entry is outstanding.
 		fn send_to_ct(call: CtMigratorCall) -> Result<(), Error<T>> {
 			let call = CtRuntimeCall::CtMigrator(call);
+			let now = frame_system::Pallet::<T>::block_number();
+			let timeout = now.saturating_add(T::XcmResponseTimeout::get());
+			let query_id = T::NotifyQueryHandler::new_notify_query(
+				Location::new(0, [Parachain(T::CtParaId::get())]),
+				timeout,
+			);
+
 			// `Superuser` converts to Root on the Coretime chain, which system chains grant the
 			// relay-chain location; the `receive_*` calls check for Root.
 			let message = Xcm(vec![
 				UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+				SetAppendix(Xcm(vec![ReportTransactStatus(QueryResponseInfo {
+					destination: Location::parent(),
+					query_id,
+					max_weight: REPORT_RESPONSE_WEIGHT,
+				})])),
 				Transact {
 					origin_kind: OriginKind::Superuser,
 					fallback_max_weight: None,
@@ -1426,6 +1622,7 @@ pub mod pallet {
 				log::error!(target: LOG_TARGET, "Sending to CT failed: {e:?}");
 				Error::<T>::XcmSendFailed
 			})?;
+			UnconfirmedBatches::<T>::insert(query_id, (RcMigrationStage::<T>::get(), now));
 			Ok(())
 		}
 	}

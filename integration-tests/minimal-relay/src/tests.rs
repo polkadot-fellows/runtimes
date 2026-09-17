@@ -742,29 +742,88 @@ async fn accounts_migrate_rc_to_ct() {
 	let (ct_free_exp, _ah_free_exp) = expected_split(rc_free, rc_reserved);
 
 	// WHEN the accounts stage runs to completion.
-	let (dmp, migrated) = rc.execute_with(|| {
+	//
+	// It has to be shuttled rather than run to the end on the relay chain alone: each batch is
+	// only confirmed once the Coretime chain has integrated it and its `ReportTransactStatus`
+	// answer has travelled back, and the stage machine holds until then.
+	let ct_account_before = ct.execute_with(|| {
+		assert!(
+			pallet_balances::Holds::<Ct>::get(&manager).is_empty(),
+			"manager unexpectedly already has holds on Coretime"
+		);
+		frame_system::Account::<Ct>::get(&manager)
+	});
+	let ct_issuance_before = ct.execute_with(pallet_balances::TotalIssuance::<Ct>::get);
+
+	rc.execute_with(|| {
 		pallet_rc2_migrator::Pallet::<Rc>::force_set_stage(
 			crate::mock::network::relay::RuntimeOrigin::root(),
 			RcStage::AccountsInit,
 		)
 		.expect("root may set the stage");
-
-		for _ in 0..20 {
-			if RcMigrationStage::<Rc>::get() == RcStage::AccountsDone {
-				break;
-			}
-			next_block_rc();
-		}
-		assert_eq!(
-			RcMigrationStage::<Rc>::get(),
-			RcStage::AccountsDone,
-			"accounts stage must finish within 20 blocks"
-		);
-
-		(take_dmp(CoretimePara::PARA_ID.into()), RcMigratedBalance::<Rc>::get())
 	});
 	rc.commit_all().unwrap();
-	assert!(!dmp.is_empty(), "the accounts stage queued no DMP messages for Coretime");
+
+	let mut ct_ump: Vec<polkadot_primitives::UpwardMessage> = Vec::new();
+	let mut sent_any = false;
+	let mut rounds = 0;
+	let migrated = loop {
+		rounds += 1;
+		assert!(rounds <= 20, "accounts stage must finish within 20 shuttle rounds");
+
+		let (dmp, stage, migrated) = rc.execute_with(|| {
+			enqueue_ump(CoretimePara::PARA_ID.into(), core::mem::take(&mut ct_ump));
+			for _ in 0..3 {
+				next_block_rc();
+			}
+			(
+				take_dmp(CoretimePara::PARA_ID.into()),
+				RcMigrationStage::<Rc>::get(),
+				RcMigratedBalance::<Rc>::get(),
+			)
+		});
+		rc.commit_all().unwrap();
+		sent_any |= !dmp.is_empty();
+
+		ct.execute_with(|| {
+			enqueue_dmp::<CoretimePara>(dmp);
+			for _ in 0..3 {
+				next_block_para::<CoretimePara>();
+			}
+			ct_ump = take_ump::<CoretimePara>();
+		});
+		ct.commit_all().unwrap();
+
+		if stage == RcStage::AccountsDone {
+			break migrated;
+		}
+	};
+	assert!(sent_any, "the accounts stage queued no DMP messages for Coretime");
+
+	// Deliver the final round's reports. Every batch the *accounts* stage sent must be confirmed
+	// by now — the relay chain burned what each one carried, so an unconfirmed accounts batch is
+	// balance that went nowhere. Later stages are already sending by this point (the machine does
+	// not stop at `AccountsDone`), so only the accounts batches are in scope here.
+	rc.execute_with(|| {
+		enqueue_ump(CoretimePara::PARA_ID.into(), core::mem::take(&mut ct_ump));
+		for _ in 0..3 {
+			next_block_rc();
+		}
+		let unconfirmed_accounts: Vec<_> = pallet_rc2_migrator::UnconfirmedBatches::<Rc>::iter()
+			.filter(|(_, (stage, _))| {
+				matches!(
+					stage,
+					RcStage::AccountsInit | RcStage::AccountsOngoing { .. } | RcStage::AccountsDone
+				)
+			})
+			.map(|(query_id, _)| query_id)
+			.collect();
+		assert!(
+			unconfirmed_accounts.is_empty(),
+			"the Coretime chain never confirmed accounts batches {unconfirmed_accounts:?}",
+		);
+	});
+	rc.commit_all().unwrap();
 
 	// THEN the manager is reaped on the RC and issuance dropped by exactly what migrated.
 	let total_migrated = migrated.ct_reserved + migrated.ct_free + migrated.ah_free;
@@ -782,26 +841,9 @@ async fn accounts_migrate_rc_to_ct() {
 	// hold, the working buffer arrives free, and issuance grows by exactly the CT-bound burn.
 	// (The teleported remainder is asserted end-to-end in `full_migration_rc_to_ct`.)
 	ct.execute_with(|| {
-		let ct_account_before = frame_system::Account::<Ct>::get(&manager);
-		let ct_issuance_before = pallet_balances::TotalIssuance::<Ct>::get();
-		assert!(
-			pallet_balances::Holds::<Ct>::get(&manager).is_empty(),
-			"manager unexpectedly already has holds on Coretime"
-		);
-
-		enqueue_dmp::<CoretimePara>(dmp);
-		// Generous bound; the batches drain in a few blocks.
-		for _ in 0..30 {
-			next_block_para::<CoretimePara>();
-		}
-
 		assert_eq!(
 			pallet_ct_migrator::CtMigrationStage::<Ct>::get(),
 			pallet_ct_migrator::MigrationStage::DataMigrationOngoing,
-		);
-		assert!(
-			pallet_ct_migrator::FailedAccounts::<Ct>::iter().next().is_none(),
-			"no account may fail to integrate"
 		);
 
 		let ct_account = frame_system::Account::<Ct>::get(&manager);
@@ -1493,18 +1535,14 @@ async fn full_migration_rc_to_ct() {
 		use pallet_registrar_para::RegistrationState;
 
 		assert_eq!(CtMigrationStage::<Ct>::get(), MigrationStage::MigrationDone);
-		let failed_paras: Vec<u32> = FailedParas::<Ct>::iter_keys().collect();
+		// Reaching `MigrationDone` already implies it, but state it: a batch the Coretime chain
+		// refused would have left its query unanswered and paused the relay chain short of here.
+		let unconfirmed: Vec<u64> =
+			pallet_rc2_migrator::UnconfirmedBatches::<Rc>::iter_keys().collect();
 		assert!(
-			failed_paras.is_empty(),
-			"{} of {} paras failed to integrate: {failed_paras:?}",
-			failed_paras.len(),
-			paras_before.len(),
-		);
-		let failed_channels: Vec<_> = FailedHrmpChannels::<Ct>::iter_keys().collect();
-		assert!(
-			failed_channels.is_empty(),
-			"{} channels failed to integrate: {failed_channels:?}",
-			failed_channels.len(),
+			unconfirmed.is_empty(),
+			"{} batch(es) were never confirmed: {unconfirmed:?}",
+			unconfirmed.len(),
 		);
 
 		// --- the registrar pallet actually owns the paras now -----------------------------
@@ -1762,12 +1800,12 @@ async fn full_migration_rc_to_ct() {
 
 		// AND every portable definition was recreated in the REAL proxy pallet, so keyless
 		// (pure) delegators can dispatch here from day one.
-		assert!(FailedProxies::<Ct>::iter().next().is_none(), "no proxy set may fail");
-		let failed_accounts: Vec<_> = FailedAccounts::<Ct>::iter_keys().map(|w| ss58(&w)).collect();
+		let unconfirmed: Vec<u64> =
+			pallet_rc2_migrator::UnconfirmedBatches::<Rc>::iter_keys().collect();
 		assert!(
-			failed_accounts.is_empty(),
-			"{} account(s) failed to integrate: {failed_accounts:?}",
-			failed_accounts.len(),
+			unconfirmed.is_empty(),
+			"{} batch(es) were never confirmed: {unconfirmed:?}",
+			unconfirmed.len(),
 		);
 		for who in &ct_bound_proxies {
 			// Under the address the account continues at here: a child sovereign's balance, its
