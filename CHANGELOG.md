@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Removed
+
+- People Polkadot: remove the single-use `SeedSubscriptionWhitelist` migration that seeded the Asset Hub `MembersNotifier` subscription whitelist entry. It shipped in 2.5.0 and has run on chain. [#1292](https://github.com/polkadot-fellows/runtimes/pull/1292)).
+
 ### Changed
 
 - Coretime Kusama: bulk revenue now accumulates with dust and is burnt on Asset Hub through `pallet-accumulate-and-forward`, and a migration retires the `py/ctbrn` holding account ([#1301](https://github.com/polkadot-fellows/runtimes/pull/1301)).
