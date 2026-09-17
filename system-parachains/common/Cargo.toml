@@ -18,9 +18,11 @@ sp-api = { workspace = true }
 
 frame-support = { workspace = true }
 frame-system = { workspace = true }
+pallet-accumulate-and-forward = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-xcm = { workspace = true }
 xcm = { workspace = true }
+xcm-executor = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 polkadot-primitives = { workspace = true }
@@ -34,6 +36,7 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
+	"pallet-accumulate-and-forward/std",
 	"pallet-balances/std",
 	"pallet-xcm/std",
 	"polkadot-primitives/std",
@@ -41,6 +44,7 @@ std = [
 	"sp-api/std",
 	"sp-runtime/std",
 	"sp-state-machine/std",
+	"xcm-executor/std",
 	"xcm/std",
 ]
 
@@ -49,10 +53,12 @@ runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"pallet-accumulate-and-forward/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
 ]
 
@@ -60,6 +66,7 @@ try-runtime = [
 	"cumulus-pallet-parachain-system/try-runtime",
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"pallet-accumulate-and-forward/try-runtime",
 	"pallet-balances/try-runtime",
 	"pallet-xcm/try-runtime",
 	"sp-runtime/try-runtime",

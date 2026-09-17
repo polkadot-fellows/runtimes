@@ -94,3 +94,10 @@ fn coretime_revenue_is_burnt_on_asset_hub() {
 		);
 	});
 }
+
+integration_tests_helpers::test_accumulated_funds_are_burnt_on_asset_hub!(
+	CoretimeKusama,
+	AssetHubKusama,
+	CORETIME_KUSAMA_ED,
+	ASSET_HUB_KUSAMA_ED,
+);
