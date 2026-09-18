@@ -22,10 +22,12 @@
 
 use crate::mock::*;
 use codec::Encode;
+use cumulus_primitives_core::UpwardMessage;
 use frame_support::assert_ok;
 use network::constants::{system_parachain, time::MINUTES};
 use pallet_message_queue::Event::{Processed, ProcessingFailed};
 use pallet_rc2_migrator::MigrationStage as RcStage;
+use sp_io::TestExternalities;
 use xcm::{latest::prelude::*, VersionedXcm};
 
 /// An XCM program that executes `call` on the destination with the sender's sovereign-account
@@ -149,20 +151,13 @@ const OUTSIDER_PARA: u32 = 4242;
 /// thing standing between it and the migration is `CtOrigin`.
 const SYSTEM_IMPOSTOR_PARA: u32 = system_parachain::ASSET_HUB_ID;
 
-/// The migration's stage machine, driven end to end over live relay-chain and Coretime state.
+/// Schedule the migration and walk both chains through the handshake over their real queues: the
+/// relay chain sends its start signal at the scheduled time, the Coretime chain opens and answers.
 ///
-/// Ensures the two chains' hand-encoded calls decode against each other's real `RuntimeCall`, the
-/// RC's XCM router and the CT's barrier carry the handshake, and each side's origin converter
-/// grants the authority the receiving call checks for (Superuser downwards, para origin upwards).
-#[tokio::test(flavor = "multi_thread")]
-async fn the_migration_runs_to_completion_and_moves_nothing() {
-	let (mut rc, mut ct) = tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN));
-
-	let rc_issuance_before =
-		rc.execute_with(pallet_balances::Pallet::<network::relay::Runtime>::total_issuance);
-	let ct_issuance_before =
-		ct.execute_with(pallet_balances::Pallet::<network::ct::Runtime>::total_issuance);
-
+/// Returns that answer undelivered, so a test can decide who delivers it. `enqueue_dmp` decodes
+/// the start signal with the real Coretime `RuntimeCall`, so a stale pallet or call index fails
+/// here.
+fn run_handshake(rc: &mut TestExternalities, ct: &mut TestExternalities) -> Vec<UpwardMessage> {
 	// The relay chain is inert until governance schedules the migration, and stays inert until
 	// the start block.
 	let dmp = rc.execute_with(|| {
@@ -190,8 +185,6 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 	});
 	assert!(!dmp.is_empty(), "the relay chain queued no start signal for the Coretime chain");
 
-	// The Coretime chain opens the migration and answers upwards. `enqueue_dmp` decodes the
-	// message with the real Coretime `RuntimeCall`, so a stale pallet or call index fails here.
 	let ump = ct.execute_with(|| {
 		assert_eq!(ct_stage(), pallet_ct_migrator::MigrationStage::Pending);
 		enqueue_dmp::<CoretimePara>(dmp);
@@ -201,6 +194,20 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 		take_ump::<CoretimePara>()
 	});
 	assert!(!ump.is_empty(), "the Coretime chain queued no answer for the relay chain");
+	ump
+}
+
+/// The migration's stage machine, driven end to end over live relay-chain and Coretime state.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_migration_runs_to_completion() {
+	let (mut rc, mut ct) = tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN));
+
+	let rc_issuance_before =
+		rc.execute_with(pallet_balances::Pallet::<network::relay::Runtime>::total_issuance);
+	let ct_issuance_before =
+		ct.execute_with(pallet_balances::Pallet::<network::ct::Runtime>::total_issuance);
+
+	let ump = run_handshake(&mut rc, &mut ct);
 
 	// The answer admits the machine to the warm-up and, with no data stages implemented, on
 	// through the verification window to the finish.
@@ -254,22 +261,8 @@ async fn the_migration_runs_to_completion_and_moves_nothing() {
 async fn readiness_from_another_parachain_is_refused() {
 	let (mut rc, mut ct) = tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN));
 
-	// GIVEN a relay chain waiting for the Coretime chain,
-	rc.execute_with(|| {
-		assert_ok!(pallet_rc2_migrator::Pallet::<network::relay::Runtime>::force_set_stage(
-			network::relay::RuntimeOrigin::root(),
-			RcStage::WaitingForCt,
-		));
-	});
-
-	// and the message the Coretime chain would answer with.
-	let ump = ct.execute_with(|| {
-		assert_ok!(pallet_ct_migrator::Pallet::<network::ct::Runtime>::start_migration(
-			network::ct::RuntimeOrigin::root(),
-		));
-		take_ump::<CoretimePara>()
-	});
-	assert!(!ump.is_empty(), "the Coretime chain queued no answer to copy");
+	// GIVEN a relay chain waiting for the Coretime chain to be ready
+	let ump = run_handshake(&mut rc, &mut ct);
 
 	// WHEN a para that is not a system chain sends that same message. THEN the barrier turns it
 	// away before it executes, and the relay chain is still waiting.
@@ -338,7 +331,9 @@ fn ump_outcome(para: u32) -> Option<bool> {
 				}) if origin == queue => return Some(success),
 				network::relay::RuntimeEvent::MessageQueue(ProcessingFailed { origin, .. })
 					if origin == queue =>
-					return Some(false),
+				{
+					return Some(false)
+				},
 				_ => (),
 			}
 		}

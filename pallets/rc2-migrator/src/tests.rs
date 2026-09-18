@@ -15,7 +15,8 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	mock::*, CtMigratorCall, CtRuntimeCall, Error, Event, Manager, MigrationStage, RcMigrationStage,
+	mock::*, CtMigratorCall, CtRuntimeCall, Error, Event, Manager, MigrationStage, Paused,
+	RcMigrationStage,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -26,6 +27,11 @@ type Stage = MigrationStage<AccountId, u64, u64>;
 
 fn stage() -> Stage {
 	RcMigrationStage::<Test>::get()
+}
+
+/// Put the machine at `stage` directly.
+fn set_stage(stage: Stage) {
+	RcMigrationStage::<Test>::put(stage);
 }
 
 fn assert_stage(expected: Stage) {
@@ -156,13 +162,16 @@ fn the_manager_drives_the_migration_but_cannot_appoint_one() {
 		assert_ok!(Rc2Migrator::cancel_migration(RuntimeOrigin::signed(ALICE)));
 		assert_stage(Stage::Pending);
 
-		// WHEN the manager forces a stage. THEN it is accepted: the manager has the admin
-		// origin's powers over the machine.
+		// GIVEN a running machine. WHEN the manager pauses, forces and resumes. THEN all three are
+		// accepted: the manager has the admin origin's powers over the machine.
+		set_stage(Stage::WaitingForCt);
+		assert_ok!(Rc2Migrator::pause_migration(RuntimeOrigin::signed(ALICE)));
 		assert_ok!(Rc2Migrator::force_set_stage(
 			RuntimeOrigin::signed(ALICE),
 			Stage::MigrationDone
 		));
 		assert_stage(Stage::MigrationDone);
+		assert_ok!(Rc2Migrator::resume_migration(RuntimeOrigin::signed(ALICE)));
 
 		// WHEN the manager appoints a manager. THEN it is refused, so the appointment stays with
 		// the admin origin alone.
@@ -298,7 +307,7 @@ fn the_start_signal_is_the_message_the_coretime_chain_expects() {
 fn waiting_for_coretime_never_advances_on_its_own() {
 	// GIVEN a machine that has sent its start signal.
 	new_test_ext().execute_with(|| {
-		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::WaitingForCt));
+		set_stage(Stage::WaitingForCt);
 
 		// WHEN many blocks pass without an answer.
 		run_blocks(50);
@@ -353,8 +362,8 @@ fn readiness_outside_the_handshake_is_rejected() {
 		);
 		assert_stage(Stage::Pending);
 
-		// Same for a migration that has already finished.
-		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::MigrationDone));
+		// GIVEN a migration that has already finished. THEN the same refusal.
+		set_stage(Stage::MigrationDone);
 		assert_noop!(
 			Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)),
 			Error::<Test>::NotWaitingForCt
@@ -367,7 +376,7 @@ fn cool_off_holds_for_its_period_and_then_finishes() {
 	// GIVEN a machine in its verification window.
 	new_test_ext().execute_with(|| {
 		let end_at = System::block_number() + COOL_OFF;
-		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::CoolOff { end_at }));
+		set_stage(Stage::CoolOff { end_at });
 
 		// WHEN the window has not elapsed. THEN nothing happens: the window exists so the end
 		// state can be inspected while the migration's filters are still engaged.
@@ -413,10 +422,11 @@ fn a_failed_send_leaves_the_stage_alone_for_a_retry() {
 		assert_stage(Stage::WaitingForCt);
 		assert_eq!(sent().len(), 1);
 
-		// WHEN the completion signal is the one that cannot be sent. THEN the verification window
-		// stays open rather than closing on a signal the Coretime chain never received.
+		// GIVEN a machine in its verification window. WHEN the completion signal is the one that
+		// cannot be sent. THEN the window stays open rather than closing on a signal the Coretime
+		// chain never received.
 		let end_at = System::block_number() + COOL_OFF;
-		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::CoolOff { end_at }));
+		set_stage(Stage::CoolOff { end_at });
 		SendFails::set(true);
 		run_blocks(COOL_OFF + 5);
 		assert_stage(Stage::CoolOff { end_at });
@@ -431,8 +441,21 @@ fn a_failed_send_leaves_the_stage_alone_for_a_retry() {
 }
 
 #[test]
-fn force_set_stage_is_admin_only_and_unconstrained() {
+fn force_set_stage_needs_a_pause_and_the_admins_powers() {
+	// GIVEN a machine waiting on the Coretime chain, not paused.
 	new_test_ext().execute_with(|| {
+		set_stage(Stage::WaitingForCt);
+
+		// WHEN root forces a stage while the machine runs. THEN it is refused: the machine is
+		// moved by hand only while it is paused.
+		assert_noop!(
+			Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::MigrationDone),
+			Error::<Test>::NotPaused
+		);
+
+		// GIVEN it is paused.
+		assert_ok!(Rc2Migrator::pause_migration(RuntimeOrigin::root()));
+
 		// WHEN an origin without the admin's powers forces a stage. THEN it is refused.
 		assert_noop!(
 			Rc2Migrator::force_set_stage(RuntimeOrigin::signed(ALICE), Stage::MigrationDone),
@@ -443,35 +466,97 @@ fn force_set_stage_is_admin_only_and_unconstrained() {
 			BadOrigin
 		);
 
-		// WHEN root forces stages. THEN it may move anywhere, including backwards and into the
-		// halt stage.
+		// WHEN root forces stages. THEN it may move anywhere, including backwards
 		for target in [
-			Stage::WaitingForCt,
-			Stage::Paused,
+			Stage::AccountsOngoing { last_key: None },
 			Stage::MigrationDone,
 			Stage::Scheduled { start: 99 * BLOCK_TIME_MS },
 			Stage::Pending,
+			Stage::WaitingForCt,
 		] {
 			assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), target.clone()));
 			assert_stage(target);
 		}
+
+		// WHEN it is resumed. THEN the machine continues from the forced stage and the hatch
+		// closes again.
+		assert_ok!(Rc2Migrator::resume_migration(RuntimeOrigin::root()));
+		assert_stage(Stage::WaitingForCt);
+		assert_noop!(
+			Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::MigrationDone),
+			Error::<Test>::NotPaused
+		);
 	});
 }
 
 #[test]
-fn a_paused_machine_does_not_advance_but_stays_engaged() {
-	// GIVEN a paused migration.
+fn a_running_migration_can_be_paused_and_resumed_where_it_stopped() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::Paused));
+		let start = now_ms() + BLOCK_TIME_MS;
 
-		// WHEN blocks pass. THEN nothing moves — only `force_set_stage` leaves this stage.
-		run_blocks(20);
-		assert_stage(Stage::Paused);
-		assert_eq!(sent().len(), 0);
+		// WHEN a migration that is not running is paused. THEN it is refused at every such stage:
+		// nothing to halt before the start, cancel is the tool while scheduled, nothing left after.
+		for not_running in [Stage::Pending, Stage::Scheduled { start }, Stage::MigrationDone] {
+			set_stage(not_running);
+			assert_noop!(
+				Rc2Migrator::pause_migration(RuntimeOrigin::root()),
+				Error::<Test>::NotRunning
+			);
+		}
+		// WHEN a migration that is not paused is resumed. THEN it is refused.
+		assert_noop!(
+			Rc2Migrator::resume_migration(RuntimeOrigin::root()),
+			Error::<Test>::NotPaused
+		);
 
-		// THEN the migration still counts as ongoing.
+		// GIVEN a scheduled migration that has reached the handshake.
+		set_stage(Stage::Pending);
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::root(),
+			start,
+			WARM_UP,
+			COOL_OFF
+		));
+		run_blocks(2);
+		assert_stage(Stage::WaitingForCt);
+		let sent_so_far = sent().len();
+
+		// WHEN an origin without the admin's powers pauses it. THEN it is refused.
+		assert_noop!(Rc2Migrator::pause_migration(RuntimeOrigin::signed(ALICE)), BadOrigin);
+
+		// WHEN the manager pauses it. THEN the machine halts and the stage is left where it was.
+		assert_ok!(Rc2Migrator::set_manager(RuntimeOrigin::root(), Some(ALICE)));
+		assert_ok!(Rc2Migrator::pause_migration(RuntimeOrigin::signed(ALICE)));
+		assert!(Paused::<Test>::get());
+		assert_stage(Stage::WaitingForCt);
+		System::assert_last_event(Event::MigrationPaused { stage: Stage::WaitingForCt }.into());
+
+		// WHEN the Coretime chain confirms during the pause. THEN the fact is recorded — the
+		// reply is not lost — but the machine still does not move: the warm-up never counts down.
+		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)));
+		let end_at = System::block_number() + WARM_UP;
+		assert_stage(Stage::WarmUp { end_at });
+		run_blocks(WARM_UP + 5);
+		assert_stage(Stage::WarmUp { end_at });
+		assert_eq!(sent().len(), sent_so_far);
 		assert!(stage().is_ongoing());
 		assert!(!stage().is_finished());
+
+		// WHEN it is paused again. THEN that is refused.
+		assert_noop!(
+			Rc2Migrator::pause_migration(RuntimeOrigin::root()),
+			Error::<Test>::AlreadyPaused
+		);
+
+		// WHEN the manager resumes. THEN the machine continues from where it stood: the warm-up
+		// has already expired, so the very next block moves on.
+		assert_ok!(Rc2Migrator::resume_migration(RuntimeOrigin::signed(ALICE)));
+		assert!(!Paused::<Test>::get());
+		System::assert_last_event(
+			Event::MigrationResumed { stage: Stage::WarmUp { end_at } }.into(),
+		);
+		run_blocks(1);
+		assert!(matches!(stage(), Stage::CoolOff { .. }));
 	});
 }
 
@@ -581,9 +666,9 @@ fn the_warm_up_holds_for_its_period_and_can_be_halted() {
 
 		// WHEN an operator halts inside the window. THEN the machine stops there, having sent
 		// nothing.
-		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::Paused));
+		assert_ok!(Rc2Migrator::pause_migration(RuntimeOrigin::root()));
 		run_blocks(WARM_UP);
-		assert_stage(Stage::Paused);
+		assert_stage(Stage::WarmUp { end_at });
 		assert_eq!(sent().len(), sent_so_far);
 	});
 }
@@ -595,7 +680,6 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 			//                              ongoing, started, finished
 			Stage::Pending => (false, false, false),
 			Stage::Scheduled { .. } => (false, false, false),
-			Stage::Paused => (true, true, false),
 			Stage::WaitingForCt => (true, true, false),
 			Stage::WarmUp { .. } => (true, true, false),
 			Stage::AccountsInit => (true, true, false),
@@ -622,7 +706,6 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 	let cases = [
 		Stage::Pending,
 		Stage::Scheduled { start: 10 },
-		Stage::Paused,
 		Stage::WaitingForCt,
 		Stage::WarmUp { end_at: 10 },
 		Stage::AccountsInit,

@@ -54,7 +54,8 @@ pub type MomentOf<T> = <<T as Config>::TimeProvider as Time>::Moment;
 pub type MigrationStageOf<T> =
 	MigrationStage<<T as frame_system::Config>::AccountId, BlockNumberFor<T>, MomentOf<T>>;
 
-/// Progress of the migration. Advanced by `on_initialize`, except where noted.
+/// Progress of the migration. Advanced by `on_initialize`, except where noted, and only while
+/// [`Paused`] is clear.
 ///
 /// Variants are in the order the migration progresses through them.
 #[derive(Encode, Decode, DecodeWithMemTracking, Clone, Default, PartialEq, Eq, Debug, TypeInfo)]
@@ -66,9 +67,6 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	Scheduled {
 		start: Moment,
 	},
-	/// Halts the machine without ending the migration. Entered and left only via
-	/// [`Pallet::force_set_stage`].
-	Paused,
 	/// Waiting for the Coretime chain to confirm that it is ready to receive data.
 	WaitingForCt,
 	/// Both chains are locked down and nothing has moved yet: the window for the queues to drain
@@ -207,6 +205,13 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
+	/// Whether the machine is halted. The stage is untouched, so the migration still counts as
+	/// ongoing and resuming continues exactly where it stopped; `force_set_stage` is only
+	/// accepted while this is set. Inbound signals such as `ct_ready` are still recorded while
+	/// halted; only `on_initialize` stands still.
+	#[pallet::storage]
+	pub type Paused<T: Config> = StorageValue<_, bool, ValueQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The migration can only be scheduled while it is pending.
@@ -221,13 +226,33 @@ pub mod pallet {
 		NotScheduled,
 		/// An account that is referenced cannot be appointed manager.
 		AccountReferenced,
+		/// The migration can only be paused while it is running.
+		NotRunning,
+		/// The migration is already paused.
+		AlreadyPaused,
+		/// The migration is not paused.
+		NotPaused,
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		StageTransition { old: MigrationStageOf<T>, new: MigrationStageOf<T> },
-		ManagerSet { old: Option<T::AccountId>, new: Option<T::AccountId> },
+		StageTransition {
+			old: MigrationStageOf<T>,
+			new: MigrationStageOf<T>,
+		},
+		ManagerSet {
+			old: Option<T::AccountId>,
+			new: Option<T::AccountId>,
+		},
+		/// The machine was halted at `stage`.
+		MigrationPaused {
+			stage: MigrationStageOf<T>,
+		},
+		/// The machine continues from `stage`.
+		MigrationResumed {
+			stage: MigrationStageOf<T>,
+		},
 	}
 
 	#[pallet::hooks]
@@ -266,13 +291,15 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Set the migration stage directly.
+		/// Set the migration stage directly. Only while [`Paused`].
 		///
-		/// Escape hatch for a lost message or a stage that needs re-running.
+		/// Escape hatch for a lost message or a stage that needs re-running: pause, force, then
+		/// resume.
 		#[pallet::call_index(1)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
+			ensure!(Paused::<T>::get(), Error::<T>::NotPaused);
 
 			Self::transition(stage);
 			Ok(())
@@ -337,6 +364,38 @@ pub mod pallet {
 			Self::deposit_event(Event::ManagerSet { old, new });
 			Ok(())
 		}
+
+		/// Halt a running migration where it is.
+		///
+		/// The operator's stop button, and the precondition for `force_set_stage`: the stage
+		/// machine stands still until [`Pallet::resume_migration`], and may be repositioned in
+		/// between. A migration that has not started or is done cannot be paused; a scheduled one
+		/// is cancelled instead. A paused machine never reaches `MigrationDone`, so the manager is
+		/// not reaped out from under an active pause.
+		#[pallet::call_index(5)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
+		pub fn pause_migration(origin: OriginFor<T>) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+			let stage = RcMigrationStage::<T>::get();
+			ensure!(stage.is_ongoing(), Error::<T>::NotRunning);
+			ensure!(!Paused::<T>::get(), Error::<T>::AlreadyPaused);
+
+			Paused::<T>::put(true);
+			Self::deposit_event(Event::MigrationPaused { stage });
+			Ok(())
+		}
+
+		/// Let a paused migration continue from its current stage.
+		#[pallet::call_index(6)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
+		pub fn resume_migration(origin: OriginFor<T>) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+			ensure!(Paused::<T>::get(), Error::<T>::NotPaused);
+
+			Paused::<T>::kill();
+			Self::deposit_event(Event::MigrationResumed { stage: RcMigrationStage::<T>::get() });
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -355,6 +414,9 @@ pub mod pallet {
 		/// One block of the stage machine.
 		// TODO(ahm-v2): proper benchmark
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
+			if Paused::<T>::get() {
+				return T::DbWeight::get().reads(1);
+			}
 			match RcMigrationStage::<T>::get() {
 				// The scheduled start is compared against the clock, which at `on_initialize` still
 				// holds the previous block's timestamp -- so the migration begins on the first
