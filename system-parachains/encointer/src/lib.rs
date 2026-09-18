@@ -112,8 +112,7 @@ use sp_runtime::{
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::kusama::{
-	account::ACCUMULATE_FORWARD_PALLET_ID, consensus::*, currency::*, fee::WeightToFee,
-	locations::AssetHubLocation,
+	consensus::*, currency::*, fee::WeightToFee, locations::AssetHubLocation,
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::{
@@ -368,7 +367,8 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub const AccumulateForwardPalletId: PalletId = ACCUMULATE_FORWARD_PALLET_ID;
+	pub const AccumulateForwardPalletId: PalletId =
+		kusama_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
 	pub const ForwardPeriod: BlockNumber = HOURS;
 	pub const MinForwardAmount: Balance = UNITS;
 }
@@ -376,7 +376,7 @@ parameter_types! {
 impl pallet_accumulate_and_forward::Config for Runtime {
 	type Currency = Balances;
 	type PalletId = AccumulateForwardPalletId;
-	type Forwarder = system_parachains_common::accumulate_and_forward::TeleportAndBurnForwarder<
+	type Forwarder = kusama_runtime_constants::accumulate_and_forward::TeleportAndBurnForwarder<
 		xcm_config::XcmConfig,
 		AssetHubLocation,
 		KsmLocation,
