@@ -974,9 +974,14 @@ pub mod pallet {
 		///
 		/// Idempotent in the way that matters: a batch the Coretime chain did integrate before the
 		/// report was lost is re-applied, and a double-mint would surface in `reconcile_balances`.
+		///
+		/// Free: cleaning up after the migration's own failure is not the operator's cost.
 		#[pallet::call_index(8)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(4, 4))]
-		pub fn retry_batch(origin: OriginFor<T>, query_id: u64) -> DispatchResult {
+		pub fn retry_batch(
+			origin: OriginFor<T>,
+			query_id: u64,
+		) -> DispatchResultWithPostInfo {
 			Self::ensure_admin_or_manager(origin)?;
 
 			let batch = UnconfirmedBatches::<T>::get(query_id).ok_or(Error::<T>::UnknownQuery)?;
@@ -988,7 +993,7 @@ pub mod pallet {
 				new_query_id,
 				stage: batch.stage,
 			});
-			Ok(())
+			Ok(Pays::No.into())
 		}
 
 		/// Give up on an outstanding batch.
@@ -997,10 +1002,14 @@ pub mod pallet {
 		/// contents stay lost**: the relay chain burned them before sending, and nothing
 		/// re-derives them. The event is the record, and `reconcile_balances` reports the gap.
 		///
-		/// Root only, and a last resort — [`Pallet::retry_batch`] first.
+		/// Root only, and a last resort — [`Pallet::retry_batch`] first. Free, like the retry it
+		/// follows.
 		#[pallet::call_index(9)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(3, 3))]
-		pub fn abandon_batch(origin: OriginFor<T>, query_id: u64) -> DispatchResult {
+		pub fn abandon_batch(
+			origin: OriginFor<T>,
+			query_id: u64,
+		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
 			let batch = UnconfirmedBatches::<T>::get(query_id).ok_or(Error::<T>::UnknownQuery)?;
@@ -1011,7 +1020,7 @@ pub mod pallet {
 				batch.stage,
 			);
 			Self::deposit_event(Event::BatchAbandoned { query_id, stage: batch.stage });
-			Ok(())
+			Ok(Pays::No.into())
 		}
 
 		/// Change how many batches may be outstanding before data extraction pauses for a block.

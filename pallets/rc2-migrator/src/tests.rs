@@ -23,7 +23,9 @@
 
 use crate::{accounts::AccountsMigrator, mock::*, *};
 use frame_support::{
-	assert_noop, assert_ok, hypothetically,
+	assert_noop, assert_ok,
+	dispatch::Pays,
+	hypothetically,
 	traits::{
 		LockableCurrency, OnInitialize, OnRuntimeUpgrade, ReservableCurrency, WithdrawReasons,
 	},
@@ -1425,8 +1427,12 @@ fn a_failed_batch_can_be_retried_under_a_fresh_query() {
 		));
 		take_sent_xcm();
 
-		// WHEN it is retried.
-		assert_ok!(Rc2Migrator::retry_batch(root(), query_id));
+		// WHEN it is retried. Recovery is free: an operator cleaning up after the migration's own
+		// failure should not pay for it.
+		assert_eq!(
+			Rc2Migrator::retry_batch(root(), query_id).unwrap().pays_fee,
+			Pays::No
+		);
 
 		// THEN the same payload goes out again under a fresh query, and the old id is forgotten
 		// so a late answer to it cannot settle anything.
@@ -1487,7 +1493,10 @@ fn abandoning_a_batch_drops_it_and_records_the_loss() {
 		let sent_in = batch.stage;
 		take_sent_xcm();
 
-		assert_ok!(Rc2Migrator::abandon_batch(root(), query_id));
+		assert_eq!(
+			Rc2Migrator::abandon_batch(root(), query_id).unwrap().pays_fee,
+			Pays::No
+		);
 
 		// The batch is gone and nothing was re-sent: its contents are lost, deliberately, and the
 		// event is the only record that they existed.
