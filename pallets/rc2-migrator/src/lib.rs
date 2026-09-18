@@ -13,18 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Relay-chain side of the AHM v2 migration.
+//! The operational pallet for the Relay Chain, designed to manage and facilitate the migration of
+//! the parachain registrar, HRMP and the accounts holding their deposits from the Relay Chain to
+//! the Coretime chain. This pallet works alongside its counterpart, `pallet_ct_migrator`, which
+//! handles migration processes on the Coretime chain side.
 //!
-//! Drives the migration stage machine: drains legacy `paras_registrar` and `hrmp` state together
-//! with their deposits and sends everything to the counterpart `pallet-ct-migrator` over XCM.
-//! Temporary pallet; removed once the migration is complete.
+//! This pallet is responsible for controlling the initiation, progression, and completion of the
+//! migration process, including managing its various stages and transferring the necessary data.
+//! The pallet directly accesses the storage of other pallets for read/write operations while
+//! maintaining compatibility with their existing APIs.
 //!
 //! Every `TODO(ahm-v2)` here and in `pallet-ct-migrator` is work this migration needs before it
 //! runs for real. Go through all of them before release.
 //!
-//! The AHM v1 migrators are the reference for the stage machine, the manager and the origins.
-//! They were removed in polkadot-fellows/runtimes#1016; read them at
-//! `https://github.com/polkadot-fellows/runtimes/tree/985df25829b3385730ff66acc50161ac57f0692c/pallets/rc-migrator`.
+//! This pallet follows `pallet_rc_migrator` (removed in polkadot-fellows/runtimes#1016, readable at
+//! <https://github.com/polkadot-fellows/runtimes/tree/985df25829b3385730ff66acc50161ac57f0692c/pallets/rc-migrator>).
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -39,8 +42,10 @@ pub use pallet::*;
 
 use alloc::vec;
 use frame_support::{
+	defensive,
 	pallet_prelude::*,
-	sp_runtime::traits::Saturating,
+	sp_runtime::{traits::Saturating, TransactionOutcome},
+	storage::transactional::with_transaction_opaque_err,
 	traits::{EnsureOrigin, Time},
 };
 use frame_system::pallet_prelude::*;
@@ -54,33 +59,47 @@ pub type MomentOf<T> = <<T as Config>::TimeProvider as Time>::Moment;
 pub type MigrationStageOf<T> =
 	MigrationStage<<T as frame_system::Config>::AccountId, BlockNumberFor<T>, MomentOf<T>>;
 
-/// Progress of the migration. Advanced by `on_initialize`, except where noted, and only while
-/// [`Paused`] is clear.
+/// The migration stage of the Relay Chain. Advanced by `on_initialize`, except where noted, and
+/// only while [`Paused`] is clear.
 ///
 /// Variants are in the order the migration progresses through them.
 #[derive(Encode, Decode, DecodeWithMemTracking, Clone, Default, PartialEq, Eq, Debug, TypeInfo)]
 pub enum MigrationStage<AccountId, BlockNumber, Moment> {
-	/// Nothing has been scheduled; `on_initialize` does no work.
+	/// The migration has not yet started but will start in the future.
 	#[default]
 	Pending,
-	/// Scheduled to begin at the first block whose predecessor's timestamp is at or past `start`.
+	/// The migration has been scheduled to start at the given moment.
 	Scheduled {
+		/// The wall-clock time at which the migration will start.
+		///
+		/// The moment at which we notify the Coretime chain about the start of the migration and
+		/// move to `WaitingForCt` stage. After we receive the confirmation, the Relay Chain will
+		/// enter the `WarmUp` stage and wait for the warm-up period to end (`WarmUpPeriod`)
+		/// before starting to send the migration data to the Coretime chain.
 		start: Moment,
 	},
-	/// Waiting for the Coretime chain to confirm that it is ready to receive data.
+	/// The migration is waiting for confirmation from the Coretime chain to go ahead.
+	///
+	/// This stage involves waiting for the notification from the Coretime chain that it is ready
+	/// to receive the migration data.
 	WaitingForCt,
-	/// Both chains are locked down and nothing has moved yet: the window for the queues to drain
-	/// and for an operator to halt the migration before any data is sent.
 	WarmUp {
+		/// The block number at which the warm-up period will end.
+		///
+		/// After the warm-up period ends, the Relay Chain will start to send the migration data
+		/// to the Coretime chain.
 		end_at: BlockNumber,
 	},
-	// TODO(ahm-v2): every variant from here to `TiCorrection` is declared but not driven --
-	// `progress_migration` goes from `WarmUp` straight to `CoolOff`.
-	/// Account balances, their reserves, and the holds those reserves become.
+	/// Initializing the account migration process.
 	AccountsInit,
+	/// Migrating account balances, their reserves, and the holds those reserves become.
 	AccountsOngoing {
+		/// Last migrated account.
 		last_key: Option<AccountId>,
 	},
+	/// Note that the `*Done` stages do not have any logic attached to themselves. They exist to
+	/// make it easier to swap out what stage should run next for testing, and as a clean
+	/// `force_set_stage` target for rewinding a single stage.
 	AccountsDone,
 	/// Proxy definitions whose permissions have meaning on the Coretime chain.
 	///
@@ -115,19 +134,25 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	},
 	/// Burn the audited issuance that no account holds.
 	TiCorrection,
-	/// All data sent; waiting for manual verification before finishing.
 	CoolOff {
+		/// The block number at which the post migration cool-off period will end.
 		end_at: BlockNumber,
 	},
+	/// The migration is done.
 	MigrationDone,
 }
 
 impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Moment> {
+	/// Whether the migration is finished.
+	///
+	/// This is not the same as `!self.is_ongoing()` since it may not have started.
 	pub fn is_finished(&self) -> bool {
 		matches!(self, Self::MigrationDone)
 	}
 
-	/// Whether the machine is between its start and its end.
+	/// Whether the migration is ongoing.
+	///
+	/// This is not the same as `!self.is_finished()` since it may not have started.
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(self, Self::Pending | Self::Scheduled { .. } | Self::MigrationDone)
 	}
@@ -142,13 +167,15 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 /// `CtMigrator`'s pallet index in the Coretime (receiver) chain.
 pub const CT_MIGRATOR_PALLET_INDEX: u8 = 100;
 
-/// Calls on the Coretime chain, as this chain must encode them.
+/// Call encoding for the Coretime chain runtime, reduced to the pallet this chain dispatches into.
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
 #[repr(u8)]
 pub enum CtRuntimeCall {
 	CtMigrator(CtMigratorCall) = CT_MIGRATOR_PALLET_INDEX,
 }
 
+/// Call encoding for the calls needed from the ct-migrator pallet.
+///
 /// Indices are the `#[pallet::call_index]`es in `pallet-ct-migrator`.
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
 pub enum CtMigratorCall {
@@ -168,47 +195,62 @@ pub mod pallet {
 		#[allow(deprecated)]
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-		/// Router for XCM messages to the Coretime chain.
+		/// Send DMP message.
 		type SendXcm: SendXcm;
 
 		/// Para id of the Coretime chain.
 		type CtParaId: Get<u32>;
 
-		/// Wall clock the schedule is compared against, so a schedule set weeks ahead does not
-		/// drift with block times.
+		/// Wall clock that [`MigrationStage::Scheduled`] is compared against, so a schedule set
+		/// weeks ahead does not drift with block times.
 		type TimeProvider: Time;
 
-		/// The origin that the Coretime chain's messages dispatch with on this chain.
+		/// The origin of the Coretime chain's messages on this chain.
 		type CtOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
-		/// The origin that may schedule and force the migration.
+		/// The origin that can perform permissioned operations like setting the migration stage.
 		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 	}
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
+	/// The Relay Chain migration state.
 	#[pallet::storage]
 	#[pallet::unbounded]
 	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageOf<T>, ValueQuery>;
 
-	/// How long [`MigrationStage::WarmUp`] holds, as the scheduled migration set it.
+	/// The duration of the pre migration warm-up period.
+	///
+	/// This is the duration of the warm-up period before the data migration starts. During this
+	/// period, the migration will be in ongoing state and the concerned extrinsics will be locked.
 	#[pallet::storage]
 	pub type WarmUpPeriod<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
-	/// How long [`MigrationStage::CoolOff`] holds, as the scheduled migration set it.
+	/// The duration of the post migration cool-off period.
+	///
+	/// This is the duration of the cool-off period after the data migration is finished. During
+	/// this period, the migration will be still in ongoing state and the concerned extrinsics will
+	/// be locked.
 	#[pallet::storage]
 	pub type CoolOffPeriod<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
-	/// An account that may drive the migration alongside [`Config::AdminOrigin`], except that it
-	/// cannot appoint a manager itself.
+	/// An optional account id of a manager.
+	///
+	/// This account id has similar privileges to [`Config::AdminOrigin`] except that it
+	/// can not set the manager account id via `set_manager` call.
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
-	/// Whether the machine is halted. The stage is untouched, so the migration still counts as
-	/// ongoing and resuming continues exactly where it stopped; `force_set_stage` is only
-	/// accepted while this is set. Inbound signals such as `ct_ready` are still recorded while
-	/// halted; only `on_initialize` stands still.
+	/// Whether the migration is paused.
+	///
+	/// The stage is untouched, so the migration still counts as ongoing. While paused the machine
+	/// may be repositioned with `force_set_stage`, and `resume_migration` continues from whatever
+	/// stage it then holds. Inbound signals such as `ct_ready` are still recorded; only
+	/// `on_initialize` stands still.
+	///
+	/// Different from v1's `MigrationStage::MigrationPaused` variant: an independent flag, so the
+	/// stage paused at is kept.
 	#[pallet::storage]
 	pub type Paused<T: Config> = StorageValue<_, bool, ValueQuery>;
 
@@ -216,15 +258,15 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// The migration can only be scheduled while it is pending.
 		AlreadyScheduled,
-		/// The migration cannot be scheduled to start in the past.
+		/// Indicates that the specified start moment is in the past.
 		StartInPast,
 		/// Readiness was confirmed while the machine was not waiting for it.
 		NotWaitingForCt,
-		/// Sending an XCM message to the Coretime chain failed.
+		/// Failed to send XCM message.
 		XcmSendFailed,
 		/// The migration can only be cancelled while it is scheduled.
 		NotScheduled,
-		/// An account that is referenced cannot be appointed manager.
+		/// The account is referenced by some other pallet. It might have freezes or holds.
 		AccountReferenced,
 		/// The migration can only be paused while it is running.
 		NotRunning,
@@ -237,20 +279,28 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// A stage transition has occurred.
 		StageTransition {
+			/// The old stage before the transition.
 			old: MigrationStageOf<T>,
+			/// The new stage after the transition.
 			new: MigrationStageOf<T>,
 		},
+		/// The manager account id was set.
 		ManagerSet {
+			/// The old manager account id.
 			old: Option<T::AccountId>,
+			/// The new manager account id.
 			new: Option<T::AccountId>,
 		},
-		/// The machine was halted at `stage`.
+		/// The migration was paused.
 		MigrationPaused {
+			/// The stage at which the migration was paused.
 			stage: MigrationStageOf<T>,
 		},
-		/// The machine continues from `stage`.
+		/// The migration was resumed.
 		MigrationResumed {
+			/// The stage from which the migration continues.
 			stage: MigrationStageOf<T>,
 		},
 	}
@@ -264,12 +314,17 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Schedule the migration to begin at `start`.
+		/// Schedule the migration to start at a given moment.
 		///
-		/// `warm_up` is how long both chains stay locked down before any data moves, and
-		/// `cool_off` how long they stay locked down after it, for verification.
+		/// ### Parameters:
+		/// - `start`: The wall-clock time at which the migration will start.
+		/// - `warm_up`: Duration in blocks used to prepare for the migration. Calls are filtered
+		///   during this period. It is intended to give enough time for UMP and DMP queues to
+		///   empty. Counted from the transition to the warm-up stage.
+		/// - `cool_off`: Duration in blocks of the post migration cool-off period. Counted from the
+		///   transition to the cool-off stage.
 		///
-		/// The only way out of [`MigrationStage::Pending`] other than `force_set_stage`.
+		/// Read [`MigrationStage::Scheduled`] documentation for more details.
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 3))]
 		pub fn schedule_migration(
@@ -291,10 +346,11 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Set the migration stage directly. Only while [`Paused`].
+		/// Set the migration stage.
 		///
-		/// Escape hatch for a lost message or a stage that needs re-running: pause, force, then
-		/// resume.
+		/// This call is intended for emergency use only and is guarded by the
+		/// [`Config::AdminOrigin`] or the [`Manager`]. Unlike v1 it is only accepted while
+		/// [`Paused`]: pause, force, then resume.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
@@ -305,14 +361,18 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// The Coretime chain confirms that it can receive migrated state.
+		/// Start the data migration.
 		///
-		/// Sent by `pallet-ct-migrator` in response to [`CtMigratorCall::StartMigration`]. Nothing
-		/// is drained before it arrives.
+		/// This is typically called by the Coretime chain to indicate its readiness to receive the
+		/// migration data, in response to [`CtMigratorCall::StartMigration`]. The admin origin and
+		/// the [`Manager`] may call it too, to stand in for a reply that never arrived. A repeat
+		/// during the warm-up is accepted and changes nothing.
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
+		#[pallet::weight(T::DbWeight::get().reads_writes(3, 1))]
 		pub fn ct_ready(origin: OriginFor<T>) -> DispatchResult {
-			T::CtOrigin::ensure_origin(origin)?;
+			if T::CtOrigin::ensure_origin(origin.clone()).is_err() {
+				Self::ensure_admin_or_manager(origin)?;
+			}
 
 			match RcMigrationStage::<T>::get() {
 				MigrationStage::WaitingForCt => {
@@ -328,9 +388,10 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Return the machine to [`MigrationStage::Pending`] so it can be rescheduled.
+		/// Cancel the migration.
 		///
-		/// Only valid before the handshake, so the Coretime chain has not been told anything yet.
+		/// Migration can only be cancelled if it is in the [`MigrationStage::Scheduled`] state, so
+		/// the Coretime chain has not been told anything yet.
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn cancel_migration(origin: OriginFor<T>) -> DispatchResult {
@@ -344,9 +405,13 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Appoint or remove the [`Manager`].
+		/// Set the manager account id.
 		///
-		/// The account must be unreferenced, so that the migration can reap it at the end.
+		/// The manager has the similar to [`Config::AdminOrigin`] privileges except that it
+		/// can not set the manager account id via `set_manager` call.
+		///
+		/// The account must have no consumers references, so that the migration can reap it at
+		/// the end.
 		#[pallet::call_index(4)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
@@ -365,13 +430,11 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Halt a running migration where it is.
+		/// Pause the migration.
 		///
-		/// The operator's stop button, and the precondition for `force_set_stage`: the stage
-		/// machine stands still until [`Pallet::resume_migration`], and may be repositioned in
-		/// between. A migration that has not started or is done cannot be paused; a scheduled one
-		/// is cancelled instead. A paused machine never reaches `MigrationDone`, so the manager is
-		/// not reaped out from under an active pause.
+		/// The stage machine stands still until [`Pallet::resume_migration`], and may be
+		/// repositioned with `force_set_stage` in between. Only an ongoing migration can be
+		/// paused; a scheduled one is cancelled instead.
 		#[pallet::call_index(5)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn pause_migration(origin: OriginFor<T>) -> DispatchResult {
@@ -385,7 +448,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Let a paused migration continue from its current stage.
+		/// Resume a paused migration from its current stage.
 		#[pallet::call_index(6)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn resume_migration(origin: OriginFor<T>) -> DispatchResult {
@@ -399,7 +462,7 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		/// Ensure the origin is [`Config::AdminOrigin`] or signed by the [`Manager`].
+		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			// TODO(ahm-v2): allow hardcoded local multisig to act as manager as well.
 			if let Ok(who) = ensure_signed(origin.clone()) {
@@ -411,7 +474,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// One block of the stage machine.
+		/// Execute one block of the stage machine.
 		// TODO(ahm-v2): proper benchmark
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
 			if Paused::<T>::get() {
@@ -431,10 +494,111 @@ pub mod pallet {
 					}
 					T::DbWeight::get().reads_writes(3, 3)
 				},
-				// TODO(ahm-v2): the data stages run from here, once they exist.
 				MigrationStage::WarmUp { end_at } if now >= end_at => {
-					let end_at = now.saturating_add(CoolOffPeriod::<T>::get());
-					Self::transition(MigrationStage::CoolOff { end_at });
+					Self::transition(MigrationStage::AccountsInit);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::AccountsInit => {
+					Self::migrate_stage_once(
+						|| Ok(()),
+						MigrationStage::AccountsOngoing { last_key: None },
+					);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::AccountsOngoing { .. } => {
+					Self::migrate_stage_step(
+						|| Ok(None),
+						MigrationStage::AccountsDone,
+						|last_key| MigrationStage::AccountsOngoing { last_key: Some(last_key) },
+					);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				// The `*Done` stages are one-block checkpoints rather than direct `*Init`
+				// transitions: each boundary is a visible `StageTransition` event the migration
+				// monitor keys on, and a clean force-set target for rewinding a single stage.
+				MigrationStage::AccountsDone => {
+					Self::transition(MigrationStage::ProxyInit);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::ProxyInit => {
+					Self::migrate_stage_once(
+						|| Ok(()),
+						MigrationStage::ProxyOngoing { last_key: None },
+					);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::ProxyOngoing { .. } => {
+					Self::migrate_stage_step(
+						|| Ok(None),
+						MigrationStage::ProxyDone,
+						|last_key| MigrationStage::ProxyOngoing { last_key: Some(last_key) },
+					);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::ProxyDone => {
+					Self::transition(MigrationStage::RegistrarInit);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::RegistrarInit => {
+					Self::migrate_stage_once(
+						|| Ok(()),
+						MigrationStage::RegistrarOngoing { last_key: None },
+					);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::RegistrarOngoing { .. } => {
+					Self::migrate_stage_step(
+						|| Ok(None),
+						MigrationStage::RegistrarDone,
+						|last_key| MigrationStage::RegistrarOngoing { last_key: Some(last_key) },
+					);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::RegistrarDone => {
+					Self::transition(MigrationStage::HrmpInit);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::HrmpInit => {
+					Self::migrate_stage_once(
+						|| Ok(()),
+						MigrationStage::HrmpOngoing { last_key: None },
+					);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::HrmpOngoing { .. } => {
+					Self::migrate_stage_step(
+						|| Ok(None),
+						MigrationStage::HrmpDone,
+						|last_key| MigrationStage::HrmpOngoing { last_key: Some(last_key) },
+					);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::HrmpDone => {
+					Self::transition(MigrationStage::Sweep);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::Sweep => {
+					Self::migrate_stage_once(
+						|| Ok(()),
+						MigrationStage::SweepDust { last_key: None },
+					);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::SweepDust { .. } => {
+					Self::migrate_stage_step(
+						|| Ok(None),
+						MigrationStage::TiCorrection,
+						|last_key| MigrationStage::SweepDust { last_key: Some(last_key) },
+					);
+					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::TiCorrection => {
+					Self::migrate_stage_once(
+						|| Ok(()),
+						MigrationStage::CoolOff {
+							end_at: now.saturating_add(CoolOffPeriod::<T>::get()),
+						},
+					);
 					T::DbWeight::get().reads_writes(2, 2)
 				},
 				// wait cool off period before finishing migration
@@ -448,13 +612,58 @@ pub mod pallet {
 			}
 		}
 
+		/// Run a one-shot stage inside a storage transaction and advance to `next` on success.
+		/// An `Err` rolls all of the stage's writes back and retries it whole next block.
+		fn migrate_stage_once(
+			work: impl FnOnce() -> Result<(), Error<T>>,
+			next: MigrationStageOf<T>,
+		) {
+			match Self::with_rollback(work) {
+				Ok(()) => Self::transition(next),
+				Err(e) => {
+					defensive!("Stage failed, retrying: {:?}", e);
+				},
+			}
+		}
+
+		/// Run one block's worth of a cursor-driven stage inside a storage transaction and advance
+		/// the machine from the result: `Ok(None)` finishes the stage, `Ok(Some(key))` continues
+		/// from the cursor next block, `Err` rolls the whole block back and retries the same key
+		/// range.
+		fn migrate_stage_step<K>(
+			step: impl FnOnce() -> Result<Option<K>, Error<T>>,
+			done: MigrationStageOf<T>,
+			ongoing: impl FnOnce(K) -> MigrationStageOf<T>,
+		) {
+			match Self::with_rollback(step) {
+				Ok(None) => Self::transition(done),
+				Ok(Some(last_key)) => Self::transition(ongoing(last_key)),
+				Err(e) => {
+					defensive!("Data stage failed, retrying: {:?}", e);
+				},
+			}
+		}
+
+		/// Commit `f`'s storage writes on `Ok`, discard all of them on `Err`.
+		///
+		/// A stage burns, removes and sends in one block; none of that may survive if the last
+		/// step fails.
+		fn with_rollback<R>(f: impl FnOnce() -> Result<R, Error<T>>) -> Result<R, Error<T>> {
+			with_transaction_opaque_err(|| match f() {
+				Ok(r) => TransactionOutcome::Commit(Ok(r)),
+				Err(e) => TransactionOutcome::Rollback(Err(e)),
+			})
+			.expect("one transaction per block never reaches the layer limit; qed")
+		}
+
+		/// Execute a stage transition and log it.
 		pub(crate) fn transition(new: MigrationStageOf<T>) {
 			let old = RcMigrationStage::<T>::mutate(|stage| core::mem::replace(stage, new.clone()));
 			log::info!(target: LOG_TARGET, "Stage transition: {old:?} -> {new:?}");
 			Self::deposit_event(Event::StageTransition { old, new });
 		}
 
-		/// Send a `pallet-ct-migrator` call to the Coretime chain.
+		/// Send a `pallet-ct-migrator` call to the Coretime chain as a single XCM `Transact`.
 		fn send_to_ct(call: CtMigratorCall) -> Result<(), Error<T>> {
 			let call = CtRuntimeCall::CtMigrator(call);
 			// `Superuser` converts to Root on the Coretime chain; the receiving calls check for

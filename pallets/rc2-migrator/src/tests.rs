@@ -34,6 +34,32 @@ fn set_stage(stage: Stage) {
 	RcMigrationStage::<Test>::put(stage);
 }
 
+/// The data stages in the order the machine walks them, between the warm-up and the cool-off.
+fn data_stages() -> Vec<Stage> {
+	vec![
+		Stage::AccountsInit,
+		Stage::AccountsOngoing { last_key: None },
+		Stage::AccountsDone,
+		Stage::ProxyInit,
+		Stage::ProxyOngoing { last_key: None },
+		Stage::ProxyDone,
+		Stage::RegistrarInit,
+		Stage::RegistrarOngoing { last_key: None },
+		Stage::RegistrarDone,
+		Stage::HrmpInit,
+		Stage::HrmpOngoing { last_key: None },
+		Stage::HrmpDone,
+		Stage::Sweep,
+		Stage::SweepDust { last_key: None },
+		Stage::TiCorrection,
+	]
+}
+
+/// Blocks from the end of the warm-up to the opening of the cool-off: one per data stage.
+fn data_stage_blocks() -> u64 {
+	data_stages().len() as u64
+}
+
 fn assert_stage(expected: Stage) {
 	assert_eq!(stage(), expected);
 }
@@ -319,7 +345,7 @@ fn waiting_for_coretime_never_advances_on_its_own() {
 }
 
 #[test]
-fn only_the_coretime_chain_can_confirm_readiness() {
+fn the_coretime_chain_or_the_operator_confirms_readiness() {
 	// GIVEN a machine waiting for the Coretime chain.
 	new_test_ext().execute_with(|| {
 		let start = now_ms() + BLOCK_TIME_MS;
@@ -332,9 +358,8 @@ fn only_the_coretime_chain_can_confirm_readiness() {
 		run_blocks(2);
 		assert_stage(Stage::WaitingForCt);
 
-		// WHEN anyone else confirms, root included. THEN it is refused.
+		// WHEN an unrelated account confirms. THEN it is refused.
 		assert_noop!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(ALICE)), BadOrigin);
-		assert_noop!(Rc2Migrator::ct_ready(RuntimeOrigin::root()), BadOrigin);
 		assert_stage(Stage::WaitingForCt);
 
 		// WHEN the Coretime chain confirms. THEN the machine warms up.
@@ -346,6 +371,14 @@ fn only_the_coretime_chain_can_confirm_readiness() {
 		// warm-up keeps its end block and no second transition is recorded.
 		let transitions_so_far = transitions().len();
 		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)));
+		assert_stage(Stage::WarmUp { end_at: now + WARM_UP });
+		assert_eq!(transitions().len(), transitions_so_far);
+
+		// WHEN the admin origin and the manager confirm, as they may to stand in for a reply that
+		// never arrived. THEN both are accepted.
+		assert_ok!(Rc2Migrator::set_manager(RuntimeOrigin::root(), Some(ALICE)));
+		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::root()));
+		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(ALICE)));
 		assert_stage(Stage::WarmUp { end_at: now + WARM_UP });
 		assert_eq!(transitions().len(), transitions_so_far);
 	});
@@ -556,7 +589,7 @@ fn a_running_migration_can_be_paused_and_resumed_where_it_stopped() {
 			Event::MigrationResumed { stage: Stage::WarmUp { end_at } }.into(),
 		);
 		run_blocks(1);
-		assert!(matches!(stage(), Stage::CoolOff { .. }));
+		assert_stage(Stage::AccountsInit);
 	});
 }
 
@@ -582,8 +615,14 @@ fn the_machine_runs_from_pending_to_done() {
 		let warm_up_end = System::block_number() + WARM_UP;
 		assert_stage(Stage::WarmUp { end_at: warm_up_end });
 
-		// WHEN the warm-up elapses. THEN the verification window opens.
+		// WHEN the warm-up elapses. THEN the data stages run, one block each, and nothing is sent
+		// because none of them carries data yet.
 		run_blocks(WARM_UP);
+		assert_stage(Stage::AccountsInit);
+		run_blocks(data_stage_blocks());
+		assert_eq!(sent().len(), 1, "no data stage may send before it is filled in");
+
+		// THEN the verification window opens.
 		let end_at = System::block_number() + COOL_OFF;
 		assert_stage(Stage::CoolOff { end_at });
 
@@ -600,16 +639,19 @@ fn the_machine_runs_from_pending_to_done() {
 				CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown),
 			]
 		);
-		assert_eq!(
-			transitions(),
-			vec![
-				(Stage::Pending, Stage::Scheduled { start }),
-				(Stage::Scheduled { start }, Stage::WaitingForCt),
-				(Stage::WaitingForCt, Stage::WarmUp { end_at: warm_up_end }),
-				(Stage::WarmUp { end_at: warm_up_end }, Stage::CoolOff { end_at }),
-				(Stage::CoolOff { end_at }, Stage::MigrationDone),
-			]
-		);
+
+		// THEN every stage was walked, in this order and no other.
+		let mut path = vec![
+			Stage::Pending,
+			Stage::Scheduled { start },
+			Stage::WaitingForCt,
+			Stage::WarmUp { end_at: warm_up_end },
+		];
+		path.extend(data_stages());
+		path.extend([Stage::CoolOff { end_at }, Stage::MigrationDone]);
+		let expected: Vec<(Stage, Stage)> =
+			path.windows(2).map(|w| (w[0].clone(), w[1].clone())).collect();
+		assert_eq!(transitions(), expected);
 	});
 }
 
@@ -632,8 +674,8 @@ fn the_scheduled_windows_are_the_ones_the_machine_holds_for() {
 		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)));
 		assert_stage(Stage::WarmUp { end_at: System::block_number() + short_warm_up });
 
-		// WHEN it elapses. THEN the cool-off runs for the scheduled window too.
-		run_blocks(short_warm_up);
+		// WHEN it and the data stages elapse. THEN the cool-off runs for the scheduled window too.
+		run_blocks(short_warm_up + data_stage_blocks());
 		assert_stage(Stage::CoolOff { end_at: System::block_number() + short_cool_off });
 
 		// WHEN it elapses. THEN the machine is done.

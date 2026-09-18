@@ -209,8 +209,8 @@ async fn the_migration_runs_to_completion() {
 
 	let ump = run_handshake(&mut rc, &mut ct);
 
-	// The answer admits the machine to the warm-up and, with no data stages implemented, on
-	// through the verification window to the finish.
+	// The answer admits the machine to the warm-up, then through every data stage and the
+	// verification window to the finish.
 	let dmp = rc.execute_with(|| {
 		enqueue_ump(CoretimePara::PARA_ID.into(), ump);
 		next_block_rc();
@@ -223,10 +223,28 @@ async fn the_migration_runs_to_completion() {
 
 		set_block_number_rc(end_at - 1);
 		next_block_rc();
+		assert_eq!(rc_stage(), RcStage::AccountsInit, "the warm-up did not open the data stages");
 
-		let RcStage::CoolOff { end_at } = rc_stage() else {
-			panic!("the warm-up did not open the cool-off: {:?}", rc_stage())
+		// The data stages walk one block each and carry nothing yet, so the only message sent so
+		// far is the start signal already taken above.
+		let mut blocks = 0;
+		let end_at = loop {
+			if let RcStage::CoolOff { end_at } = rc_stage() {
+				break end_at;
+			}
+			assert!(
+				// 15 data stages that is not doing anything currently, so 30 blocks is enough
+				blocks < 30,
+				"the data stages did not reach the cool-off: {:?}",
+				rc_stage()
+			);
+			next_block_rc();
+			blocks += 1;
 		};
+		assert!(
+			take_dmp(CoretimePara::PARA_ID.into()).is_empty(),
+			"a data stage sent something before being filled in"
+		);
 		set_block_number_rc(end_at - 1);
 		next_block_rc();
 		assert_eq!(rc_stage(), RcStage::MigrationDone);

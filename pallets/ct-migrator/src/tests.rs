@@ -15,7 +15,8 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	mock::*, CtMigrationStage, Error, Event, MigrationStage, Rc2MigratorCall, Rc2RuntimeCall,
+	mock::*, CtMigrationStage, Error, Event, Manager, MigrationStage, Rc2MigratorCall,
+	Rc2RuntimeCall,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
@@ -45,8 +46,8 @@ fn transitions() -> Vec<(MigrationStage, MigrationStage)> {
 fn a_signed_account_drives_nothing() {
 	// GIVEN a chain that has not been migrated into.
 	new_test_ext().execute_with(|| {
-		// WHEN a signed account drives the migration. THEN every call is refused: the relay
-		// chain's signals need root, and forcing a stage needs the admin origin.
+		// WHEN a signed account that is not the manager drives the migration. THEN every call
+		// is refused.
 		assert_noop!(CtMigrator::start_migration(RuntimeOrigin::signed(ALICE)), BadOrigin);
 		assert_noop!(CtMigrator::end_lockdown(RuntimeOrigin::signed(ALICE)), BadOrigin);
 		assert_noop!(
@@ -57,6 +58,42 @@ fn a_signed_account_drives_nothing() {
 			BadOrigin
 		);
 		assert_stage(MigrationStage::Pending);
+	});
+}
+
+#[test]
+fn the_manager_drives_the_migration_but_cannot_appoint_one() {
+	new_test_ext().execute_with(|| {
+		// WHEN a signed account appoints itself. THEN it is refused.
+		assert_noop!(CtMigrator::set_manager(RuntimeOrigin::signed(ALICE), Some(ALICE)), BadOrigin);
+
+		// GIVEN Alice appointed manager by the admin origin.
+		assert_ok!(CtMigrator::set_manager(RuntimeOrigin::root(), Some(ALICE)));
+		assert_eq!(Manager::<Test>::get(), Some(ALICE));
+		System::assert_last_event(Event::ManagerSet { old: None, new: Some(ALICE) }.into());
+
+		// WHEN the manager sends the relay chain's two signals and forces a stage. THEN all
+		// three are accepted: the manager stands in for a signal that never arrived.
+		assert_ok!(CtMigrator::start_migration(RuntimeOrigin::signed(ALICE)));
+		assert_stage(MigrationStage::DataMigrationOngoing);
+		assert_eq!(sent_call(0), Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady));
+		assert_ok!(CtMigrator::end_lockdown(RuntimeOrigin::signed(ALICE)));
+		assert_stage(MigrationStage::MigrationDone);
+		assert_ok!(CtMigrator::force_set_stage(
+			RuntimeOrigin::signed(ALICE),
+			MigrationStage::Pending
+		));
+		assert_stage(MigrationStage::Pending);
+
+		// WHEN the manager appoints a manager. THEN it is refused, so the appointment stays with
+		// the admin origin alone.
+		assert_noop!(CtMigrator::set_manager(RuntimeOrigin::signed(ALICE), None), BadOrigin);
+
+		// WHEN the admin origin removes the manager. THEN Alice loses the powers.
+		assert_ok!(CtMigrator::set_manager(RuntimeOrigin::root(), None));
+		assert_eq!(Manager::<Test>::get(), None);
+		System::assert_last_event(Event::ManagerSet { old: Some(ALICE), new: None }.into());
+		assert_noop!(CtMigrator::start_migration(RuntimeOrigin::signed(ALICE)), BadOrigin);
 	});
 }
 
