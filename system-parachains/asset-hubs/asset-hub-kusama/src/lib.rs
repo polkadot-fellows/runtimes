@@ -1889,7 +1889,6 @@ mod benches {
 		[pallet_assets, Pool]
 		[pallet_assets_precompiles, AssetsPrecompiles]
 		[pallet_asset_conversion, AssetConversion]
-		// TODO: Somehow, benchmarks for this pallet are not visible outside the pallet
 		[pallet_asset_conversion_tx_payment, AssetTxPayment]
 		[pallet_balances, Balances]
 		[pallet_indices, Indices]
