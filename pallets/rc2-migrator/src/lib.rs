@@ -35,14 +35,18 @@ extern crate alloc;
 
 pub mod accounts;
 pub mod hrmp;
+pub mod multisig;
 pub mod proxy;
 pub mod registrar;
+pub mod sweep;
+pub mod ti_correction;
 
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
 
+pub use multisig::{ManagerMultisig, ManagerMultisigVote};
 pub use pallet::*;
 
 use accounts::{ExpectedReserve, MigratedBalances, MAX_ACCOUNTS_PER_BLOCK};
@@ -52,12 +56,11 @@ use frame_support::{
 	dispatch::GetDispatchInfo,
 	pallet_prelude::*,
 	traits::{
-		fungible::{Inspect, Mutate, Unbalanced},
+		fungible::{Inspect, Mutate},
 		tokens::{Fortitude, Precision, Preservation},
 		EnsureOrigin, ReservableCurrency, Time,
 	},
 	weights::WeightMeter,
-	PalletId,
 };
 use frame_system::pallet_prelude::*;
 use migrator_types::{
@@ -69,8 +72,8 @@ use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::inclusion::{AggregateMessageOrigin, UmpQueueId};
 use sp_runtime::{
-	traits::{AccountIdConversion, Dispatchable, IdentifyAccount, One, Saturating, Verify, Zero},
-	AccountId32, MultiSignature, MultiSigner,
+	traits::{Dispatchable, One, Saturating, Zero},
+	AccountId32, MultiSignature,
 };
 use xcm::prelude::*;
 
@@ -597,6 +600,34 @@ pub mod pallet {
 		}
 	}
 
+	impl<T> From<sweep::Error> for Error<T> {
+		fn from(e: sweep::Error) -> Self {
+			match e {
+				sweep::Error::FailedToWithdrawAccount => Error::FailedToWithdrawAccount,
+				sweep::Error::BalanceAccounting => Error::BalanceAccounting,
+			}
+		}
+	}
+
+	impl<T> From<ti_correction::Error> for Error<T> {
+		fn from(e: ti_correction::Error) -> Self {
+			match e {
+				ti_correction::Error::BalanceAccounting => Error::BalanceAccounting,
+			}
+		}
+	}
+
+	impl<T> From<multisig::Error> for Error<T> {
+		fn from(e: multisig::Error) -> Self {
+			match e {
+				multisig::Error::UnsignedValidationFailed => Error::UnsignedValidationFailed,
+				multisig::Error::RoundStale => Error::RoundStale,
+				multisig::Error::MaxVotesPerRound => Error::MaxVotesPerRound,
+				multisig::Error::DuplicateVote => Error::DuplicateVote,
+			}
+		}
+	}
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -696,12 +727,7 @@ pub mod pallet {
 		}
 
 		fn on_runtime_upgrade() -> Weight {
-			// A vote is signed over (who, call, round) and nothing else, so two chains sitting at
-			// the same round would accept each other's signatures. Each network starts its
-			// counter somewhere different.
-			if !ManagerMultisigRound::<T>::exists() {
-				ManagerMultisigRound::<T>::put(T::MultisigStartRound::get());
-			}
+			ManagerMultisig::<T>::init_round();
 			T::DbWeight::get().reads_writes(1, 1)
 		}
 
@@ -882,36 +908,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_none(origin)?;
 
-			Self::do_validate_unsigned(&payload, &sig)
-				.map_err(|_| Error::<T>::UnsignedValidationFailed)?;
-			let who = payload.who.clone().into_account();
-
-			ensure!(ManagerMultisigRound::<T>::get() == payload.round, Error::<T>::RoundStale);
-			let num_votes = ManagerVotesInCurrentRound::<T>::get(&who);
-			ensure!(num_votes < T::MultisigMaxVotesPerRound::get(), Error::<T>::MaxVotesPerRound);
-			ManagerVotesInCurrentRound::<T>::insert(&who, num_votes.saturating_add(1));
-
-			let mut votes_for_call = ManagerMultisigs::<T>::get(&payload.call);
-			ensure!(!votes_for_call.contains(&who), Error::<T>::DuplicateVote);
-			votes_for_call.push(who);
-
-			if votes_for_call.len() >= T::MultisigThreshold::get() as usize {
-				let origin: <T as frame_system::Config>::RuntimeOrigin =
-					frame_system::RawOrigin::Signed(Self::manager_multisig_id()).into();
-				let res = payload.call.clone().dispatch(origin);
-				let _ = ManagerMultisigs::<T>::clear(u32::MAX, None);
-				let _ = ManagerVotesInCurrentRound::<T>::clear(u32::MAX, None);
-				ManagerMultisigRound::<T>::mutate(|round| *round = round.saturating_add(1));
-
-				Self::deposit_event(Event::ManagerMultisigDispatched {
-					res: res.map(|_| ()).map_err(|e| e.error),
-				});
-			} else {
-				Self::deposit_event(Event::ManagerMultisigVoted {
-					votes: votes_for_call.len() as u32,
-				});
-				ManagerMultisigs::<T>::insert(payload.call.clone(), votes_for_call);
-			}
+			ManagerMultisig::<T>::vote(&payload, &sig).map_err(Error::<T>::from)?;
 			Ok(())
 		}
 
@@ -1044,35 +1041,6 @@ pub mod pallet {
 		}
 	}
 
-	/// One member's vote for `call`, signed offline and submitted by anyone.
-	#[derive(
-		Encode,
-		Decode,
-		DecodeWithMemTracking,
-		DebugNoBound,
-		CloneNoBound,
-		PartialEqNoBound,
-		EqNoBound,
-		TypeInfo,
-	)]
-	#[scale_info(skip_type_params(T))]
-	pub struct ManagerMultisigVote<T: Config> {
-		pub who: MultiSigner,
-		pub call: <T as Config>::RuntimeCall,
-		pub round: u32,
-	}
-
-	impl<T: Config> ManagerMultisigVote<T> {
-		pub fn new(who: MultiSigner, call: <T as Config>::RuntimeCall, round: u32) -> Self {
-			Self { who, call, round }
-		}
-
-		/// The bytes a member signs. The wrapper is what wallet `signRaw` prepends.
-		pub fn encode_with_bytes_wrapper(&self) -> Vec<u8> {
-			(b"<Bytes>", self, b"</Bytes>").encode()
-		}
-	}
-
 	// `ValidateUnsigned` is deprecated in favour of `#[pallet::authorize]`
 	// (paritytech/polkadot-sdk#2415). Kept as v1 wrote it; this pallet is deleted after the
 	// migration.
@@ -1083,7 +1051,7 @@ pub mod pallet {
 
 		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
 			if let Call::vote_manager_multisig { payload, sig } = call {
-				Self::do_validate_unsigned(payload, sig)
+				ManagerMultisig::<T>::validate_unsigned(payload, sig)
 			} else {
 				InvalidTransaction::Call.into()
 			}
@@ -1091,11 +1059,6 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		/// The account the manager multisig dispatches as, once it reaches its threshold.
-		pub fn manager_multisig_id() -> T::AccountId {
-			PalletId(*b"rc2migmt").into_account_truncating()
-		}
-
 		/// Ensure that the origin is [`Config::AdminOrigin`], or signed by the [`Manager`] account
 		/// id or by the manager multisig.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
@@ -1103,7 +1066,7 @@ pub mod pallet {
 				if Manager::<T>::get().is_some_and(|manager| manager == who) {
 					return Ok(());
 				}
-				if who == Self::manager_multisig_id() {
+				if who == ManagerMultisig::<T>::manager_multisig_id() {
 					return Ok(());
 				}
 			}
@@ -1136,34 +1099,6 @@ pub mod pallet {
 					cycle_period: period,
 				});
 			}
-		}
-
-		fn do_validate_unsigned(
-			payload: &ManagerMultisigVote<T>,
-			sig: &MultiSignature,
-		) -> TransactionValidity {
-			let account = payload.who.clone().into_account();
-
-			if !T::MultisigMembers::get().contains(&account) {
-				return InvalidTransaction::BadSigner.into();
-			}
-			if !sig.verify(&payload.encode_with_bytes_wrapper()[..], &account) {
-				return InvalidTransaction::BadProof.into();
-			}
-			if ManagerMultisigRound::<T>::get() != payload.round {
-				return InvalidTransaction::Stale.into();
-			}
-			if ManagerVotesInCurrentRound::<T>::get(&account) >= T::MultisigMaxVotesPerRound::get()
-			{
-				return InvalidTransaction::Stale.into();
-			}
-
-			ValidTransaction::with_tag_prefix("Ahm2Multisig")
-				.priority(sp_runtime::traits::Bounded::max_value())
-				.and_provides(vec![("ahm2_multi", account).encode()])
-				.propagate(true)
-				.longevity(30)
-				.build()
 		}
 
 		/// Report every batch whose deadline passes this block.
@@ -1277,18 +1212,21 @@ pub mod pallet {
 				},
 				MigrationStage::ProxyInit => {
 					Self::migrate_stage_once(
-						proxy::ProxyMigrator::<T>::drain_announcements,
+						|| {
+							proxy::ProxyMigrator::<T>::drain_announcements();
+							Ok(())
+						},
 						MigrationStage::ProxyOngoing { last_key: None },
 					);
 					T::DbWeight::get().reads_writes(100, 100)
 				},
 				MigrationStage::ProxyOngoing { last_key } => {
 					Self::migrate_stage_step(
-						|| proxy::ProxyMigrator::<T>::migrate_many(last_key),
+						|| Self::migrate_proxies_block(last_key),
 						MigrationStage::ProxyDone,
 						|last_key| MigrationStage::ProxyOngoing { last_key: Some(last_key) },
 					);
-					Self::placeholder_weight(MAX_RECORDS_PER_BLOCK)
+					Self::placeholder_weight(proxy::MAX_PROXIES_PER_BLOCK)
 				},
 				MigrationStage::ProxyDone => {
 					Self::transition(MigrationStage::RegistrarInit);
@@ -1334,18 +1272,26 @@ pub mod pallet {
 				},
 				MigrationStage::Sweep => {
 					Self::migrate_stage_once(
-						Self::sweep_pots,
+						|| {
+							let total = sweep::SweepMigrator::<T>::sweep_pots()?;
+							Self::teleport_swept(total)
+						},
 						MigrationStage::SweepDust { last_key: None },
 					);
 					T::DbWeight::get().reads_writes(10, 10)
 				},
 				MigrationStage::SweepDust { last_key } => {
 					Self::migrate_stage_step(
-						|| Self::sweep_dust(last_key),
+						|| {
+							let sweep::BlockSweep { amount, last_key } =
+								sweep::SweepMigrator::<T>::sweep_dust(last_key)?;
+							Self::teleport_swept(amount)?;
+							Ok(last_key)
+						},
 						MigrationStage::TiCorrection,
 						|last_key| MigrationStage::SweepDust { last_key: Some(last_key) },
 					);
-					Self::placeholder_weight(MAX_ACCOUNTS_PER_BLOCK)
+					Self::placeholder_weight(sweep::MAX_SWEPT_PER_BLOCK)
 				},
 				MigrationStage::TiCorrection => {
 					Self::migrate_stage_once(
@@ -1388,6 +1334,40 @@ pub mod pallet {
 				Self::send_teleport(chunk.to_vec())?;
 			}
 			Ok(last_key)
+		}
+
+		/// One block of the proxy stage: migrate up to the per-block limit, then ship the
+		/// portable sets in XCM-sized chunks.
+		pub(crate) fn migrate_proxies_block(
+			last_key: Option<T::AccountId>,
+		) -> Result<Option<T::AccountId>, Error<T>> {
+			let proxy::BlockProxies { proxies, last_key } =
+				proxy::ProxyMigrator::<T>::migrate_many(last_key);
+			for chunk in proxies.chunks(MAX_RECORDS_PER_XCM as usize) {
+				Self::send_proxies(chunk.to_vec())?;
+			}
+			Ok(last_key)
+		}
+
+		/// Teleport what a sweep block burned to the sweep beneficiary on Asset Hub.
+		fn teleport_swept(total: u128) -> Result<(), Error<T>> {
+			if total == 0 {
+				return Ok(());
+			}
+			Self::send_teleport(vec![(T::SweepBeneficiary::get(), total)])
+		}
+
+		/// Burn the audited phantom issuance and send the finish signal.
+		///
+		/// The manager is the one account still funded at this point; it stays so through
+		/// `CoolOff`.
+		fn correct_total_issuance() -> Result<(), Error<T>> {
+			let manager_balance = Manager::<T>::get()
+				.map(|who| <T as Config>::Currency::total_balance(&who))
+				.unwrap_or_default();
+			ti_correction::TiCorrector::<T>::correct_total_issuance(manager_balance)?;
+			let tracker = RcMigratedBalance::<T>::get();
+			Self::send_reconciliation(tracker.kept, tracker.migrated_ct())
 		}
 
 		/// Run one block's worth of a cursor-driven data stage inside a storage transaction and
@@ -1524,108 +1504,6 @@ pub mod pallet {
 			Self::send_to_ct(CtMigratorCall::ReconcileBalances { rc_kept, rc_migrated })
 		}
 
-		/// Empty the configured leftover pots; teleport the proceeds to the sweep beneficiary
-		/// on Asset Hub. One-shot: the pot list is a short config item.
-		fn sweep_pots() -> Result<(), Error<T>> {
-			let mut total: u128 = 0;
-
-			// The configured pots (old treasury etc.): full free balance, no reserves expected.
-			for who in T::SweepAccounts::get() {
-				let amount = frame_system::Account::<T>::get(&who).data.free;
-				if amount == 0 {
-					continue;
-				}
-				let burned = <T as Config>::Currency::burn_from(
-					&who,
-					amount,
-					Preservation::Expendable,
-					Precision::Exact,
-					Fortitude::Polite,
-				)
-				.map_err(|_| Error::<T>::FailedToWithdrawAccount)?;
-				// Pot balances book-kept as inactive issuance (the treasury) must reactivate on
-				// leaving so the issuance accounting stays consistent. Applied to every pot: one
-				// that was never deactivated just floors the counter (reactivate saturates)
-				// toward its true end state — zero, since no pot survives the sweep.
-				<pallet_balances::Pallet<T> as Unbalanced<T::AccountId>>::reactivate(burned);
-				total = total.checked_add(burned).ok_or(Error::<T>::BalanceAccounting)?;
-				Self::deposit_event(Event::AccountSwept { who, amount: burned });
-			}
-			Self::book_and_teleport_swept(total)
-		}
-
-		/// One block of the dust pass: reap below-ED accounts and stale husks from the cursor
-		/// on, teleporting the block's proceeds. Returns the cursor to continue from, or `None`
-		/// once the account map is exhausted.
-		///
-		/// Below the existential deposit nothing meaningful can still be backed by the balance
-		/// on a retiring chain, so any hold or reserve is killed — including the consumer
-		/// reference the backing carried — and the account zeroed. The fungible APIs refuse to
-		/// touch referenced or held-against accounts, hence the direct write (same pattern as
-		/// the accounts-stage shell drain). A record survives only while something still
-		/// references it (session key-holders being the known case) or it is a module account.
-		fn sweep_dust(last_key: Option<T::AccountId>) -> Result<Option<T::AccountId>, Error<T>> {
-			let mut iter = match &last_key {
-				Some(last_key) => frame_system::Account::<T>::iter_from_key(last_key.clone()),
-				None => frame_system::Account::<T>::iter(),
-			};
-
-			let (mut dust_count, mut dust_amount, mut husk_count) = (0u32, 0u128, 0u32);
-			let ed = <T as Config>::Currency::minimum_balance();
-			let mut processed = 0u32;
-			let maybe_last_key = loop {
-				let Some((who, info)) = iter.next() else { break None };
-				processed += 1;
-				let cursor = who.clone();
-
-				let d = &info.data;
-				let amount = d.free.saturating_add(d.reserved);
-				if amount < ed && !accounts::AccountsMigrator::<T>::is_unmigrated(&who) {
-					if amount == 0 {
-						// A husk: exists only via a stale provider reference. `dec_providers`
-						// refuses whenever something still references the account.
-						if info.consumers == 0 &&
-							frame_system::Pallet::<T>::dec_providers(&who).is_ok()
-						{
-							husk_count += 1;
-						}
-					} else {
-						let holds = pallet_balances::Holds::<T>::take(&who);
-						let backed = !d.reserved.is_zero() || !holds.is_empty();
-						frame_system::Account::<T>::mutate(&who, |a| {
-							a.data.free = 0;
-							a.data.reserved = 0;
-						});
-						pallet_balances::TotalIssuance::<T>::mutate(|ti| {
-							*ti = ti.saturating_sub(amount)
-						});
-						// Reserves and holds collectively carry one consumer reference; killing
-						// the backing drops it, so the record does not survive as a stale-ref
-						// shell.
-						if backed && info.consumers > 0 {
-							frame_system::Pallet::<T>::dec_consumers(&who);
-						}
-						let _ = frame_system::Pallet::<T>::dec_providers(&who);
-						dust_count += 1;
-						dust_amount =
-							dust_amount.checked_add(amount).ok_or(Error::<T>::BalanceAccounting)?;
-					}
-				}
-
-				if processed >= MAX_ACCOUNTS_PER_BLOCK {
-					break Some(cursor);
-				}
-			};
-			if husk_count > 0 {
-				Self::deposit_event(Event::HusksReaped { count: husk_count });
-			}
-			if dust_count > 0 {
-				Self::deposit_event(Event::DustSwept { count: dust_count, amount: dust_amount });
-			}
-			Self::book_and_teleport_swept(dust_amount)?;
-			Ok(maybe_last_key)
-		}
-
 		/// End the manager's appointment and teleport what it has left to the same account on
 		/// Asset Hub. Nothing to do if no manager was appointed, or it has nothing left.
 		fn reap_manager() -> Result<(), Error<T>> {
@@ -1655,60 +1533,6 @@ pub mod pallet {
 			let dest = migrator_types::translate_destination(&who);
 			Self::deposit_event(Event::ManagerReaped { who, amount: burned });
 			Self::send_teleport(vec![(dest, burned)])
-		}
-
-		/// Book `total` swept out of the kept balance and teleport it to the sweep beneficiary.
-		fn book_and_teleport_swept(total: u128) -> Result<(), Error<T>> {
-			if total == 0 {
-				return Ok(());
-			}
-			RcMigratedBalance::<T>::try_mutate(|t| {
-				t.kept = t.kept.checked_sub(total).ok_or(Error::<T>::BalanceAccounting)?;
-				t.ah_free = t.ah_free.checked_add(total).ok_or(Error::<T>::BalanceAccounting)?;
-				Ok::<(), Error<T>>(())
-			})?;
-			Self::send_teleport(vec![(T::SweepBeneficiary::get(), total)])
-		}
-
-		/// Burn the audited phantom issuance and send the finish signal.
-		///
-		/// By this stage the accounts and sweep stages have drained every account to zero except
-		/// the manager, which stays funded through `CoolOff`, so whatever issuance the ledger
-		/// still counts beyond the manager's balance is held by nobody — no O(accounts) scan is
-		/// needed. Burns `min(expected, measured)` and reports via events: a remainder above the
-		/// expectation stays on the books for investigation, a measurement below it is an
-		/// explicit anomaly.
-		fn correct_total_issuance() -> Result<(), Error<T>> {
-			let expected = T::TiCorrection::get();
-			let total = pallet_balances::TotalIssuance::<T>::get();
-			let manager_balance = Manager::<T>::get()
-				.map(|who| <T as Config>::Currency::total_balance(&who))
-				.unwrap_or_default();
-			let unaccounted = total.saturating_sub(manager_balance);
-			let burned = expected.min(unaccounted);
-
-			if unaccounted < expected {
-				log::error!(
-					target: LOG_TARGET,
-					"TI correction anomaly: expected {expected} unaccounted, measured {unaccounted}"
-				);
-				Self::deposit_event(Event::TiCorrectionAnomaly { expected, unaccounted });
-			}
-
-			// No account holds this balance, so there is nothing to burn *from*: the correction
-			// is a direct issuance write, mirrored in the migration tracker so the conservation
-			// invariant stays exact.
-			pallet_balances::TotalIssuance::<T>::put(total.saturating_sub(burned));
-			RcMigratedBalance::<T>::try_mutate(|t| {
-				t.kept = t.kept.checked_sub(burned).ok_or(Error::<T>::BalanceAccounting)?;
-				t.ti_corrected =
-					t.ti_corrected.checked_add(burned).ok_or(Error::<T>::BalanceAccounting)?;
-				Ok::<(), Error<T>>(())
-			})?;
-			Self::deposit_event(Event::TiCorrected { expected, unaccounted, burned });
-
-			let tracker = RcMigratedBalance::<T>::get();
-			Self::send_reconciliation(tracker.kept, tracker.migrated_ct())
 		}
 
 		/// Teleport a batch of free balances to their owners on Asset Hub.

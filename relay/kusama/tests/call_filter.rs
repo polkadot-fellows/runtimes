@@ -46,13 +46,13 @@ type Stage = MigrationStageOf<Runtime>;
 
 /// The filter reads the migration stage, so it needs storage. `Pending` is the default, and is
 /// what a fresh runtime upgrade lands in.
-fn allowed_at(stage: Stage, call: &RuntimeCall) -> bool {
+fn allowed_at(stage: &Stage, call: &RuntimeCall) -> bool {
 	let mut ext: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
 		.build_storage()
 		.unwrap()
 		.into();
 	ext.execute_with(|| {
-		RcMigrationStage::<Runtime>::put(stage);
+		RcMigrationStage::<Runtime>::put(stage.clone());
 		PostAhmFilter::contains(call)
 	})
 }
@@ -101,9 +101,9 @@ fn para_facing_calls_reopen_as_forwarders_once_the_migration_is_done() {
 		}),
 	] {
 		// Before the migration begins: served locally, exactly as today.
-		assert!(allowed_at(Stage::Pending, &call), "{call:?} must survive the upgrade");
+		assert!(allowed_at(&Stage::Pending, &call), "{call:?} must survive the upgrade");
 		assert!(
-			allowed_at(Stage::Scheduled { start: 100 }, &call),
+			allowed_at(&Stage::Scheduled { start: 100 }, &call),
 			"{call:?} must stay open until the migration actually begins"
 		);
 
@@ -112,14 +112,14 @@ fn para_facing_calls_reopen_as_forwarders_once_the_migration_is_done() {
 			[Stage::RegistrarInit, Stage::HrmpInit, Stage::AccountsOngoing { last_key: None }]
 		{
 			assert!(
-				!allowed_at(stage.clone(), &call),
+				!allowed_at(&stage, &call),
 				"{call:?} must be closed while the migration runs, at {stage:?}"
 			);
 		}
 
 		// Afterwards: open again, now forwarding to Coretime.
 		assert!(
-			allowed_at(Stage::MigrationDone, &call),
+			allowed_at(&Stage::MigrationDone, &call),
 			"{call:?} must reopen as a forwarder once the migration is done"
 		);
 	}
@@ -145,13 +145,13 @@ fn calls_that_cannot_be_forwarded_stay_closed() {
 			new_code: polkadot_primitives::ValidationCode(vec![1; 32]),
 		}),
 	] {
-		assert!(allowed_at(Stage::Pending, &call), "{call:?} must survive the upgrade");
+		assert!(allowed_at(&Stage::Pending, &call), "{call:?} must survive the upgrade");
 		assert!(
-			allowed_at(Stage::Scheduled { start: 100 }, &call),
+			allowed_at(&Stage::Scheduled { start: 100 }, &call),
 			"{call:?} must stay open until the migration begins"
 		);
 		for stage in [Stage::RegistrarInit, Stage::HrmpInit, Stage::MigrationDone] {
-			assert!(!allowed_at(stage.clone(), &call), "{call:?} must be closed at {stage:?}");
+			assert!(!allowed_at(&stage, &call), "{call:?} must be closed at {stage:?}");
 		}
 	}
 }
@@ -261,10 +261,10 @@ fn every_stage() -> impl Iterator<Item = Stage> {
 
 fn assert_closes_at_migration_start(call: RuntimeCall) {
 	for stage in open_stages() {
-		assert!(allowed_at(stage.clone(), &call), "{call:?} must stay open at {stage:?}");
+		assert!(allowed_at(&stage, &call), "{call:?} must stay open at {stage:?}");
 	}
 	for stage in closed_stages() {
-		assert!(!allowed_at(stage.clone(), &call), "{call:?} must be closed at {stage:?}");
+		assert!(!allowed_at(&stage, &call), "{call:?} must be closed at {stage:?}");
 	}
 }
 
@@ -345,7 +345,7 @@ fn proxies_keep_working_but_stop_changing() {
 		})),
 	});
 	for stage in every_stage() {
-		assert!(allowed_at(stage.clone(), &use_proxy), "using a proxy must survive {stage:?}");
+		assert!(allowed_at(&stage, &use_proxy), "using a proxy must survive {stage:?}");
 	}
 }
 
@@ -354,7 +354,7 @@ fn proxies_keep_working_but_stop_changing() {
 fn calls_the_migration_does_not_name_are_untouched() {
 	let call = RuntimeCall::System(frame_system::Call::<Runtime>::remark { remark: vec![1, 2, 3] });
 	for stage in every_stage() {
-		assert!(allowed_at(stage.clone(), &call), "{call:?} must be unaffected at {stage:?}");
+		assert!(allowed_at(&stage, &call), "{call:?} must be unaffected at {stage:?}");
 	}
 }
 
@@ -448,13 +448,13 @@ fn every_pallet_has_been_weighed_against_the_filter() {
 mod inbound_teleports {
 	use super::*;
 
-	fn teleport_from_asset_hub(stage: Stage) -> Outcome {
+	fn teleport_from_asset_hub(stage: &Stage) -> Outcome {
 		let mut ext: sp_io::TestExternalities = frame_system::GenesisConfig::<Runtime>::default()
 			.build_storage()
 			.unwrap()
 			.into();
 		ext.execute_with(|| {
-			RcMigrationStage::<Runtime>::put(stage);
+			RcMigrationStage::<Runtime>::put(stage.clone());
 			let message = Xcm::<RuntimeCall>(vec![
 				ReceiveTeleportedAsset(Assets::from(vec![(Here, 10 * UNITS).into()])),
 				DepositAsset {
@@ -480,7 +480,7 @@ mod inbound_teleports {
 	fn a_system_chain_can_teleport_here_until_the_migration_starts() {
 		for stage in open_stages() {
 			assert_eq!(
-				teleport_from_asset_hub(stage.clone()).ensure_complete(),
+				teleport_from_asset_hub(&stage).ensure_complete(),
 				Ok(()),
 				"teleports must still land at {stage:?}"
 			);
@@ -490,7 +490,7 @@ mod inbound_teleports {
 	#[test]
 	fn no_one_can_teleport_here_once_the_migration_starts() {
 		for stage in closed_stages() {
-			let error = teleport_from_asset_hub(stage.clone())
+			let error = teleport_from_asset_hub(&stage)
 				.ensure_complete()
 				.expect_err("teleport must be refused");
 			assert_eq!(

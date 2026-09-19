@@ -230,28 +230,33 @@ pub enum PortableProxyType {
 	ParaRegistration,
 }
 
-/// One proxy delegation of a migrated delegator. `delay` is in relay-chain (6s) blocks; the
-/// receiving side converts to its own block time.
+/// One proxy delegation of a migrated delegator.
 #[derive(
 	Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub struct PortableProxyDelegate<AccountId> {
+	/// The account which may act on behalf of the delegator; already translated by the sender.
 	pub delegate: AccountId,
 	pub proxy_type: PortableProxyType,
+	/// The number of blocks that an announcement must be in place for before the corresponding
+	/// call may be dispatched. In relay-chain blocks; the receiving chain converts it to its own
+	/// block time.
 	pub delay: u32,
 }
 
-/// A migrated delegator with its (translatable) proxy delegations.
+/// Proxy delegations of one delegator, in portable format.
 ///
-/// The original relay-chain deposit travels separately, as a [`PortableHoldReason::ProxyDeposit`]
-/// hold placed by the accounts stage. When the delegations arrive, the destination releases that
-/// hold, re-reserves the recreated entry at its own deposit rates and leaves the rest free — so
-/// keyless (pure) delegators keep control there without anyone having to sign anything.
+/// The deposit does not travel with the delegations: the accounts stage moves it as a
+/// `ProxyDeposit` hold, which the receiving chain resizes to its own rates when the delegations
+/// arrive.
 #[derive(
 	Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
 )]
 pub struct PortableProxy<AccountId> {
+	/// The account that is delegating to their proxies; already translated by the sender.
 	pub delegator: AccountId,
+	/// The proxies that were delegated to and that can act on behalf of the delegator. Bounded
+	/// by the relay chain's `MaxProxies`.
 	pub delegates: BoundedVec<PortableProxyDelegate<AccountId>, ConstU32<32>>,
 }
 

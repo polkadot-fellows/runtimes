@@ -46,6 +46,9 @@
 extern crate alloc;
 
 pub mod accounts;
+pub mod proxy;
+
+use proxy::PortableProxyOf;
 
 pub use migrator_types::*;
 pub use pallet::*;
@@ -61,7 +64,7 @@ use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{
-		fungible::{Inspect, InspectHold, Mutate, MutateHold},
+		fungible::{Inspect, Mutate, MutateHold},
 		EnsureOrigin,
 	},
 	weights::WeightMeter,
@@ -70,10 +73,7 @@ use frame_system::pallet_prelude::*;
 use hrmp_primitives::{MigratedChannel, ReceiveMigratedChannels};
 use pallet_message_queue::ForceSetHead;
 use registrar_primitives::{MigratedPara, MigratedParaState, ReceiveMigratedParas};
-use sp_runtime::{
-	traits::{One, Saturating, Zero},
-	SaturatedConversion,
-};
+use sp_runtime::traits::{One, Saturating, Zero};
 use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::ct-migrator";
@@ -82,7 +82,6 @@ pub type PortableParaInfoOf<T> =
 	PortableParaInfo<<T as frame_system::Config>::AccountId, BalanceOf<T>>;
 pub type PortableHrmpChannelOf<T> = PortableHrmpChannel<BalanceOf<T>>;
 pub type PortableHrmpRequestOf<T> = PortableHrmpRequest<BalanceOf<T>>;
-pub type PortableProxyOf<T> = PortableProxy<<T as frame_system::Config>::AccountId>;
 
 /// The migration stage of the Coretime chain. Advanced by messages from `pallet-rc2-migrator`.
 ///
@@ -527,7 +526,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 
-			Self::do_receive_proxies(proxies);
+			proxy::ProxyReceiver::<T>::receive(proxies);
 			Ok(())
 		}
 
@@ -753,72 +752,6 @@ pub mod pallet {
 			})?;
 
 			Ok(())
-		}
-
-		fn do_receive_proxies(proxies: Vec<PortableProxyOf<T>>) {
-			let (count_good, count_bad) = AccountsReceiver::<T>::receive_batch(
-				proxies,
-				Self::do_receive_proxy,
-				|()| (),
-				|proxy, e| {
-					log::error!(
-						target: LOG_TARGET,
-						"Failed to integrate proxies of {:?}: {e:?}; parking them",
-						proxy.delegator,
-					);
-					FailedProxies::<T>::insert(proxy.delegator.clone(), proxy);
-				},
-			);
-			Self::deposit_event(Event::ProxiesReceived { count_good, count_bad });
-		}
-
-		fn do_receive_proxy(proxy: &PortableProxyOf<T>) -> Result<(), Error<T>> {
-			use frame_support::traits::ReservableCurrency;
-
-			// Resize the migrated relay-chain deposit to this chain's rates: release it whole —
-			// making it free balance — and re-reserve below only what the recreated entry needs.
-			// The difference stays free on this chain, in the delegator's hands.
-			let proxy_reason: T::RuntimeHoldReason = HoldReason::ProxyDeposit.into();
-			let migrated =
-				<T as Config>::Currency::balance_on_hold(&proxy_reason, &proxy.delegator);
-			if !migrated.is_zero() {
-				AccountsReceiver::<T>::release_hold(&proxy_reason, &proxy.delegator, migrated)
-					.map_err(|_| Error::<T>::FailedToProcessProxy)?;
-			}
-			let delay_ratio = T::RcBlockTimeRatio::get().max(1);
-
-			pallet_proxy::Proxies::<T>::try_mutate(&proxy.delegator, |(defs, deposit)| {
-				for delegate in proxy.delegates.iter() {
-					let def = pallet_proxy::ProxyDefinition {
-						delegate: delegate.delegate.clone(),
-						proxy_type: delegate.proxy_type.into(),
-						delay: (delegate.delay / delay_ratio).saturated_into(),
-					};
-					if !defs.contains(&def) {
-						defs.try_push(def).map_err(|_| Error::<T>::FailedToProcessProxy)?;
-					}
-				}
-
-				// Back the entry at this chain's rates (normally from the released deposit
-				// above), topping up whatever is already reserved for pre-existing local
-				// proxies. Priced by the proxy pallet itself, so a migrated entry can never
-				// diverge from what the pallet would charge.
-				let required = pallet_proxy::Pallet::<T>::deposit(defs.len() as u32);
-				let top_up = required.saturating_sub(*deposit);
-				if !top_up.is_zero() {
-					match <T as pallet_proxy::Config>::Currency::reserve(&proxy.delegator, top_up) {
-						Ok(()) => *deposit = required,
-						// Access outranks the deposit; the entry stays under-backed until the
-						// owner tops it up.
-						Err(_) => log::warn!(
-							target: LOG_TARGET,
-							"Proxies of {:?} under-backed: could not reserve {top_up:?}",
-							proxy.delegator,
-						),
-					}
-				}
-				Ok(())
-			})
 		}
 
 		fn do_receive_hrmp(channels: Vec<PortableHrmpChannelOf<T>>) {

@@ -34,7 +34,10 @@ use runtime_parachains::{
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
 };
 use sp_core::{sr25519, Pair, H256};
-use sp_runtime::{traits::BadOrigin, AccountId32, MultiSignature, MultiSigner};
+use sp_runtime::{
+	traits::{BadOrigin, IdentifyAccount},
+	AccountId32, MultiSignature, MultiSigner,
+};
 
 type Stage = MigrationStageOf<Test>;
 
@@ -192,8 +195,9 @@ fn proxy_stage_sends_portable_defs_and_deletes_migrated_delegators() {
 		assert!(!frame_system::Account::<Test>::contains_key(&bob));
 		take_sent_xcm();
 
-		let done = proxy::ProxyMigrator::<Test>::migrate_many(None).unwrap();
-		assert_eq!(done, None);
+		set_stage(Stage::ProxyOngoing { last_key: None });
+		run_block();
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::ProxyDone);
 
 		// The portable definition travelled; the whole entry is deleted — the delegator's account
 		// is gone, so a record here could only claim money that left.
@@ -231,7 +235,7 @@ fn proxy_stage_clamps_entries_of_accounts_that_stay() {
 		with_rollback(|| Rc2Migrator::migrate_accounts_block(None)).unwrap();
 		assert_eq!(reserved(&carol), 0, "shell-drained");
 
-		proxy::ProxyMigrator::<Test>::migrate_many(None).unwrap();
+		proxy::ProxyMigrator::<Test>::migrate_many(None);
 
 		// The untranslatable def stays, but the recorded deposit is clamped to the (zero) reserve
 		// so the entry never claims money that is gone.
@@ -257,11 +261,11 @@ fn proxy_stage_deletes_fundless_husk_entries() {
 			(frame_support::BoundedVec::truncate_from(vec![def]), 0u128),
 		);
 
-		proxy::ProxyMigrator::<Test>::migrate_many(None).unwrap();
+		let block = proxy::ProxyMigrator::<Test>::migrate_many(None);
 
 		// The record is cleaned up; its (manager-linked) definition still travels.
 		assert!(!pallet_proxy::Proxies::<Test>::contains_key(&husk));
-		assert_eq!(decode_ct_calls(&take_sent_xcm()).len(), 1);
+		assert_eq!(block.proxies.len(), 1);
 	});
 }
 
@@ -299,7 +303,7 @@ fn announcement_records_of_migrated_announcers_are_dropped() {
 		with_rollback(|| Rc2Migrator::migrate_accounts_block(None)).unwrap();
 		assert!(!frame_system::Account::<Test>::contains_key(&eve));
 
-		proxy::ProxyMigrator::<Test>::drain_announcements().unwrap();
+		assert_eq!(proxy::ProxyMigrator::<Test>::drain_announcements(), 1);
 
 		// Migrated announcer: record dropped (deposit was refunded). Kept announcer: record and
 		// reserve intact (the proxy deposit itself sits on frank, the delegator).
@@ -465,7 +469,7 @@ fn sweep_empties_pots_reaps_dust_and_teleports_to_the_beneficiary() {
 		run_block();
 
 		assert_eq!(RcMigrationStage::<Test>::get(), Stage::TiCorrection);
-		assert!(!frame_system::Account::<Test>::contains_key(&pot()));
+		assert!(!frame_system::Account::<Test>::contains_key(pot()));
 		assert_eq!(pallet_balances::InactiveIssuance::<Test>::get(), 0);
 		assert!(!frame_system::Account::<Test>::contains_key(&dusty));
 		assert!(!frame_system::Account::<Test>::contains_key(&backed_dust));
