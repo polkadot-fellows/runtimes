@@ -120,6 +120,7 @@ xcm-runtime-apis = { workspace = true }
 sp-debug-derive = { workspace = true }
 
 [dev-dependencies]
+pallet-ct-migrator = { workspace = true, default-features = true }
 sp-keyring = { workspace = true }
 sp-trie = { workspace = true }
 separator = { workspace = true }

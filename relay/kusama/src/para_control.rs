@@ -25,8 +25,8 @@
 //! `OriginKind::Superuser`, which Coretime converts to Root — the origin both para-side pallets
 //! accept as their `RelayOrigin`.
 
-use alloc::{vec, vec::Vec};
 use crate::{parachains_origin, Hrmp, Registrar, Runtime, RuntimeEvent, RuntimeOrigin};
+use alloc::{vec, vec::Vec};
 use codec::Encode;
 use core::marker::PhantomData;
 use frame_support::{
@@ -156,11 +156,13 @@ impl EnsureOrigin<RuntimeOrigin> for EnsureAnyParaSelf {
 
 	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
 		// A non-system parachain, through the narrow origin the XCM converter hands it.
-		let o =
-			match <RuntimeOrigin as Into<Result<pallet_registrar_relay::Origin, RuntimeOrigin>>>::into(o) {
-				Ok(pallet_registrar_relay::Origin::Para(id)) => return Ok(id.into()),
-				Err(o) => o,
-			};
+		let o = match <RuntimeOrigin as Into<
+			Result<pallet_registrar_relay::Origin, RuntimeOrigin>,
+		>>::into(o)
+		{
+			Ok(pallet_registrar_relay::Origin::Para(id)) => return Ok(id.into()),
+			Err(o) => o,
+		};
 
 		// A system chain, exactly as before.
 		match <RuntimeOrigin as Into<Result<parachains_origin::Origin, RuntimeOrigin>>>::into(o) {
@@ -214,8 +216,8 @@ impl ForwardToCoretime {
 	///
 	/// Keyed on the migration being *finished*, not merely started: Coretime's registry is empty
 	/// until the migration hands it over, so forwarding earlier would record state there for paras
-	/// it does not yet know about. The window in between is covered by the call filter, which blocks
-	/// these calls outright while the migration runs — see `PostAhmFilter`.
+	/// it does not yet know about. The window in between is covered by the call filter, which
+	/// blocks these calls outright while the migration runs — see `PostAhmFilter`.
 	fn remote() -> bool {
 		pallet_rc2_migrator::RcMigrationStage::<Runtime>::get().is_finished()
 	}
@@ -408,9 +410,7 @@ pub struct HrmpReportToCoretime;
 
 impl pallet_hrmp_relay::SendToPara for HrmpReportToCoretime {
 	fn send(message: hrmp_primitives::MessageToPara) -> Result<(), ()> {
-		send_to_coretime(
-			CoretimeRuntimePallets::HrmpPara(HrmpParaCalls::Receive(message)).encode(),
-		)
+		send_to_coretime(CoretimeRuntimePallets::HrmpPara(HrmpParaCalls::Receive(message)).encode())
 	}
 }
 

@@ -17,7 +17,10 @@
 
 use crate::mock::*;
 use codec::{Decode, Encode};
-use frame_support::{assert_ok, traits::{fungible::Inspect, OnInitialize}};
+use frame_support::{
+	assert_ok,
+	traits::{fungible::Inspect, OnInitialize},
+};
 use migrator_types::PortableProxyType;
 use pallet_rc2_migrator::{RcMigratedBalance, RcMigrationStage};
 use polkadot_runtime_common::paras_registrar;
@@ -756,11 +759,9 @@ async fn accounts_migrate_rc_to_ct() {
 	let ct_issuance_before = ct.execute_with(pallet_balances::TotalIssuance::<Ct>::get);
 
 	rc.execute_with(|| {
-		pallet_rc2_migrator::Pallet::<Rc>::force_set_stage(
-			crate::mock::network::relay::RuntimeOrigin::root(),
-			RcStage::AccountsInit,
-		)
-		.expect("root may set the stage");
+		// Written directly: `force_set_stage` needs a paused, running machine, and this one has
+		// not been scheduled.
+		pallet_rc2_migrator::RcMigrationStage::<Rc>::put(RcStage::AccountsInit);
 	});
 	rc.commit_all().unwrap();
 
@@ -908,44 +909,43 @@ async fn full_migration_rc_to_ct() {
 		rc_ti_before,
 		sample,
 	) = rc.execute_with(|| {
-			crate::events::emit_rc_census("before");
-			crate::events::emit_pre_facts();
-			let paras: Vec<(u32, u128)> = paras_registrar::Paras::<Rc>::iter()
-				.map(|(id, info)| (id.into(), info.deposit))
+		crate::events::emit_rc_census("before");
+		crate::events::emit_pre_facts();
+		let paras: Vec<(u32, u128)> = paras_registrar::Paras::<Rc>::iter()
+			.map(|(id, info)| (id.into(), info.deposit))
+			.collect();
+		// The lock travels whole, not collapsed: Coretime has to tell "never locked"
+		// (still eligible for its own automatic lock) from "unlocked on purpose".
+		let detail: Vec<(u32, bool, Option<bool>)> = paras_registrar::Paras::<Rc>::iter()
+			.map(|(id, info)| {
+				(
+					id.into(),
+					runtime_parachains::paras::Pallet::<Rc>::lifecycle(id).is_some(),
+					info.locked,
+				)
+			})
+			.collect();
+		let channels: Vec<(_, u128, u128)> = HrmpChannels::<Rc>::iter()
+			.map(|(id, ch)| (id, ch.sender_deposit, ch.recipient_deposit))
+			.collect();
+		let requests: Vec<u128> = runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::iter()
+			.map(|(_, r)| r.sender_deposit)
+			.collect();
+		let requests_detail: Vec<(u32, u32, bool)> =
+			runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::iter()
+				.map(|(id, r)| (id.sender.into(), id.recipient.into(), r.confirmed))
 				.collect();
-			// The lock travels whole, not collapsed: Coretime has to tell "never locked"
-			// (still eligible for its own automatic lock) from "unlocked on purpose".
-			let detail: Vec<(u32, bool, Option<bool>)> = paras_registrar::Paras::<Rc>::iter()
-				.map(|(id, info)| {
-					(
-						id.into(),
-						runtime_parachains::paras::Pallet::<Rc>::lifecycle(id).is_some(),
-						info.locked,
-					)
-				})
-				.collect();
-			let channels: Vec<(_, u128, u128)> = HrmpChannels::<Rc>::iter()
-				.map(|(id, ch)| (id, ch.sender_deposit, ch.recipient_deposit))
-				.collect();
-			let requests: Vec<u128> =
-				runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::iter()
-					.map(|(_, r)| r.sender_deposit)
-					.collect();
-			let requests_detail: Vec<(u32, u32, bool)> =
-				runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::iter()
-					.map(|(id, r)| (id.sender.into(), id.recipient.into(), r.confirmed))
-					.collect();
 
-			(
-				paras,
-				detail,
-				channels,
-				requests,
-				requests_detail,
-				pallet_balances::TotalIssuance::<Rc>::get(),
-				find_clean_manager(),
-			)
-		});
+		(
+			paras,
+			detail,
+			channels,
+			requests,
+			requests_detail,
+			pallet_balances::TotalIssuance::<Rc>::get(),
+			find_clean_manager(),
+		)
+	});
 
 	// Pre-migration sanity: the snapshot must actually contain the shapes this test claims to
 	// exercise, or a green run would prove nothing.
@@ -1040,8 +1040,7 @@ async fn full_migration_rc_to_ct() {
 			if defs.iter().any(|d| portable(&d.proxy_type).is_some()) {
 				ct_bound.push(who.clone());
 			}
-			let any =
-				defs.iter().find(|d| portable(&d.proxy_type) == Some(PortableProxyType::Any));
+			let any = defs.iter().find(|d| portable(&d.proxy_type) == Some(PortableProxyType::Any));
 			let reg = defs
 				.iter()
 				.find(|d| portable(&d.proxy_type) == Some(PortableProxyType::ParaRegistration));
@@ -1108,13 +1107,15 @@ async fn full_migration_rc_to_ct() {
 
 	// The relay chain's existential deposit: below it, accounts are reaped rather than migrated.
 	let rc_existential_deposit: u128 =
-		<crate::mock::network::relay::Runtime as pallet_balances::Config>::ExistentialDeposit::get();
+		<crate::mock::network::relay::Runtime as pallet_balances::Config>::ExistentialDeposit::get(
+		);
 
 	// The preimages that must not survive: `can_migrate` refuses any account holding a named
 	// hold, so one preimage deposit strands that account's whole balance. The migration releases
 	// them itself in `AccountsInit`; this only records what was there so the post-check can prove
 	// it happened.
-	let preimages_before = rc.execute_with(|| pallet_preimage::RequestStatusFor::<Rc>::iter().count());
+	let preimages_before =
+		rc.execute_with(|| pallet_preimage::RequestStatusFor::<Rc>::iter().count());
 
 	// WHEN the whole migration runs, DMP shuttled after every burst of RC blocks.
 	rc.execute_with(|| {
@@ -1214,8 +1215,8 @@ async fn full_migration_rc_to_ct() {
 
 		// Cores keep getting assigned, from the PRD's during-migration list. The claim queue is
 		// the collator-facing answer to "which para may build on which core", and it is refilled by
-		// the scheduler at session boundaries — so this is only a real check because the harness can
-		// now cross one mid-migration. If the migration ever disturbed the assigner or the
+		// the scheduler at session boundaries — so this is only a real check because the harness
+		// can now cross one mid-migration. If the migration ever disturbed the assigner or the
 		// scheduler, this is where it would show, while the machine is still running rather than
 		// after it has stopped.
 		rc.execute_with(|| {
@@ -1561,8 +1562,7 @@ async fn full_migration_rc_to_ct() {
 		// --- the registrar pallet actually owns the paras now -----------------------------
 		// System chains are deliberately not among them: they are not registered through this
 		// pallet, hold no deposit here, and its own `do_try_state` rejects ids below the floor.
-		let floor: u32 =
-			<Ct as pallet_registrar_para::Config>::FirstPublicParaId::get();
+		let floor: u32 = <Ct as pallet_registrar_para::Config>::FirstPublicParaId::get();
 		let expected: Vec<_> =
 			paras_before_detail.iter().filter(|(id, _, _)| *id >= floor).collect();
 		assert!(
@@ -1574,10 +1574,7 @@ async fn full_migration_rc_to_ct() {
 			expected.len(),
 			"every public para landed in the registrar pallet, and no system para did"
 		);
-		assert!(
-			pallet_registrar_para::NextFreeParaId::<Ct>::get() > 0,
-			"the id counter migrated"
-		);
+		assert!(pallet_registrar_para::NextFreeParaId::<Ct>::get() > 0, "the id counter migrated");
 		for (para_id, registered, locked) in &expected {
 			let info = pallet_registrar_para::Paras::<Ct>::get(*para_id)
 				.unwrap_or_else(|| panic!("para {para_id} must land"));
@@ -1596,9 +1593,8 @@ async fn full_migration_rc_to_ct() {
 			match (registered, &info.state) {
 				(true, RegistrationState::Registered { .. }) => {},
 				(false, RegistrationState::Reserved) => {},
-				(_, other) => panic!(
-					"para {para_id}: registered={registered} but arrived as {other:?}"
-				),
+				(_, other) =>
+					panic!("para {para_id}: registered={registered} but arrived as {other:?}"),
 			}
 		}
 
@@ -1618,10 +1614,7 @@ async fn full_migration_rc_to_ct() {
 		let have: std::collections::BTreeSet<_> = pallet_hrmp_para::Channels::<Ct>::iter_keys()
 			.map(|c| (c.sender, c.recipient))
 			.collect();
-		assert_eq!(
-			have, want,
-			"the HRMP pallet holds exactly the migrated channels and requests"
-		);
+		assert_eq!(have, want, "the HRMP pallet holds exactly the migrated channels and requests");
 		for (id, _, _) in &hrmp_before {
 			let key = hrmp_primitives::ChannelId {
 				sender: id.sender.into(),
@@ -1673,9 +1666,9 @@ async fn full_migration_rc_to_ct() {
 			));
 		}
 
-		let reserved_para = paras_before_detail.iter().find(|(_, registered, locked)| {
-			!*registered && *locked != Some(true)
-		});
+		let reserved_para = paras_before_detail
+			.iter()
+			.find(|(_, registered, locked)| !*registered && *locked != Some(true));
 		if let Some((para_id, _, _)) = reserved_para {
 			let info = pallet_registrar_para::Paras::<Ct>::get(*para_id).unwrap();
 			let before = pallet_balances::Pallet::<Ct>::free_balance(&info.manager);
@@ -1987,15 +1980,13 @@ async fn full_migration_rc_to_ct() {
 	rc.execute_with(|| {
 		let mut usable = 0usize;
 		for id in HrmpChannels::<Rc>::iter_keys() {
-			let Some(constraints) = runtime_parachains::runtime_api_impl::v13::backing_constraints::<
-				Rc,
-			>(id.sender) else {
+			let Some(constraints) =
+				runtime_parachains::runtime_api_impl::v13::backing_constraints::<Rc>(id.sender)
+			else {
 				continue;
 			};
-			let Some((_, limits)) = constraints
-				.hrmp_channels_out
-				.iter()
-				.find(|(para, _)| *para == id.recipient)
+			let Some((_, limits)) =
+				constraints.hrmp_channels_out.iter().find(|(para, _)| *para == id.recipient)
 			else {
 				panic!("{id:?} is in HrmpChannels but not reported to its sender");
 			};
@@ -2017,7 +2008,7 @@ async fn full_migration_rc_to_ct() {
 	// relay chain, whose body forwards it to Coretime, which takes the deposit and drives the relay
 	// chain back — and the channel materialises at the session boundary like any other.
 	let (opener, target) = rc.execute_with(|| {
-        // Two live paras that have no channel between them yet, so the request is a real one.
+		// Two live paras that have no channel between them yet, so the request is a real one.
 		let existing: BTreeSet<(u32, u32)> = HrmpChannels::<Rc>::iter_keys()
 			.map(|id| (id.sender.into(), id.recipient.into()))
 			.collect();
@@ -2045,20 +2036,21 @@ async fn full_migration_rc_to_ct() {
 			u32,
 			AccountId32,
 		>>::convert(opener);
-		let _ = <pallet_balances::Pallet<Ct> as frame_support::traits::fungible::Mutate<_>>::mint_into(
-			&sovereign,
-			10_000_000_000_000,
-		);
+		let _ =
+			<pallet_balances::Pallet<Ct> as frame_support::traits::fungible::Mutate<_>>::mint_into(
+				&sovereign,
+				10_000_000_000_000,
+			);
 	});
 	ct.commit_all().unwrap();
 
-	let request = crate::mock::network::relay::RuntimeCall::Hrmp(
-		runtime_parachains::hrmp::Call::<Rc>::hrmp_init_open_channel {
-			recipient: target.into(),
-			proposed_max_capacity: 8,
-			proposed_max_message_size: 1024,
-		},
-	);
+	let request = crate::mock::network::relay::RuntimeCall::Hrmp(runtime_parachains::hrmp::Call::<
+		Rc,
+	>::hrmp_init_open_channel {
+		recipient: target.into(),
+		proposed_max_capacity: 8,
+		proposed_max_message_size: 1024,
+	});
 
 	// The para asks the relay chain with **exactly the message it sends today**: an unpaid
 	// `Transact` of its own call, delivered as real UMP. Post-migration the barrier admits this
@@ -2068,10 +2060,7 @@ async fn full_migration_rc_to_ct() {
 	let to_ct = rc.execute_with(|| {
 		let _ = take_dmp(CoretimePara::PARA_ID.into());
 		frame_system::Pallet::<Rc>::reset_events();
-		enqueue_ump(
-			polkadot_primitives::Id::from(opener),
-			vec![unpaid_transact_native(request)],
-		);
+		enqueue_ump(polkadot_primitives::Id::from(opener), vec![unpaid_transact_native(request)]);
 		next_block_rc();
 		assert!(
 			frame_system::Pallet::<Rc>::events().into_iter().any(|record| matches!(
@@ -2126,10 +2115,8 @@ async fn full_migration_rc_to_ct() {
 		enqueue_ump(CoretimePara::PARA_ID.into(), to_rc);
 		next_block_rc();
 
-		let id = polkadot_primitives::HrmpChannelId {
-			sender: opener.into(),
-			recipient: target.into(),
-		};
+		let id =
+			polkadot_primitives::HrmpChannelId { sender: opener.into(), recipient: target.into() };
 		let request = runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::get(&id)
 			.expect("the relay chain must now hold the request");
 		assert!(!request.confirmed, "the recipient has not accepted yet");
@@ -2482,8 +2469,8 @@ async fn rc_can_cross_a_session_boundary() {
 /// This is the gap between the suite's two halves: the SDK's cross-chain tests use mocks, so they
 /// have no `paras` lifecycle and no sessions, and `full_migration_rc_to_ct` exercises *migrated*
 /// paras, which are already live. Nothing covered a *new* registration against the real lifecycle —
-/// and `paras` takes `SESSION_DELAY` (2) boundaries to onboard one, so any test that does not rotate
-/// cannot tell a working registration from one that silently went nowhere.
+/// and `paras` takes `SESSION_DELAY` (2) boundaries to onboard one, so any test that does not
+/// rotate cannot tell a working registration from one that silently went nowhere.
 ///
 /// There is deliberately **no channel to wait for**. The old design opened a CT↔para control
 /// channel at registration, which the relay chain refused while the para was still onboarding —
@@ -2614,13 +2601,13 @@ async fn a_fresh_registration_across_sessions_and_the_relayed_control_route() {
 
 		// WHEN the new para sends the exact message any para sends today — an unpaid `Transact`
 		// of its own call — twice in one block.
-		let ask = crate::mock::network::relay::RuntimeCall::Hrmp(
-			runtime_parachains::hrmp::Call::<Rc>::hrmp_init_open_channel {
-				recipient: 2000.into(),
-				proposed_max_capacity: 8,
-				proposed_max_message_size: 1024,
-			},
-		);
+		let ask = crate::mock::network::relay::RuntimeCall::Hrmp(runtime_parachains::hrmp::Call::<
+			Rc,
+		>::hrmp_init_open_channel {
+			recipient: 2000.into(),
+			proposed_max_capacity: 8,
+			proposed_max_message_size: 1024,
+		});
 		let _ = take_dmp(coretime);
 		enqueue_ump(fresh, vec![as_coretime(ask.clone()), as_coretime(ask)]);
 		next_block_rc();
@@ -2738,10 +2725,12 @@ async fn a_non_system_para_can_only_reach_the_relay_chain_by_paying() {
 	}
 
 	rc.execute_with(|| {
-		let sovereign: AccountId32 =
-			polkadot_primitives::Id::from(para).into_account_truncating();
+		let sovereign: AccountId32 = polkadot_primitives::Id::from(para).into_account_truncating();
 		let funds = frame_system::Account::<Rc>::get(&sovereign).data.free;
-		assert!(funds > 0, "this snapshot must predate the migration for the paid door to mean anything");
+		assert!(
+			funds > 0,
+			"this snapshot must predate the migration for the paid door to mean anything"
+		);
 
 		// The unpaid door is shut. Not "the call is refused" — the program never runs.
 		assert!(
@@ -2825,10 +2814,11 @@ async fn before_the_migration_the_relay_chain_still_serves_hrmp_itself() {
 		// Funding it is setup: what is under test is which code path runs, not solvency.
 		let sovereign: AccountId32 =
 			polkadot_primitives::Id::from(sender).into_account_truncating();
-		let _ = <pallet_balances::Pallet<Rc> as frame_support::traits::fungible::Mutate<_>>::mint_into(
-			&sovereign,
-			1_000_000_000_000_000,
-		);
+		let _ =
+			<pallet_balances::Pallet<Rc> as frame_support::traits::fungible::Mutate<_>>::mint_into(
+				&sovereign,
+				1_000_000_000_000_000,
+			);
 		let before = frame_system::Account::<Rc>::get(&sovereign).data.reserved;
 		let _ = take_dmp(CoretimePara::PARA_ID.into());
 
@@ -2851,8 +2841,8 @@ async fn before_the_migration_the_relay_chain_still_serves_hrmp_itself() {
 			.expect("the relay chain must record the request itself before the migration");
 		// The relay chain's own configured deposit, taken on the relay chain — which is exactly
 		// what stops being true once the control plane moves.
-		let expected = runtime_parachains::configuration::ActiveConfig::<Rc>::get()
-			.hrmp_sender_deposit;
+		let expected =
+			runtime_parachains::configuration::ActiveConfig::<Rc>::get().hrmp_sender_deposit;
 		assert_eq!(request.sender_deposit, expected);
 		assert_eq!(
 			frame_system::Account::<Rc>::get(&sovereign).data.reserved,

@@ -38,10 +38,12 @@
 //! sibling id (`sibl…`) that represents the same para on a parachain.
 
 use crate::*;
-use frame_support::traits::StorePreimage;
 use frame_support::{
 	defensive_assert,
-	traits::tokens::{Fortitude, Precision, Preservation},
+	traits::{
+		tokens::{Fortitude, Precision, Preservation},
+		StorePreimage,
+	},
 };
 use sp_runtime::traits::{AccountIdConversion, Zero};
 
@@ -73,8 +75,8 @@ impl<T: Config> AccountsMigrator<T> {
 	/// - Coretime-bound ([`ExpectedCtReserve`]): registrar deposits per manager, HRMP channel
 	///   deposits per (child) para sovereign;
 	/// - proxy deposits ([`ExpectedProxyReserve`]): per delegator with at least one portable
-	///   definition — they travel under their own hold reason and are resized when the
-	///   definitions arrive;
+	///   definition — they travel under their own hold reason and are resized when the definitions
+	///   arrive;
 	/// - refunded ([`ExpectedRefundReserve`]): proxy deposits of delegators none of whose
 	///   definitions travel — deposits whose purpose does not continue.
 	///

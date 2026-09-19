@@ -19,10 +19,10 @@
 //! Scope, per the migration design:
 //! - Every definition whose permission the Coretime chain represents travels (the runtime's
 //!   `TryInto<PortableProxyType>`: `Any`, `NonTransfer`, `CancelProxy`, `ParaRegistration`);
-//!   everything else (staking, governance, …) has no meaning there and stays on this chain.
-//!   Keyless (pure) delegators can only ever act through definitions recreated on the Coretime
-//!   chain — the accounts stage routes their whole balance there for the same reason; for keyed
-//!   delegators the recreation is a harmless convenience.
+//!   everything else (staking, governance, …) has no meaning there and stays on this chain. Keyless
+//!   (pure) delegators can only ever act through definitions recreated on the Coretime chain — the
+//!   accounts stage routes their whole balance there for the same reason; for keyed delegators the
+//!   recreation is a harmless convenience.
 //! - Deposits do not travel: they were refunded by the accounts stage. Entries left behind get
 //!   their recorded deposit clamped to what is still actually reserved, so no ghost deposit records
 //!   are created.
@@ -82,61 +82,65 @@ impl<T: Config> ProxyMigrator<T> {
 			None => pallet_proxy::Proxies::<T>::iter(),
 		};
 
-		Pallet::<T>::drain_records(iter, |who, (defs, deposit)| {
-			// Convert each definition once; `Ok` means the Coretime chain represents the
-			// permission and the definition travels, `Err` means it stays here.
-			let defs: Vec<_> = defs
-				.into_iter()
-				.map(|def| {
-					let portable: Result<PortableProxyType, ()> =
-						def.proxy_type.clone().try_into().map_err(|_| ());
-					(def, portable)
-				})
-				.collect();
-			let (travel, stay): (Vec<_>, Vec<_>) =
-				defs.into_iter().partition(|(_, portable)| portable.is_ok());
-
-			let payload = if travel.is_empty() {
-				None
-			} else {
-				let delegates: Vec<_> = travel
+		Pallet::<T>::drain_records(
+			iter,
+			|who, (defs, deposit)| {
+				// Convert each definition once; `Ok` means the Coretime chain represents the
+				// permission and the definition travels, `Err` means it stays here.
+				let defs: Vec<_> = defs
 					.into_iter()
-					.map(|(def, portable)| migrator_types::PortableProxyDelegate {
-						// Account ids on the wire are always the destination's address for
-						// them — see `migrator_types::translate_destination`. That covers the
-						// delegator (whose deposit the accounts stage moved to the translated
-						// address) and each delegate (a parachain that is somebody's delegate
-						// is a different address there too).
-						delegate: migrator_types::translate_destination(&def.delegate),
-						proxy_type: portable.expect("partition kept only Ok conversions; qed"),
-						delay: def.delay.unique_saturated_into(),
+					.map(|def| {
+						let portable: Result<PortableProxyType, ()> =
+							def.proxy_type.clone().try_into().map_err(|_| ());
+						(def, portable)
 					})
 					.collect();
-				Some(PortableProxy {
-					delegator: migrator_types::translate_destination(who),
-					delegates: delegates
-						.try_into()
-						.map_err(|_| Error::<T>::FailedToWithdrawAccount)?,
-				})
-			};
+				let (travel, stay): (Vec<_>, Vec<_>) =
+					defs.into_iter().partition(|(_, portable)| portable.is_ok());
 
-			// A delegator with no funds has nothing that could strand: its manager-linked
-			// definitions were sent above, the rest of the entry is deleted — this cleans the
-			// zero-balance husks v1 left behind. For funded delegators, the deposit was refunded
-			// by the accounts stage; clamp the recorded field to what is still actually reserved
-			// so the entry never claims money that is gone.
-			let stay: Vec<_> = stay.into_iter().map(|(def, _)| def).collect();
-			match frame_system::Account::<T>::try_get(who) {
-				Ok(account) if !stay.is_empty() => {
-					let backed = deposit.min(account.data.reserved);
-					let stay: BoundedVec<_, <T as pallet_proxy::Config>::MaxProxies> =
-						stay.try_into().expect("subset of a bounded vec; qed");
-					pallet_proxy::Proxies::<T>::insert(who, (stay, backed));
-				},
-				_ => pallet_proxy::Proxies::<T>::remove(who),
-			}
+				let payload = if travel.is_empty() {
+					None
+				} else {
+					let delegates: Vec<_> = travel
+						.into_iter()
+						.map(|(def, portable)| migrator_types::PortableProxyDelegate {
+							// Account ids on the wire are always the destination's address for
+							// them — see `migrator_types::translate_destination`. That covers the
+							// delegator (whose deposit the accounts stage moved to the translated
+							// address) and each delegate (a parachain that is somebody's delegate
+							// is a different address there too).
+							delegate: migrator_types::translate_destination(&def.delegate),
+							proxy_type: portable.expect("partition kept only Ok conversions; qed"),
+							delay: def.delay.unique_saturated_into(),
+						})
+						.collect();
+					Some(PortableProxy {
+						delegator: migrator_types::translate_destination(who),
+						delegates: delegates
+							.try_into()
+							.map_err(|_| Error::<T>::FailedToWithdrawAccount)?,
+					})
+				};
 
-			Ok(payload)
-		}, Pallet::<T>::send_proxies)
+				// A delegator with no funds has nothing that could strand: its manager-linked
+				// definitions were sent above, the rest of the entry is deleted — this cleans the
+				// zero-balance husks v1 left behind. For funded delegators, the deposit was
+				// refunded by the accounts stage; clamp the recorded field to what is still
+				// actually reserved so the entry never claims money that is gone.
+				let stay: Vec<_> = stay.into_iter().map(|(def, _)| def).collect();
+				match frame_system::Account::<T>::try_get(who) {
+					Ok(account) if !stay.is_empty() => {
+						let backed = deposit.min(account.data.reserved);
+						let stay: BoundedVec<_, <T as pallet_proxy::Config>::MaxProxies> =
+							stay.try_into().expect("subset of a bounded vec; qed");
+						pallet_proxy::Proxies::<T>::insert(who, (stay, backed));
+					},
+					_ => pallet_proxy::Proxies::<T>::remove(who),
+				}
+
+				Ok(payload)
+			},
+			Pallet::<T>::send_proxies,
+		)
 	}
 }

@@ -85,6 +85,7 @@ parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 
 [dev-dependencies]
+pallet-rc2-migrator = { workspace = true, default-features = true }
 parachains-runtimes-test-utils = { workspace = true }
 
 [build-dependencies]

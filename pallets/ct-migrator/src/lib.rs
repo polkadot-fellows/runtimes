@@ -13,11 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Coretime-chain side of the registrar + HRMP migration.
+//! Receiver side of the AHM v2 migration. Usually the Coretime chain; on a network without one
+//! (Paseo), this will be Asset Hub.
 //!
-//! Ingests state sent by `pallet-rc2-migrator`, writing through the same code path as fresh
-//! registrations so that migrated and newly created state are identical. Temporary pallet;
-//! removed once the migration is complete.
+//! Ingests state sent by `pallet-rc2-migrator`, writing through the same code paths as ordinary
+//! extrinsics so that migrated and natively created state are indistinguishable. Temporary
+//! pallet; removed once the migration is complete.
+//!
+//! Has no stage machine of its own; the relay chain drives every transition. The stage is stored
+//! so this chain can check locally whether the migration is over.
+//!
+//! The relay chain's signals are gated by root; forcing a stage by [`Config::AdminOrigin`]. Any
+//! signal that is already acted on is accepted (so idempotent), and a signal out of order is an
+//! error.
 //!
 //! The portable payload types exchanged between the migrators live in the shared `migrator-types`
 //! crate (re-exported here for convenience), so no runtime depends on another chain's pallets
@@ -69,7 +77,11 @@ pub type PortableHrmpChannelOf<T> = PortableHrmpChannel<BalanceOf<T>>;
 pub type PortableHrmpRequestOf<T> = PortableHrmpRequest<BalanceOf<T>>;
 pub type PortableProxyOf<T> = PortableProxy<<T as frame_system::Config>::AccountId>;
 
-/// Progress of the migration. Advanced by messages from `pallet-rc2-migrator`.
+/// Progress of the migration, as this chain sees it. Advanced by messages from
+/// `pallet-rc2-migrator`.
+///
+/// Variants are appended, not inserted, so the encoding of the ones already shipped never moves;
+/// read the order of the machine off the transitions, not off the enum.
 #[derive(
 	Encode,
 	Decode,
@@ -83,13 +95,15 @@ pub type PortableProxyOf<T> = PortableProxy<<T as frame_system::Config>::Account
 	MaxEncodedLen,
 )]
 pub enum MigrationStage {
+	/// No migration has started.
 	#[default]
 	Pending,
+	/// The relay chain is draining state to this chain.
 	DataMigrationOngoing,
+	MigrationDone,
 	/// All data received and reconciled; this chain stays locked down until the relay chain's
 	/// verification window closes.
 	CoolOff,
-	MigrationDone,
 }
 
 impl MigrationStage {
@@ -380,7 +394,7 @@ pub mod pallet {
 		///
 		/// Weight is a placeholder until the migrator pallets get benchmarks; the payload is
 		/// bounded by the sender's batch limits.
-		#[pallet::call_index(0)]
+		#[pallet::call_index(3)]
 		#[pallet::weight(
 			T::DbWeight::get().reads_writes(4, 4).saturating_mul(accounts.len() as u64)
 		)]
@@ -398,7 +412,7 @@ pub mod pallet {
 		///
 		/// Stores each record and re-attributes the manager's migrated reserve to a
 		/// `RegistrarDeposit` hold. `next_free_para_id` is carried by the stage-init message only.
-		#[pallet::call_index(1)]
+		#[pallet::call_index(6)]
 		#[pallet::weight(
 			T::DbWeight::get().reads_writes(6, 6).saturating_mul((paras.len() as u64).max(1))
 		)]
@@ -414,7 +428,7 @@ pub mod pallet {
 		}
 
 		/// Receive a batch of HRMP channel records migrated from the relay chain.
-		#[pallet::call_index(2)]
+		#[pallet::call_index(7)]
 		#[pallet::weight(
 			T::DbWeight::get().reads_writes(2, 2).saturating_mul((channels.len() as u64).max(1))
 		)]
@@ -435,7 +449,7 @@ pub mod pallet {
 		/// local balance (the accounts stage provides the working buffer). If the reserve cannot
 		/// be taken the entry is still written — access for keyless delegators outranks the
 		/// deposit — and the shortfall is logged.
-		#[pallet::call_index(4)]
+		#[pallet::call_index(5)]
 		#[pallet::weight(
 			T::DbWeight::get().reads_writes(3, 3).saturating_mul((proxies.len() as u64).max(1))
 		)]
@@ -454,7 +468,7 @@ pub mod pallet {
 		/// Each record is stored verbatim and the sender's deposit — which arrived as an
 		/// `RcMigratedReserve` hold on the sibling sovereign during the accounts stage — is
 		/// re-labelled `HrmpDeposit`, same rule as channel deposits.
-		#[pallet::call_index(5)]
+		#[pallet::call_index(8)]
 		#[pallet::weight(
 			T::DbWeight::get().reads_writes(4, 4).saturating_mul((requests.len() as u64).max(1))
 		)]
@@ -472,7 +486,7 @@ pub mod pallet {
 		///
 		/// Answering opens the migration here and unblocks the relay chain's warm-up. A repeat is
 		/// answered again without reopening, so a resent signal is harmless.
-		#[pallet::call_index(6)]
+		#[pallet::call_index(0)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(3, 2))]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			// relay chain origin converts to root.
@@ -495,7 +509,7 @@ pub mod pallet {
 		///
 		/// Separate from `reconcile_balances` because the two happen at different times. The
 		/// reconciliation has to be inspectable *during* the window; the unlock comes after it.
-		#[pallet::call_index(7)]
+		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn end_lockdown(origin: OriginFor<T>) -> DispatchResult {
 			// relay chain origin converts to root.
@@ -511,7 +525,7 @@ pub mod pallet {
 		}
 
 		/// Set the migration stage directly. See `pallet-rc2-migrator`'s equivalent.
-		#[pallet::call_index(8)]
+		#[pallet::call_index(2)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
@@ -526,7 +540,7 @@ pub mod pallet {
 		/// Carries the relay-side balance bookkeeping so this chain can reconcile what it minted
 		/// against what the relay chain burned. A mismatch is loudly reported, never hidden: the
 		/// stage still advances so the cool-off verification can inspect the discrepancy.
-		#[pallet::call_index(3)]
+		#[pallet::call_index(4)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(3, 2))]
 		pub fn reconcile_balances(
 			origin: OriginFor<T>,

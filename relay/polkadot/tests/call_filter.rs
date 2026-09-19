@@ -108,7 +108,9 @@ fn para_facing_calls_reopen_as_forwarders_once_the_migration_is_done() {
 		);
 
 		// While it runs: shut. The forwarder is not on yet and the registry is half drained.
-		for stage in [Stage::RegistrarInit, Stage::HrmpInit, Stage::Paused] {
+		for stage in
+			[Stage::RegistrarInit, Stage::HrmpInit, Stage::AccountsOngoing { last_key: None }]
+		{
 			assert!(
 				!allowed_at(stage.clone(), &call),
 				"{call:?} must be closed while the migration runs, at {stage:?}"
@@ -148,7 +150,7 @@ fn calls_that_cannot_be_forwarded_stay_closed() {
 			allowed_at(Stage::Scheduled { start: 100 }, &call),
 			"{call:?} must stay open until the migration begins"
 		);
-		for stage in [Stage::RegistrarInit, Stage::Paused, Stage::MigrationDone] {
+		for stage in [Stage::RegistrarInit, Stage::HrmpInit, Stage::MigrationDone] {
 			assert!(!allowed_at(stage.clone(), &call), "{call:?} must be closed at {stage:?}");
 		}
 	}
@@ -226,11 +228,10 @@ const ALICE: AccountId = AccountId::new([1u8; 32]);
 fn open_stages() -> [Stage; 2] {
 	[Stage::Pending, Stage::Scheduled { start: 1_000 }]
 }
-fn closed_stages() -> [Stage; 5] {
+fn closed_stages() -> [Stage; 4] {
 	[
 		Stage::WaitingForCt,
 		Stage::AccountsOngoing { last_key: None },
-		Stage::Paused,
 		Stage::CoolOff { end_at: 10 },
 		Stage::MigrationDone,
 	]
@@ -525,7 +526,6 @@ mod inbound_messages {
 		for stage in [
 			Stage::WaitingForCt,
 			Stage::AccountsOngoing { last_key: None },
-			Stage::Paused,
 			Stage::CoolOff { end_at: 10 },
 		] {
 			assert!(

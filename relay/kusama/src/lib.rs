@@ -2140,7 +2140,25 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type XcmResponseTimeout = MigrationXcmResponseTimeout;
 	type UnprocessedMsgBuffer = MigrationUnprocessedMsgBuffer;
 	type NotifyQueryHandler = Runtime;
-	type ResponseOrigin = pallet_xcm::EnsureResponse<frame_support::traits::Equals<xcm_config::Broker>>;
+	type ResponseOrigin =
+		pallet_xcm::EnsureResponse<frame_support::traits::Equals<xcm_config::Broker>>;
+}
+
+#[cfg(test)]
+mod ahm_v2_tests {
+	use crate::{Runtime, RuntimeCall};
+	use codec::Encode;
+	use pallet_ct_migrator::{Rc2MigratorCall, Rc2RuntimeCall};
+
+	/// The Coretime chain hand-encodes this chain's pallet and call index; decode what it sends
+	/// with the real `RuntimeCall` so a `construct_runtime!` reorder cannot pass silently.
+	#[test]
+	fn the_coretime_chain_encodes_this_chains_calls_correctly() {
+		assert_eq!(
+			Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady).encode(),
+			RuntimeCall::Rc2Migrator(pallet_rc2_migrator::Call::<Runtime>::ct_ready {}).encode(),
+		);
+	}
 }
 
 construct_runtime! {

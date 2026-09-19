@@ -18,6 +18,13 @@
 //! Drives the migration stage machine: drains account balances and legacy `paras_registrar` and
 //! `hrmp` state together with their deposits and sends everything to the counterpart
 //! `pallet-ct-migrator` over XCM. Temporary pallet; removed once the migration is complete.
+//!
+//! Every `TODO(ahm-v2)` here and in `pallet-ct-migrator` is work this migration needs before it
+//! runs for real. Go through all of them before release.
+//!
+//! The AHM v1 migrators are the reference for the stage machine, the manager and the origins.
+//! They were removed in polkadot-fellows/runtimes#1016; read them at
+//! `https://github.com/polkadot-fellows/runtimes/tree/985df25829b3385730ff66acc50161ac57f0692c/pallets/rc-migrator`.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -124,7 +131,10 @@ pub struct ExpectedReserve {
 	pub refund: u128,
 }
 
-/// Progress of the migration. Advanced by `on_initialize`.
+/// Progress of the migration. Advanced by `on_initialize`, only while [`Paused`] is clear.
+///
+/// Nothing halts the machine on its own: a batch the Coretime chain refuses is recorded and the
+/// migration continues, because stopping leaves both chains locked down with no way forward.
 #[derive(Encode, Decode, DecodeWithMemTracking, Clone, Default, PartialEq, Eq, Debug, TypeInfo)]
 pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	#[default]
@@ -134,12 +144,6 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	Scheduled {
 		start: Moment,
 	},
-	/// Halts the machine while keeping the migration "ongoing" (call filters stay engaged).
-	/// Entered and left only via `force_set_stage`.
-	///
-	/// Nothing reaches this on its own: a batch the Coretime chain refuses is recorded and the
-	/// migration continues, because stopping leaves both chains locked down with no way forward.
-	Paused,
 	/// Waiting for the Coretime chain to confirm that it is ready to receive data.
 	WaitingForCt,
 	/// Both chains are locked down and nothing has moved yet: the window for the message queues
@@ -214,7 +218,7 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 			self,
 			Self::Pending |
 				Self::Scheduled { .. } |
-				Self::Paused | Self::WaitingForCt |
+				Self::WaitingForCt |
 				Self::WarmUp { .. } |
 				Self::CoolOff { .. } |
 				Self::MigrationDone
@@ -234,28 +238,30 @@ pub enum CtRuntimeCall {
 	CtMigrator(CtMigratorCall),
 }
 
+/// Indices are the `#[pallet::call_index]`es in `pallet-ct-migrator`, in the order the calls
+/// landed there; 2 is `force_set_stage`, which this chain never sends.
 // Held in `UnconfirmedBatches` until the Coretime chain confirms it, hence the storage derives.
 #[derive(Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub enum CtMigratorCall {
 	#[codec(index = 0)]
-	ReceiveAccounts { accounts: Vec<PortableAccount<AccountId32, u128>> },
+	StartMigration,
 	#[codec(index = 1)]
+	EndLockdown,
+	#[codec(index = 3)]
+	ReceiveAccounts { accounts: Vec<PortableAccount<AccountId32, u128>> },
+	#[codec(index = 4)]
+	ReconcileBalances { rc_kept: u128, rc_migrated: u128 },
+	#[codec(index = 5)]
+	ReceiveProxies { proxies: Vec<PortableProxy<AccountId32>> },
+	#[codec(index = 6)]
 	ReceiveRegistrar {
 		paras: Vec<PortableParaInfo<AccountId32, u128>>,
 		next_free_para_id: Option<u32>,
 	},
-	#[codec(index = 2)]
-	ReceiveHrmp { channels: Vec<PortableHrmpChannel<u128>> },
-	#[codec(index = 3)]
-	ReconcileBalances { rc_kept: u128, rc_migrated: u128 },
-	#[codec(index = 4)]
-	ReceiveProxies { proxies: Vec<PortableProxy<AccountId32>> },
-	#[codec(index = 5)]
-	ReceiveHrmpRequests { requests: Vec<PortableHrmpRequest<u128>> },
-	#[codec(index = 6)]
-	StartMigration,
 	#[codec(index = 7)]
-	EndLockdown,
+	ReceiveHrmp { channels: Vec<PortableHrmpChannel<u128>> },
+	#[codec(index = 8)]
+	ReceiveHrmpRequests { requests: Vec<PortableHrmpRequest<u128>> },
 }
 
 /// Balance conservation bookkeeping for the migration.
@@ -298,7 +304,9 @@ impl MigratedBalances<u128> {
 ///
 /// Carries the payload so it can be re-sent: the relay chain burns what a batch contains before
 /// sending it, so once a batch is in flight this is the only copy of that state anywhere.
-#[derive(Encode, Decode, DecodeWithMemTracking, CloneNoBound, PartialEq, Eq, DebugNoBound, TypeInfo)]
+#[derive(
+	Encode, Decode, DecodeWithMemTracking, CloneNoBound, PartialEq, Eq, DebugNoBound, TypeInfo,
+)]
 #[scale_info(skip_type_params(T))]
 pub struct UnconfirmedBatch<T: pallet::Config> {
 	/// The call as it was sent, ready to re-send verbatim.
@@ -328,10 +336,9 @@ where
 	fn new_notify_query(responder: Location, timeout: BlockNumberFor<T>) -> u64 {
 		pallet_xcm::Pallet::<R>::new_notify_query(
 			responder,
-			<R as pallet_xcm::Config>::RuntimeCall::from(pallet::Call::<T>::receive_query_response {
-				query_id: 0,
-				response: Response::Null,
-			}),
+			<R as pallet_xcm::Config>::RuntimeCall::from(
+				pallet::Call::<T>::receive_query_response { query_id: 0, response: Response::Null },
+			),
 			timeout.into(),
 			Location::here(),
 		)
@@ -477,10 +484,11 @@ pub mod pallet {
 	/// Batches sent to the Coretime chain whose dispatch result has not come back yet, by the
 	/// notify-query id `send_to_ct` registered for each.
 	///
-	/// The migration does not advance while this is non-empty: the relay chain burns state before
-	/// it sends it, so running ahead of an unanswered batch risks draining more of a map whose
-	/// previous chunk never landed. An entry is removed when [`Pallet::receive_query_response`]
-	/// reports success; a failure or a timeout halts the machine with the entry still in place.
+	/// The machine holds while more than [`UnprocessedMsgBuffer`] entries are outstanding: the
+	/// relay chain burns state before it sends it, so it must not run far ahead of what the
+	/// Coretime chain has acknowledged. An entry is removed when
+	/// [`Pallet::receive_query_response`] reports success; a failure or a timeout is reported and
+	/// the entry stays, so [`Pallet::retry_batch`] can re-send it.
 	///
 	/// The payload is kept, not just its id: the relay chain has already destroyed what the batch
 	/// carries, so this map is the only remaining copy. [`Pallet::retry_batch`] re-sends it.
@@ -509,6 +517,13 @@ pub mod pallet {
 	/// cannot appoint a manager itself. Kept funded through the migration and reaped when it ends.
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
+	/// Whether the machine is halted. The stage is untouched, so the migration still counts as
+	/// ongoing and resuming continues exactly where it stopped; `force_set_stage` is only
+	/// accepted while this is set. Inbound signals such as `ct_ready`
+	/// and batch reports are still recorded while halted; only `on_initialize` stands still.
+	#[pallet::storage]
+	pub type Paused<T: Config> = StorageValue<_, bool, ValueQuery>;
 
 	/// The multisig members that voted to execute a specific call.
 	#[pallet::storage]
@@ -579,6 +594,12 @@ pub mod pallet {
 		UnknownQuery,
 		/// The response to a batch was not a dispatch result.
 		UnexpectedResponse,
+		/// The migration can only be paused while it is running.
+		NotRunning,
+		/// The migration is already paused.
+		AlreadyPaused,
+		/// The migration is not paused.
+		NotPaused,
 	}
 
 	#[pallet::event]
@@ -709,15 +730,25 @@ pub mod pallet {
 			query_id: u64,
 			stage: MigrationStageOf<T>,
 		},
-		/// The Coretime chain rejected a batch. The migration is paused.
+		/// The Coretime chain rejected a batch. Reported only; the entry stays outstanding for
+		/// `retry_batch`.
 		BatchFailed {
 			query_id: u64,
 			stage: MigrationStageOf<T>,
 			error: MaybeErrorCode,
 		},
-		/// A batch went unanswered for [`Config::XcmResponseTimeout`]. The migration is paused.
+		/// A batch went unanswered for [`Config::XcmResponseTimeout`]. Reported once; the entry
+		/// stays outstanding for `retry_batch`.
 		BatchTimedOut {
 			query_id: u64,
+			stage: MigrationStageOf<T>,
+		},
+		/// The machine was halted at `stage`.
+		MigrationPaused {
+			stage: MigrationStageOf<T>,
+		},
+		/// The machine continues from `stage`.
+		MigrationResumed {
 			stage: MigrationStageOf<T>,
 		},
 	}
@@ -779,16 +810,17 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Set the migration stage directly.
+		/// Set the migration stage directly. Only while [`Paused`].
 		///
-		/// Recovery hook for a lost message or a stage that needs re-running; the stage machine
-		/// normally advances itself in `on_initialize`. Does not touch [`WarmUpPeriod`] or
-		/// [`CoolOffPeriod`]: a machine forced past `Pending` without a prior `schedule_migration`
-		/// holds each window for zero blocks.
+		/// Recovery hook for a lost message or a stage that needs re-running: pause, force, then
+		/// resume. Any stage is accepted, including ones the machine does not drive yet. Does not
+		/// touch [`WarmUpPeriod`] or [`CoolOffPeriod`]: a machine forced past `Pending` without a
+		/// prior `schedule_migration` holds each window for zero blocks.
 		#[pallet::call_index(1)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
+			ensure!(Paused::<T>::get(), Error::<T>::NotPaused);
 
 			Self::transition(stage);
 			Ok(())
@@ -851,6 +883,38 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Halt a running migration where it is.
+		///
+		/// The operator's stop button, and the precondition for `force_set_stage`: the stage
+		/// machine stands still until [`Pallet::resume_migration`], and may be repositioned in
+		/// between. A migration that has not started or is done cannot be paused; a scheduled one
+		/// is cancelled instead. A paused machine never reaches `MigrationDone`, so the manager is
+		/// not reaped out from under an active pause.
+		#[pallet::call_index(5)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
+		pub fn pause_migration(origin: OriginFor<T>) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+			let stage = RcMigrationStage::<T>::get();
+			ensure!(stage.is_ongoing(), Error::<T>::NotRunning);
+			ensure!(!Paused::<T>::get(), Error::<T>::AlreadyPaused);
+
+			Paused::<T>::put(true);
+			Self::deposit_event(Event::MigrationPaused { stage });
+			Ok(())
+		}
+
+		/// Let a paused migration continue from its current stage.
+		#[pallet::call_index(6)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
+		pub fn resume_migration(origin: OriginFor<T>) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+			ensure!(Paused::<T>::get(), Error::<T>::NotPaused);
+
+			Paused::<T>::kill();
+			Self::deposit_event(Event::MigrationResumed { stage: RcMigrationStage::<T>::get() });
+			Ok(())
+		}
+
 		/// Vote on behalf of any of the members in [`Config::MultisigMembers`].
 		///
 		/// Unsigned extrinsic, requiring the `payload` to be signed. Members therefore need no
@@ -860,7 +924,7 @@ pub mod pallet {
 		/// [`Config::MultisigThreshold`] members have voted for the same call it is dispatched as
 		/// the multisig's account, the map is cleared and the round advances, which is what stops
 		/// an old round's signatures from being replayed.
-		#[pallet::call_index(5)]
+		#[pallet::call_index(7)]
 		#[pallet::weight(Weight::from_parts(10_000_000, 1000))]
 		pub fn vote_manager_multisig(
 			origin: OriginFor<T>,
@@ -903,7 +967,7 @@ pub mod pallet {
 		}
 
 		/// Change how the Coretime chain's upward queue is prioritised while the migration runs.
-		#[pallet::call_index(6)]
+		#[pallet::call_index(8)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn set_ct_ump_queue_priority(
 			origin: OriginFor<T>,
@@ -926,12 +990,11 @@ pub mod pallet {
 		/// attached answers its notify query, so the origin is the response origin rather than the
 		/// Coretime chain's sovereign one.
 		///
-		/// A success clears the batch and lets the stage machine continue. A failure leaves the
-		/// entry in [`UnconfirmedBatches`] and halts the machine at [`MigrationStage::Paused`]:
-		/// the relay chain has already burned what that batch carried, so advancing would widen a
-		/// gap the two chains cannot close by themselves. Recovery is an operator's
-		/// `force_set_stage`, after they have decided what to do with the batch.
-		#[pallet::call_index(7)]
+		/// A success clears the batch. A failure is reported and leaves the entry in
+		/// [`UnconfirmedBatches`] for [`Pallet::retry_batch`]; the machine does not stop, because
+		/// both chains are locked down until the migration finishes and a stuck machine is worse
+		/// than a recorded gap.
+		#[pallet::call_index(9)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(3, 3))]
 		pub fn receive_query_response(
 			origin: OriginFor<T>,
@@ -976,12 +1039,9 @@ pub mod pallet {
 		/// report was lost is re-applied, and a double-mint would surface in `reconcile_balances`.
 		///
 		/// Free: cleaning up after the migration's own failure is not the operator's cost.
-		#[pallet::call_index(8)]
+		#[pallet::call_index(10)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(4, 4))]
-		pub fn retry_batch(
-			origin: OriginFor<T>,
-			query_id: u64,
-		) -> DispatchResultWithPostInfo {
+		pub fn retry_batch(origin: OriginFor<T>, query_id: u64) -> DispatchResultWithPostInfo {
 			Self::ensure_admin_or_manager(origin)?;
 
 			let batch = UnconfirmedBatches::<T>::get(query_id).ok_or(Error::<T>::UnknownQuery)?;
@@ -1004,12 +1064,9 @@ pub mod pallet {
 		///
 		/// Root only, and a last resort — [`Pallet::retry_batch`] first. Free, like the retry it
 		/// follows.
-		#[pallet::call_index(9)]
+		#[pallet::call_index(11)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(3, 3))]
-		pub fn abandon_batch(
-			origin: OriginFor<T>,
-			query_id: u64,
-		) -> DispatchResultWithPostInfo {
+		pub fn abandon_batch(origin: OriginFor<T>, query_id: u64) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
 			let batch = UnconfirmedBatches::<T>::get(query_id).ok_or(Error::<T>::UnknownQuery)?;
@@ -1024,7 +1081,7 @@ pub mod pallet {
 		}
 
 		/// Change how many batches may be outstanding before data extraction pauses for a block.
-		#[pallet::call_index(10)]
+		#[pallet::call_index(12)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn set_unprocessed_msg_buffer(
 			origin: OriginFor<T>,
@@ -1160,28 +1217,18 @@ pub mod pallet {
 				.build()
 		}
 
-		/// Whether this block's data extraction must be skipped.
+		/// Report every batch whose deadline passes this block.
 		///
-		/// Two reasons, both v1's: more batches are outstanding than [`UnprocessedMsgBuffer`]
-		/// allows — the relay chain runs ahead of what the Coretime chain has acknowledged, and
-		/// the queues would grow without bound — or a batch has gone unanswered past
-		/// [`Config::XcmResponseTimeout`], which is reported once and then simply keeps the
-		/// machine waiting rather than halting it.
-		///
-		/// Never transitions the stage. A migration that stops mid-run leaves both chains locked
-		/// down with no way forward, so nothing here stops it; the gap is recorded and settled
-		/// after the run.
-		fn should_hold_for_batches(now: BlockNumberFor<T>) -> bool {
-			let outstanding = UnconfirmedBatchCount::<T>::get();
-			if outstanding == 0 {
-				return false;
-			}
-
+		/// Runs every block while anything is outstanding, whatever the stage: a batch sent by
+		/// the last data stage is still owed an answer while the machine cools off. Reported
+		/// once, on the block the deadline passes -- the entry stays outstanding, so anything
+		/// else would fire every block for the rest of the migration -- and never acted on: a
+		/// migration that stops mid-run leaves both chains locked down with no way forward, so
+		/// the gap is recorded and settled after the run.
+		fn report_timed_out_batches(now: BlockNumberFor<T>) {
 			let timeout = T::XcmResponseTimeout::get();
 			for (query_id, batch) in UnconfirmedBatches::<T>::iter() {
 				if now.saturating_sub(batch.sent_at) == timeout {
-					// Once, on the block the deadline passes: the entry stays outstanding, so
-					// this would otherwise fire every block for the rest of the migration.
 					log::error!(
 						target: LOG_TARGET,
 						"Batch {query_id} sent in stage {:?} unanswered after {timeout:?} blocks",
@@ -1190,8 +1237,13 @@ pub mod pallet {
 					Self::deposit_event(Event::BatchTimedOut { query_id, stage: batch.stage });
 				}
 			}
+		}
 
-			outstanding > Self::unprocessed_msg_buffer()
+		/// Whether this block's data extraction must be skipped because more batches are
+		/// outstanding than [`UnprocessedMsgBuffer`] allows: the relay chain would run ahead of
+		/// what the Coretime chain has acknowledged, and the queues would grow without bound.
+		fn should_hold_for_batches() -> bool {
+			UnconfirmedBatchCount::<T>::get() > Self::unprocessed_msg_buffer()
 		}
 
 		/// How many batches may be outstanding before the machine stops sending more.
@@ -1214,12 +1266,19 @@ pub mod pallet {
 			UnconfirmedBatches::<T>::insert(query_id, batch);
 		}
 
+		// TODO(ahm-v2): proper benchmark
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
+			if UnconfirmedBatchCount::<T>::get() > 0 {
+				Self::report_timed_out_batches(now);
+			}
+			if Paused::<T>::get() {
+				return T::DbWeight::get().reads(2);
+			}
 			let stage = RcMigrationStage::<T>::get();
 			// A stage that sends state must not run arbitrarily far ahead of what the Coretime
 			// chain has acknowledged; the handshake and closing signals are exempt, each being a
 			// single message whose own stage gates what follows it.
-			if stage.waits_for_confirmation() && Self::should_hold_for_batches(now) {
+			if stage.waits_for_confirmation() && Self::should_hold_for_batches() {
 				return T::DbWeight::get().reads(2);
 			}
 

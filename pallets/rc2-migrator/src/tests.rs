@@ -45,6 +45,12 @@ fn root() -> RuntimeOrigin {
 	RuntimeOrigin::root()
 }
 
+/// Put the machine at `stage` directly, the way a test sets up a scenario. `force_set_stage` is
+/// the operator's tool and needs a pause first.
+fn set_stage(stage: Stage) {
+	RcMigrationStage::<Test>::put(stage);
+}
+
 /// Execute the next block's `on_initialize` of the migrator, then let a healthy Coretime chain
 /// confirm whatever it sent — the stage machine holds until each batch is answered.
 fn run_block() {
@@ -349,7 +355,7 @@ fn accounts_stage_tracks_and_sends_exactly_what_it_burns() {
 		register_para(2000, &alice);
 		let ti_before = total_issuance();
 
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
+		set_stage(Stage::AccountsInit);
 		run_block(); // AccountsInit: seeds tracker, builds the index
 		run_block(); // AccountsOngoing: migrates everything and finishes
 
@@ -729,7 +735,7 @@ fn sweep_empties_pots_reaps_dust_and_teleports_to_the_beneficiary() {
 		force_anomalous_account(&modl_dust, 4, 0, 0);
 		seed_tracker();
 
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::Sweep));
+		set_stage(Stage::Sweep);
 		migrator_events();
 		// Pots and dust are separate stages: one block empties the pots, the next pages the
 		// dust (everything here fits one page), and the machine lands on TiCorrection.
@@ -771,7 +777,7 @@ fn ti_correction_burns_the_audited_phantom_and_signals_finish() {
 		TiCorrection::set(50);
 		seed_tracker();
 
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::TiCorrection));
+		set_stage(Stage::TiCorrection);
 		migrator_events();
 		run_block();
 
@@ -797,7 +803,7 @@ fn ti_correction_never_burns_more_than_measured_and_reports_anomalies() {
 		TiCorrection::set(50);
 		seed_tracker();
 
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::TiCorrection));
+		set_stage(Stage::TiCorrection);
 		migrator_events();
 		run_block();
 
@@ -811,7 +817,7 @@ fn ti_correction_never_burns_more_than_measured_and_reports_anomalies() {
 		hypothetically!({
 			pallet_balances::TotalIssuance::<Test>::put(80);
 			seed_tracker();
-			assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::TiCorrection));
+			set_stage(Stage::TiCorrection);
 			run_block();
 			assert_eq!(total_issuance(), 30);
 			assert!(migrator_events().contains(&Event::TiCorrected {
@@ -840,7 +846,7 @@ fn only_the_admin_origin_or_manager_drives_the_machine() {
 			BadOrigin
 		);
 		assert_noop!(Rc2Migrator::cancel_migration(signed.clone()), BadOrigin);
-		assert_noop!(Rc2Migrator::force_set_stage(signed.clone(), Stage::Paused), BadOrigin);
+		assert_noop!(Rc2Migrator::force_set_stage(signed.clone(), Stage::WaitingForCt), BadOrigin);
 		assert_noop!(Rc2Migrator::set_manager(signed.clone(), Some(alice.clone())), BadOrigin);
 
 		// WHEN the admin origin appoints it manager. THEN it drives the machine, but still
@@ -1099,9 +1105,9 @@ fn the_coretime_queue_goes_first_on_a_duty_cycle_while_the_migration_runs() {
 		run_blocks(8);
 		assert_eq!(ForcedHeads::get(), vec![]);
 
-		// GIVEN an ongoing migration. WHEN blocks pass. THEN the Coretime queue goes first on
-		// three blocks in four.
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::Paused));
+		// GIVEN an ongoing migration, held at a stage that sends nothing. WHEN blocks pass. THEN
+		// the Coretime queue goes first on three blocks in four.
+		set_stage(Stage::WaitingForCt);
 		let from = System::block_number() + 1;
 		run_blocks(8);
 		assert_eq!(ForcedHeads::get(), prioritised_blocks(from, from + 7));
@@ -1138,8 +1144,9 @@ fn the_coretime_queue_goes_first_on_a_duty_cycle_while_the_migration_runs() {
 			Error::<Test>::ZeroPriorityBlocks
 		);
 
-		// WHEN the migration is done. THEN the queue takes its turn like every other.
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::MigrationDone));
+		// GIVEN the migration is done. WHEN blocks pass. THEN the queue takes its turn like every
+		// other.
+		set_stage(Stage::MigrationDone);
 		ForcedHeads::set(vec![]);
 		run_blocks(4);
 		assert_eq!(ForcedHeads::get(), vec![]);
@@ -1236,17 +1243,83 @@ fn full_stage_machine_drains_the_chain_to_zero() {
 }
 
 #[test]
-fn force_set_stage_requires_root() {
+fn force_set_stage_needs_a_pause_and_the_admins_powers() {
 	new_test_ext().execute_with(|| {
+		// GIVEN a machine about to enter a data stage, not paused.
+		set_stage(Stage::ProxyInit);
+
+		// WHEN root forces a stage while the machine runs. THEN it is refused: the machine is
+		// moved by hand only while it stands still.
 		assert_noop!(
-			Rc2Migrator::force_set_stage(RuntimeOrigin::signed(acc(1)), Stage::Paused),
+			Rc2Migrator::force_set_stage(root(), Stage::HrmpInit),
+			Error::<Test>::NotPaused
+		);
+
+		// GIVEN it is paused. WHEN an origin without the admin's powers forces. THEN refused.
+		assert_ok!(Rc2Migrator::pause_migration(root()));
+		assert_noop!(
+			Rc2Migrator::force_set_stage(RuntimeOrigin::signed(acc(1)), Stage::HrmpInit),
 			BadOrigin
 		);
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::Paused));
-		assert_eq!(RcMigrationStage::<Test>::get(), Stage::Paused);
-		// Paused halts the machine: blocks pass, nothing moves.
+
+		// WHEN root forces and resumes. THEN the machine continues from the forced stage and the
+		// hatch closes again.
+		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::HrmpInit));
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::HrmpInit);
+		assert_ok!(Rc2Migrator::resume_migration(root()));
+		assert_noop!(
+			Rc2Migrator::force_set_stage(root(), Stage::ProxyInit),
+			Error::<Test>::NotPaused
+		);
+	});
+}
+
+#[test]
+fn a_running_migration_can_be_paused_and_resumed_where_it_stopped() {
+	new_test_ext().execute_with(|| {
+		let alice = acc(1); // manager
+		let start = now_ms() + 1;
+
+		// WHEN a migration that is not running is paused. THEN it is refused at every such stage:
+		// nothing to halt before the start, cancel is the tool while scheduled, nothing left after.
+		for not_running in [Stage::Pending, Stage::Scheduled { start }, Stage::MigrationDone] {
+			set_stage(not_running);
+			assert_noop!(Rc2Migrator::pause_migration(root()), Error::<Test>::NotRunning);
+		}
+		assert_noop!(Rc2Migrator::resume_migration(root()), Error::<Test>::NotPaused);
+
+		// GIVEN a migration about to enter a data stage.
+		set_stage(Stage::ProxyInit);
+
+		// WHEN an origin without the admin's powers pauses it. THEN it is refused.
+		assert_noop!(Rc2Migrator::pause_migration(RuntimeOrigin::signed(alice.clone())), BadOrigin);
+
+		// WHEN the manager pauses it. THEN the machine halts with the stage left where it was.
+		assert_ok!(Rc2Migrator::set_manager(root(), Some(alice.clone())));
+		assert_ok!(Rc2Migrator::pause_migration(RuntimeOrigin::signed(alice.clone())));
+		assert!(Paused::<Test>::get());
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::ProxyInit);
+		assert_eq!(
+			migrator_events().last(),
+			Some(&Event::MigrationPaused { stage: Stage::ProxyInit })
+		);
+
+		// WHEN blocks pass. THEN nothing moves, and the migration still counts as ongoing so
+		// whatever closed when it started stays closed.
+		run_blocks(5);
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::ProxyInit);
+		assert!(RcMigrationStage::<Test>::get().is_ongoing());
+		assert_noop!(Rc2Migrator::pause_migration(root()), Error::<Test>::AlreadyPaused);
+
+		// WHEN the manager resumes. THEN the machine continues from that very stage.
+		assert_ok!(Rc2Migrator::resume_migration(RuntimeOrigin::signed(alice)));
+		assert!(!Paused::<Test>::get());
+		assert_eq!(
+			migrator_events().last(),
+			Some(&Event::MigrationResumed { stage: Stage::ProxyInit })
+		);
 		run_block();
-		assert_eq!(RcMigrationStage::<Test>::get(), Stage::Paused);
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::ProxyOngoing { last_key: None });
 	});
 }
 
@@ -1266,7 +1339,7 @@ fn data_extraction_pauses_once_too_many_batches_are_outstanding() {
 		fund(&alice, 10_000);
 		register_para(2000, &alice);
 
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
+		set_stage(Stage::AccountsInit);
 		run_blocks_without_ct(2);
 		let outstanding = UnconfirmedBatchCount::<Test>::get();
 		assert_eq!(outstanding, 1, "the accounts stage sent one batch");
@@ -1293,7 +1366,7 @@ fn a_rejected_batch_is_reported_but_never_halts_the_migration() {
 		fund(&alice, 10_000);
 		register_para(2000, &alice);
 
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
+		set_stage(Stage::AccountsInit);
 		run_blocks_without_ct(2);
 		let (query_id, batch) = UnconfirmedBatches::<Test>::iter().next().unwrap();
 		let sent_in = batch.stage;
@@ -1308,7 +1381,7 @@ fn a_rejected_batch_is_reported_but_never_halts_the_migration() {
 		// THEN it is recorded and the batch stays retryable — but the machine does NOT stop.
 		// Halting mid-run would leave both chains locked down with no way forward; the gap is
 		// settled after the migration, not during it.
-		assert_ne!(RcMigrationStage::<Test>::get(), Stage::Paused);
+		assert!(!Paused::<Test>::get());
 		assert!(UnconfirmedBatches::<Test>::contains_key(query_id));
 		assert!(migrator_events().iter().any(|e| matches!(
 			e,
@@ -1323,14 +1396,14 @@ fn an_unanswered_batch_is_reported_once_and_does_not_halt_the_migration() {
 		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
 		fund(&alice, 10_000);
 		register_para(2000, &alice);
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
+		set_stage(Stage::AccountsInit);
 		run_blocks_without_ct(2);
 		let (query_id, _) = UnconfirmedBatches::<Test>::iter().next().unwrap();
 
 		// WHEN the response never arrives, THEN it is reported exactly once — the entry stays
 		// outstanding, so a per-block report would fire forever — and the stage is untouched.
 		run_blocks_without_ct(XcmResponseTimeout::get() + 3);
-		assert_ne!(RcMigrationStage::<Test>::get(), Stage::Paused);
+		assert!(!Paused::<Test>::get());
 		let timeouts = migrator_events()
 			.iter()
 			.filter(|e| matches!(e, Event::BatchTimedOut { query_id: q, .. } if *q == query_id))
@@ -1340,12 +1413,38 @@ fn an_unanswered_batch_is_reported_once_and_does_not_halt_the_migration() {
 }
 
 #[test]
+fn a_batch_still_unanswered_during_cool_off_is_reported() {
+	new_test_ext().execute_with(|| {
+		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
+		fund(&alice, 10_000);
+		register_para(2000, &alice);
+		set_stage(Stage::AccountsInit);
+		run_blocks_without_ct(2);
+		let (query_id, _) = UnconfirmedBatches::<Test>::iter().next().unwrap();
+
+		// GIVEN the machine has moved on to a stage that sends nothing and waits for no one.
+		let end_at = System::block_number() + 1_000;
+		set_stage(Stage::CoolOff { end_at });
+
+		// WHEN the deadline passes there. THEN the batch is still reported, exactly once: the
+		// last data stage's batches are owed an answer whatever the machine is doing now.
+		run_blocks_without_ct(XcmResponseTimeout::get() + 3);
+		assert_eq!(RcMigrationStage::<Test>::get(), Stage::CoolOff { end_at });
+		let timeouts = migrator_events()
+			.iter()
+			.filter(|e| matches!(e, Event::BatchTimedOut { query_id: q, .. } if *q == query_id))
+			.count();
+		assert_eq!(timeouts, 1);
+	});
+}
+
+#[test]
 fn only_the_coretime_chain_may_answer_and_only_for_a_known_batch() {
 	new_test_ext().execute_with(|| {
 		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
 		fund(&alice, 10_000);
 		register_para(2000, &alice);
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
+		set_stage(Stage::AccountsInit);
 		run_blocks_without_ct(2);
 		let (query_id, _) = UnconfirmedBatches::<Test>::iter().next().unwrap();
 
@@ -1384,7 +1483,7 @@ fn every_batch_carries_a_report_appendix_that_survives_a_failed_transact() {
 		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
 		fund(&alice, 10_000);
 		register_para(2000, &alice);
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
+		set_stage(Stage::AccountsInit);
 		take_sent_xcm();
 		run_blocks_without_ct(2);
 
@@ -1413,7 +1512,7 @@ fn a_failed_batch_can_be_retried_under_a_fresh_query() {
 		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
 		fund(&alice, 10_000);
 		register_para(2000, &alice);
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
+		set_stage(Stage::AccountsInit);
 		run_blocks_without_ct(2);
 		let (query_id, batch) = UnconfirmedBatches::<Test>::iter().next().unwrap();
 		let payload = batch.call.clone();
@@ -1429,10 +1528,7 @@ fn a_failed_batch_can_be_retried_under_a_fresh_query() {
 
 		// WHEN it is retried. Recovery is free: an operator cleaning up after the migration's own
 		// failure should not pay for it.
-		assert_eq!(
-			Rc2Migrator::retry_batch(root(), query_id).unwrap().pays_fee,
-			Pays::No
-		);
+		assert_eq!(Rc2Migrator::retry_batch(root(), query_id).unwrap().pays_fee, Pays::No);
 
 		// THEN the same payload goes out again under a fresh query, and the old id is forgotten
 		// so a late answer to it cannot settle anything.
@@ -1464,15 +1560,12 @@ fn only_a_known_batch_can_be_recovered_and_abandoning_is_root_only() {
 		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
 		fund(&alice, 10_000);
 		register_para(2000, &alice);
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
+		set_stage(Stage::AccountsInit);
 		run_blocks_without_ct(2);
 		let (query_id, _) = UnconfirmedBatches::<Test>::iter().next().unwrap();
 
 		assert_noop!(Rc2Migrator::retry_batch(root(), query_id + 99), Error::<Test>::UnknownQuery);
-		assert_noop!(
-			Rc2Migrator::retry_batch(RuntimeOrigin::signed(acc(9)), query_id),
-			BadOrigin
-		);
+		assert_noop!(Rc2Migrator::retry_batch(RuntimeOrigin::signed(acc(9)), query_id), BadOrigin);
 		// Abandoning loses data, so it is root's alone — not the manager's.
 		assert_noop!(
 			Rc2Migrator::abandon_batch(RuntimeOrigin::signed(acc(9)), query_id),
@@ -1487,23 +1580,19 @@ fn abandoning_a_batch_drops_it_and_records_the_loss() {
 		let alice = acc(1); // manager; its registrar deposit is what travels to Coretime
 		fund(&alice, 10_000);
 		register_para(2000, &alice);
-		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::AccountsInit));
+		set_stage(Stage::AccountsInit);
 		run_blocks_without_ct(2);
 		let (query_id, batch) = UnconfirmedBatches::<Test>::iter().next().unwrap();
 		let sent_in = batch.stage;
 		take_sent_xcm();
 
-		assert_eq!(
-			Rc2Migrator::abandon_batch(root(), query_id).unwrap().pays_fee,
-			Pays::No
-		);
+		assert_eq!(Rc2Migrator::abandon_batch(root(), query_id).unwrap().pays_fee, Pays::No);
 
 		// The batch is gone and nothing was re-sent: its contents are lost, deliberately, and the
 		// event is the only record that they existed.
 		assert!(UnconfirmedBatches::<Test>::iter().next().is_none());
 		assert_eq!(UnconfirmedBatchCount::<Test>::get(), 0);
 		assert!(take_sent_xcm().is_empty());
-		assert!(migrator_events()
-			.contains(&Event::BatchAbandoned { query_id, stage: sent_in }));
+		assert!(migrator_events().contains(&Event::BatchAbandoned { query_id, stage: sent_in }));
 	});
 }

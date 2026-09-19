@@ -121,6 +121,7 @@ sp-debug-derive = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 
 [dev-dependencies]
+pallet-ct-migrator = { workspace = true, default-features = true }
 approx = { workspace = true }
 sp-keyring = { workspace = true }
 sp-trie = { workspace = true }

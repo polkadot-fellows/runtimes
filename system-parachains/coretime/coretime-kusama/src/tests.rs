@@ -19,6 +19,7 @@ use crate::{
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
 	*,
 };
+use codec::Encode;
 use coretime::CoretimeAllocator;
 use cumulus_pallet_parachain_system::ValidationData;
 use cumulus_primitives_core::PersistedValidationData;
@@ -313,9 +314,8 @@ fn para_registration_proxies_keep_their_relay_chain_scope() {
 
 	// And nothing beyond it. A registration proxy may create a para, never dispose of one or
 	// change one that exists — the same asymmetry the relay chain has.
-	let deregister = RuntimeCall::RegistrarPara(pallet_registrar_para::Call::deregister {
-		para_id: 2000,
-	});
+	let deregister =
+		RuntimeCall::RegistrarPara(pallet_registrar_para::Call::deregister { para_id: 2000 });
 	let add_lock =
 		RuntimeCall::RegistrarPara(pallet_registrar_para::Call::add_lock { para_id: 2000 });
 	let transfer = RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
@@ -435,4 +435,37 @@ fn proxy_mutations_are_blocked_only_while_the_migration_runs() {
 			);
 		}
 	});
+}
+
+/// Each side hand-encodes the other's pallet and call index and the compiler checks none of it,
+/// so every call the relay chain can send is decoded here with this chain's real `RuntimeCall`.
+#[test]
+fn the_relay_chain_encodes_this_chains_migrator_calls_correctly() {
+	use pallet_ct_migrator::Call as C;
+	use pallet_rc2_migrator::{CtMigratorCall as M, CtRuntimeCall};
+	let cases: Vec<(CtRuntimeCall, RuntimeCall)> = vec![
+		(M::StartMigration, C::<Runtime>::start_migration {}),
+		(M::EndLockdown, C::end_lockdown {}),
+		(M::ReceiveAccounts { accounts: vec![] }, C::receive_accounts { accounts: vec![] }),
+		(
+			M::ReconcileBalances { rc_kept: 1, rc_migrated: 2 },
+			C::reconcile_balances { rc_kept: 1, rc_migrated: 2 },
+		),
+		(M::ReceiveProxies { proxies: vec![] }, C::receive_proxies { proxies: vec![] }),
+		(
+			M::ReceiveRegistrar { paras: vec![], next_free_para_id: Some(7) },
+			C::receive_registrar { paras: vec![], next_free_para_id: Some(7) },
+		),
+		(M::ReceiveHrmp { channels: vec![] }, C::receive_hrmp { channels: vec![] }),
+		(
+			M::ReceiveHrmpRequests { requests: vec![] },
+			C::receive_hrmp_requests { requests: vec![] },
+		),
+	]
+	.into_iter()
+	.map(|(sent, real)| (CtRuntimeCall::CtMigrator(sent), RuntimeCall::CtMigrator(real)))
+	.collect();
+	for (sent, real) in cases {
+		assert_eq!(sent.encode(), real.encode(), "{real:?}");
+	}
 }
