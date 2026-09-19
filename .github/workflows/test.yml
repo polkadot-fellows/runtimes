@@ -229,6 +229,98 @@ jobs:
           RUSTFLAGS: "-C debug-assertions"
           PACKAGE: ${{ matrix.itest.package }}
 
+  # Not required by "confirmTestPassed": AHM v2 is behind a feature flag that no released runtime
+  # enables, so a failure here should not gate a release.
+  ahm-v2-test:
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - network: polkadot
+            relay_package: polkadot-runtime
+          - network: kusama
+            relay_package: staging-kusama-runtime
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32v1-none"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      # The runtimes are tested with `--features ahm-v2` rather than `--all-features`: the latter
+      # also turns on `on-chain-release-build`, which drops the migrator pallets from the runtime.
+      - name: Test AHM v2 pallets and ${{ matrix.network }} wiring
+        run: |
+          cargo test --release --locked -q -p pallet-rc2-migrator -p pallet-ct-migrator
+          cargo test --release --locked -q -p "$RELAY_PACKAGE" --features ahm-v2
+          cargo test --release --locked -q -p coretime-"$NETWORK"-runtime --features ahm-v2
+        env:
+          RUSTFLAGS: "-C debug-assertions"
+          SKIP_WASM_BUILD: 1
+          NETWORK: ${{ matrix.network }}
+          RELAY_PACKAGE: ${{ matrix.relay_package }}
+
+      # The snapshot suite runs against the cached try-runtime snapshots.
+      - name: Restore ${{ matrix.network }} relay snapshot
+        id: snap-rc
+        uses: actions/cache/restore@v4
+        with:
+          path: snapshot.raw
+          key: try-runtime-snapshot-${{ matrix.network }}-
+          fail-on-cache-miss: false
+      - if: steps.snap-rc.outputs.cache-matched-key != ''
+        run: mv snapshot.raw snap_rc.snap
+
+      - name: Restore coretime-${{ matrix.network }} snapshot
+        id: snap-ct
+        uses: actions/cache/restore@v4
+        with:
+          path: snapshot.raw
+          key: try-runtime-snapshot-coretime-${{ matrix.network }}-
+          fail-on-cache-miss: false
+      - if: steps.snap-ct.outputs.cache-matched-key != ''
+        run: mv snapshot.raw snap_ct.snap
+
+      - name: Test AHM v2 against ${{ matrix.network }} snapshots
+        if: steps.snap-rc.outputs.cache-matched-key != '' && steps.snap-ct.outputs.cache-matched-key != ''
+        run: |
+          cargo test --release --locked -q -p polkadot-integration-tests-ahmv2 \
+            --no-default-features --features "$NETWORK"
+        env:
+          RUSTFLAGS: "-C debug-assertions"
+          # The test binary runs with its package as the working directory, so these must be
+          # absolute.
+          SNAP_RC: ${{ github.workspace }}/snap_rc.snap
+          SNAP_CT: ${{ github.workspace }}/snap_ct.snap
+          NETWORK: ${{ matrix.network }}
+
+      - name: Report a missing snapshot
+        if: steps.snap-rc.outputs.cache-matched-key == '' || steps.snap-ct.outputs.cache-matched-key == ''
+        run: echo "::notice::No cached ${{ matrix.network }} snapshot; skipped the AHM v2 snapshot suite"
+
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
     if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
@@ -768,6 +860,8 @@ jobs:
       # These jobs only run on release PRs/branches, so they are not required for the gate.
       #- zombienet-smoke
       #- ecosystem-tests
+      # Tests a feature flag no released runtime enables; informational until AHM v2 ships.
+      #- ahm-v2-test
     steps:
       # Branch protection treats `skipped` as passing, so fail explicitly.
       - name: Fail if any dependency did not succeed
