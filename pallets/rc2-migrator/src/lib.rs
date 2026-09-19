@@ -42,10 +42,8 @@ pub use pallet::*;
 
 use alloc::vec;
 use frame_support::{
-	defensive,
 	pallet_prelude::*,
-	sp_runtime::{traits::Saturating, TransactionOutcome},
-	storage::transactional::with_transaction_opaque_err,
+	sp_runtime::traits::Saturating,
 	traits::{EnsureOrigin, Time},
 };
 use frame_system::pallet_prelude::*;
@@ -499,18 +497,11 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::AccountsInit => {
-					Self::migrate_stage_once(
-						|| Ok(()),
-						MigrationStage::AccountsOngoing { last_key: None },
-					);
+					Self::transition(MigrationStage::AccountsOngoing { last_key: None });
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::AccountsOngoing { .. } => {
-					Self::migrate_stage_step(
-						|| Ok(None),
-						MigrationStage::AccountsDone,
-						|last_key| MigrationStage::AccountsOngoing { last_key: Some(last_key) },
-					);
+					Self::transition(MigrationStage::AccountsDone);
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				// The `*Done` stages are one-block checkpoints rather than direct `*Init`
@@ -521,18 +512,11 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::ProxyInit => {
-					Self::migrate_stage_once(
-						|| Ok(()),
-						MigrationStage::ProxyOngoing { last_key: None },
-					);
+					Self::transition(MigrationStage::ProxyOngoing { last_key: None });
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::ProxyOngoing { .. } => {
-					Self::migrate_stage_step(
-						|| Ok(None),
-						MigrationStage::ProxyDone,
-						|last_key| MigrationStage::ProxyOngoing { last_key: Some(last_key) },
-					);
+					Self::transition(MigrationStage::ProxyDone);
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::ProxyDone => {
@@ -540,18 +524,11 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::RegistrarInit => {
-					Self::migrate_stage_once(
-						|| Ok(()),
-						MigrationStage::RegistrarOngoing { last_key: None },
-					);
+					Self::transition(MigrationStage::RegistrarOngoing { last_key: None });
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::RegistrarOngoing { .. } => {
-					Self::migrate_stage_step(
-						|| Ok(None),
-						MigrationStage::RegistrarDone,
-						|last_key| MigrationStage::RegistrarOngoing { last_key: Some(last_key) },
-					);
+					Self::transition(MigrationStage::RegistrarDone);
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::RegistrarDone => {
@@ -559,18 +536,11 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::HrmpInit => {
-					Self::migrate_stage_once(
-						|| Ok(()),
-						MigrationStage::HrmpOngoing { last_key: None },
-					);
+					Self::transition(MigrationStage::HrmpOngoing { last_key: None });
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::HrmpOngoing { .. } => {
-					Self::migrate_stage_step(
-						|| Ok(None),
-						MigrationStage::HrmpDone,
-						|last_key| MigrationStage::HrmpOngoing { last_key: Some(last_key) },
-					);
+					Self::transition(MigrationStage::HrmpDone);
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::HrmpDone => {
@@ -578,27 +548,17 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::Sweep => {
-					Self::migrate_stage_once(
-						|| Ok(()),
-						MigrationStage::SweepDust { last_key: None },
-					);
+					Self::transition(MigrationStage::SweepDust { last_key: None });
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::SweepDust { .. } => {
-					Self::migrate_stage_step(
-						|| Ok(None),
-						MigrationStage::TiCorrection,
-						|last_key| MigrationStage::SweepDust { last_key: Some(last_key) },
-					);
+					Self::transition(MigrationStage::TiCorrection);
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::TiCorrection => {
-					Self::migrate_stage_once(
-						|| Ok(()),
-						MigrationStage::CoolOff {
-							end_at: now.saturating_add(CoolOffPeriod::<T>::get()),
-						},
-					);
+					Self::transition(MigrationStage::CoolOff {
+						end_at: now.saturating_add(CoolOffPeriod::<T>::get()),
+					});
 					T::DbWeight::get().reads_writes(2, 2)
 				},
 				// wait cool off period before finishing migration
@@ -610,50 +570,6 @@ pub mod pallet {
 				},
 				_ => T::DbWeight::get().reads(1),
 			}
-		}
-
-		/// Run a one-shot stage inside a storage transaction and advance to `next` on success.
-		/// An `Err` rolls all of the stage's writes back and retries it whole next block.
-		fn migrate_stage_once(
-			work: impl FnOnce() -> Result<(), Error<T>>,
-			next: MigrationStageOf<T>,
-		) {
-			match Self::with_rollback(work) {
-				Ok(()) => Self::transition(next),
-				Err(e) => {
-					defensive!("Stage failed, retrying: {:?}", e);
-				},
-			}
-		}
-
-		/// Run one block's worth of a cursor-driven stage inside a storage transaction and advance
-		/// the machine from the result: `Ok(None)` finishes the stage, `Ok(Some(key))` continues
-		/// from the cursor next block, `Err` rolls the whole block back and retries the same key
-		/// range.
-		fn migrate_stage_step<K>(
-			step: impl FnOnce() -> Result<Option<K>, Error<T>>,
-			done: MigrationStageOf<T>,
-			ongoing: impl FnOnce(K) -> MigrationStageOf<T>,
-		) {
-			match Self::with_rollback(step) {
-				Ok(None) => Self::transition(done),
-				Ok(Some(last_key)) => Self::transition(ongoing(last_key)),
-				Err(e) => {
-					defensive!("Data stage failed, retrying: {:?}", e);
-				},
-			}
-		}
-
-		/// Commit `f`'s storage writes on `Ok`, discard all of them on `Err`.
-		///
-		/// A stage burns, removes and sends in one block; none of that may survive if the last
-		/// step fails.
-		fn with_rollback<R>(f: impl FnOnce() -> Result<R, Error<T>>) -> Result<R, Error<T>> {
-			with_transaction_opaque_err(|| match f() {
-				Ok(r) => TransactionOutcome::Commit(Ok(r)),
-				Err(e) => TransactionOutcome::Rollback(Err(e)),
-			})
-			.expect("one transaction per block never reaches the layer limit; qed")
 		}
 
 		/// Execute a stage transition and log it.
