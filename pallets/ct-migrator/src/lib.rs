@@ -32,8 +32,8 @@
 //!
 //! This pallet follows `pallet_ah_migrator` (refer:
 //! <https://github.com/polkadot-fellows/runtimes/tree/985df25829b3385730ff66acc50161ac57f0692c/pallets/ah-migrator>).
-//! - The cool-off is held on the Relay Chain only. `end_lockdown` arrives when it ends, so there
-//!   is no `CoolOff` stage here.
+//! - The cool-off is held on the Relay Chain only. `end_lockdown` arrives when it ends, so there is
+//!   no `CoolOff` stage here.
 //! - No message-count confirmations or queue-priority controls are sent back.
 
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -215,9 +215,8 @@ pub mod pallet {
 			Self::ensure_root_or_admin_or_manager(origin)?;
 
 			match CtMigrationStage::<T>::get() {
-				MigrationStage::DataMigrationOngoing => {
-					Self::transition(MigrationStage::MigrationDone)
-				},
+				MigrationStage::DataMigrationOngoing =>
+					Self::transition(MigrationStage::MigrationDone),
 				MigrationStage::MigrationDone => (),
 				MigrationStage::Pending => return Err(Error::<T>::NotStarted.into()),
 			}

@@ -349,9 +349,7 @@ fn ump_outcome(para: u32) -> Option<bool> {
 				}) if origin == queue => return Some(success),
 				network::relay::RuntimeEvent::MessageQueue(ProcessingFailed { origin, .. })
 					if origin == queue =>
-				{
-					return Some(false)
-				},
+					return Some(false),
 				_ => (),
 			}
 		}
