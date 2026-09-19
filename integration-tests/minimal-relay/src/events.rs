@@ -432,8 +432,9 @@ fn emit_ct_block() {
 						"ct_minted": planck(ct_minted),
 					}),
 				),
-				// Which queue went first this block is not migration state; the stream carries
-				// the stage, not the service ring.
+				// Operator appointments and which queue went first this block are not migration
+				// state; the stream carries the stage, not the service ring.
+				MigEvent::ManagerSet { .. } |
 				MigEvent::DmpQueuePrioritised { .. } |
 				MigEvent::DmpQueuePriorityConfigSet { .. } => (),
 			},

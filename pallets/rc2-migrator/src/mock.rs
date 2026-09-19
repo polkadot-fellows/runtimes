@@ -564,6 +564,10 @@ pub fn fund(who: &AccountId32, amount: u128) {
 	let _ = <Balances as Currency<AccountId32>>::make_free_balance_be(who, amount);
 }
 
+pub fn reserve(who: &AccountId32, amount: u128) {
+	<Balances as ReservableCurrency<AccountId32>>::reserve(who, amount).unwrap();
+}
+
 pub fn free(who: &AccountId32) -> u128 {
 	pallet_balances::Pallet::<Test>::free_balance(who)
 }

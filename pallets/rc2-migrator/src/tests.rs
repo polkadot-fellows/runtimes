@@ -26,12 +26,9 @@ use frame_support::{
 	assert_noop, assert_ok,
 	dispatch::Pays,
 	hypothetically,
-	traits::{
-		LockableCurrency, OnInitialize, OnRuntimeUpgrade, ReservableCurrency, WithdrawReasons,
-	},
-	weights::Weight,
+	traits::{LockableCurrency, OnInitialize, OnRuntimeUpgrade, WithdrawReasons},
 };
-use migrator_types::{PortableProxyDelegate, PortableProxyType};
+use migrator_types::{PortableHoldReason, PortableProxyDelegate, PortableProxyType};
 use runtime_parachains::{
 	hrmp as parachains_hrmp,
 	inclusion::{AggregateMessageOrigin, UmpQueueId},
@@ -66,280 +63,6 @@ fn seed_tracker() {
 	RcMigratedBalance::<Test>::put(MigratedBalances {
 		kept: total_issuance(),
 		..Default::default()
-	});
-}
-
-// ---------------------------------------------------------------------------
-// Expected-reserve indexing
-// ---------------------------------------------------------------------------
-
-#[test]
-fn build_expected_reserves_indexes_every_deposit_source() {
-	new_test_ext().execute_with(|| {
-		let alice = acc(1); // parachain manager
-		let bob = acc(2); // delegator with a portable (Any) proxy def
-		let carol = acc(3); // delegator with only a non-portable (Staking) def
-		let dave = acc(4); // multisig depositor
-		let eve = acc(5); // proxy announcer
-		let frank = acc(6); // delegator eve announces for
-		let delegate = acc(7);
-
-		// GIVEN one deposit of every kind the relay chain knows.
-		fund(&alice, 1_000);
-		register_para(2000, &alice); // 300 recorded + reserved
-		open_channel(2000, 2001, 70, 30);
-		open_request(2000, 2002, 25);
-		fund(&bob, 500);
-		add_proxy(&bob, &delegate, ProxyType::Any); // 44 reserved
-		fund(&carol, 500);
-		add_proxy(&carol, &delegate, ProxyType::Staking); // 44 reserved
-		fund(&dave, 500);
-		let call = Box::new(RuntimeCall::System(frame_system::Call::remark { remark: vec![] }));
-		assert_ok!(Multisig::as_multi(
-			RuntimeOrigin::signed(dave.clone()),
-			2,
-			vec![eve.clone()],
-			None,
-			call,
-			Weight::zero(),
-		)); // 30 base + 2 * 5 factor = 40 reserved
-		fund(&frank, 500);
-		add_proxy(&frank, &eve, ProxyType::Any);
-		fund(&eve, 500);
-		assert_ok!(Proxy::announce(
-			RuntimeOrigin::signed(eve.clone()),
-			frank.clone(),
-			H256::zero()
-		)); // 25 + 6 = 31 reserved
-
-		// WHEN the index is built.
-		let records = AccountsMigrator::<Test>::build_expected_reserves();
-
-		// THEN every source is classified: registrar + HRMP (+ requests) are Coretime-bound,
-		// portable proxy deposits travel under their own reason, everything whose purpose ends
-		// with this chain is refunded.
-		assert_eq!(records, 8, "para + channel + request + 3 proxies + multisig + announcement");
-		assert_eq!(ExpectedReserves::<Test>::get(&alice).ct, 300);
-		assert_eq!(ExpectedReserves::<Test>::get(child_sov(2000)).ct, 70 + 25);
-		assert_eq!(ExpectedReserves::<Test>::get(child_sov(2001)).ct, 30);
-		assert_eq!(ExpectedReserves::<Test>::get(&bob).proxy, 44);
-		assert_eq!(ExpectedReserves::<Test>::get(&frank).proxy, 44);
-		assert_eq!(ExpectedReserves::<Test>::get(&carol).refund, 44);
-		assert_eq!(ExpectedReserves::<Test>::get(&dave).refund, 40);
-		assert_eq!(ExpectedReserves::<Test>::get(&eve).refund, 31);
-	});
-}
-
-// ---------------------------------------------------------------------------
-// Single-account withdrawal: the split rule
-// ---------------------------------------------------------------------------
-
-fn withdraw(who: &AccountId32) -> Option<accounts::Withdrawal> {
-	let info = frame_system::Account::<Test>::get(who);
-	AccountsMigrator::<Test>::withdraw_account(who, info).expect("withdrawal must not error")
-}
-
-fn ct_holds(w: &accounts::Withdrawal) -> Vec<(PortableHoldReason, u128)> {
-	w.ct.as_ref()
-		.map(|a| a.holds.iter().map(|h| (h.reason, h.amount)).collect())
-		.unwrap_or_default()
-}
-
-#[test]
-fn withdraw_splits_deposit_buffer_and_teleport() {
-	new_test_ext().execute_with(|| {
-		let alice = acc(1); // parachain manager, cleanly migrating
-		fund(&alice, 1_000);
-		register_para(2000, &alice); // free 700, reserved 300
-		AccountsMigrator::<Test>::build_expected_reserves();
-		let ti_before = total_issuance();
-
-		let w = withdraw(&alice).expect("migrates");
-
-		// Deposit -> CT hold, one buffer of free follows it, the rest teleports to AH.
-		assert_eq!(ct_holds(&w), vec![(PortableHoldReason::UnnamedReserve, 300)]);
-		assert_eq!(w.ct.as_ref().unwrap().free, 100);
-		assert_eq!(w.ah, Some((alice.clone(), 600)));
-		// The account is gone and exactly its total was burned.
-		assert!(!frame_system::Account::<Test>::contains_key(&alice));
-		assert_eq!(total_issuance(), ti_before - 1_000);
-	});
-}
-
-#[test]
-fn withdraw_parks_unattributed_reserve_under_its_own_reason() {
-	new_test_ext().execute_with(|| {
-		let bob = acc(2); // account with a reserve no pallet's records explain (on-chain anomaly)
-		fund(&bob, 600);
-		<Balances as ReservableCurrency<AccountId32>>::reserve(&bob, 200).unwrap();
-		AccountsMigrator::<Test>::build_expected_reserves();
-
-		let w = withdraw(&bob).expect("migrates");
-
-		assert_eq!(ct_holds(&w), vec![(PortableHoldReason::UnattributedReserve, 200)]);
-		assert_eq!(w.ct.as_ref().unwrap().free, 100);
-		assert_eq!(w.ah, Some((bob.clone(), 300)));
-		assert!(migrator_events()
-			.contains(&Event::UnattributedReserve { who: bob.clone(), amount: 200 }));
-	});
-}
-
-#[test]
-fn withdraw_refunds_deposits_whose_purpose_ends_here() {
-	new_test_ext().execute_with(|| {
-		let carol = acc(3); // delegator with only a Staking def: nothing travels, deposit refunds
-		fund(&carol, 500);
-		add_proxy(&carol, &acc(7), ProxyType::Staking); // free 456, reserved 44
-		AccountsMigrator::<Test>::build_expected_reserves();
-
-		let w = withdraw(&carol).expect("migrates");
-
-		// The refund joins the liquid balance; with no CT-bound hold there is no buffer either.
-		assert!(w.ct.is_none());
-		assert_eq!(w.ah, Some((carol.clone(), 500)));
-		assert!(
-			migrator_events().contains(&Event::DepositRefunded { who: carol.clone(), amount: 44 })
-		);
-	});
-}
-
-#[test]
-fn withdraw_attributes_shortfall_in_priority_order() {
-	new_test_ext().execute_with(|| {
-		let dave = acc(4); // account whose live reserve under-covers the recorded deposits
-		fund(&dave, 200);
-		<Balances as ReservableCurrency<AccountId32>>::reserve(&dave, 100).unwrap();
-		// Recorded expectations exceed the live 100: CT-bound deposits are made whole first,
-		// proxy deposits second, refunds last. (Set directly: only the split math is under test.)
-		ExpectedReserves::<Test>::insert(&dave, ExpectedReserve { ct: 50, proxy: 30, refund: 40 });
-
-		let w = withdraw(&dave).expect("migrates");
-
-		assert_eq!(
-			ct_holds(&w),
-			vec![(PortableHoldReason::UnnamedReserve, 50), (PortableHoldReason::ProxyDeposit, 30),]
-		);
-		// Of the refundable 40 only 20 reserve was left; it becomes liquid.
-		assert!(
-			migrator_events().contains(&Event::DepositRefunded { who: dave.clone(), amount: 20 })
-		);
-		// liquid = 100 free + 20 refunded; buffer 100 stays with the deposit, 20 teleports.
-		assert_eq!(w.ct.as_ref().unwrap().free, 100);
-		assert_eq!(w.ah, Some((dave.clone(), 20)));
-	});
-}
-
-#[test]
-fn withdraw_routes_never_signed_any_delegators_wholly_to_ct() {
-	new_test_ext().execute_with(|| {
-		let pure = acc(30); // keyless pure proxy: nonce 0, Any def
-		let delegate = acc(31);
-		fund(&pure, 544);
-		add_proxy(&pure, &delegate, ProxyType::Any); // free 500, reserved 44, nonce still 0
-		AccountsMigrator::<Test>::build_expected_reserves();
-
-		let w = withdraw(&pure).expect("migrates");
-
-		// Funds follow control: everything goes where the definitions are recreated.
-		assert_eq!(ct_holds(&w), vec![(PortableHoldReason::ProxyDeposit, 44)]);
-		assert_eq!(w.ct.as_ref().unwrap().free, 500);
-		assert_eq!(w.ah, None);
-
-		// A never-signed delegator WITHOUT an Any def is not a pure (a pure created with less
-		// has already lost control by construction): the regular split applies.
-		hypothetically!({
-			let multisigish = acc(32);
-			fund(&multisigish, 544);
-			add_proxy(&multisigish, &delegate, ProxyType::NonTransfer);
-			AccountsMigrator::<Test>::build_expected_reserves();
-			let w = withdraw(&multisigish).expect("migrates");
-			assert_eq!(w.ct.as_ref().unwrap().free, 100);
-			assert_eq!(w.ah, Some((multisigish, 400)));
-		});
-	});
-}
-
-#[test]
-fn withdraw_keeps_sub_ah_ed_dust_with_the_deposit() {
-	new_test_ext().execute_with(|| {
-		let heidi = acc(8); // deposit holder whose teleport remainder would be below AH's ED
-		fund(&heidi, 404);
-		<Balances as ReservableCurrency<AccountId32>>::reserve(&heidi, 300).unwrap();
-		ExpectedReserves::<Test>::insert(&heidi, ExpectedReserve { ct: 300, ..Default::default() });
-
-		let w = withdraw(&heidi).expect("migrates");
-
-		// liquid 104: buffer 100 + remainder 4 < AH ED (5) -> the dust follows the deposit.
-		assert_eq!(w.ct.as_ref().unwrap().free, 104);
-		assert_eq!(w.ah, None);
-	});
-}
-
-#[test]
-fn can_migrate_keeps_module_below_ed_and_locked_accounts() {
-	new_test_ext().execute_with(|| {
-		// Module accounts stay for the sweep stage.
-		fund(&pot(), 500);
-		assert_eq!(withdraw(&pot()), None);
-		assert!(frame_system::Account::<Test>::contains_key(&pot()));
-
-		// Below-ED accounts only exist via external provider refs; they are not migrated.
-		let dusty = acc(9);
-		force_anomalous_account(&dusty, 4, 0, 0);
-		assert_eq!(withdraw(&dusty), None);
-
-		// Locks cannot be translated; the account stays behind whole.
-		let locked = acc(10);
-		fund(&locked, 500);
-		<Balances as LockableCurrency<AccountId32>>::set_lock(
-			*b"testlock",
-			&locked,
-			100,
-			WithdrawReasons::all(),
-		);
-		assert_eq!(withdraw(&locked), None);
-		assert_eq!(free(&locked), 500);
-	});
-}
-
-#[test]
-fn withdraw_drains_consumer_referenced_accounts_to_shells() {
-	new_test_ext().execute_with(|| {
-		let ida = acc(11); // validator-like account: session keys hold a consumer reference
-		fund(&ida, 1_000);
-		<Balances as ReservableCurrency<AccountId32>>::reserve(&ida, 300).unwrap();
-		ExpectedReserves::<Test>::insert(&ida, ExpectedReserve { ct: 300, ..Default::default() });
-		// The extra reference some pallet (session keys in production) holds on the account.
-		frame_system::Pallet::<Test>::inc_consumers(&ida).unwrap();
-		let ti_before = total_issuance();
-
-		let w = withdraw(&ida).expect("migrates");
-
-		// The money moves like any other account's...
-		assert_eq!(ct_holds(&w), vec![(PortableHoldReason::UnnamedReserve, 300)]);
-		assert_eq!(w.ct.as_ref().unwrap().free, 100);
-		assert_eq!(w.ah, Some((ida.clone(), 600)));
-		// ...but the record survives as a zero-balance shell.
-		let info = frame_system::Account::<Test>::get(&ida);
-		assert_eq!(info.data.free + info.data.reserved, 0);
-		assert_eq!(info.consumers, 1);
-		assert_eq!(total_issuance(), ti_before - 1_000);
-		assert!(migrator_events()
-			.contains(&Event::AccountShellDrained { who: ida.clone(), amount: 1_000 }));
-	});
-}
-
-#[test]
-fn withdraw_translates_child_sovereigns_to_sibling_addresses() {
-	new_test_ext().execute_with(|| {
-		open_channel(2000, 2001, 70, 30); // funds + reserves on the child sovereigns
-		AccountsMigrator::<Test>::build_expected_reserves();
-
-		let w = withdraw(&child_sov(2000)).expect("migrates");
-
-		let ct = w.ct.as_ref().unwrap();
-		assert_eq!(ct.who, migrator_types::sibling_account::<AccountId32>(2000));
-		assert_eq!(ct_holds(&w), vec![(PortableHoldReason::UnnamedReserve, 70)]);
 	});
 }
 
@@ -395,15 +118,14 @@ fn accounts_stage_rolls_back_whole_block_when_a_send_fails() {
 		let alice = acc(1);
 		fund(&alice, 1_000);
 		register_para(2000, &alice);
-		AccountsMigrator::<Test>::build_expected_reserves();
-		seed_tracker();
+		AccountsMigrator::<Test>::init();
 		let tracker_before = RcMigratedBalance::<Test>::get();
 		let ti_before = total_issuance();
 
 		// WHEN every send fails, the block's work must roll back whole: nothing burned, nothing
 		// sent, cursor unchanged — the same range is retried next block.
 		FailSends::set(true);
-		let result = migrator_types::with_rollback(|| AccountsMigrator::<Test>::migrate_many(None));
+		let result = with_rollback(|| Rc2Migrator::migrate_accounts_block(None));
 		assert!(matches!(result, Err(Error::<Test>::XcmSendFailed)));
 		assert_eq!(free(&alice), 700);
 		assert_eq!(reserved(&alice), 300);
@@ -413,7 +135,7 @@ fn accounts_stage_rolls_back_whole_block_when_a_send_fails() {
 
 		// AND the retry succeeds once sending recovers.
 		FailSends::set(false);
-		let result = migrator_types::with_rollback(|| AccountsMigrator::<Test>::migrate_many(None));
+		let result = with_rollback(|| Rc2Migrator::migrate_accounts_block(None));
 		assert!(matches!(result, Ok(None)));
 		assert!(!frame_system::Account::<Test>::contains_key(&alice));
 		assert_eq!(decode_ct_calls(&take_sent_xcm()).len(), 1);
@@ -434,13 +156,12 @@ fn accounts_stage_stops_at_the_per_block_limit_and_resumes_from_the_cursor() {
 		let ti_before = total_issuance();
 		seed_tracker();
 
-		let cursor = migrator_types::with_rollback(|| AccountsMigrator::<Test>::migrate_many(None))
+		let cursor = with_rollback(|| Rc2Migrator::migrate_accounts_block(None))
 			.expect("first block succeeds");
 		let cursor = cursor.expect("more accounts remain than the per-block limit");
 
-		let done =
-			migrator_types::with_rollback(|| AccountsMigrator::<Test>::migrate_many(Some(cursor)))
-				.expect("second block succeeds");
+		let done = with_rollback(|| Rc2Migrator::migrate_accounts_block(Some(cursor)))
+			.expect("second block succeeds");
 		assert_eq!(done, None, "two blocks cover everything");
 
 		// Every account is gone and the ledger is exact: all free balance teleported.
@@ -467,7 +188,7 @@ fn proxy_stage_sends_portable_defs_and_deletes_migrated_delegators() {
 		add_proxy(&bob, &d2, ProxyType::Staking);
 		AccountsMigrator::<Test>::build_expected_reserves();
 		seed_tracker();
-		migrator_types::with_rollback(|| AccountsMigrator::<Test>::migrate_many(None)).unwrap();
+		with_rollback(|| Rc2Migrator::migrate_accounts_block(None)).unwrap();
 		assert!(!frame_system::Account::<Test>::contains_key(&bob));
 		take_sent_xcm();
 
@@ -507,7 +228,7 @@ fn proxy_stage_clamps_entries_of_accounts_that_stay() {
 		frame_system::Pallet::<Test>::inc_consumers(&carol).unwrap();
 		AccountsMigrator::<Test>::build_expected_reserves();
 		seed_tracker();
-		migrator_types::with_rollback(|| AccountsMigrator::<Test>::migrate_many(None)).unwrap();
+		with_rollback(|| Rc2Migrator::migrate_accounts_block(None)).unwrap();
 		assert_eq!(reserved(&carol), 0, "shell-drained");
 
 		proxy::ProxyMigrator::<Test>::migrate_many(None).unwrap();
@@ -575,7 +296,7 @@ fn announcement_records_of_migrated_announcers_are_dropped() {
 		// Announcement deposits are refunds: they teleport to AH with the announcer's balance.
 		assert_eq!(ExpectedReserves::<Test>::get(&eve).refund, 31);
 		seed_tracker();
-		migrator_types::with_rollback(|| AccountsMigrator::<Test>::migrate_many(None)).unwrap();
+		with_rollback(|| Rc2Migrator::migrate_accounts_block(None)).unwrap();
 		assert!(!frame_system::Account::<Test>::contains_key(&eve));
 
 		proxy::ProxyMigrator::<Test>::drain_announcements().unwrap();
@@ -916,10 +637,16 @@ fn nothing_moves_until_the_coretime_chain_confirms() {
 		assert_eq!(RcMigrationStage::<Test>::get(), Stage::WaitingForCt);
 		assert_eq!(sent_xcm().len(), sent_so_far);
 
-		// WHEN anyone other than the Coretime chain confirms, root included. THEN it is refused.
+		// WHEN an unrelated account confirms. THEN it is refused.
 		assert_noop!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(acc(1))), BadOrigin);
-		assert_noop!(Rc2Migrator::ct_ready(root()), BadOrigin);
 		assert_eq!(RcMigrationStage::<Test>::get(), Stage::WaitingForCt);
+
+		// WHEN the admin origin confirms, as it may to stand in for a reply that never arrived.
+		// THEN it is accepted; the Coretime chain's own confirmation below then changes nothing.
+		hypothetically!({
+			assert_ok!(Rc2Migrator::ct_ready(root()));
+			assert!(matches!(RcMigrationStage::<Test>::get(), Stage::WarmUp { .. }));
+		});
 
 		// WHEN the Coretime chain confirms. THEN the warm-up runs for the scheduled window, and
 		// only then does the first data stage begin.

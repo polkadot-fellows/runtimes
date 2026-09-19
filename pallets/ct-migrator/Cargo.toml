@@ -30,35 +30,35 @@ sp-io = { workspace = true, features = ["std"] }
 [features]
 default = ["std"]
 std = [
-	"migrator-types/std",
-	"registrar-primitives/std",
-	"hrmp-primitives/std",
 	"codec/std",
+	"cumulus-primitives-core/std",
 	"frame-support/std",
 	"frame-system/std",
+	"hrmp-primitives/std",
 	"log/std",
+	"migrator-types/std",
+	"pallet-message-queue/std",
 	"pallet-proxy/std",
 	"polkadot-parachain-primitives/std",
+	"registrar-primitives/std",
 	"scale-info/std",
 	"sp-runtime/std",
 	"xcm/std",
-	"pallet-message-queue/std",
-	"cumulus-primitives-core/std",
 ]
 runtime-benchmarks = [
+	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"pallet-message-queue/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"pallet-message-queue/runtime-benchmarks",
-	"cumulus-primitives-core/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
+	"pallet-message-queue/try-runtime",
 	"pallet-proxy/try-runtime",
 	"sp-runtime/try-runtime",
-	"pallet-message-queue/try-runtime",
 ]

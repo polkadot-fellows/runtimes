@@ -13,18 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Relay-chain side of the registrar + HRMP migration to the Coretime chain.
+//! The operational pallet for the Relay Chain, designed to manage and facilitate the migration of
+//! the parachain registrar, HRMP and the accounts holding their deposits from the Relay Chain to
+//! the Coretime chain. This pallet works alongside its counterpart, `pallet_ct_migrator`, which
+//! handles migration processes on the Coretime chain side.
 //!
-//! Drives the migration stage machine: drains account balances and legacy `paras_registrar` and
-//! `hrmp` state together with their deposits and sends everything to the counterpart
-//! `pallet-ct-migrator` over XCM. Temporary pallet; removed once the migration is complete.
+//! This pallet is responsible for controlling the initiation, progression, and completion of the
+//! migration process, including managing its various stages and transferring the necessary data.
+//! The pallet directly accesses the storage of other pallets for read/write operations while
+//! maintaining compatibility with their existing APIs.
 //!
 //! Every `TODO(ahm-v2)` here and in `pallet-ct-migrator` is work this migration needs before it
 //! runs for real. Go through all of them before release.
 //!
-//! The AHM v1 migrators are the reference for the stage machine, the manager and the origins.
-//! They were removed in polkadot-fellows/runtimes#1016; read them at
-//! `https://github.com/polkadot-fellows/runtimes/tree/985df25829b3385730ff66acc50161ac57f0692c/pallets/rc-migrator`.
+//! This pallet follows `pallet_rc_migrator` (removed in polkadot-fellows/runtimes#1016, readable at
+//! <https://github.com/polkadot-fellows/runtimes/tree/985df25829b3385730ff66acc50161ac57f0692c/pallets/rc-migrator>).
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -42,6 +45,7 @@ mod tests;
 
 pub use pallet::*;
 
+use accounts::{ExpectedReserve, MigratedBalances, MAX_ACCOUNTS_PER_BLOCK};
 use alloc::{boxed::Box, vec, vec::Vec};
 use frame_support::{
 	defensive,
@@ -57,8 +61,8 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use migrator_types::{
-	with_rollback, PortableAccount, PortableHold, PortableHoldReason, PortableHrmpChannel,
-	PortableHrmpRequest, PortableParaInfo, PortableProxy, PortableProxyType, QueuePriority,
+	with_rollback, PortableAccount, PortableHrmpChannel, PortableHrmpRequest, PortableParaInfo,
+	PortableProxy, PortableProxyType, QueuePriority,
 };
 use pallet_message_queue::ForceSetHead;
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
@@ -89,12 +93,6 @@ pub type MomentOf<T> = <<T as Config>::TimeProvider as Time>::Moment;
 /// An encoded [`PortableAccount`] is ~65 bytes, keeping the message far below the DMP size limit.
 pub const MAX_ACCOUNTS_PER_XCM: u32 = 100;
 
-/// Maximum number of accounts processed per relay-chain block.
-///
-/// Also bounds the unbenchmarked work of both this pallet's `on_initialize` and the resulting
-/// `receive_accounts` calls on the Coretime chain.
-pub const MAX_ACCOUNTS_PER_BLOCK: u32 = 300;
-
 /// Batch and per-block limits for the registrar and HRMP stages. Their record counts are small
 /// (dozens to hundreds on Polkadot), so one limit serves both.
 pub const MAX_RECORDS_PER_XCM: u32 = 50;
@@ -104,104 +102,109 @@ pub const MAX_RECORDS_PER_BLOCK: u32 = 100;
 /// each, and an XCM message decodes at most 100 instructions.
 pub const MAX_TELEPORTS_PER_XCM: u32 = 40;
 
-/// The expected composition of one account's reserved balance. See `ExpectedReserves`.
-#[derive(
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	Clone,
-	Copy,
-	Default,
-	PartialEq,
-	Eq,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
-)]
-pub struct ExpectedReserve {
-	/// Continues on the Coretime chain as an `UnnamedReserve` hold: registrar deposits recorded
-	/// for the account as manager, HRMP channel and request deposits recorded for it as (child)
-	/// para sovereign.
-	pub ct: u128,
-	/// Continues on the Coretime chain as a `ProxyDeposit` hold (resized when the definitions
-	/// arrive): proxy deposits of delegators with at least one portable definition.
-	pub proxy: u128,
-	/// Released and teleported to Asset Hub as free balance: deposits whose purpose ends with
-	/// this chain (untranslatable proxy sets, multisig operations, announcements).
-	pub refund: u128,
-}
-
-/// Progress of the migration. Advanced by `on_initialize`, only while [`Paused`] is clear.
+/// The migration stage of the Relay Chain. Advanced by `on_initialize`, except where noted, and
+/// only while [`Paused`] is clear.
+///
+/// Variants are in the order the migration progresses through them.
 ///
 /// Nothing halts the machine on its own: a batch the Coretime chain refuses is recorded and the
 /// migration continues, because stopping leaves both chains locked down with no way forward.
 #[derive(Encode, Decode, DecodeWithMemTracking, Clone, Default, PartialEq, Eq, Debug, TypeInfo)]
 pub enum MigrationStage<AccountId, BlockNumber, Moment> {
+	/// The migration has not yet started but will start in the future.
 	#[default]
 	Pending,
-	/// Scheduled to begin at the first block whose predecessor's timestamp is at or past
-	/// `start`. A wall clock, so a schedule set weeks ahead does not drift with block times.
+	/// The migration has been scheduled to start at the given moment.
 	Scheduled {
+		/// The wall-clock time at which the migration will start.
+		///
+		/// The moment at which we notify the Coretime chain about the start of the migration and
+		/// move to `WaitingForCt` stage. After we receive the confirmation, the Relay Chain will
+		/// enter the `WarmUp` stage and wait for the warm-up period to end (`WarmUpPeriod`)
+		/// before starting to send the migration data to the Coretime chain.
 		start: Moment,
 	},
-	/// Waiting for the Coretime chain to confirm that it is ready to receive data.
+	/// The migration is waiting for confirmation from the Coretime chain to go ahead.
+	///
+	/// This stage involves waiting for the notification from the Coretime chain that it is ready
+	/// to receive the migration data.
 	WaitingForCt,
-	/// Both chains are locked down and nothing has moved yet: the window for the message queues
-	/// to drain and for an operator to halt the migration before any data is sent.
 	WarmUp {
+		/// The block number at which the warm-up period will end.
+		///
+		/// After the warm-up period ends, the Relay Chain will start to send the migration data
+		/// to the Coretime chain.
 		end_at: BlockNumber,
 	},
+	/// Initializing the account migration process.
 	AccountsInit,
+	/// Migrating account balances, their reserves, and the holds those reserves become.
 	AccountsOngoing {
+		/// Last migrated account.
 		last_key: Option<AccountId>,
 	},
+	/// Note that the `*Done` stages do not have any logic attached to themselves. They exist to
+	/// make it easier to swap out what stage should run next for testing, and as a clean
+	/// `force_set_stage` target for rewinding a single stage.
 	AccountsDone,
-	/// Migrates portable proxy definitions to the Coretime chain.
+	/// Proxy definitions whose permissions have meaning on the Coretime chain.
+	///
+	/// Runs before the registrar so classification can still read the un-drained `Paras` map.
 	ProxyInit,
 	ProxyOngoing {
 		last_key: Option<AccountId>,
 	},
 	ProxyDone,
+	/// `paras_registrar` records and their deposits.
 	RegistrarInit,
 	RegistrarOngoing {
 		last_key: Option<ParaId>,
 	},
 	RegistrarDone,
+	/// HRMP channels, pending open requests, and their deposits.
 	HrmpInit,
 	HrmpOngoing {
 		last_key: Option<HrmpChannelId>,
 	},
 	HrmpDone,
-	/// Empty the configured leftover pots (old treasury, …); the proceeds teleport to
-	/// `Config::SweepBeneficiary` on Asset Hub.
+	/// Empty the pots whose balance has no owning account to migrate it with, such as the
+	/// treasury's.
 	Sweep,
-	/// Reap below-ED dust and stale husks, cursored like the data stages — the accounts stage
-	/// deliberately leaves every below-ED record behind, so this walks most of the account map.
+	/// Reap the accounts left below the existential deposit, and the zero-balance husks.
+	///
+	/// Runs after the accounts stage because most of what it reaps does not exist until the
+	/// earlier stages have run, and because [`Self::TiCorrection`] reads its output: burning the
+	/// issuance no account holds is only safe once the husks are gone.
 	SweepDust {
 		last_key: Option<AccountId>,
 	},
-	/// Burn the audited amount of issuance that no account holds (see `Config::TiCorrection`).
+	/// Burn the audited issuance that no account holds.
 	TiCorrection,
-	/// All data sent; waiting for manual verification before finishing.
 	CoolOff {
+		/// The block number at which the post migration cool-off period will end.
 		end_at: BlockNumber,
 	},
+	/// The migration is done.
 	MigrationDone,
 }
 
 impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Moment> {
+	/// Whether the migration is finished.
+	///
+	/// This is not the same as `!self.is_ongoing()` since it may not have started.
 	pub fn is_finished(&self) -> bool {
 		matches!(self, Self::MigrationDone)
 	}
 
+	/// Whether the migration is ongoing.
+	///
+	/// This is not the same as `!self.is_finished()` since it may not have started.
 	pub fn is_ongoing(&self) -> bool {
 		!matches!(self, Self::Pending | Self::Scheduled { .. } | Self::MigrationDone)
 	}
 
-	/// Whether the migration has begun, and so whether the calls it moves away are closed.
-	///
-	/// A scheduled migration has not begun: the relay chain serves its users normally right up to
-	/// the start block, which is what stops the runtime upgrade itself from being an outage.
+	/// Whether the machine has left [`Self::Pending`]/[`Self::Scheduled`]. Stays true after
+	/// [`Self::MigrationDone`].
 	pub fn has_started(&self) -> bool {
 		self.is_ongoing() || self.is_finished()
 	}
@@ -226,20 +229,20 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 	}
 }
 
-/// Payload of a `Transact` sent to the Coretime chain.
-///
-/// Manual call encoding: the enum indices must match `CtMigrator`'s pallet index in the Coretime
-/// `construct_runtime` and the `#[pallet::call_index]` attributes in `pallet-ct-migrator`. The
-/// integration test decodes every sent `Transact` with the real Coretime `RuntimeCall`, which
-/// catches drift. `Decode` exists so tests can assert on captured messages.
+/// `CtMigrator`'s pallet index in the Coretime (receiver) chain.
+pub const CT_MIGRATOR_PALLET_INDEX: u8 = 100;
+
+/// Call encoding for the Coretime chain runtime, reduced to the pallet this chain dispatches into.
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
+#[repr(u8)]
 pub enum CtRuntimeCall {
-	#[codec(index = 100)]
-	CtMigrator(CtMigratorCall),
+	CtMigrator(CtMigratorCall) = CT_MIGRATOR_PALLET_INDEX,
 }
 
-/// Indices are the `#[pallet::call_index]`es in `pallet-ct-migrator`, in the order the calls
-/// landed there; 2 is `force_set_stage`, which this chain never sends.
+/// Call encoding for the calls needed from the ct-migrator pallet.
+///
+/// Indices are the `#[pallet::call_index]`es in `pallet-ct-migrator`; 2 (`force_set_stage`) and
+/// 3 (`set_manager`) are never sent from here.
 // Held in `UnconfirmedBatches` until the Coretime chain confirms it, hence the storage derives.
 #[derive(Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub enum CtMigratorCall {
@@ -247,57 +250,21 @@ pub enum CtMigratorCall {
 	StartMigration,
 	#[codec(index = 1)]
 	EndLockdown,
-	#[codec(index = 3)]
-	ReceiveAccounts { accounts: Vec<PortableAccount<AccountId32, u128>> },
 	#[codec(index = 4)]
-	ReconcileBalances { rc_kept: u128, rc_migrated: u128 },
+	ReceiveAccounts { accounts: Vec<PortableAccount<AccountId32, u128>> },
 	#[codec(index = 5)]
-	ReceiveProxies { proxies: Vec<PortableProxy<AccountId32>> },
+	ReconcileBalances { rc_kept: u128, rc_migrated: u128 },
 	#[codec(index = 6)]
+	ReceiveProxies { proxies: Vec<PortableProxy<AccountId32>> },
+	#[codec(index = 7)]
 	ReceiveRegistrar {
 		paras: Vec<PortableParaInfo<AccountId32, u128>>,
 		next_free_para_id: Option<u32>,
 	},
-	#[codec(index = 7)]
-	ReceiveHrmp { channels: Vec<PortableHrmpChannel<u128>> },
 	#[codec(index = 8)]
+	ReceiveHrmp { channels: Vec<PortableHrmpChannel<u128>> },
+	#[codec(index = 9)]
 	ReceiveHrmpRequests { requests: Vec<PortableHrmpRequest<u128>> },
-}
-
-/// Balance conservation bookkeeping for the migration.
-///
-/// `kept + ct_reserved + ct_free + ah_free` must always equal the relay-chain total issuance
-/// recorded when the accounts stage started; the invariant checks assert against this.
-#[derive(
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	Clone,
-	Default,
-	PartialEq,
-	Eq,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
-)]
-pub struct MigratedBalances<Balance> {
-	/// Balance that remains on the relay chain.
-	pub kept: Balance,
-	/// Deposits burned here and re-established as holds on the Coretime chain.
-	pub ct_reserved: Balance,
-	/// Free working buffer burned here and minted liquid on the Coretime chain.
-	pub ct_free: Balance,
-	/// Free balance burned here and teleported to Asset Hub.
-	pub ah_free: Balance,
-	/// Phantom issuance burned by the `TiCorrection` stage (issuance no account held).
-	pub ti_corrected: Balance,
-}
-
-impl MigratedBalances<u128> {
-	/// Everything that went to the Coretime chain; what `reconcile_balances` reconciles against.
-	pub fn migrated_ct(&self) -> u128 {
-		self.ct_reserved.saturating_add(self.ct_free)
-	}
 }
 
 /// A batch sent to the Coretime chain that has not been confirmed.
@@ -376,26 +343,38 @@ pub mod pallet {
 		#[allow(deprecated)]
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-		/// Native currency.
-		type Currency: Mutate<Self::AccountId, Balance = u128>
-			+ ReservableCurrency<Self::AccountId, Balance = u128>;
-
-		/// Router for XCM messages to the Coretime chain.
+		/// Send DMP message.
 		type SendXcm: SendXcm;
 
 		/// Para id of the Coretime chain.
 		type CtParaId: Get<u32>;
 
-		/// Para id of Asset Hub, the destination of teleported free balances.
-		type AhParaId: Get<u32>;
+		/// Wall clock that [`MigrationStage::Scheduled`] is compared against, so a schedule set
+		/// weeks ahead does not drift with block times.
+		type TimeProvider: Time;
+
+		/// The origin of the Coretime chain's messages on this chain.
+		type CtOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
+
+		/// The origin that can perform permissioned operations like setting the migration stage.
+		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
 		/// Working buffer of free balance that follows a migrated deposit to the Coretime chain,
 		/// so deposit owners can pay fees and future deposits there without a teleport first.
+		#[pallet::constant]
 		type CtFreeBuffer: Get<u128>;
 
 		/// Asset Hub's existential deposit. Free balance below this cannot be teleported into a
 		/// fresh account; such dust follows the deposit to the Coretime chain instead.
+		#[pallet::constant]
 		type AhExistentialDeposit: Get<u128>;
+
+		/// Native currency.
+		type Currency: Mutate<Self::AccountId, Balance = u128>
+			+ ReservableCurrency<Self::AccountId, Balance = u128>;
+
+		/// Para id of Asset Hub, the destination of teleported free balances.
+		type AhParaId: Get<u32>;
 
 		/// Leftover module pots to empty in the `Sweep` stage (e.g. the old treasury pot).
 		/// Their full balance teleports to `SweepBeneficiary`.
@@ -414,16 +393,6 @@ pub mod pallet {
 		/// investigation, and a measured value *below* it is reported as an anomaly; the stage
 		/// never burns issuance that an account actually holds.
 		type TiCorrection: Get<u128>;
-
-		/// Wall clock the schedule is compared against, so a schedule set weeks ahead does not
-		/// drift with block times.
-		type TimeProvider: Time;
-
-		/// The origin that the Coretime chain's messages dispatch with on this chain.
-		type CtOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
-
-		/// The origin that may schedule and force the migration.
-		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
 		/// Calls the manager multisig may dispatch once it reaches its threshold.
 		type RuntimeCall: Parameter
@@ -477,9 +446,61 @@ pub mod pallet {
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
+	/// The Relay Chain migration state.
 	#[pallet::storage]
 	#[pallet::unbounded]
 	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageOf<T>, ValueQuery>;
+
+	/// The duration of the pre migration warm-up period.
+	///
+	/// This is the duration of the warm-up period before the data migration starts. During this
+	/// period, the migration will be in ongoing state and the concerned extrinsics will be locked.
+	#[pallet::storage]
+	pub type WarmUpPeriod<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+
+	/// The duration of the post migration cool-off period.
+	///
+	/// This is the duration of the cool-off period after the data migration is finished. During
+	/// this period, the migration will be still in ongoing state and the concerned extrinsics will
+	/// be locked.
+	#[pallet::storage]
+	pub type CoolOffPeriod<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+
+	/// An optional account id of a manager.
+	///
+	/// This account id has similar privileges to [`Config::AdminOrigin`] except that it
+	/// can not set the manager account id via `set_manager` call. Kept funded through the
+	/// migration and reaped when it ends.
+	#[pallet::storage]
+	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
+	/// Whether the migration is paused.
+	///
+	/// The stage is untouched, so the migration still counts as ongoing. While paused the machine
+	/// may be repositioned with `force_set_stage`, and `resume_migration` continues from whatever
+	/// stage it then holds. Inbound signals such as `ct_ready` and batch reports are still
+	/// recorded; only `on_initialize` stands still.
+	///
+	/// Different from v1's `MigrationStage::MigrationPaused` variant: an independent flag, so the
+	/// stage paused at is kept.
+	#[pallet::storage]
+	pub type Paused<T: Config> = StorageValue<_, bool, ValueQuery>;
+
+	/// Balance kept on the relay chain versus migrated away. Seeded and maintained by the
+	/// accounts stage; the conservation ledger every later stage keeps exact.
+	#[pallet::storage]
+	pub type RcMigratedBalance<T: Config> = StorageValue<_, MigratedBalances, ValueQuery>;
+
+	/// What each account's reserved balance is expected to be made of, built from the owning
+	/// pallets' recorded deposit fields before any account is withdrawn. The recorded fields are
+	/// the routing source of truth; the anonymous reserves are only trusted up to these amounts,
+	/// and anything beyond them travels as an unattributed hold, parked at the destination.
+	///
+	/// One record per account rather than one map per kind: the three amounts are always built
+	/// together and always read together in the withdrawal split.
+	#[pallet::storage]
+	pub type ExpectedReserves<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, ExpectedReserve, ValueQuery>;
 
 	/// Batches sent to the Coretime chain whose dispatch result has not come back yet, by the
 	/// notify-query id `send_to_ct` registered for each.
@@ -505,26 +526,6 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type UnprocessedMsgBuffer<T: Config> = StorageValue<_, u32, OptionQuery>;
 
-	/// How long [`MigrationStage::WarmUp`] holds, as the scheduled migration set it.
-	#[pallet::storage]
-	pub type WarmUpPeriod<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
-
-	/// How long [`MigrationStage::CoolOff`] holds, as the scheduled migration set it.
-	#[pallet::storage]
-	pub type CoolOffPeriod<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
-
-	/// An account that may drive the migration alongside [`Config::AdminOrigin`], except that it
-	/// cannot appoint a manager itself. Kept funded through the migration and reaped when it ends.
-	#[pallet::storage]
-	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
-
-	/// Whether the machine is halted. The stage is untouched, so the migration still counts as
-	/// ongoing and resuming continues exactly where it stopped; `force_set_stage` is only
-	/// accepted while this is set. Inbound signals such as `ct_ready`
-	/// and batch reports are still recorded while halted; only `on_initialize` stands still.
-	#[pallet::storage]
-	pub type Paused<T: Config> = StorageValue<_, bool, ValueQuery>;
-
 	/// The multisig members that voted to execute a specific call.
 	#[pallet::storage]
 	#[pallet::unbounded]
@@ -545,39 +546,30 @@ pub mod pallet {
 	pub type CtUmpQueuePriorityConfig<T: Config> =
 		StorageValue<_, QueuePriority<BlockNumberFor<T>>, ValueQuery>;
 
-	/// Balance kept on the relay chain versus migrated away. Set up by the accounts stage.
-	#[pallet::storage]
-	pub type RcMigratedBalance<T: Config> = StorageValue<_, MigratedBalances<u128>, ValueQuery>;
-
-	/// What each account's reserved balance is expected to be made of, built by `AccountsInit`
-	/// from the owning pallets' recorded deposit fields. The recorded fields are the routing
-	/// source of truth; the anonymous reserves are only trusted up to these amounts, and anything
-	/// beyond them travels as an unattributed hold, parked at the destination.
-	///
-	/// One record per account rather than one map per kind: the three amounts are always built
-	/// together and always read together in the withdrawal split.
-	#[pallet::storage]
-	pub type ExpectedReserves<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, ExpectedReserve, ValueQuery>;
-
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Sending an XCM message to the Coretime chain failed.
+		/// The migration can only be scheduled while it is pending.
+		AlreadyScheduled,
+		/// Indicates that the specified start moment is in the past.
+		StartInPast,
+		/// Readiness was confirmed while the machine was not waiting for it.
+		NotWaitingForCt,
+		/// Failed to send XCM message.
 		XcmSendFailed,
+		/// The migration can only be cancelled while it is scheduled.
+		NotScheduled,
+		/// The account is referenced by some other pallet. It might have freezes or holds.
+		AccountReferenced,
+		/// The migration can only be paused while it is running.
+		NotRunning,
+		/// The migration is already paused.
+		AlreadyPaused,
+		/// The migration is not paused.
+		NotPaused,
 		/// The account balance could not be fully withdrawn.
 		FailedToWithdrawAccount,
 		/// The migrated/kept balance bookkeeping would overflow.
 		BalanceAccounting,
-		/// The migration can only be scheduled while it is pending.
-		AlreadyScheduled,
-		/// The migration cannot be scheduled to start in the past.
-		StartInPast,
-		/// Readiness was confirmed while the machine was not waiting for it.
-		NotWaitingForCt,
-		/// The migration can only be cancelled while it is scheduled.
-		NotScheduled,
-		/// An account that is referenced cannot be appointed manager.
-		AccountReferenced,
 		/// The unsigned multisig vote did not validate.
 		UnsignedValidationFailed,
 		/// The vote carries a round that is no longer open.
@@ -594,163 +586,107 @@ pub mod pallet {
 		UnknownQuery,
 		/// The response to a batch was not a dispatch result.
 		UnexpectedResponse,
-		/// The migration can only be paused while it is running.
-		NotRunning,
-		/// The migration is already paused.
-		AlreadyPaused,
-		/// The migration is not paused.
-		NotPaused,
+	}
+
+	impl<T> From<accounts::Error> for Error<T> {
+		fn from(e: accounts::Error) -> Self {
+			match e {
+				accounts::Error::FailedToWithdrawAccount => Error::FailedToWithdrawAccount,
+				accounts::Error::BalanceAccounting => Error::BalanceAccounting,
+			}
+		}
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// A stage transition has occurred.
 		StageTransition {
+			/// The old stage before the transition.
 			old: MigrationStageOf<T>,
+			/// The new stage after the transition.
 			new: MigrationStageOf<T>,
 		},
-		/// The manager account was appointed or removed.
+		/// The manager account id was set.
 		ManagerSet {
+			/// The old manager account id.
 			old: Option<T::AccountId>,
+			/// The new manager account id.
 			new: Option<T::AccountId>,
 		},
-		/// A batch of withdrawn accounts was sent to the Coretime chain.
-		AccountsBatchSent {
-			count: u32,
+		/// The migration was paused.
+		MigrationPaused {
+			/// The stage at which the migration was paused.
+			stage: MigrationStageOf<T>,
 		},
-		/// A batch of free balances was teleported to Asset Hub.
-		AccountsTeleported {
-			count: u32,
-			amount: u128,
+		/// The migration was resumed.
+		MigrationResumed {
+			/// The stage from which the migration continues.
+			stage: MigrationStageOf<T>,
 		},
 		/// An account carried reserve that no pallet's deposit records account for. It travels to
 		/// the Coretime chain under its own hold reason and stays parked there for investigation.
-		UnattributedReserve {
-			who: AccountId32,
-			amount: u128,
-		},
-		/// A proxy deposit was released and refunded: it travels to Asset Hub as free balance.
-		DepositRefunded {
-			who: AccountId32,
-			amount: u128,
-		},
+		UnattributedReserve { who: AccountId32, amount: u128 },
+		/// A deposit whose purpose ends with this chain was released; it travels to Asset Hub as
+		/// free balance.
+		DepositRefunded { who: AccountId32, amount: u128 },
+		/// An account that a consumer reference forbids reaping (session keys being the known
+		/// case) was drained to a zero-balance shell; the balance travels like any other
+		/// account's.
+		AccountShellDrained { who: AccountId32, amount: u128 },
+		/// A batch of withdrawn accounts was sent to the Coretime chain.
+		AccountsBatchSent { count: u32 },
+		/// A batch of free balances was teleported to Asset Hub.
+		AccountsTeleported { count: u32, amount: u128 },
 		/// A batch of portable proxy sets was sent to the Coretime chain.
-		ProxyBatchSent {
-			count: u32,
-		},
+		ProxyBatchSent { count: u32 },
 		/// Pending HRMP open-channel requests were sent to the Coretime chain.
-		HrmpRequestsSent {
-			count: u32,
-		},
+		HrmpRequestsSent { count: u32 },
 		/// A leftover pot was emptied; its balance teleports to the sweep beneficiary on AH.
-		AccountSwept {
-			who: AccountId32,
-			amount: u128,
-		},
+		AccountSwept { who: AccountId32, amount: u128 },
 		/// Below-ED dust accounts were reaped; the sum teleports to the sweep beneficiary.
-		DustSwept {
-			count: u32,
-			amount: u128,
-		},
+		DustSwept { count: u32, amount: u128 },
 		/// Phantom issuance burned: `burned = min(expected, unaccounted)`. Any
 		/// `unaccounted - burned` remainder is left on the books for investigation.
-		TiCorrected {
-			expected: u128,
-			unaccounted: u128,
-			burned: u128,
-		},
+		TiCorrected { expected: u128, unaccounted: u128, burned: u128 },
 		/// The measured unaccounted issuance was BELOW the audited expectation — the phantom
 		/// shrank since it was measured, which no known mechanism explains. Observability only;
 		/// the correction still burned the measured amount.
-		TiCorrectionAnomaly {
-			expected: u128,
-			unaccounted: u128,
-		},
+		TiCorrectionAnomaly { expected: u128, unaccounted: u128 },
 		/// A batch of drained registrar records was sent to the Coretime chain.
-		RegistrarBatchSent {
-			count: u32,
-		},
+		RegistrarBatchSent { count: u32 },
 		/// A batch of drained HRMP channel records was sent to the Coretime chain.
-		HrmpBatchSent {
-			count: u32,
-		},
-		/// An account that must survive (a consumer reference forbids reaping — session keys
-		/// being the known case) was drained to a zero-balance shell; the balance travels like
-		/// any other account's.
-		AccountShellDrained {
-			who: AccountId32,
-			amount: u128,
-		},
+		HrmpBatchSent { count: u32 },
 		/// Zero-balance records held alive only by stale provider references were reaped.
-		HusksReaped {
-			count: u32,
-		},
+		HusksReaped { count: u32 },
 		/// The manager multisig dispatched a call.
-		ManagerMultisigDispatched {
-			res: DispatchResult,
-		},
+		ManagerMultisigDispatched { res: DispatchResult },
 		/// The manager multisig received a vote.
-		ManagerMultisigVoted {
-			votes: u32,
-		},
+		ManagerMultisigVoted { votes: u32 },
 		/// The manager's remaining balance left for Asset Hub and the appointment ended.
-		ManagerReaped {
-			who: T::AccountId,
-			amount: u128,
-		},
+		ManagerReaped { who: T::AccountId, amount: u128 },
 		/// The Coretime chain's upward queue was put at the head of the service ring.
-		CtUmpQueuePrioritised {
-			cycle_block: BlockNumberFor<T>,
-			cycle_period: BlockNumberFor<T>,
-		},
+		CtUmpQueuePrioritised { cycle_block: BlockNumberFor<T>, cycle_period: BlockNumberFor<T> },
 		/// The queue priority configuration changed.
 		CtUmpQueuePriorityConfigSet {
 			old: QueuePriority<BlockNumberFor<T>>,
 			new: QueuePriority<BlockNumberFor<T>>,
 		},
 		/// The outstanding-batch buffer was changed.
-		UnprocessedMsgBufferSet {
-			old: Option<u32>,
-			new: Option<u32>,
-		},
+		UnprocessedMsgBufferSet { old: Option<u32>, new: Option<u32> },
 		/// A batch was re-sent under a new query id; the old one is forgotten.
-		BatchRetried {
-			old_query_id: u64,
-			new_query_id: u64,
-			stage: MigrationStageOf<T>,
-		},
+		BatchRetried { old_query_id: u64, new_query_id: u64, stage: MigrationStageOf<T> },
 		/// A batch was abandoned by an operator without being delivered. Its contents are lost:
 		/// the relay chain burned them before sending. Recorded so the loss is on the chain.
-		BatchAbandoned {
-			query_id: u64,
-			stage: MigrationStageOf<T>,
-		},
+		BatchAbandoned { query_id: u64, stage: MigrationStageOf<T> },
 		/// The Coretime chain integrated a batch; the stage machine may continue.
-		BatchConfirmed {
-			query_id: u64,
-			stage: MigrationStageOf<T>,
-		},
+		BatchConfirmed { query_id: u64, stage: MigrationStageOf<T> },
 		/// The Coretime chain rejected a batch. Reported only; the entry stays outstanding for
 		/// `retry_batch`.
-		BatchFailed {
-			query_id: u64,
-			stage: MigrationStageOf<T>,
-			error: MaybeErrorCode,
-		},
+		BatchFailed { query_id: u64, stage: MigrationStageOf<T>, error: MaybeErrorCode },
 		/// A batch went unanswered for [`Config::XcmResponseTimeout`]. Reported once; the entry
 		/// stays outstanding for `retry_batch`.
-		BatchTimedOut {
-			query_id: u64,
-			stage: MigrationStageOf<T>,
-		},
-		/// The machine was halted at `stage`.
-		MigrationPaused {
-			stage: MigrationStageOf<T>,
-		},
-		/// The machine continues from `stage`.
-		MigrationResumed {
-			stage: MigrationStageOf<T>,
-		},
+		BatchTimedOut { query_id: u64, stage: MigrationStageOf<T> },
 	}
 
 	#[pallet::hooks]
@@ -783,12 +719,17 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Schedule the migration to begin at `start`.
+		/// Schedule the migration to start at a given moment.
 		///
-		/// `warm_up` is how long both chains stay locked down before any data moves, and
-		/// `cool_off` how long they stay locked down after it, for verification.
+		/// ### Parameters:
+		/// - `start`: The wall-clock time at which the migration will start.
+		/// - `warm_up`: Duration in blocks used to prepare for the migration. Calls are filtered
+		///   during this period. It is intended to give enough time for UMP and DMP queues to
+		///   empty. Counted from the transition to the warm-up stage.
+		/// - `cool_off`: Duration in blocks of the post migration cool-off period. Counted from the
+		///   transition to the cool-off stage.
 		///
-		/// The only way out of [`MigrationStage::Pending`] other than `force_set_stage`.
+		/// Read [`MigrationStage::Scheduled`] documentation for more details.
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 3))]
 		pub fn schedule_migration(
@@ -810,12 +751,11 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Set the migration stage directly. Only while [`Paused`].
+		/// Set the migration stage.
 		///
-		/// Recovery hook for a lost message or a stage that needs re-running: pause, force, then
-		/// resume. Any stage is accepted, including ones the machine does not drive yet. Does not
-		/// touch [`WarmUpPeriod`] or [`CoolOffPeriod`]: a machine forced past `Pending` without a
-		/// prior `schedule_migration` holds each window for zero blocks.
+		/// This call is intended for emergency use only and is guarded by the
+		/// [`Config::AdminOrigin`] or the [`Manager`]. Unlike v1 it is only accepted while
+		/// [`Paused`]: pause, force, then resume.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
@@ -826,15 +766,18 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// The Coretime chain confirms that it can receive migrated state.
+		/// Start the data migration.
 		///
-		/// Sent by `pallet-ct-migrator` in response to [`CtMigratorCall::StartMigration`]. Nothing
-		/// is drained before it arrives. A repeated confirmation during the warm-up is accepted
-		/// and changes nothing; one at any other stage is an error.
+		/// This is typically called by the Coretime chain to indicate its readiness to receive the
+		/// migration data, in response to [`CtMigratorCall::StartMigration`]. The admin origin and
+		/// the [`Manager`] may call it too, to stand in for a reply that never arrived. A repeat
+		/// during the warm-up is accepted and changes nothing.
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(2, 2))]
+		#[pallet::weight(T::DbWeight::get().reads_writes(3, 1))]
 		pub fn ct_ready(origin: OriginFor<T>) -> DispatchResult {
-			T::CtOrigin::ensure_origin(origin)?;
+			if T::CtOrigin::ensure_origin(origin.clone()).is_err() {
+				Self::ensure_admin_or_manager(origin)?;
+			}
 
 			match RcMigrationStage::<T>::get() {
 				MigrationStage::WaitingForCt => {
@@ -842,15 +785,18 @@ pub mod pallet {
 						.saturating_add(WarmUpPeriod::<T>::get());
 					Self::transition(MigrationStage::WarmUp { end_at });
 				},
+				// A repeated confirmation during the warm-up is accepted and changes nothing; one
+				// at any other stage is an error.
 				MigrationStage::WarmUp { .. } => (),
 				_ => return Err(Error::<T>::NotWaitingForCt.into()),
 			}
 			Ok(())
 		}
 
-		/// Return the machine to [`MigrationStage::Pending`] so it can be rescheduled.
+		/// Cancel the migration.
 		///
-		/// Only valid before the handshake, so the Coretime chain has not been told anything yet.
+		/// Migration can only be cancelled if it is in the [`MigrationStage::Scheduled`] state, so
+		/// the Coretime chain has not been told anything yet.
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn cancel_migration(origin: OriginFor<T>) -> DispatchResult {
@@ -864,9 +810,13 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Appoint or remove the [`Manager`].
+		/// Set the manager account id.
 		///
-		/// The account must be unreferenced, so that the migration can reap it at the end.
+		/// The manager has the similar to [`Config::AdminOrigin`] privileges except that it
+		/// can not set the manager account id via `set_manager` call.
+		///
+		/// The account must have no consumers references, so that the migration can reap it at
+		/// the end.
 		#[pallet::call_index(4)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
@@ -883,13 +833,12 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Halt a running migration where it is.
+		/// Pause the migration.
 		///
-		/// The operator's stop button, and the precondition for `force_set_stage`: the stage
-		/// machine stands still until [`Pallet::resume_migration`], and may be repositioned in
-		/// between. A migration that has not started or is done cannot be paused; a scheduled one
-		/// is cancelled instead. A paused machine never reaches `MigrationDone`, so the manager is
-		/// not reaped out from under an active pause.
+		/// The stage machine stands still until [`Pallet::resume_migration`], and may be
+		/// repositioned with `force_set_stage` in between. Only an ongoing migration can be
+		/// paused; a scheduled one is cancelled instead. A paused machine never reaches
+		/// `MigrationDone`, so the manager is not reaped out from under an active pause.
 		#[pallet::call_index(5)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn pause_migration(origin: OriginFor<T>) -> DispatchResult {
@@ -903,7 +852,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Let a paused migration continue from its current stage.
+		/// Resume a paused migration from its current stage.
 		#[pallet::call_index(6)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn resume_migration(origin: OriginFor<T>) -> DispatchResult {
@@ -1147,8 +1096,8 @@ pub mod pallet {
 			PalletId(*b"rc2migmt").into_account_truncating()
 		}
 
-		/// Ensure the origin is [`Config::AdminOrigin`], or signed by the [`Manager`] or by the
-		/// manager multisig.
+		/// Ensure that the origin is [`Config::AdminOrigin`], or signed by the [`Manager`] account
+		/// id or by the manager multisig.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(who) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().is_some_and(|manager| manager == who) {
@@ -1301,20 +1250,7 @@ pub mod pallet {
 					// fallible step added here later inherits it instead of silently lacking it.
 					Self::migrate_stage_once(
 						|| {
-							// Before anything is measured: drop every preimage deposit, so
-							// accounts that hold one are not skipped by `can_migrate`.
-							accounts::AccountsMigrator::<T>::release_preimage_deposits();
-							let total_issuance = <T as Config>::Currency::total_issuance();
-							RcMigratedBalance::<T>::put(MigratedBalances {
-								kept: total_issuance,
-								..Default::default()
-							});
-							let indexed =
-								accounts::AccountsMigrator::<T>::build_expected_reserves();
-							log::info!(
-								target: LOG_TARGET,
-								"Indexed expected reserves from {indexed} records"
-							);
+							accounts::AccountsMigrator::<T>::init();
 							Ok(())
 						},
 						MigrationStage::AccountsOngoing { last_key: None },
@@ -1326,7 +1262,7 @@ pub mod pallet {
 					// All of this block's withdrawals commit or roll back together, so a failed
 					// XCM send cannot leave balances burned but never sent.
 					Self::migrate_stage_step(
-						|| accounts::AccountsMigrator::<T>::migrate_many(last_key),
+						|| Self::migrate_accounts_block(last_key),
 						MigrationStage::AccountsDone,
 						|last_key| MigrationStage::AccountsOngoing { last_key: Some(last_key) },
 					);
@@ -1436,6 +1372,24 @@ pub mod pallet {
 			}
 		}
 
+		/// One block of the accounts stage: withdraw up to the per-block limit, then ship the
+		/// pieces in XCM-sized chunks. Runs inside the caller's transaction, so a failed send
+		/// rolls the block's withdrawals back with it.
+		pub(crate) fn migrate_accounts_block(
+			last_key: Option<T::AccountId>,
+		) -> Result<Option<T::AccountId>, Error<T>> {
+			let manager = Manager::<T>::get();
+			let accounts::BlockWithdrawals { ct, ah, last_key } =
+				accounts::AccountsMigrator::<T>::migrate_many(last_key, manager.as_ref())?;
+			for chunk in ct.chunks(MAX_ACCOUNTS_PER_XCM as usize) {
+				Self::send_accounts(chunk.to_vec())?;
+			}
+			for chunk in ah.chunks(MAX_TELEPORTS_PER_XCM as usize) {
+				Self::send_teleport(chunk.to_vec())?;
+			}
+			Ok(last_key)
+		}
+
 		/// Run one block's worth of a cursor-driven data stage inside a storage transaction and
 		/// advance the stage machine from the result. Same semantics for every stage: `Ok(None)`
 		/// finishes the stage, `Ok(Some(key))` continues from the cursor next block, `Err` rolls
@@ -1508,6 +1462,7 @@ pub mod pallet {
 			T::DbWeight::get().reads_writes((n * 4) as u64, (n * 4) as u64)
 		}
 
+		/// Execute a stage transition and log it.
 		pub(crate) fn transition(new: MigrationStageOf<T>) {
 			let old = RcMigrationStage::<T>::get();
 			RcMigrationStage::<T>::put(new.clone());
@@ -1697,7 +1652,7 @@ pub mod pallet {
 				t.ah_free = t.ah_free.checked_add(burned).ok_or(Error::<T>::BalanceAccounting)?;
 				Ok::<(), Error<T>>(())
 			})?;
-			let dest = accounts::AccountsMigrator::<T>::translate_destination(&who);
+			let dest = migrator_types::translate_destination(&who);
 			Self::deposit_event(Event::ManagerReaped { who, amount: burned });
 			Self::send_teleport(vec![(dest, burned)])
 		}
@@ -1798,7 +1753,8 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Send a `pallet-ct-migrator` call to the Coretime chain and record it as unconfirmed.
+		/// Send a `pallet-ct-migrator` call to the Coretime chain as a single XCM `Transact` and
+		/// record it as unconfirmed.
 		///
 		/// The message carries its dispatch result back: a notify query is registered here, and
 		/// the `ReportTransactStatus` appendix answers it with the Transact Status Register once

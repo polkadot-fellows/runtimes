@@ -180,20 +180,20 @@ async fn who_is_left_holding_ksm() {
 		use sp_core::crypto::{Ss58AddressFormat, Ss58Codec};
 
 		let target: sp_runtime::AccountId32 = [
-			94u8, 205, 77, 159, 2, 85, 237, 61, 60, 90, 193, 22, 10, 150, 95, 14, 167, 67, 183,
-			69, 51, 3, 111, 30, 77, 63, 75, 252, 67, 249, 240, 97,
+			94u8, 205, 77, 159, 2, 85, 237, 61, 60, 90, 193, 22, 10, 150, 95, 14, 167, 67, 183, 69,
+			51, 3, 111, 30, 77, 63, 75, 252, 67, 249, 240, 97,
 		]
 		.into();
 
 		let acc = frame_system::Account::<Ksm>::get(&target);
-		println!(
-			"\naccount:   {}",
-			target.to_ss58check_with_version(Ss58AddressFormat::custom(2))
-		);
+		println!("\naccount:   {}", target.to_ss58check_with_version(Ss58AddressFormat::custom(2)));
 		println!("free:      {}", ksm(acc.data.free));
 		println!("reserved:  {}", ksm(acc.data.reserved));
 		println!("frozen:    {}", ksm(acc.data.frozen));
-		println!("providers: {}  consumers: {}  nonce: {}", acc.providers, acc.consumers, acc.nonce);
+		println!(
+			"providers: {}  consumers: {}  nonce: {}",
+			acc.providers, acc.consumers, acc.nonce
+		);
 
 		println!("\nfreezes:   {:?}", pallet_balances::Freezes::<Ksm>::get(&target).len());
 		for h in pallet_balances::Holds::<Ksm>::get(&target).iter() {
@@ -267,15 +267,17 @@ async fn what_is_the_preimage() {
 				RequestStatus::Requested { maybe_ticket, count, maybe_len } => println!(
 					"REQUESTED   {hash:?}\n  outstanding requests {count} len {maybe_len:?}\n  \
 					 depositor {:?}\n  -> the chain still needs it; it cannot simply be dropped",
-					maybe_ticket.map(|(a, _)| a.to_ss58check_with_version(
-						Ss58AddressFormat::custom(2)
-					)),
+					maybe_ticket
+						.map(|(a, _)| a.to_ss58check_with_version(Ss58AddressFormat::custom(2))),
 				),
 			}
 		}
 
 		// Who would still be pointing at one: governance tracks that stay on the Kusama relay.
-		println!("\nreferenda (fellowship): {}", pallet_referenda::ReferendumInfoFor::<Ksm, pallet_referenda::Instance2>::iter().count());
+		println!(
+			"\nreferenda (fellowship): {}",
+			pallet_referenda::ReferendumInfoFor::<Ksm, pallet_referenda::Instance2>::iter().count()
+		);
 		println!("scheduled agenda slots: {}", pallet_scheduler::Agenda::<Ksm>::iter().count());
 	});
 }
@@ -305,15 +307,21 @@ async fn what_are_the_delegated_staking_holds() {
 				ksm(acc.data.reserved),
 				ksm(holds.iter().map(|h| h.amount).sum::<u128>()),
 			);
-			println!("  providers {} consumers {} nonce {}", acc.providers, acc.consumers, acc.nonce);
+			println!(
+				"  providers {} consumers {} nonce {}",
+				acc.providers, acc.consumers, acc.nonce
+			);
 			println!(
 				"  is delegator: {}  is agent: {}",
 				pallet_delegated_staking::Delegators::<Ksm>::contains_key(&who),
 				pallet_delegated_staking::Agents::<Ksm>::contains_key(&who),
 			);
 			if let Some(d) = pallet_delegated_staking::Delegators::<Ksm>::get(&who) {
-				println!("  delegation: {} to agent {}", ksm(d.amount),
-					d.agent.to_ss58check_with_version(Ss58AddressFormat::custom(2)));
+				println!(
+					"  delegation: {} to agent {}",
+					ksm(d.amount),
+					d.agent.to_ss58check_with_version(Ss58AddressFormat::custom(2))
+				);
 			}
 		}
 	});
@@ -329,10 +337,8 @@ async fn the_unresized_delegator() {
 
 	let who: sp_runtime::AccountId32 = {
 		use sp_core::crypto::Ss58Codec;
-		sp_runtime::AccountId32::from_ss58check(
-			"FBeL7DePfD8RbGPjt96g2VdKmbkkRMt5UudRwA9GxjTXCU8",
-		)
-		.expect("valid address")
+		sp_runtime::AccountId32::from_ss58check("FBeL7DePfD8RbGPjt96g2VdKmbkkRMt5UudRwA9GxjTXCU8")
+			.expect("valid address")
 	};
 
 	rc.execute_with(|| {
@@ -356,7 +362,10 @@ async fn the_unresized_delegator() {
 		}
 		let acc = frame_system::Account::<ct::Runtime>::get(&who);
 		println!("  free {} reserved {}", ksm(acc.data.free), ksm(acc.data.reserved));
-		println!("  MaxProxies on CT: {}", <ct::Runtime as pallet_proxy::Config>::MaxProxies::get());
+		println!(
+			"  MaxProxies on CT: {}",
+			<ct::Runtime as pallet_proxy::Config>::MaxProxies::get()
+		);
 	});
 }
 
@@ -393,8 +402,14 @@ async fn find_the_stuck_proxy_deposit() {
 		println!("\nthe target's own relay entry:");
 		let (defs, deposit) = pallet_proxy::Proxies::<Ksm>::get(&target);
 		println!("  deposit {deposit} defs {}", defs.len());
-		println!("  exists in Proxies map: {}", pallet_proxy::Proxies::<Ksm>::contains_key(&target));
-		println!("  system account exists: {}", frame_system::Account::<Ksm>::contains_key(&target));
+		println!(
+			"  exists in Proxies map: {}",
+			pallet_proxy::Proxies::<Ksm>::contains_key(&target)
+		);
+		println!(
+			"  system account exists: {}",
+			frame_system::Account::<Ksm>::contains_key(&target)
+		);
 	});
 }
 
@@ -466,23 +481,36 @@ async fn the_below_ed_pure() {
 		.expect("valid");
 
 		let info = frame_system::Account::<Ksm>::get(&who);
-		println!("\nnonce {} providers {} consumers {}", info.nonce, info.providers, info.consumers);
-		println!("free {} reserved {} frozen {}",
-			ksm(info.data.free), ksm(info.data.reserved), ksm(info.data.frozen));
+		println!(
+			"\nnonce {} providers {} consumers {}",
+			info.nonce, info.providers, info.consumers
+		);
+		println!(
+			"free {} reserved {} frozen {}",
+			ksm(info.data.free),
+			ksm(info.data.reserved),
+			ksm(info.data.frozen)
+		);
 		println!("relay ED: {}", ksm(<Ksm as pallet_balances::Config>::ExistentialDeposit::get()));
-		println!("locks {} freezes {} holds {}",
+		println!(
+			"locks {} freezes {} holds {}",
 			pallet_balances::Locks::<Ksm>::get(&who).len(),
 			pallet_balances::Freezes::<Ksm>::get(&who).len(),
-			pallet_balances::Holds::<Ksm>::get(&who).len());
+			pallet_balances::Holds::<Ksm>::get(&who).len()
+		);
 		let (defs, deposit) = pallet_proxy::Proxies::<Ksm>::get(&who);
 		println!("proxy deposit {} defs:", ksm(deposit));
 		for d in defs.iter() {
 			println!("  {:?}", d.proxy_type);
 		}
-		println!("is_pure_like: {}",
-			pallet_rc2_migrator::accounts::AccountsMigrator::<Ksm>::is_pure_like(&who, &info));
-		println!("can_migrate:  {}",
-			pallet_rc2_migrator::accounts::AccountsMigrator::<Ksm>::can_migrate(&who, &info));
+		println!(
+			"is_pure_like: {}",
+			pallet_rc2_migrator::accounts::AccountsMigrator::<Ksm>::is_pure_like(&who, &info)
+		);
+		println!(
+			"can_migrate:  {}",
+			pallet_rc2_migrator::accounts::AccountsMigrator::<Ksm>::can_migrate(&who, &info, None)
+		);
 	});
 }
 
@@ -512,12 +540,12 @@ async fn module_accounts_that_need_sweeping() {
 			total += sum;
 			// `modl` + the PalletId is the readable part of the derivation.
 			let tag = core::str::from_utf8(&bytes[4..12]).unwrap_or("????????");
-            println!(
-                "  {:<16} {:<50} {}",
-                tag,
-                who.to_ss58check_with_version(Ss58AddressFormat::custom(prefix)),
-                ksm(sum),
-            );
+			println!(
+				"  {:<16} {:<50} {}",
+				tag,
+				who.to_ss58check_with_version(Ss58AddressFormat::custom(prefix)),
+				ksm(sum),
+			);
 		}
 		println!("  total in funded pots: {}", ksm(total));
 	});

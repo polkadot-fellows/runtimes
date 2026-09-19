@@ -13,27 +13,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Receiver side of the AHM v2 migration. Usually the Coretime chain; on a network without one
-//! (Paseo), this will be Asset Hub.
+//! The operational pallet for the Coretime chain, designed to manage and facilitate the migration
+//! of the parachain registrar, HRMP and the accounts holding their deposits from the Relay Chain
+//! to the Coretime chain. This pallet works alongside its counterpart, `pallet_rc2_migrator`,
+//! which handles migration processes on the Relay Chain side. On a network without a Coretime
+//! chain (Paseo), it runs on Asset Hub.
 //!
-//! Ingests state sent by `pallet-rc2-migrator`, writing through the same code paths as ordinary
-//! extrinsics so that migrated and natively created state are indistinguishable. Temporary
-//! pallet; removed once the migration is complete.
+//! This pallet ingests the migrated state, writing through the same code paths as ordinary
+//! extrinsics so that migrated and natively created state are indistinguishable. It has no stage
+//! machine of its own; the Relay Chain drives every transition and the stage is stored so this
+//! chain can check locally whether the migration is over.
 //!
-//! Has no stage machine of its own; the relay chain drives every transition. The stage is stored
-//! so this chain can check locally whether the migration is over.
-//!
-//! The relay chain's signals are gated by root; forcing a stage by [`Config::AdminOrigin`]. Any
-//! signal that is already acted on is accepted (so idempotent), and a signal out of order is an
-//! error.
+//! The Relay Chain's signals are gated by root, and may also be sent by [`Config::AdminOrigin`]
+//! or the [`Manager`] to stand in for one that never arrived. Any signal that is already acted on
+//! is accepted (so idempotent), and a signal out of order is an error. The data batches are gated
+//! by root alone.
 //!
 //! The portable payload types exchanged between the migrators live in the shared `migrator-types`
 //! crate (re-exported here for convenience), so no runtime depends on another chain's pallets
 //! just to speak the wire format.
+//!
+//! # Differences from AHM v1
+//!
+//! This pallet follows `pallet_ah_migrator` (refer:
+//! <https://github.com/polkadot-fellows/runtimes/tree/985df25829b3385730ff66acc50161ac57f0692c/pallets/ah-migrator>).
+//! - The cool-off is held on the Relay Chain. `CoolOff` here only records that every batch has been
+//!   reconciled; `end_lockdown` arrives when the Relay Chain's window ends.
+//! - No message-count confirmations or queue-priority controls are sent back.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
+
+pub mod accounts;
 
 pub use migrator_types::*;
 pub use pallet::*;
@@ -43,14 +55,13 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+use accounts::{AccountsReceiver, BalanceOf, PortableAccountOf};
 use alloc::{vec, vec::Vec};
 use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::{
-	defensive_assert,
 	pallet_prelude::*,
 	traits::{
-		fungible::{Inspect, InspectHold, Mutate, MutateHold, Unbalanced, UnbalancedHold},
-		tokens::{Fortitude, Precision, Preservation},
+		fungible::{Inspect, InspectHold, Mutate, MutateHold},
 		EnsureOrigin,
 	},
 	weights::WeightMeter,
@@ -67,18 +78,13 @@ use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::ct-migrator";
 
-pub type BalanceOf<T> =
-	<<T as Config>::Currency as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
-pub type PortableAccountOf<T> =
-	PortableAccount<<T as frame_system::Config>::AccountId, BalanceOf<T>>;
 pub type PortableParaInfoOf<T> =
 	PortableParaInfo<<T as frame_system::Config>::AccountId, BalanceOf<T>>;
 pub type PortableHrmpChannelOf<T> = PortableHrmpChannel<BalanceOf<T>>;
 pub type PortableHrmpRequestOf<T> = PortableHrmpRequest<BalanceOf<T>>;
 pub type PortableProxyOf<T> = PortableProxy<<T as frame_system::Config>::AccountId>;
 
-/// Progress of the migration, as this chain sees it. Advanced by messages from
-/// `pallet-rc2-migrator`.
+/// The migration stage of the Coretime chain. Advanced by messages from `pallet-rc2-migrator`.
 ///
 /// Variants are appended, not inserted, so the encoding of the ones already shipped never moves;
 /// read the order of the machine off the transitions, not off the enum.
@@ -95,22 +101,29 @@ pub type PortableProxyOf<T> = PortableProxy<<T as frame_system::Config>::Account
 	MaxEncodedLen,
 )]
 pub enum MigrationStage {
-	/// No migration has started.
+	/// The migration has not started but will start in the future.
 	#[default]
 	Pending,
-	/// The relay chain is draining state to this chain.
+	/// Migrating data from the Relay Chain.
 	DataMigrationOngoing,
+	/// The migration is done.
 	MigrationDone,
-	/// All data received and reconciled; this chain stays locked down until the relay chain's
+	/// All data received and reconciled; this chain stays locked down until the Relay Chain's
 	/// verification window closes.
 	CoolOff,
 }
 
 impl MigrationStage {
+	/// Whether the migration is finished.
+	///
+	/// This is **not** the same as `!self.is_ongoing()` since it may not have started.
 	pub fn is_finished(&self) -> bool {
 		matches!(self, Self::MigrationDone)
 	}
 
+	/// Whether the migration is ongoing.
+	///
+	/// This is **not** the same as `!self.is_finished()` since it may not have started.
 	pub fn is_ongoing(&self) -> bool {
 		matches!(self, Self::DataMigrationOngoing | Self::CoolOff)
 	}
@@ -119,13 +132,15 @@ impl MigrationStage {
 /// `Rc2Migrator`'s pallet index in the relay `construct_runtime!`.
 pub const RC2_MIGRATOR_PALLET_INDEX: u8 = 254;
 
-/// Calls on the relay chain, as this chain must encode them.
+/// Call encoding for the Relay Chain runtime, reduced to the pallet this chain dispatches into.
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
 #[repr(u8)]
 pub enum Rc2RuntimeCall {
 	Rc2Migrator(Rc2MigratorCall) = RC2_MIGRATOR_PALLET_INDEX,
 }
 
+/// Call encoding for the calls needed from the rc2-migrator pallet.
+///
 /// Indices are the `#[pallet::call_index]`es in `pallet-rc2-migrator`.
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
 pub enum Rc2MigratorCall {
@@ -173,10 +188,10 @@ pub mod pallet {
 		/// Where migrated HRMP channels are handed over. Normally `pallet-hrmp-para`.
 		type HrmpReceiver: ReceiveMigratedChannels;
 
-		/// Router for XCM messages to the relay chain.
+		/// Send UMP message.
 		type SendXcm: SendXcm;
 
-		/// The origin that may force the migration stage on this chain.
+		/// The origin that can perform permissioned operations like setting the migration stage.
 		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
 		/// The message queue, so the relay chain's downward queue can be put first.
@@ -195,34 +210,30 @@ pub mod pallet {
 		/// and re-attributes the hold to its own reason.
 		#[codec(index = 0)]
 		RcMigratedReserve,
-		/// A parachain registration deposit migrated from the relay chain.
-		///
-		/// Placeholder reason: moves to the future registrar pallet's own `HoldReason` when that
-		/// pallet lands on this chain.
-		#[codec(index = 1)]
-		RegistrarDeposit,
-		/// An HRMP channel deposit migrated from the relay chain, held on the sibling sovereign
-		/// account of the depositing para.
-		///
-		/// Placeholder reason like [`Self::RegistrarDeposit`], for the future HRMP pallet.
-		#[codec(index = 2)]
-		HrmpDeposit,
 		/// A relay-chain proxy deposit whose definitions travel here. Released when they arrive:
 		/// the recreated entry is re-reserved at this chain's rates and the rest becomes free.
-		#[codec(index = 3)]
+		#[codec(index = 1)]
 		ProxyDeposit,
 		/// Relay-chain reserve that no pallet's deposit records accounted for. Parked here for
 		/// investigation — nothing was allowed to stay behind on the relay chain — and never
 		/// re-attributed by any stage.
-		#[codec(index = 4)]
+		#[codec(index = 2)]
 		UnattributedReserve,
 	}
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
+	/// The Coretime chain migration state.
 	#[pallet::storage]
 	pub type CtMigrationStage<T: Config> = StorageValue<_, MigrationStage, ValueQuery>;
+
+	/// An optional account id of a manager.
+	///
+	/// This account id has similar privileges to [`Config::AdminOrigin`] except that it
+	/// can not set the manager account id via `set_manager` call.
+	#[pallet::storage]
+	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
 	/// How the relay chain's downward queue is prioritised while the migration runs.
 	#[pallet::storage]
@@ -231,16 +242,15 @@ pub mod pallet {
 
 	/// Accounts that failed to integrate, parked verbatim for recovery after the migration.
 	///
-	/// The batch call never fails on a single bad account: it is rolled back, stored here, and the
-	/// rest of the batch continues. Each entry is balance the relay chain burned and this chain
-	/// never minted, so this map is both the record of the gap and the data needed to close it.
+	/// A batch never fails on a single bad account: it is rolled back, stored here, and the rest
+	/// of the batch continues. Each entry is balance the relay chain burned and this chain never
+	/// minted, so this map is both the record of the gap and the data needed to close it.
 	#[pallet::storage]
 	pub type FailedAccounts<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, PortableAccountOf<T>, OptionQuery>;
 
-	/// Total balance minted on this chain by the accounts stage.
-	///
-	/// Reconciled against the relay chain's burned total in `reconcile_balances`.
+	/// Total balance minted on this chain by the accounts stage. Reconciled against the relay
+	/// chain's burned total once the migration ends.
 	#[pallet::storage]
 	pub type CtMintedTotal<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
@@ -273,11 +283,13 @@ pub mod pallet {
 	pub type ParkedDepositShortfalls<T: Config> =
 		StorageMap<_, Twox64Concat, u32, BalanceOf<T>, OptionQuery>;
 
-	/// Total re-attributed from `RcMigratedReserve` to `RegistrarDeposit` holds.
+	/// Total released from `RcMigratedReserve` for registrar deposits, so the registrar pallet
+	/// could take its own.
 	#[pallet::storage]
 	pub type ReattributedDeposits<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
-	/// Total re-attributed from `RcMigratedReserve` to `HrmpDeposit` holds.
+	/// Total released from `RcMigratedReserve` for HRMP deposits, so the HRMP pallet could take
+	/// its own.
 	#[pallet::storage]
 	pub type ReattributedHrmpDeposits<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
@@ -290,17 +302,17 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Failed to integrate a migrated account.
-		FailedToProcessAccount,
-		/// Failed to flip a migrated reserve to its attributed hold reason.
+		/// The migration has already finished on this chain.
+		AlreadyFinished,
+		/// The Relay Chain signalled the end of a migration that never started here.
+		NotStarted,
+		/// Failed to send XCM message.
+		XcmSendFailed,
+		/// Failed to release a migrated reserve for the pallet owning the deposit.
 		FailedToReattribute,
 		/// Failed to integrate a migrated proxy set.
 		FailedToProcessProxy,
-		/// Sending an XCM message to the relay chain failed.
-		XcmSendFailed,
-		/// The migration has already received everything it is going to.
-		AlreadyFinished,
-		/// The relay chain signalled the end of a migration that has not finished sending.
+		/// The Relay Chain signalled the end of a migration that has not finished sending.
 		NotReconciled,
 		/// The queue priority is already what was asked for.
 		QueuePriorityAlreadySet,
@@ -311,45 +323,34 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// A stage transition has occurred.
 		StageTransition {
+			/// The old stage before the transition.
 			old: MigrationStage,
+			/// The new stage after the transition.
 			new: MigrationStage,
 		},
+		/// The manager account id was set.
+		ManagerSet {
+			/// The old manager account id.
+			old: Option<T::AccountId>,
+			/// The new manager account id.
+			new: Option<T::AccountId>,
+		},
 		/// A batch of migrated accounts was processed.
-		AccountsReceived {
-			count_good: u32,
-			count_bad: u32,
-		},
+		AccountsReceived { count_good: u32, count_bad: u32 },
 		/// A batch of migrated registrar records was processed.
-		RegistrarReceived {
-			count_good: u32,
-			count_bad: u32,
-		},
+		RegistrarReceived { count_good: u32, count_bad: u32 },
 		/// A registrar deposit could not be fully re-attributed; the shortfall is parked.
-		DepositShortfallParked {
-			para_id: u32,
-			shortfall: BalanceOf<T>,
-		},
+		DepositShortfallParked { para_id: u32, shortfall: BalanceOf<T> },
 		/// A batch of migrated HRMP channel records was processed.
-		HrmpReceived {
-			count_good: u32,
-			count_bad: u32,
-		},
+		HrmpReceived { count_good: u32, count_bad: u32 },
 		/// An HRMP deposit could not be fully re-attributed; the shortfall is parked.
-		HrmpShortfallParked {
-			sender: u32,
-			recipient: u32,
-			shortfall: BalanceOf<T>,
-		},
+		HrmpShortfallParked { sender: u32, recipient: u32, shortfall: BalanceOf<T> },
 		/// A batch of migrated proxy sets was processed.
-		ProxiesReceived {
-			count_good: u32,
-			count_bad: u32,
-		},
+		ProxiesReceived { count_good: u32, count_bad: u32 },
 		/// A batch of pending HRMP open-channel requests was processed.
-		HrmpRequestsReceived {
-			count: u32,
-		},
+		HrmpRequestsReceived { count: u32 },
 		/// The relay chain signalled that all data has been sent.
 		MigrationFinished {
 			rc_kept: BalanceOf<T>,
@@ -357,10 +358,7 @@ pub mod pallet {
 			ct_minted: BalanceOf<T>,
 		},
 		/// The relay chain's downward queue was put at the head of the service ring.
-		DmpQueuePrioritised {
-			cycle_block: BlockNumberFor<T>,
-			cycle_period: BlockNumberFor<T>,
-		},
+		DmpQueuePrioritised { cycle_block: BlockNumberFor<T>, cycle_period: BlockNumberFor<T> },
 		/// The queue priority configuration changed.
 		DmpQueuePriorityConfigSet {
 			old: QueuePriority<BlockNumberFor<T>>,
@@ -387,111 +385,20 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Receive a batch of accounts migrated from the relay chain.
+		/// Start the data migration.
 		///
-		/// Dispatched by `pallet-rc2-migrator` via XCM `Transact` with `OriginKind::Superuser`;
-		/// the relay chain location converts to Root here.
-		///
-		/// Weight is a placeholder until the migrator pallets get benchmarks; the payload is
-		/// bounded by the sender's batch limits.
-		#[pallet::call_index(3)]
-		#[pallet::weight(
-			T::DbWeight::get().reads_writes(4, 4).saturating_mul(accounts.len() as u64)
-		)]
-		pub fn receive_accounts(
-			origin: OriginFor<T>,
-			accounts: Vec<PortableAccountOf<T>>,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-
-			Self::do_receive_accounts(accounts);
-			Ok(())
-		}
-
-		/// Receive a batch of registrar records migrated from the relay chain.
-		///
-		/// Stores each record and re-attributes the manager's migrated reserve to a
-		/// `RegistrarDeposit` hold. `next_free_para_id` is carried by the stage-init message only.
-		#[pallet::call_index(6)]
-		#[pallet::weight(
-			T::DbWeight::get().reads_writes(6, 6).saturating_mul((paras.len() as u64).max(1))
-		)]
-		pub fn receive_registrar(
-			origin: OriginFor<T>,
-			paras: Vec<PortableParaInfoOf<T>>,
-			next_free_para_id: Option<u32>,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-
-			Self::do_receive_registrar(paras, next_free_para_id);
-			Ok(())
-		}
-
-		/// Receive a batch of HRMP channel records migrated from the relay chain.
-		#[pallet::call_index(7)]
-		#[pallet::weight(
-			T::DbWeight::get().reads_writes(2, 2).saturating_mul((channels.len() as u64).max(1))
-		)]
-		pub fn receive_hrmp(
-			origin: OriginFor<T>,
-			channels: Vec<PortableHrmpChannelOf<T>>,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-
-			Self::do_receive_hrmp(channels);
-			Ok(())
-		}
-
-		/// Receive a batch of portable proxy sets migrated from the relay chain.
-		///
-		/// Delegations are written into the real proxy pallet, merged with any existing local
-		/// ones, and backed by a deposit at THIS chain's rates reserved from the delegator's
-		/// local balance (the accounts stage provides the working buffer). If the reserve cannot
-		/// be taken the entry is still written — access for keyless delegators outranks the
-		/// deposit — and the shortfall is logged.
-		#[pallet::call_index(5)]
-		#[pallet::weight(
-			T::DbWeight::get().reads_writes(3, 3).saturating_mul((proxies.len() as u64).max(1))
-		)]
-		pub fn receive_proxies(
-			origin: OriginFor<T>,
-			proxies: Vec<PortableProxyOf<T>>,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-
-			Self::do_receive_proxies(proxies);
-			Ok(())
-		}
-
-		/// Receive a batch of pending HRMP open-channel requests migrated from the relay chain.
-		///
-		/// Each record is stored verbatim and the sender's deposit — which arrived as an
-		/// `RcMigratedReserve` hold on the sibling sovereign during the accounts stage — is
-		/// re-labelled `HrmpDeposit`, same rule as channel deposits.
-		#[pallet::call_index(8)]
-		#[pallet::weight(
-			T::DbWeight::get().reads_writes(4, 4).saturating_mul((requests.len() as u64).max(1))
-		)]
-		pub fn receive_hrmp_requests(
-			origin: OriginFor<T>,
-			requests: Vec<PortableHrmpRequestOf<T>>,
-		) -> DispatchResult {
-			ensure_root(origin)?;
-
-			Self::do_receive_hrmp_requests(requests);
-			Ok(())
-		}
-
-		/// The relay chain asks whether this chain can receive migrated state.
-		///
-		/// Answering opens the migration here and unblocks the relay chain's warm-up. A repeat is
-		/// answered again without reopening, so a resent signal is harmless.
+		/// This is called by the Relay Chain to start the migration on the Coretime chain and
+		/// receive a handshake message indicating the Coretime chain's readiness. A Relay Chain
+		/// rewound to `Scheduled` re-runs the handshake, which is accepted here without a matching
+		/// rewind.
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(3, 2))]
+		#[pallet::weight(T::DbWeight::get().reads_writes(4, 2))]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
-			// relay chain origin converts to root.
-			ensure_root(origin)?;
+			Self::ensure_root_or_admin_or_manager(origin)?;
 
+			// TODO(ahm-v2): lock this chain down before answering, until the migration ends:
+			// filter the calls whose state is about to move, and refuse inbound XCM from anyone
+			// but the relay chain.
 			match CtMigrationStage::<T>::get() {
 				// try send xcm before updating stage.
 				MigrationStage::Pending => {
@@ -505,32 +412,74 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// The relay chain's verification window has closed: lift this chain's call filters.
+		/// Finish the migration.
 		///
-		/// Separate from `reconcile_balances` because the two happen at different times. The
-		/// reconciliation has to be inspectable *during* the window; the unlock comes after it.
+		/// This is called by the Relay Chain to signal the migration has finished and this chain's
+		/// call filters may lift. Separate from `reconcile_balances` because the two happen at
+		/// different times: the reconciliation has to be inspectable *during* the window, the
+		/// unlock comes after it.
 		#[pallet::call_index(1)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn end_lockdown(origin: OriginFor<T>) -> DispatchResult {
-			// relay chain origin converts to root.
-			ensure_root(origin)?;
+			Self::ensure_root_or_admin_or_manager(origin)?;
 
 			match CtMigrationStage::<T>::get() {
 				MigrationStage::CoolOff => Self::transition(MigrationStage::MigrationDone),
 				MigrationStage::MigrationDone => (),
-				MigrationStage::Pending | MigrationStage::DataMigrationOngoing =>
+				MigrationStage::Pending => return Err(Error::<T>::NotStarted.into()),
+				MigrationStage::DataMigrationOngoing =>
 					return Err(Error::<T>::NotReconciled.into()),
 			}
 			Ok(())
 		}
 
-		/// Set the migration stage directly. See `pallet-rc2-migrator`'s equivalent.
+		/// Set the migration stage.
+		///
+		/// This call is intended for emergency use only and is guarded by the
+		/// [`Config::AdminOrigin`] or the [`Manager`].
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStage) -> DispatchResult {
-			T::AdminOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 
 			Self::transition(stage);
+			Ok(())
+		}
+
+		/// Set the manager account id.
+		///
+		/// The manager has the similar to [`Config::AdminOrigin`] privileges except that it
+		/// can not set the manager account id via `set_manager` call. Each chain's manager is set
+		/// on that chain; the Relay Chain does not carry one over.
+		#[pallet::call_index(3)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
+			T::AdminOrigin::ensure_origin(origin)?;
+
+			let old = Manager::<T>::get();
+			Manager::<T>::set(new.clone());
+			Self::deposit_event(Event::ManagerSet { old, new });
+			Ok(())
+		}
+
+		/// Receive a batch of accounts migrated from the relay chain.
+		///
+		/// Weight is a placeholder until the migrator pallets get benchmarks; the payload is
+		/// bounded by the sender's batch limits.
+		#[pallet::call_index(4)]
+		#[pallet::weight(
+			T::DbWeight::get().reads_writes(4, 4).saturating_mul(accounts.len() as u64)
+		)]
+		pub fn receive_accounts(
+			origin: OriginFor<T>,
+			accounts: Vec<PortableAccountOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			if CtMigrationStage::<T>::get() == MigrationStage::Pending {
+				Self::transition(MigrationStage::DataMigrationOngoing);
+			}
+			AccountsReceiver::<T>::receive(accounts);
 			Ok(())
 		}
 
@@ -540,7 +489,7 @@ pub mod pallet {
 		/// Carries the relay-side balance bookkeeping so this chain can reconcile what it minted
 		/// against what the relay chain burned. A mismatch is loudly reported, never hidden: the
 		/// stage still advances so the cool-off verification can inspect the discrepancy.
-		#[pallet::call_index(4)]
+		#[pallet::call_index(5)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(3, 2))]
 		pub fn reconcile_balances(
 			origin: OriginFor<T>,
@@ -561,8 +510,83 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Change how the relay chain's downward queue is prioritised while the migration runs.
+		/// Receive a batch of portable proxy sets migrated from the relay chain.
+		///
+		/// Delegations are written into the real proxy pallet, merged with any existing local
+		/// ones, and backed by a deposit at THIS chain's rates reserved from the delegator's
+		/// local balance (the accounts stage provides the working buffer). If the reserve cannot
+		/// be taken the entry is still written — access for keyless delegators outranks the
+		/// deposit — and the shortfall is logged.
+		#[pallet::call_index(6)]
+		#[pallet::weight(
+			T::DbWeight::get().reads_writes(3, 3).saturating_mul((proxies.len() as u64).max(1))
+		)]
+		pub fn receive_proxies(
+			origin: OriginFor<T>,
+			proxies: Vec<PortableProxyOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_proxies(proxies);
+			Ok(())
+		}
+
+		/// Receive a batch of registrar records migrated from the relay chain.
+		///
+		/// Releases each manager's migrated reserve so the registrar pallet can take its own
+		/// deposit, then hands the record over. `next_free_para_id` is carried by the stage-init
+		/// message only.
+		#[pallet::call_index(7)]
+		#[pallet::weight(
+			T::DbWeight::get().reads_writes(6, 6).saturating_mul((paras.len() as u64).max(1))
+		)]
+		pub fn receive_registrar(
+			origin: OriginFor<T>,
+			paras: Vec<PortableParaInfoOf<T>>,
+			next_free_para_id: Option<u32>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_registrar(paras, next_free_para_id);
+			Ok(())
+		}
+
+		/// Receive a batch of HRMP channel records migrated from the relay chain.
+		#[pallet::call_index(8)]
+		#[pallet::weight(
+			T::DbWeight::get().reads_writes(2, 2).saturating_mul((channels.len() as u64).max(1))
+		)]
+		pub fn receive_hrmp(
+			origin: OriginFor<T>,
+			channels: Vec<PortableHrmpChannelOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_hrmp(channels);
+			Ok(())
+		}
+
+		/// Receive a batch of pending HRMP open-channel requests migrated from the relay chain.
+		///
+		/// Each record is handed over and the sender's deposit — which arrived as an
+		/// `RcMigratedReserve` hold on the sibling sovereign during the accounts stage — is
+		/// released for the HRMP pallet to take its own, same rule as channel deposits.
 		#[pallet::call_index(9)]
+		#[pallet::weight(
+			T::DbWeight::get().reads_writes(4, 4).saturating_mul((requests.len() as u64).max(1))
+		)]
+		pub fn receive_hrmp_requests(
+			origin: OriginFor<T>,
+			requests: Vec<PortableHrmpRequestOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Self::do_receive_hrmp_requests(requests);
+			Ok(())
+		}
+
+		/// Change how the relay chain's downward queue is prioritised while the migration runs.
+		#[pallet::call_index(10)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn set_dmp_queue_priority(
 			origin: OriginFor<T>,
@@ -581,6 +605,33 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
+		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
+			if let Ok(who) = ensure_signed(origin.clone()) {
+				if Manager::<T>::get().is_some_and(|manager| manager == who) {
+					return Ok(());
+				}
+			}
+			T::AdminOrigin::ensure_origin(origin)?;
+			Ok(())
+		}
+
+		/// Ensure that the origin is root, which the Relay Chain's messages dispatch as, or one
+		/// accepted by [`Self::ensure_admin_or_manager`].
+		fn ensure_root_or_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
+			if ensure_root(origin.clone()).is_err() {
+				Self::ensure_admin_or_manager(origin)?;
+			}
+			Ok(())
+		}
+
+		/// Execute a stage transition and log it.
+		pub(crate) fn transition(new: MigrationStage) {
+			let old = CtMigrationStage::<T>::mutate(|stage| core::mem::replace(stage, new.clone()));
+			log::info!(target: LOG_TARGET, "Stage transition: {old:?} -> {new:?}");
+			Self::deposit_event(Event::StageTransition { old, new });
+		}
+
 		/// Put the relay chain's downward queue at the head of the service ring for the next block
 		/// if the duty cycle says so. Every sibling's queue is still served, just behind it.
 		fn force_dmp_queue_priority(now: BlockNumberFor<T>) {
@@ -608,7 +659,7 @@ pub mod pallet {
 			}
 		}
 
-		/// Send a `pallet-rc2-migrator` call to the relay chain.
+		/// Send a `pallet-rc2-migrator` call to the Relay Chain as a single XCM `Transact`.
 		fn send_to_rc(call: Rc2MigratorCall) -> Result<(), Error<T>> {
 			let call = Rc2RuntimeCall::Rc2Migrator(call);
 			// This is dispatched as `Origin::Xcm(<this chain>)`; the relay chain's `CtOrigin`
@@ -632,179 +683,12 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Integrate a batch item-by-item, parking whatever fails.
-		///
-		/// One bad record never fails the batch: it is rolled back on its own and stored in the
-		/// caller's `Failed*` map, and the rest of the batch proceeds. The relay chain destroys
-		/// what it sends, so refusing the whole batch would strand every good record in it too,
-		/// and a mid-migration halt is not an action anyone can take — both chains are locked
-		/// down until the run finishes.
-		///
-		/// The consequence is deliberate and has to be handled after the run: a parked record is
-		/// balance the relay chain burned and this chain never minted. `reconcile_balances`
-		/// reports the total gap at the end, and the `Failed*` maps say exactly which records
-		/// make it up. Nothing here is lost — it is deferred.
-		fn receive_batch<I, R>(
-			items: Vec<I>,
-			integrate: impl Fn(&I) -> Result<R, Error<T>>,
-			mut on_good: impl FnMut(R),
-			park: impl Fn(I, Error<T>),
-		) -> (u32, u32) {
-			let (mut count_good, mut count_bad) = (0, 0);
-			for item in items {
-				match with_rollback(|| integrate(&item)) {
-					Ok(r) => {
-						count_good += 1;
-						on_good(r);
-					},
-					Err(e) => {
-						count_bad += 1;
-						park(item, e);
-					},
-				}
-			}
-			(count_good, count_bad)
-		}
-
-		fn do_receive_accounts(accounts: Vec<PortableAccountOf<T>>) {
-			let stage = CtMigrationStage::<T>::get();
-			if stage == MigrationStage::Pending {
-				Self::transition(MigrationStage::DataMigrationOngoing);
-			}
-
-			let mut minted: BalanceOf<T> = Zero::zero();
-			let (count_good, count_bad) = Self::receive_batch(
-				accounts,
-				Self::do_receive_account,
-				|amount| minted = minted.saturating_add(amount),
-				|account, e| {
-					log::error!(
-						target: LOG_TARGET,
-						"Failed to integrate account {:?}: {e:?}; parking it",
-						account.who,
-					);
-					FailedAccounts::<T>::insert(account.who.clone(), account);
-				},
-			);
-			if !minted.is_zero() {
-				CtMintedTotal::<T>::mutate(|t| *t = t.saturating_add(minted));
-			}
-			Self::deposit_event(Event::AccountsReceived { count_good, count_bad });
-		}
-
-		/// Returns the amount minted for this account; the caller tracks the batch total.
-		fn do_receive_account(account: &PortableAccountOf<T>) -> Result<BalanceOf<T>, Error<T>> {
-			let who = &account.who;
-			let held: BalanceOf<T> = account
-				.holds
-				.iter()
-				.fold(Zero::zero(), |acc: BalanceOf<T>, hold| acc.saturating_add(hold.amount));
-			let total = account.free.saturating_add(held);
-
-			// Accounts whose incoming free balance cannot provide the existential deposit get a
-			// provider reference so the mint and hold below cannot fail or dust the account.
-			if frame_system::Pallet::<T>::providers(who).is_zero() &&
-				<T as Config>::Currency::balance(who).saturating_add(account.free) <
-					<T as Config>::Currency::minimum_balance()
-			{
-				frame_system::Pallet::<T>::inc_providers(who);
-			}
-
-			let minted = <T as Config>::Currency::mint_into(who, total)
-				.map_err(|_| Error::<T>::FailedToProcessAccount)?;
-			defensive_assert!(minted == total, "minted what the relay chain burned");
-
-			for hold in &account.holds {
-				Self::place_hold(&hold.reason.into(), who, hold.amount)
-					.map_err(|_| Error::<T>::FailedToProcessAccount)?;
-			}
-
-			Ok(minted)
-		}
-
-		/// The inverse of [`Self::place_hold`]: move `amount` from a hold back to free balance.
-		///
-		/// Same hazard as there, same fix in reverse. `release` decreases the hold first, and if
-		/// that takes it to zero while the free part is still sub-ED, pallet-balances dusts the
-		/// remainder — which is exactly the shape a deposit holder whose liquid dust travelled
-		/// here alongside the deposit is in. Crediting the free part *first* means the hold never
-		/// passes through zero while free is below ED. The two primitives are mint-and-burn of
-		/// the same amount, so total issuance is untouched, just as `release` would be.
-		fn release_hold(
-			reason: &T::RuntimeHoldReason,
-			who: &T::AccountId,
-			amount: BalanceOf<T>,
-		) -> Result<(), DispatchError> {
-			<T as Config>::Currency::increase_balance(who, amount, Precision::Exact)?;
-			<T as Config>::Currency::decrease_balance_on_hold(
-				reason,
-				who,
-				amount,
-				Precision::Exact,
-			)?;
-			Ok(())
-		}
-
-		/// Release `min(wanted, actually-held)` of `who`'s migrated `RcMigratedReserve` hold to
-		/// free balance, returning `(released, shortfall)`.
-		///
-		/// The reconciliation rule of the whole receive side: recorded deposits are honoured up
-		/// to what actually arrived held, and the difference is the caller's to park under its
-		/// own key. One implementation so every deposit kind reconciles identically.
-		fn release_rc_reserve(
-			who: &T::AccountId,
-			wanted: BalanceOf<T>,
-		) -> Result<(BalanceOf<T>, BalanceOf<T>), Error<T>> {
-			let rc_reason: T::RuntimeHoldReason = HoldReason::RcMigratedReserve.into();
-			let held = <T as Config>::Currency::balance_on_hold(&rc_reason, who);
-			let release = wanted.min(held);
-			if !release.is_zero() {
-				Self::release_hold(&rc_reason, who, release).map_err(|e| {
-					log::error!(
-						target: LOG_TARGET,
-						"releasing {release:?} of {held:?} held on {who:?} failed: {e:?}",
-					);
-					Error::<T>::FailedToReattribute
-				})?;
-			}
-			Ok((release, wanted.saturating_sub(held)))
-		}
-
-		/// Place `amount` of `who`'s free balance under `reason` without the account ever sitting
-		/// at zero reserve mid-operation.
-		///
-		/// `MutateHold::hold` decreases the free balance before it books the hold; if that leaves
-		/// a sub-ED free remainder while nothing is reserved yet, pallet-balances dusts the
-		/// remainder. Deposit holders whose liquid dust deliberately travelled here alongside the
-		/// deposit are in exactly that shape, so the two steps run in the reverse (safe) order.
-		/// The low-level primitives keep total issuance untouched, like `hold` itself.
-		fn place_hold(
-			reason: &T::RuntimeHoldReason,
-			who: &T::AccountId,
-			amount: BalanceOf<T>,
-		) -> Result<(), DispatchError> {
-			<T as Config>::Currency::increase_balance_on_hold(
-				reason,
-				who,
-				amount,
-				Precision::Exact,
-			)?;
-			<T as Config>::Currency::decrease_balance(
-				who,
-				amount,
-				Precision::Exact,
-				Preservation::Expendable,
-				Fortitude::Force,
-			)?;
-			Ok(())
-		}
-
 		fn do_receive_registrar(paras: Vec<PortableParaInfoOf<T>>, next_free: Option<u32>) {
 			if let Some(id) = next_free {
 				T::RegistrarReceiver::receive_next_free_para_id(id);
 			}
 
-			let (count_good, count_bad) = Self::receive_batch(
+			let (count_good, count_bad) = AccountsReceiver::<T>::receive_batch(
 				paras,
 				Self::do_receive_para,
 				|()| (),
@@ -832,7 +716,9 @@ pub mod pallet {
 		/// the record itself is still correct with a deposit this chain prices lower. A manager
 		/// who cannot pay at all is a failure, and fails the whole batch.
 		fn do_receive_para(para: &PortableParaInfoOf<T>) -> Result<(), Error<T>> {
-			let (release, shortfall) = Self::release_rc_reserve(&para.manager, para.deposit)?;
+			let (release, shortfall) =
+				AccountsReceiver::<T>::release_rc_reserve(&para.manager, para.deposit)
+					.map_err(|_| Error::<T>::FailedToReattribute)?;
 			ReattributedDeposits::<T>::mutate(|t| *t = t.saturating_add(release));
 			if !shortfall.is_zero() {
 				ParkedDepositShortfalls::<T>::insert(para.para_id, shortfall);
@@ -870,7 +756,7 @@ pub mod pallet {
 		}
 
 		fn do_receive_proxies(proxies: Vec<PortableProxyOf<T>>) {
-			let (count_good, count_bad) = Self::receive_batch(
+			let (count_good, count_bad) = AccountsReceiver::<T>::receive_batch(
 				proxies,
 				Self::do_receive_proxy,
 				|()| (),
@@ -896,7 +782,7 @@ pub mod pallet {
 			let migrated =
 				<T as Config>::Currency::balance_on_hold(&proxy_reason, &proxy.delegator);
 			if !migrated.is_zero() {
-				Self::release_hold(&proxy_reason, &proxy.delegator, migrated)
+				AccountsReceiver::<T>::release_hold(&proxy_reason, &proxy.delegator, migrated)
 					.map_err(|_| Error::<T>::FailedToProcessProxy)?;
 			}
 			let delay_ratio = T::RcBlockTimeRatio::get().max(1);
@@ -936,7 +822,7 @@ pub mod pallet {
 		}
 
 		fn do_receive_hrmp(channels: Vec<PortableHrmpChannelOf<T>>) {
-			let (count_good, count_bad) = Self::receive_batch(
+			let (count_good, count_bad) = AccountsReceiver::<T>::receive_batch(
 				channels,
 				Self::do_receive_channel,
 				|()| (),
@@ -1000,7 +886,9 @@ pub mod pallet {
 			wanted: BalanceOf<T>,
 		) -> Result<(), Error<T>> {
 			let sovereign: T::AccountId = sibling_account(para);
-			let (release, shortfall) = Self::release_rc_reserve(&sovereign, wanted)?;
+			let (release, shortfall) =
+				AccountsReceiver::<T>::release_rc_reserve(&sovereign, wanted)
+					.map_err(|_| Error::<T>::FailedToReattribute)?;
 			ReattributedHrmpDeposits::<T>::mutate(|t| *t = t.saturating_add(release));
 			if !shortfall.is_zero() {
 				ParkedHrmpShortfalls::<T>::insert(key, shortfall);
@@ -1036,13 +924,6 @@ pub mod pallet {
 			})
 			.map_err(|_| Error::<T>::FailedToReattribute)?;
 			Ok(())
-		}
-
-		fn transition(new: MigrationStage) {
-			let old = CtMigrationStage::<T>::get();
-			CtMigrationStage::<T>::put(new.clone());
-			log::info!(target: LOG_TARGET, "Stage transition: {old:?} -> {new:?}");
-			Self::deposit_event(Event::StageTransition { old, new });
 		}
 	}
 }

@@ -36,21 +36,47 @@
 //!
 //! Para sovereign accounts are included: their child-sovereign id (`para…`) is translated to the
 //! sibling id (`sibl…`) that represents the same para on a parachain.
+//!
+//! This module withdraws and classifies. Shipping the pieces over XCM, and driving the stage from
+//! `on_initialize`, is the stage machine's job: [`AccountsMigrator::init`] runs once before the
+//! first block of withdrawals and [`AccountsMigrator::migrate_many`] runs once per block, inside
+//! a storage transaction the caller owns, and hands back what that block burned.
 
-use crate::*;
+extern crate alloc;
+
+#[cfg(test)]
+mod tests;
+
+use crate::{Config, Event, ExpectedReserves, Pallet, RcMigratedBalance};
+use alloc::vec::Vec;
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+use core::marker::PhantomData;
 use frame_support::{
-	defensive_assert,
+	defensive, defensive_assert,
 	traits::{
+		fungible::{Inspect, Mutate},
 		tokens::{Fortitude, Precision, Preservation},
-		StorePreimage,
+		Get, ReservableCurrency, StorePreimage,
 	},
+	BoundedVec,
 };
-use sp_runtime::traits::{AccountIdConversion, Zero};
+use migrator_types::{
+	with_rollback, PortableAccount, PortableHold, PortableHoldReason, PortableProxyType,
+};
+use polkadot_runtime_common::paras_registrar;
+use scale_info::TypeInfo;
+use sp_runtime::{
+	traits::{AccountIdConversion, Zero},
+	AccountId32,
+};
 
-pub type AccountInfoFor<T> = frame_system::AccountInfo<
-	<T as frame_system::Config>::Nonce,
-	pallet_balances::AccountData<u128>,
->;
+const LOG_TARGET: &str = "runtime::rc2-migrator";
+
+/// Maximum number of accounts processed per relay-chain block.
+///
+/// Bounds the unbenchmarked work of one `on_initialize` here and of the resulting
+/// `receive_accounts` calls on the Coretime chain.
+pub const MAX_ACCOUNTS_PER_BLOCK: u32 = 300;
 
 /// Account-id prefixes that are never migrated: pallet (module) accounts — leftover pots among
 /// them are handled by the `Sweep` stage. Child sovereigns (`para`) ARE migrated, translated to
@@ -58,6 +84,83 @@ pub type AccountInfoFor<T> = frame_system::AccountInfo<
 /// to the wrong address) migrate untranslated — on Asset Hub the same bytes ARE that para's
 /// sovereign, so the para regains control of the funds.
 const UNMIGRATED_PREFIXES: [&[u8]; 1] = [b"modl"];
+
+type NativeCurrency<T> = pallet_balances::Pallet<T>;
+type AccountInfoFor<T> = frame_system::AccountInfo<
+	<T as frame_system::Config>::Nonce,
+	pallet_balances::AccountData<u128>,
+>;
+
+/// The expected composition of one account's reserved balance. See `ExpectedReserves`.
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Clone,
+	Copy,
+	Default,
+	PartialEq,
+	Eq,
+	Debug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct ExpectedReserve {
+	/// Continues on the Coretime chain as an `UnnamedReserve` hold: registrar deposits recorded
+	/// for the account as manager, HRMP channel and request deposits recorded for it as (child)
+	/// para sovereign.
+	pub ct: u128,
+	/// Continues on the Coretime chain as a `ProxyDeposit` hold (resized when the definitions
+	/// arrive): proxy deposits of delegators with at least one portable definition.
+	pub proxy: u128,
+	/// Released and teleported to Asset Hub as free balance: deposits whose purpose ends with
+	/// this chain (untranslatable proxy sets, multisig operations, announcements).
+	pub refund: u128,
+}
+
+/// Where the relay chain's issuance went. Every field is in relay-chain plancks and the sum is
+/// the total issuance the accounts stage started from.
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Clone,
+	Copy,
+	Default,
+	PartialEq,
+	Eq,
+	Debug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct MigratedBalances {
+	/// Balance that remains on the relay chain.
+	pub kept: u128,
+	/// Deposits burned here and re-established as holds on the Coretime chain.
+	pub ct_reserved: u128,
+	/// Free working buffer burned here and minted liquid on the Coretime chain.
+	pub ct_free: u128,
+	/// Free balance burned here and teleported to Asset Hub.
+	pub ah_free: u128,
+	/// Phantom issuance burned by the `TiCorrection` stage (issuance no account held).
+	pub ti_corrected: u128,
+}
+
+impl MigratedBalances {
+	/// Everything that went to the Coretime chain; what `reconcile_balances` reconciles against.
+	pub fn migrated_ct(&self) -> u128 {
+		self.ct_reserved.saturating_add(self.ct_free)
+	}
+}
+
+/// Why an account could not be withdrawn. The caller rolls the account back and skips it.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Error {
+	/// The account balance could not be fully withdrawn.
+	FailedToWithdrawAccount,
+	/// The migrated/kept balance bookkeeping would overflow.
+	BalanceAccounting,
+}
 
 /// Where the pieces of one withdrawn account go.
 #[derive(Debug, PartialEq, Eq)]
@@ -68,19 +171,45 @@ pub struct Withdrawal {
 	pub ah: Option<(AccountId32, u128)>,
 }
 
+/// Everything one block of withdrawals burned, ready to be shipped.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct BlockWithdrawals {
+	/// Accounts to mint on the Coretime chain, holds included.
+	pub ct: Vec<PortableAccount<AccountId32, u128>>,
+	/// Free balance to teleport to Asset Hub: (beneficiary, amount).
+	pub ah: Vec<(AccountId32, u128)>,
+	/// Where the next block continues from; `None` once the account space is exhausted.
+	pub last_key: Option<AccountId32>,
+}
+
 pub struct AccountsMigrator<T>(PhantomData<T>);
 
 impl<T: Config> AccountsMigrator<T> {
+	/// One-time preparation before the first block of withdrawals: releases every preimage
+	/// deposit, seeds the conservation ledger with the current total issuance and indexes the
+	/// expected reserves. Returns the number of deposit records indexed.
+	pub fn init() -> u32 {
+		// Before anything is measured: drop every preimage deposit, so accounts that hold one
+		// are not skipped by `can_migrate`.
+		Self::release_preimage_deposits();
+		RcMigratedBalance::<T>::put(MigratedBalances {
+			kept: NativeCurrency::<T>::total_issuance(),
+			..Default::default()
+		});
+		let indexed = Self::build_expected_reserves();
+		log::info!(target: LOG_TARGET, "Indexed expected reserves from {indexed} records");
+		indexed
+	}
+
 	/// Index every account's expected reserves from the owning pallets' records:
-	/// - Coretime-bound ([`ExpectedCtReserve`]): registrar deposits per manager, HRMP channel
-	///   deposits per (child) para sovereign;
-	/// - proxy deposits ([`ExpectedProxyReserve`]): per delegator with at least one portable
+	/// - Coretime-bound ([`ExpectedReserve::ct`]): registrar deposits per manager, HRMP channel and
+	///   request deposits per (child) para sovereign;
+	/// - proxy deposits ([`ExpectedReserve::proxy`]): per delegator with at least one portable
 	///   definition — they travel under their own hold reason and are resized when the definitions
 	///   arrive;
-	/// - refunded ([`ExpectedRefundReserve`]): proxy deposits of delegators none of whose
-	///   definitions travel — deposits whose purpose does not continue.
+	/// - refunded ([`ExpectedReserve::refund`]): deposits whose purpose does not continue.
 	///
-	/// Called once by `AccountsInit`. Returns the number of records indexed.
+	/// Returns the number of records indexed.
 	pub fn build_expected_reserves() -> u32 {
 		let mut records = 0u32;
 		// One record per account; `slot` picks which expectation the amount accrues to.
@@ -105,6 +234,12 @@ impl<T: Config> AccountsMigrator<T> {
 			add_ct(id.recipient.into_account_truncating(), channel.recipient_deposit);
 			records += 1;
 		}
+		// Pending open-channel requests migrate to the Coretime chain with their deposits, so
+		// the sender sovereigns' request deposits are Coretime-bound like channel deposits.
+		for (id, request) in runtime_parachains::hrmp::HrmpOpenChannelRequests::<T>::iter() {
+			add_ct(id.sender.into_account_truncating(), request.sender_deposit);
+			records += 1;
+		}
 		for (who, (defs, deposit)) in pallet_proxy::Proxies::<T>::iter() {
 			let travels = defs
 				.iter()
@@ -116,6 +251,12 @@ impl<T: Config> AccountsMigrator<T> {
 			}
 			records += 1;
 		}
+		// Proxy announcement deposits, reserved on the announcer (the delegate). Announcements
+		// are not migrated — their purpose ends with this chain — so the deposit is refunded.
+		for (announcer, (_, deposit)) in pallet_proxy::Announcements::<T>::iter() {
+			add_refund(announcer, deposit);
+			records += 1;
+		}
 		// Multisig operation deposits: the one deposit source whose calls stay open until the
 		// migration starts, so entries can still appear. The operation itself cannot complete on
 		// a retired chain — the deposit is refunded to the depositor.
@@ -123,63 +264,48 @@ impl<T: Config> AccountsMigrator<T> {
 			add_refund(op.depositor, op.deposit);
 			records += 1;
 		}
-		// Pending open-channel requests migrate to the Coretime chain with their deposits, so
-		// the sender sovereigns' request deposits are CT-bound like channel deposits.
-		for (id, request) in runtime_parachains::hrmp::HrmpOpenChannelRequests::<T>::iter() {
-			add_ct(id.sender.into_account_truncating(), request.sender_deposit);
-			records += 1;
-		}
-		// Proxy announcement deposits, reserved on the announcer (the delegate). Announcements
-		// are not migrated — their purpose ends with this chain — so the deposit is refunded.
-		for (announcer, (_, deposit)) in pallet_proxy::Announcements::<T>::iter() {
-			add_refund(announcer, deposit);
-			records += 1;
-		}
 		records
 	}
 
-	/// The account id under which `who`'s balances continue on the destination chains.
+	/// Withdraw accounts until the per-block limit is reached.
 	///
-	/// Thin alias for [`migrator_types::translate_destination`], where the rule lives as part of
-	/// the wire contract.
-	pub fn translate_destination(who: &T::AccountId) -> AccountId32 {
-		migrator_types::translate_destination(who)
-	}
-
-	/// Migrate accounts until the per-block limit is reached.
+	/// `manager` is the one account that stays funded here until the migration ends: it pays for
+	/// the calls that drive the migration.
 	///
-	/// Returns the cursor to continue from on the next block, or `None` once the account space is
-	/// exhausted. The caller wraps this in a storage transaction; an `Err` rolls back the whole
-	/// block's withdrawals.
-	pub fn migrate_many(last_key: Option<T::AccountId>) -> Result<Option<T::AccountId>, Error<T>> {
+	/// The caller wraps this in a storage transaction and ships the result; an `Err` rolls back
+	/// the whole block's withdrawals. Each account is withdrawn in a transaction of its own, so
+	/// one that cannot be withdrawn cleanly is skipped whole, never half-withdrawn.
+	pub fn migrate_many(
+		last_key: Option<T::AccountId>,
+		manager: Option<&T::AccountId>,
+	) -> Result<BlockWithdrawals, Error> {
 		let mut iter = match &last_key {
-			Some(last_key) => frame_system::Account::<T>::iter_from_key(last_key.clone()),
+			Some(last_key) => frame_system::Account::<T>::iter_from(
+				frame_system::Account::<T>::hashed_key_for(last_key),
+			),
 			None => frame_system::Account::<T>::iter(),
 		};
 
-		let mut ct_batch = Vec::new();
-		let mut ah_batch = Vec::new();
-		// Balance-tracker deltas of this block's successful withdrawals; applied in one write at
-		// the end instead of one storage mutation per account.
+		let mut out = BlockWithdrawals::default();
+		// Ledger deltas of this block's successful withdrawals; applied in one write at the end
+		// instead of one storage mutation per account.
 		let (mut ct_hold_sum, mut ct_free_sum, mut ah_free_sum) = (0u128, 0u128, 0u128);
 		let mut processed = 0u32;
-		let maybe_last_key = loop {
+		out.last_key = loop {
 			let Some((who, info)) = iter.next() else { break None };
 			processed += 1;
 
-			// Each account is withdrawn in its own transaction: a failure rolls back that
-			// account only, so it is skipped whole, never half-withdrawn.
-			match with_rollback(|| Self::withdraw_account(&who, info)) {
+			match with_rollback(|| Self::withdraw_account(&who, info, manager)) {
 				Ok(Some(Withdrawal { ct, ah })) => {
 					if let Some(account) = ct {
 						ct_hold_sum = ct_hold_sum
 							.saturating_add(account.holds.iter().map(|h| h.amount).sum());
 						ct_free_sum = ct_free_sum.saturating_add(account.free);
-						ct_batch.push(account);
+						out.ct.push(account);
 					}
 					if let Some((who, amount)) = ah {
 						ah_free_sum = ah_free_sum.saturating_add(amount);
-						ah_batch.push((who, amount));
+						out.ah.push((who, amount));
 					}
 				},
 				Ok(None) => (),
@@ -188,38 +314,23 @@ impl<T: Config> AccountsMigrator<T> {
 				},
 			}
 
-			if ct_batch.len() >= MAX_ACCOUNTS_PER_XCM as usize {
-				Pallet::<T>::send_accounts(core::mem::take(&mut ct_batch))?;
-			}
-			if ah_batch.len() >= MAX_TELEPORTS_PER_XCM as usize {
-				Pallet::<T>::send_teleport(core::mem::take(&mut ah_batch))?;
-			}
 			if processed >= MAX_ACCOUNTS_PER_BLOCK {
 				break Some(who);
 			}
 		};
 
-		if !ct_batch.is_empty() {
-			Pallet::<T>::send_accounts(ct_batch)?;
-		}
-		if !ah_batch.is_empty() {
-			Pallet::<T>::send_teleport(ah_batch)?;
-		}
-
 		let burned = ct_hold_sum.saturating_add(ct_free_sum).saturating_add(ah_free_sum);
 		if burned > 0 {
 			RcMigratedBalance::<T>::try_mutate(|t| {
-				t.kept = t.kept.checked_sub(burned).ok_or(Error::<T>::BalanceAccounting)?;
+				t.kept = t.kept.checked_sub(burned).ok_or(Error::BalanceAccounting)?;
 				t.ct_reserved =
-					t.ct_reserved.checked_add(ct_hold_sum).ok_or(Error::<T>::BalanceAccounting)?;
-				t.ct_free =
-					t.ct_free.checked_add(ct_free_sum).ok_or(Error::<T>::BalanceAccounting)?;
-				t.ah_free =
-					t.ah_free.checked_add(ah_free_sum).ok_or(Error::<T>::BalanceAccounting)?;
-				Ok::<(), Error<T>>(())
+					t.ct_reserved.checked_add(ct_hold_sum).ok_or(Error::BalanceAccounting)?;
+				t.ct_free = t.ct_free.checked_add(ct_free_sum).ok_or(Error::BalanceAccounting)?;
+				t.ah_free = t.ah_free.checked_add(ah_free_sum).ok_or(Error::BalanceAccounting)?;
+				Ok::<(), Error>(())
 			})?;
 		}
-		Ok(maybe_last_key)
+		Ok(out)
 	}
 
 	/// Withdraw a single account from the relay chain and split it by destination.
@@ -229,8 +340,9 @@ impl<T: Config> AccountsMigrator<T> {
 	pub fn withdraw_account(
 		who: &T::AccountId,
 		info: AccountInfoFor<T>,
-	) -> Result<Option<Withdrawal>, Error<T>> {
-		if !Self::can_migrate(who, &info) {
+		manager: Option<&T::AccountId>,
+	) -> Result<Option<Withdrawal>, Error> {
+		if !Self::can_migrate(who, &info, manager) {
 			return Ok(None);
 		}
 		let free = info.data.free;
@@ -260,10 +372,10 @@ impl<T: Config> AccountsMigrator<T> {
 
 		// Deposits on the relay chain are unnamed reserves (`can_migrate` rejects named holds);
 		// release them so the full balance is burnable.
-		let not_unreserved = <T as Config>::Currency::unreserve(who, reserved);
+		let not_unreserved = NativeCurrency::<T>::unreserve(who, reserved);
 		if !not_unreserved.is_zero() {
 			defensive!("Reserved balance was not fully released");
-			return Err(Error::<T>::FailedToWithdrawAccount);
+			return Err(Error::FailedToWithdrawAccount);
 		}
 
 		// Releasing the reserve drops its consumer reference; anything left means some pallet
@@ -272,9 +384,8 @@ impl<T: Config> AccountsMigrator<T> {
 		// intended end state for validator key-holders. Every fungible API (`burn_from`,
 		// `write_balance`) insists on keeping the ED for an unreapable account, so the account
 		// data is written directly — record, refcounts and providers untouched — with total
-		// issuance adjusted to match (the same direct-write pattern the TI-correction stage
-		// uses). Zero-balance consumer-referenced accounts already exist on chain, so this
-		// creates no new state shape.
+		// issuance adjusted to match. Zero-balance consumer-referenced accounts already exist on
+		// chain, so this creates no new state shape.
 		let total = free.saturating_add(reserved);
 		if frame_system::Pallet::<T>::consumers(who) != 0 {
 			frame_system::Account::<T>::mutate(who, |a| {
@@ -287,28 +398,21 @@ impl<T: Config> AccountsMigrator<T> {
 				amount: total,
 			});
 		} else {
-			let burned = <T as Config>::Currency::burn_from(
+			let burned = NativeCurrency::<T>::burn_from(
 				who,
 				total,
 				Preservation::Expendable,
 				Precision::Exact,
 				Fortitude::Polite,
 			)
-			.map_err(|_| Error::<T>::FailedToWithdrawAccount)?;
+			.map_err(|_| Error::FailedToWithdrawAccount)?;
 			defensive_assert!(burned == total, "burned the account's whole balance");
 		}
 
-		// The split: CT-bound deposits, proxy deposits and unattributed reserve → CT holds (one
-		// per reason); refunded deposits become liquid; working buffer → CT free; the rest → AH
-		// free. Free balance below AH's ED cannot teleport into a fresh account, so such dust
-		// follows the deposit to CT instead (only deposit holders can be in this situation:
-		// everyone else has free >= the RC ED, which exceeds AH's).
-		//
-		// Exception: a never-signed delegator granting an `Any` proxy is (or must be treated as)
-		// a keyless pure proxy. Its delegate keeps full control only on the Coretime chain, where
-		// the proxy stage recreates the definitions, so ALL of its liquid balance goes there.
-		// Priority order of the split: CT deposits, then proxy deposits, then refunds; whatever
-		// the expectations do not cover is unattributed. Each line consumes from one remainder.
+		// The split, in priority order: Coretime-bound deposits, then proxy deposits, then
+		// refunds; whatever the expectations do not cover is unattributed. Each line consumes
+		// from one remainder, so a live reserve that under-covers the records is attributed to
+		// the deposits that continue first.
 		let mut remainder = reserved;
 		let mut consume = |cap: u128| {
 			let taken = remainder.min(cap);
@@ -331,10 +435,19 @@ impl<T: Config> AccountsMigrator<T> {
 				amount: unattributed,
 			});
 		}
+
+		// Holds and unattributed reserve → Coretime holds (one per reason); refunded deposits
+		// become liquid; working buffer → Coretime free; the rest → Asset Hub free. Free balance
+		// below Asset Hub's ED cannot teleport into a fresh account, so such dust follows the
+		// deposit to Coretime instead (only deposit holders can be in this situation: everyone
+		// else has free >= the relay ED, which exceeds Asset Hub's).
+		//
+		// Exception: a never-signed delegator granting an `Any` proxy is a keyless pure proxy in
+		// all but name. Its delegate keeps full control only on the Coretime chain, where the
+		// proxy stage recreates the definitions, so ALL of its liquid balance goes there.
 		let held = ct_hold.saturating_add(proxy_hold).saturating_add(unattributed);
 		let liquid = free.saturating_add(refunded);
-		let pure_like = Self::is_pure_like(who, &info);
-		let mut ct_free = if pure_like {
+		let mut ct_free = if Self::is_pure_like(who, &info) {
 			liquid
 		} else if held.is_zero() {
 			0
@@ -347,7 +460,7 @@ impl<T: Config> AccountsMigrator<T> {
 			ah_free = 0;
 		}
 
-		let dest = Self::translate_destination(who);
+		let dest = migrator_types::translate_destination(who);
 		let ct = if held.is_zero() && ct_free.is_zero() {
 			None
 		} else {
@@ -360,7 +473,7 @@ impl<T: Config> AccountsMigrator<T> {
 				if !amount.is_zero() {
 					holds
 						.try_push(PortableHold { reason, amount })
-						.map_err(|_| Error::<T>::FailedToWithdrawAccount)?;
+						.map_err(|_| Error::FailedToWithdrawAccount)?;
 				}
 			}
 			Some(PortableAccount { who: dest.clone(), free: ct_free, holds })
@@ -373,8 +486,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// Release every preimage deposit on this chain.
 	///
 	/// [`Self::can_migrate`] refuses any account holding a *named* hold, so a single preimage
-	/// deposit strands that account's entire balance — on Kusama a para manager with 539 KSM of
-	/// registrar deposits, held back by a 1.34 KSM preimage. Nothing carries these across: the
+	/// deposit would strand that account's entire balance. Nothing carries these across: the
 	/// relay chain keeps hosting preimages, and the deposit behind one is the last thing tying a
 	/// user's money to a chain that is meant to end with none.
 	///
@@ -383,9 +495,9 @@ impl<T: Config> AccountsMigrator<T> {
 	/// - `Unrequested` — nobody wants it. Deleted, deposit returned.
 	/// - `Requested` **with** a ticket — the blob is kept and only the ticket dropped, so a
 	///   referendum that depends on it still resolves.
-	/// - `Requested` **without** a ticket — already deposit-free, and unnoting it here would
-	///   *unrequest* it (see `do_unnote_preimage`), which can delete a blob live governance is
-	///   waiting on. Skipped.
+	/// - `Requested` **without** a ticket — already deposit-free, and unnoting it would *unrequest*
+	///   it (see `do_unnote_preimage`), which can delete a blob live governance is waiting on.
+	///   Skipped.
 	pub fn release_preimage_deposits() {
 		let with_deposit: Vec<_> = pallet_preimage::RequestStatusFor::<T>::iter()
 			.filter(|(_, status)| match status {
@@ -412,8 +524,8 @@ impl<T: Config> AccountsMigrator<T> {
 	/// anything else.
 	///
 	/// Such an account's funds are reachable *only* through its delegate, so they follow the
-	/// delegate to the Coretime chain whole — see the split in [`Self::withdraw`], and the
-	/// exemption in [`Self::can_migrate`].
+	/// delegate to the Coretime chain whole — see the split in [`Self::withdraw_account`], and
+	/// the exemption in [`Self::can_migrate`].
 	pub fn is_pure_like(who: &T::AccountId, info: &AccountInfoFor<T>) -> bool {
 		info.nonce.is_zero() &&
 			pallet_proxy::Proxies::<T>::get(who).0.iter().any(|def| {
@@ -421,8 +533,6 @@ impl<T: Config> AccountsMigrator<T> {
 			})
 	}
 
-	/// Whether the account migrates at all. The rejections here are deliberate policy, not
-	/// failures.
 	/// Whether `who` is an account class the migration never touches (module accounts). The
 	/// sweep's dust pass consults this too, so one prefix list rules both.
 	pub fn is_unmigrated(who: &T::AccountId) -> bool {
@@ -430,21 +540,27 @@ impl<T: Config> AccountsMigrator<T> {
 		UNMIGRATED_PREFIXES.iter().any(|prefix| bytes.starts_with(prefix))
 	}
 
-	pub fn can_migrate(who: &T::AccountId, info: &AccountInfoFor<T>) -> bool {
+	/// Whether the account migrates at all. The rejections here are deliberate policy, not
+	/// failures.
+	pub fn can_migrate(
+		who: &T::AccountId,
+		info: &AccountInfoFor<T>,
+		manager: Option<&T::AccountId>,
+	) -> bool {
 		// The manager pays for the calls that drive the migration, so it is the one account that
 		// stays funded here until the migration ends.
-		if Manager::<T>::get().is_some_and(|manager| manager == *who) {
+		if manager.is_some_and(|manager| manager == who) {
 			log::info!(target: LOG_TARGET, "Keeping the manager account {who:?} on the RC");
 			return false;
 		}
 		if Self::is_unmigrated(who) {
-			log::info!(target: LOG_TARGET, "Keeping sovereign/module account {who:?} on the RC");
+			log::info!(target: LOG_TARGET, "Keeping module account {who:?} on the RC");
 			return false;
 		}
 
 		let data = &info.data;
 		let total = data.free.saturating_add(data.reserved);
-		if total < <T as Config>::Currency::minimum_balance() {
+		if total < NativeCurrency::<T>::minimum_balance() {
 			// Below-ED accounts are left here and reaped: the balance is by definition less than
 			// the chain considers worth keeping an account for.
 			//
@@ -452,7 +568,7 @@ impl<T: Config> AccountsMigrator<T> {
 			// funds-follow-control rather than an oversight. Their definitions still reach the
 			// Coretime chain, so the delegate keeps the *para*, but a sub-ED remainder is not
 			// worth a migration path of its own — there is nothing usable to lose. Above the ED
-			// the rule applies in full: see the `pure_like` split in `withdraw`.
+			// the rule applies in full: see the `pure_like` split in `withdraw_account`.
 			log::info!(target: LOG_TARGET, "Keeping below-ED account {who:?} on the RC");
 			return false;
 		}

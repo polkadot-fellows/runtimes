@@ -1705,27 +1705,19 @@ async fn full_migration_rc_to_ct() {
 			"HRMP deposit reconciliation is exact"
 		);
 
-		// Re-attribution must not create holds out of thin air: the sum of holds under each
-		// attributed reason equals its re-attributed total.
-		let reg_id =
-			crate::mock::network::ct::RuntimeHoldReason::CtMigrator(HoldReason::RegistrarDeposit);
-		let hrmp_id =
-			crate::mock::network::ct::RuntimeHoldReason::CtMigrator(HoldReason::HrmpDeposit);
+		// The migrator releases every migrated registrar and HRMP deposit for the owning pallet
+		// to take its own `Consideration` at this chain's rates, so the only holds it may still
+		// carry are proxy deposits awaiting their definitions and the parked unattributed reserve.
 		let proxy_id =
 			crate::mock::network::ct::RuntimeHoldReason::CtMigrator(HoldReason::ProxyDeposit);
 		let unattributed_id = crate::mock::network::ct::RuntimeHoldReason::CtMigrator(
 			HoldReason::UnattributedReserve,
 		);
-		let (mut reg_held, mut hrmp_held, mut proxy_held, mut unattributed_held) =
-			(0u128, 0u128, 0u128, 0u128);
+		let (mut proxy_held, mut unattributed_held) = (0u128, 0u128);
 		let mut proxy_stuck: Vec<(AccountId32, u128)> = Vec::new();
 		for who in frame_system::Account::<Ct>::iter_keys() {
 			for hold in pallet_balances::Holds::<Ct>::get(&who) {
-				if hold.id == reg_id {
-					reg_held += hold.amount;
-				} else if hold.id == hrmp_id {
-					hrmp_held += hold.amount;
-				} else if hold.id == proxy_id {
+				if hold.id == proxy_id {
 					proxy_held += hold.amount;
 					proxy_stuck.push((who.clone(), hold.amount));
 				} else if hold.id == unattributed_id {
@@ -1733,11 +1725,6 @@ async fn full_migration_rc_to_ct() {
 				}
 			}
 		}
-		// The migrator no longer re-labels these holds: it releases them and the owning pallet
-		// takes its own `Consideration` at this chain's rates. A remaining hold under the
-		// migrator's reason would mean a record never reached its pallet.
-		assert_eq!(reg_held, 0, "no migrator-held registrar deposit may remain");
-		assert_eq!(hrmp_held, 0, "no migrator-held HRMP deposit may remain");
 
 		// What the pallets took instead. Priced at this chain's rates, so it is not comparable
 		// to the relay chain's recorded amounts — only its existence and attribution are.

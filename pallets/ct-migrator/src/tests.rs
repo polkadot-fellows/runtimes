@@ -108,7 +108,6 @@ fn sub_ed_free_survives_hold_placement_and_reattribution() {
 		// way would take the hold through zero while free was still below ED, and
 		// pallet-balances would burn the remainder; `release_hold` credits free first.
 		assert_eq!(free(&bob), 42);
-		assert_eq!(held(HoldReason::RegistrarDeposit, &bob), 0);
 		assert_eq!(held(HoldReason::RcMigratedReserve, &bob), 0);
 		assert_eq!(total_issuance(), 42, "no dust may be burned by the hand-over");
 	});
@@ -144,34 +143,6 @@ fn sub_ed_free_survives_proxy_deposit_resize() {
 }
 
 #[test]
-fn receive_accounts_parks_bad_account_without_poisoning_batch() {
-	new_test_ext().execute_with(|| {
-		let eve = acc(5); // integrates fine
-		let dave = acc(4); // mint overflows total issuance -> must park
-
-		// GIVEN some existing issuance so a u128::MAX mint overflows.
-		<Balances as Mutate<AccountId32>>::mint_into(&eve, 100).unwrap();
-
-		let bad = portable_account(&dave, u128::MAX, vec![]);
-		assert_ok!(CtMigrator::receive_accounts(
-			root(),
-			vec![portable_account(&eve, 60, vec![]), bad.clone()],
-		));
-
-		// THEN the good account integrated and the bad one is parked verbatim. The batch is not
-		// refused: one bad record must not strand the good ones, and the migration cannot stop
-		// mid-run to deal with it. The parked entry is what makes it recoverable afterwards.
-		assert_eq!(free(&eve), 160);
-		assert_eq!(FailedAccounts::<Test>::get(&dave), Some(bad));
-		assert_eq!(free(&dave), 0, "the failed account must be fully rolled back");
-		assert_eq!(CtMintedTotal::<Test>::get(), 60, "only successful mints are tracked");
-		assert!(
-			migrator_events().contains(&Event::AccountsReceived { count_good: 1, count_bad: 1 })
-		);
-	});
-}
-
-#[test]
 fn receive_registrar_releases_the_deposit_and_hands_the_para_over() {
 	new_test_ext().execute_with(|| {
 		let alice = acc(1); // parachain manager
@@ -192,7 +163,6 @@ fn receive_registrar_releases_the_deposit_and_hands_the_para_over() {
 		// holds its deposits as `Consideration` tickets, which can only be minted by taking
 		// funds, and it prices them at this chain's rates. Anything beyond the recorded amount
 		// stays parked under the generic migrated reason.
-		assert_eq!(held(HoldReason::RegistrarDeposit, &alice), 0);
 		assert_eq!(held(HoldReason::RcMigratedReserve, &alice), 200);
 		assert_eq!(ReattributedDeposits::<Test>::get(), 300);
 		assert!(ParkedDepositShortfalls::<Test>::iter().next().is_none());
@@ -234,7 +204,6 @@ fn registrar_shortfall_is_parked_never_minted() {
 		let ti_before = total_issuance();
 		assert_ok!(CtMigrator::receive_registrar(root(), vec![para.clone()], None));
 
-		assert_eq!(held(HoldReason::RegistrarDeposit, &alice), 0);
 		assert_eq!(held(HoldReason::RcMigratedReserve, &alice), 0);
 		assert_eq!(ParkedDepositShortfalls::<Test>::get(2000), Some(150));
 		assert_eq!(total_issuance(), ti_before);
@@ -301,8 +270,6 @@ fn receive_hrmp_reattributes_both_sides_on_sibling_sovereigns() {
 
 		// Released rather than re-labelled, for the same reason as the registrar's: the HRMP
 		// pallet mints its own `Consideration` tickets at this chain's rates.
-		assert_eq!(held(HoldReason::HrmpDeposit, &sov_sender), 0);
-		assert_eq!(held(HoldReason::HrmpDeposit, &sov_recipient), 0);
 		assert_eq!(held(HoldReason::RcMigratedReserve, &sov_sender), 0);
 		assert_eq!(ReattributedHrmpDeposits::<Test>::get(), 150);
 		assert!(ParkedHrmpShortfalls::<Test>::iter().next().is_none());
@@ -360,7 +327,6 @@ fn receive_hrmp_requests_relabels_and_always_stores() {
 
 		// THEN the covered deposit is released, the uncovered one parks — and BOTH records are
 		// still handed over, because a shortfall is an accounting gap and not a failed record.
-		assert_eq!(held(HoldReason::HrmpDeposit, &sov), 0);
 		assert_eq!(ParkedHrmpShortfalls::<Test>::get((2000, 2002, true)), Some(40));
 		let handed: Vec<(u32, u32)> = ReceivedChannels::get()
 			.into_iter()
@@ -608,10 +574,48 @@ fn an_unfinished_migration_cannot_be_completed() {
 	new_test_ext().execute_with(|| {
 		// WHEN the relay chain closes a window that never opened. THEN it is refused, so a stray
 		// or reordered message cannot unlock this chain mid-migration.
-		assert_noop!(CtMigrator::end_lockdown(root()), Error::<Test>::NotReconciled);
+		assert_noop!(CtMigrator::end_lockdown(root()), Error::<Test>::NotStarted);
 		assert_ok!(CtMigrator::start_migration(root()));
 		assert_noop!(CtMigrator::end_lockdown(root()), Error::<Test>::NotReconciled);
 		assert_eq!(CtMigrationStage::<Test>::get(), MigrationStage::DataMigrationOngoing);
+	});
+}
+
+#[test]
+fn the_manager_drives_the_migration_but_cannot_appoint_one() {
+	new_test_ext().execute_with(|| {
+		let alice = acc(1); // appointed manager
+		let signed = RuntimeOrigin::signed(alice.clone());
+
+		// WHEN a signed account appoints itself. THEN it is refused.
+		assert_noop!(CtMigrator::set_manager(signed.clone(), Some(alice.clone())), BadOrigin);
+
+		// GIVEN Alice appointed manager by the admin origin.
+		assert_ok!(CtMigrator::set_manager(root(), Some(alice.clone())));
+		assert_eq!(Manager::<Test>::get(), Some(alice.clone()));
+		assert!(
+			migrator_events().contains(&Event::ManagerSet { old: None, new: Some(alice.clone()) })
+		);
+
+		// WHEN the manager sends the relay chain's two signals and forces a stage. THEN all
+		// three are accepted: the manager stands in for a signal that never arrived.
+		assert_ok!(CtMigrator::start_migration(signed.clone()));
+		assert_eq!(CtMigrationStage::<Test>::get(), MigrationStage::DataMigrationOngoing);
+		assert_eq!(sent().len(), 1);
+		assert_ok!(CtMigrator::force_set_stage(signed.clone(), MigrationStage::CoolOff));
+		assert_ok!(CtMigrator::end_lockdown(signed.clone()));
+		assert_eq!(CtMigrationStage::<Test>::get(), MigrationStage::MigrationDone);
+
+		// WHEN the manager tries a data batch, or to appoint a manager. THEN both are refused:
+		// batches come from the relay chain alone, and appointments stay with the admin origin.
+		assert_noop!(CtMigrator::receive_accounts(signed.clone(), vec![]), BadOrigin);
+		assert_noop!(CtMigrator::set_manager(signed.clone(), None), BadOrigin);
+
+		// WHEN the admin origin removes the manager. THEN Alice loses the powers.
+		assert_ok!(CtMigrator::set_manager(root(), None));
+		assert_eq!(Manager::<Test>::get(), None);
+		assert!(migrator_events().contains(&Event::ManagerSet { old: Some(alice), new: None }));
+		assert_noop!(CtMigrator::start_migration(signed), BadOrigin);
 	});
 }
 
@@ -627,7 +631,11 @@ fn all_receive_calls_require_root() {
 		assert_noop!(CtMigrator::reconcile_balances(signed.clone(), 0, 0), BadOrigin);
 		assert_noop!(CtMigrator::start_migration(signed.clone()), BadOrigin);
 		assert_noop!(CtMigrator::end_lockdown(signed.clone()), BadOrigin);
-		assert_noop!(CtMigrator::force_set_stage(signed, MigrationStage::MigrationDone), BadOrigin);
+		assert_noop!(
+			CtMigrator::force_set_stage(signed.clone(), MigrationStage::MigrationDone),
+			BadOrigin
+		);
+		assert_noop!(CtMigrator::set_manager(signed, None), BadOrigin);
 	});
 }
 
