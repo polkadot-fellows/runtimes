@@ -6,8 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Removed
+
+- People Polkadot: remove the single-use `SeedSubscriptionWhitelist` migration that seeded the Asset Hub `MembersNotifier` subscription whitelist entry. It shipped in 2.5.0 and has run on chain. [#1292](https://github.com/polkadot-fellows/runtimes/pull/1292)).
+
 ### Changed
 
+- Coretime Kusama: bulk revenue now accumulates with dust and is burnt on Asset Hub through `pallet-accumulate-and-forward`, and a migration retires the `py/ctbrn` holding account ([#1301](https://github.com/polkadot-fellows/runtimes/pull/1301)).
+- Kusama relay: dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1289](https://github.com/polkadot-fellows/runtimes/pull/1289)).
 - Bridge Hub, Coretime, People and Encointer Kusama:  dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1287](https://github.com/polkadot-fellows/runtimes/pull/1287)).
 - Asset Hub Polkadot: `DustRemoval` resolves into the DAP staging account instead of burning, so dust is deactivated like every other sink ([#1288](https://github.com/polkadot-fellows/runtimes/pull/1288)).
 - Coretime Polkadot & Kusama, Asset Hub Polkadot: coretime bulk revenue is no longer teleported to the relay chain to be burnt. Polkadot forwards revenue, and now also dust from reaped accounts, to the DAP staging account on Asset Hub through `pallet-accumulate-and-forward`, and Asset Hub grants system-chain accumulation accounts free execution. Asset Hub Polkadot must be upgraded before Coretime Polkadot, otherwise the forwards are rejected and the teleported DOT is lost. Kusama teleports it to Asset Hub and burns it there, since KSM issuance is tracked on Asset Hub. A migration retires the `py/ctbrn` holding account on Coretime Polkadot. ([#1282](https://github.com/polkadot-fellows/runtimes/pull/1282)).
