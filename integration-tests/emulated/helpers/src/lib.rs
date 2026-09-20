@@ -15,9 +15,9 @@
 
 //! Emulated integration test helpers that have no upstream equivalent.
 //!
-//! This crate must never re-export items from `emulated-integration-tests-common`: test crates
-//! import those straight from upstream. Everything kept here is expected to be upstreamed
-//! eventually and then dropped.
+//! `emulated-integration-tests-common` is the first place to look; test crates import from it
+//! directly rather than through this crate. What is kept here has no upstream counterpart yet
+//! and is expected to move there eventually.
 
 // The re-exports below exist only so that `test_accumulated_funds_are_burnt_on_asset_hub!` can
 // name them through `$crate` at its expansion sites.
