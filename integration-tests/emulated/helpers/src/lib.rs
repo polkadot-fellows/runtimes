@@ -20,4 +20,4 @@
 //! and is expected to move there eventually.
 
 pub mod burn;
-pub mod common;
+pub mod snowbridge;

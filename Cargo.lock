@@ -1508,6 +1508,7 @@ version = "1.0.0"
 dependencies = [
  "asset-hub-kusama-runtime",
  "assets-common",
+ "bp-bridge-hub-polkadot",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-support",
@@ -1697,6 +1698,7 @@ version = "1.0.0"
 dependencies = [
  "asset-hub-polkadot-runtime",
  "assets-common",
+ "bp-bridge-hub-polkadot",
  "cumulus-primitives-core",
  "emulated-integration-tests-common",
  "frame-support",
@@ -8248,6 +8250,7 @@ dependencies = [
 name = "integration-tests-helpers"
 version = "1.0.0"
 dependencies = [
+ "bp-bridge-hub-polkadot",
  "frame-support",
  "frame-system",
  "hex-literal",
