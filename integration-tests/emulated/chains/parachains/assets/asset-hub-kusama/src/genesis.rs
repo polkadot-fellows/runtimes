@@ -20,7 +20,7 @@ use emulated_integration_tests_common::{
 	PenpalBPen2TeleportableAssetLocation, PenpalBSiblingSovereignAccount, RESERVABLE_ASSET_ID,
 	SAFE_XCM_VERSION,
 };
-use integration_tests_helpers::common::snowbridge::{EthLocation, WethLocation, MIN_ETHER_BALANCE};
+use integration_tests_helpers::snowbridge::{EthLocation, WethLocation, MIN_ETHER_BALANCE};
 use parachains_common::{AccountId, Balance};
 use sp_keyring::Sr25519Keyring as Keyring;
 use xcm::prelude::*;

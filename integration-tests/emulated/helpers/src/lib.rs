@@ -13,26 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub use paste;
+//! Emulated integration test helpers that have no upstream equivalent.
+//!
+//! `emulated-integration-tests-common` is the first place to look; test crates import from it
+//! directly rather than through this crate. What is kept here has no upstream counterpart yet
+//! and is expected to move there eventually.
 
-// Substrate
-pub use frame_support;
-pub use frame_system;
-pub use pallet_accumulate_and_forward;
-pub use pallet_balances;
-pub use pallet_collator_selection;
-pub use pallet_message_queue;
-
-// Polkadot
-pub use pallet_xcm;
-pub use xcm::prelude::{
-	AccountId32, Assets, Junction, Location, VersionedAssetId, VersionedAssets, Weight, WeightLimit,
-};
-pub use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV2;
-
-// Cumulus
-pub use cumulus_pallet_xcmp_queue;
-pub use emulated_integration_tests_common::*;
-pub use xcm_emulator::Chain;
-
-pub mod common;
+pub mod burn;
+pub mod snowbridge;
