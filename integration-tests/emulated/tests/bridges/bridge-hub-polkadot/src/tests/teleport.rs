@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use crate::*;
-use integration_tests_helpers::{
+use emulated_integration_tests_common::{
 	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay,
 	test_relay_is_trusted_teleporter,
 };
