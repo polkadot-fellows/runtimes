@@ -27,6 +27,10 @@ use xcm_emulator::Parachain;
 ///
 /// For Kusama-like chains, which burn. Polkadot chains forward to the DAP staging account instead
 /// and are covered by the SDK's `dap_helpers::test_accumulate_forward_transfers_to_asset_hub`.
+///
+/// `set_block_number` advances whatever clock the chain configures as
+/// `pallet_accumulate_and_forward::Config::BlockNumberProvider`, since that is what decides
+/// whether `on_idle` forwards. Today every such chain uses `System`.
 pub fn test_accumulated_funds_are_burnt_on_asset_hub<Sender, AH>(
 	asset_hub_sender: AccountId,
 	set_block_number: fn(u32),
