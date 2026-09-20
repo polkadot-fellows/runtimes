@@ -15,13 +15,11 @@
 // limitations under the License.
 
 use crate::*;
-use coretime_kusama_runtime::System;
 use cumulus_pallet_parachain_system::ValidationData;
 use frame_support::{
 	traits::{fungible::Inspect as _, Hooks, OnInitialize},
 	PalletId,
 };
-use integration_tests_helpers::burn::test_accumulated_funds_are_burnt_on_asset_hub;
 use kusama_runtime_constants::currency::UNITS;
 use pallet_broker::{ConfigRecordOf, SaleInfo};
 use sp_runtime::{traits::AccountIdConversion, Perbill};
@@ -168,8 +166,9 @@ fn coretime_revenue_is_burnt_on_asset_hub() {
 
 #[test]
 fn accumulated_funds_are_burnt_on_asset_hub() {
-	test_accumulated_funds_are_burnt_on_asset_hub::<CoretimeKusama, AssetHubKusama>(
-		AssetHubKusamaSender::get(),
-		System::set_block_number,
-	);
+	use coretime_kusama_runtime::System;
+	integration_tests_helpers::burn::test_accumulated_funds_are_burnt_on_asset_hub::<
+		CoretimeKusama,
+		AssetHubKusama,
+	>(AssetHubKusamaSender::get(), System::set_block_number);
 }
