@@ -14,10 +14,13 @@
 // limitations under the License.
 
 use crate::*;
+use encointer_kusama_runtime::System;
+use integration_tests_helpers::burn::test_accumulated_funds_are_burnt_on_asset_hub;
 
-integration_tests_helpers::test_accumulated_funds_are_burnt_on_asset_hub!(
-	EncointerKusama,
-	AssetHubKusama,
-	ENCOINTER_KUSAMA_ED,
-	ASSET_HUB_KUSAMA_ED,
-);
+#[test]
+fn accumulated_funds_are_burnt_on_asset_hub() {
+	test_accumulated_funds_are_burnt_on_asset_hub::<EncointerKusama, AssetHubKusama>(
+		AssetHubKusamaSender::get(),
+		System::set_block_number,
+	);
+}

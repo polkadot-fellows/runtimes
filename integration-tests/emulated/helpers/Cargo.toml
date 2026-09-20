@@ -8,7 +8,6 @@ description = "Emulated integration tests helpers"
 publish = false
 
 [dependencies]
-paste = { workspace = true }
 hex-literal = { workspace = true }
 
 # Substrate
@@ -24,6 +23,7 @@ xcm = { workspace = true, default-features = true }
 pallet-xcm = { workspace = true, default-features = true }
 
 # Cumulus
+parachains-common = { workspace = true, default-features = true }
 xcm-emulator = { workspace = true }
 
 [features]
@@ -35,5 +35,6 @@ runtime-benchmarks = [
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
+	"parachains-common/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
 ]

@@ -14,10 +14,13 @@
 // limitations under the License.
 
 use crate::*;
+use integration_tests_helpers::burn::test_accumulated_funds_are_burnt_on_asset_hub;
+use people_kusama_runtime::System;
 
-integration_tests_helpers::test_accumulated_funds_are_burnt_on_asset_hub!(
-	PeopleKusama,
-	AssetHubKusama,
-	PEOPLE_KUSAMA_ED,
-	ASSET_HUB_KUSAMA_ED,
-);
+#[test]
+fn accumulated_funds_are_burnt_on_asset_hub() {
+	test_accumulated_funds_are_burnt_on_asset_hub::<PeopleKusama, AssetHubKusama>(
+		AssetHubKusamaSender::get(),
+		System::set_block_number,
+	);
+}

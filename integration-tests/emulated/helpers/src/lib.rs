@@ -19,23 +19,5 @@
 //! directly rather than through this crate. What is kept here has no upstream counterpart yet
 //! and is expected to move there eventually.
 
-// The re-exports below exist only so that `test_accumulated_funds_are_burnt_on_asset_hub!` can
-// name them through `$crate` at its expansion sites.
-pub use paste;
-
-// Substrate
-pub use frame_support;
-pub use frame_system;
-pub use pallet_accumulate_and_forward;
-pub use pallet_balances;
-pub use pallet_collator_selection;
-pub use pallet_message_queue;
-
-// Polkadot
-pub use pallet_xcm;
-pub use xcm::prelude::{Assets, Junction, Location, Weight, WeightLimit};
-
-// Cumulus
-pub use xcm_emulator::Chain;
-
+pub mod burn;
 pub mod common;
