@@ -8244,8 +8244,6 @@ dependencies = [
 name = "integration-tests-helpers"
 version = "1.0.0"
 dependencies = [
- "cumulus-pallet-xcmp-queue",
- "emulated-integration-tests-common",
  "frame-support",
  "frame-system",
  "hex-literal",
@@ -8257,7 +8255,6 @@ dependencies = [
  "paste",
  "staging-xcm",
  "xcm-emulator",
- "xcm-runtime-apis",
 ]
 
 [[package]]

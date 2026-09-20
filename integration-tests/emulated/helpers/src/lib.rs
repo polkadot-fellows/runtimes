@@ -13,6 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Emulated integration test helpers that have no upstream equivalent.
+//!
+//! This crate must never re-export items from `emulated-integration-tests-common`: test crates
+//! import those straight from upstream. Everything kept here is expected to be upstreamed
+//! eventually and then dropped.
+
+// The re-exports below exist only so that `test_accumulated_funds_are_burnt_on_asset_hub!` can
+// name them through `$crate` at its expansion sites.
 pub use paste;
 
 // Substrate
@@ -25,14 +33,9 @@ pub use pallet_message_queue;
 
 // Polkadot
 pub use pallet_xcm;
-pub use xcm::prelude::{
-	AccountId32, Assets, Junction, Location, VersionedAssetId, VersionedAssets, Weight, WeightLimit,
-};
-pub use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV2;
+pub use xcm::prelude::{Assets, Junction, Location, Weight, WeightLimit};
 
 // Cumulus
-pub use cumulus_pallet_xcmp_queue;
-pub use emulated_integration_tests_common::*;
 pub use xcm_emulator::Chain;
 
 pub mod common;
