@@ -13,9 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Snowbridge constants for the Ethereum Main network. The SDK's helpers carry the Sepolia
-//! addresses instead.
+//! Snowbridge constants for the Ethereum Main network, which the SDK's helpers do not have: theirs
+//! are the Sepolia ones. The network and location themselves come from the bridge primitives, so
+//! that tests and runtimes agree on them.
 
+// Under the shorter name, so that it pairs with `WethLocation`.
+pub use bp_bridge_hub_polkadot::snowbridge::EthereumLocation as EthLocation;
 use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
 use frame_support::parameter_types;
 use hex_literal::hex;

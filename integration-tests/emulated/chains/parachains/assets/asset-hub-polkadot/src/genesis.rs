@@ -17,14 +17,13 @@ use asset_hub_polkadot_runtime::{
 	xcm_config::{CheckingAccount, TreasuryAccount},
 	Dap,
 };
-use bp_bridge_hub_polkadot::snowbridge::EthereumLocation;
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, PenpalALocation,
 	PenpalAPen2TeleportableAssetLocation, PenpalASiblingSovereignAccount, PenpalBLocation,
 	PenpalBPen2TeleportableAssetLocation, PenpalBSiblingSovereignAccount, RESERVABLE_ASSET_ID,
 	SAFE_XCM_VERSION,
 };
-use integration_tests_helpers::snowbridge::{WethLocation, MIN_ETHER_BALANCE};
+use integration_tests_helpers::snowbridge::{EthLocation, WethLocation, MIN_ETHER_BALANCE};
 use parachains_common::{AccountId, Balance};
 use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 use xcm::prelude::*;
@@ -39,7 +38,7 @@ frame_support::parameter_types! {
 	pub AssetHubPolkadotAssetOwner: AccountId = Sr25519Keyring::Alice.to_account_id();
 	pub UniversalLocation: InteriorLocation = [GlobalConsensus(Polkadot), Parachain(PARA_ID)].into();
 	pub EthereumSovereignAccount: AccountId = ExternalConsensusLocationsConverterFor::<UniversalLocation, AccountId>::convert_location(
-		&EthereumLocation::get(),
+		&EthLocation::get(),
 	).unwrap();
 }
 
@@ -120,7 +119,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 					ED,
 				),
 				// Ether
-				(EthereumLocation::get(), EthereumSovereignAccount::get(), true, MIN_ETHER_BALANCE),
+				(EthLocation::get(), EthereumSovereignAccount::get(), true, MIN_ETHER_BALANCE),
 				// Weth
 				(WethLocation::get(), EthereumSovereignAccount::get(), true, MIN_ETHER_BALANCE),
 			],
@@ -133,8 +132,8 @@ pub fn genesis() -> sp_core::storage::Storage {
 					PenpalBPen2TeleportableAssetLocation::get(),
 					vec![(PenpalBLocation::get(), true).into()],
 				),
-				(EthereumLocation::get(), vec![(EthereumLocation::get(), false).into()]),
-				(WethLocation::get(), vec![(EthereumLocation::get(), false).into()]),
+				(EthLocation::get(), vec![(EthLocation::get(), false).into()]),
+				(WethLocation::get(), vec![(EthLocation::get(), false).into()]),
 			],
 			..Default::default()
 		},

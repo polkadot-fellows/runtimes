@@ -17,9 +17,6 @@ frame-support = { workspace = true, default-features = true }
 
 # Pallets
 
-# Bridges
-bp-bridge-hub-polkadot = { workspace = true, default-features = true }
-
 # Cumulus
 assets-common = { workspace = true, default-features = true }
 parachains-common = { workspace = true, default-features = true }
@@ -42,7 +39,6 @@ integration-tests-helpers = { workspace = true }
 runtime-benchmarks = [
 	"asset-hub-kusama-runtime/runtime-benchmarks",
 	"assets-common/runtime-benchmarks",
-	"bp-bridge-hub-polkadot/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
