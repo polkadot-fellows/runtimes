@@ -16,9 +16,9 @@
 //! Almost identical to ../asset-hubs/asset-hub-kusama
 
 use super::{
-	AccountId, Balance, Balances, CollatorSelection, FeeAssetId, ParachainInfo, ParachainSystem,
-	PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
-	ToParentBaseDeliveryFee, TransactionByteFee, WeightToFee, XcmpQueue,
+	AccountId, AccumulateForward, Balance, Balances, CollatorSelection, FeeAssetId, ParachainInfo,
+	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason,
+	RuntimeOrigin, ToParentBaseDeliveryFee, TransactionByteFee, WeightToFee, XcmpQueue,
 };
 use frame_support::{
 	parameter_types,
@@ -67,6 +67,9 @@ parameter_types! {
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub TreasuryAccount: AccountId = parachains_common::TREASURY_PALLET_ID.into_account_truncating();
+	/// The `pallet-accumulate-and-forward` account, as a local location.
+	pub AccumulateForwardLocation: Location =
+		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
@@ -182,8 +185,11 @@ parameter_types! {
 
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery. We
 /// only waive fees for system functions, which these locations represent.
-pub type WaivedLocations =
-	(Equals<RootLocation>, RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>);
+pub type WaivedLocations = (
+	Equals<RootLocation>,
+	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
+	Equals<AccumulateForwardLocation>,
+);
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
 /// - KSM with the parent Relay Chain and sibling parachains.

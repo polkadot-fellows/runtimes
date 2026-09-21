@@ -420,7 +420,8 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type DustRemoval = ();
+	// A burn here would not show in the network total, which Asset Hub tracks.
+	type DustRemoval = AccumulateForward;
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -433,6 +434,28 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type DoneSlashHandler = ();
+}
+
+parameter_types! {
+	pub const AccumulateForwardPalletId: PalletId =
+		kusama_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
+	/// Hourly at most, once 1 KSM has gathered; funds waiting still count towards issuance.
+	pub const ForwardPeriod: BlockNumber = HOURS;
+	pub const MinForwardAmount: Balance = UNITS;
+}
+
+impl pallet_accumulate_and_forward::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = AccumulateForwardPalletId;
+	type Forwarder = kusama_runtime_constants::accumulate_and_forward::TeleportAndBurnForwarder<
+		xcm_config::XcmConfig,
+		xcm_config::AssetHubLocation,
+		xcm_config::TokenLocation,
+	>;
+	type TransferPeriod = ForwardPeriod;
+	type MinTransferAmount = MinForwardAmount;
+	type BlockNumberProvider = System;
+	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -2051,6 +2074,9 @@ construct_runtime! {
 		// staking client to communicate with AH.
 		StakingAhClient: pallet_staking_async_ah_client = 48,
 
+		// Gathers what would otherwise be burned here, for Asset Hub to burn.
+		AccumulateForward: pallet_accumulate_and_forward = 49,
+
 		// Parachains pallets. Start indices at 50 to leave room.
 		ParachainsOrigin: parachains_origin = 50,
 		Configuration: parachains_configuration = 51,
@@ -2198,6 +2224,7 @@ mod benches {
 		[runtime_parachains::on_demand, OnDemandAssignmentProvider]
 		[runtime_parachains::coretime, Coretime]
 		// Substrate
+		[pallet_accumulate_and_forward, AccumulateForward]
 		[pallet_balances, Native]
 		[pallet_bags_list, VoterList]
 		[pallet_beefy_mmr, BeefyMmrLeaf]
