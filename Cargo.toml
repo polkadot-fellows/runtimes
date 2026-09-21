@@ -11,6 +11,7 @@ pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
 pallet-election-provider-multi-block = { version = "0.11.0", default-features = false }
 pallet-ct-migrator = { path = "pallets/ct-migrator", default-features = false }
 pallet-rc2-migrator = { path = "pallets/rc2-migrator", default-features = false }
+migrator-types = { path = "pallets/migrator-types", default-features = false }
 pallet-staking-async = { version = "0.15.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 rand = { version = "0.9.2" }
@@ -363,6 +364,7 @@ members = [
 	"integration-tests/zombienet",
 	"pallets/ah-ops",
 	"pallets/ct-migrator",
+	"pallets/migrator-types",
 	"pallets/rc-migrator",
 	"pallets/rc2-migrator",
 	"pallets/remote-proxy",
