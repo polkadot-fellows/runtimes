@@ -618,11 +618,14 @@ pub enum ProxyType {
 	NonTransfer,
 	/// Proxy with the ability to reject time-delay proxy announcements.
 	CancelProxy,
-	/// Assets proxy. Can execute any call from `assets`, **including asset transfers**.
+	/// Assets proxy. Can execute any call from `assets` and `psm`, **including asset transfers
+	/// and PSM swaps**.
 	Assets,
-	/// Owner proxy. Can execute calls related to asset ownership.
+	/// Owner proxy. Can execute calls related to asset ownership, including creating and
+	/// removing a PSM, setting its admins and its external assets.
 	AssetOwner,
-	/// Asset manager. Can execute calls related to asset management.
+	/// Asset manager. Can execute calls related to asset management, including PSM fees,
+	/// limits, circuit breakers and ceiling weights.
 	AssetManager,
 	/// Collator selection proxy. Can execute calls related to collator selection mechanism.
 	Collator,
@@ -763,7 +766,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 						RuntimeCall::Utility { .. } |
 						RuntimeCall::Multisig { .. } |
 						RuntimeCall::Nfts { .. } |
-						RuntimeCall::Uniques { .. }
+						RuntimeCall::Uniques { .. } |
+						RuntimeCall::Psm { .. }
 				)
 			},
 			ProxyType::AssetOwner => matches!(
@@ -796,6 +800,12 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Uniques(pallet_uniques::Call::clear_attribute { .. }) |
 					RuntimeCall::Uniques(pallet_uniques::Call::clear_collection_metadata { .. }) |
 					RuntimeCall::Uniques(pallet_uniques::Call::set_collection_max_supply { .. }) |
+					RuntimeCall::Psm(pallet_psm::Call::create_psm { .. }) |
+					RuntimeCall::Psm(pallet_psm::Call::remove_psm { .. }) |
+					RuntimeCall::Psm(pallet_psm::Call::set_full_admin { .. }) |
+					RuntimeCall::Psm(pallet_psm::Call::set_emergency_admin { .. }) |
+					RuntimeCall::Psm(pallet_psm::Call::add_external_asset { .. }) |
+					RuntimeCall::Psm(pallet_psm::Call::remove_external_asset { .. }) |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -827,6 +837,11 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Uniques(pallet_uniques::Call::thaw { .. }) |
 					RuntimeCall::Uniques(pallet_uniques::Call::freeze_collection { .. }) |
 					RuntimeCall::Uniques(pallet_uniques::Call::thaw_collection { .. }) |
+					RuntimeCall::Psm(pallet_psm::Call::set_minting_fee { .. }) |
+					RuntimeCall::Psm(pallet_psm::Call::set_redemption_fee { .. }) |
+					RuntimeCall::Psm(pallet_psm::Call::set_max_debt { .. }) |
+					RuntimeCall::Psm(pallet_psm::Call::set_asset_status { .. }) |
+					RuntimeCall::Psm(pallet_psm::Call::set_asset_ceiling_weight { .. }) |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -3468,6 +3483,132 @@ mod tests {
 			ProxyType::NonTransfer.filter(&call),
 			"NonTransfer proxy must allow MultiAssetBounties::propose_curator",
 		);
+	}
+
+	#[test]
+	fn asset_proxies_filter_psm_calls() {
+		use frame_support::traits::InstanceFilter;
+
+		let internal_asset = Location::new(0, [PalletInstance(50), GeneralIndex(1)]);
+		let external_asset = Location::new(0, [PalletInstance(50), GeneralIndex(2)]);
+		let root = Box::new(OriginCaller::system(frame_system::RawOrigin::Root));
+
+		let mint = RuntimeCall::Psm(pallet_psm::Call::mint {
+			internal_asset: internal_asset.clone(),
+			external_asset: external_asset.clone(),
+			external_amount: 1,
+			max_fee: Permill::zero(),
+		});
+		let redeem = RuntimeCall::Psm(pallet_psm::Call::redeem {
+			internal_asset: internal_asset.clone(),
+			external_asset: external_asset.clone(),
+			internal_amount: 1,
+			max_fee: Permill::zero(),
+		});
+		let create = RuntimeCall::Psm(pallet_psm::Call::create_psm {
+			internal_asset: internal_asset.clone(),
+			full_admin: root.clone(),
+			emergency_admin: root.clone(),
+			fee_destination: AccountId::from([0u8; 32]),
+			max_debt: 0,
+			min_swap_amount: 0,
+		});
+		let remove = RuntimeCall::Psm(pallet_psm::Call::remove_psm {
+			internal_asset: internal_asset.clone(),
+		});
+		let set_full_admin = RuntimeCall::Psm(pallet_psm::Call::set_full_admin {
+			internal_asset: internal_asset.clone(),
+			new_admin: root.clone(),
+		});
+		let set_emergency_admin = RuntimeCall::Psm(pallet_psm::Call::set_emergency_admin {
+			internal_asset: internal_asset.clone(),
+			new_admin: root,
+		});
+		let set_minting_fee = RuntimeCall::Psm(pallet_psm::Call::set_minting_fee {
+			internal_asset: internal_asset.clone(),
+			external_asset: external_asset.clone(),
+			fee: Permill::zero(),
+		});
+		let set_redemption_fee = RuntimeCall::Psm(pallet_psm::Call::set_redemption_fee {
+			internal_asset: internal_asset.clone(),
+			external_asset: external_asset.clone(),
+			fee: Permill::zero(),
+		});
+		let set_max_debt = RuntimeCall::Psm(pallet_psm::Call::set_max_debt {
+			internal_asset: internal_asset.clone(),
+			value: 0,
+		});
+		let set_asset_status = RuntimeCall::Psm(pallet_psm::Call::set_asset_status {
+			internal_asset: internal_asset.clone(),
+			external_asset: external_asset.clone(),
+			status: pallet_psm::CircuitBreakerLevel::AllDisabled,
+		});
+		let set_asset_ceiling_weight =
+			RuntimeCall::Psm(pallet_psm::Call::set_asset_ceiling_weight {
+				internal_asset: internal_asset.clone(),
+				external_asset: external_asset.clone(),
+				weight: Permill::zero(),
+			});
+		let add_external_asset = RuntimeCall::Psm(pallet_psm::Call::add_external_asset {
+			internal_asset: internal_asset.clone(),
+			external_asset: external_asset.clone(),
+		});
+		let remove_external_asset = RuntimeCall::Psm(pallet_psm::Call::remove_external_asset {
+			internal_asset,
+			external_asset,
+		});
+
+		let swaps = [&mint, &redeem];
+		let owner = [
+			&create,
+			&remove,
+			&set_full_admin,
+			&set_emergency_admin,
+			&add_external_asset,
+			&remove_external_asset,
+		];
+		let manager = [
+			&set_minting_fee,
+			&set_redemption_fee,
+			&set_max_debt,
+			&set_asset_status,
+			&set_asset_ceiling_weight,
+		];
+
+		for call in swaps.iter().chain(&owner).chain(&manager) {
+			assert!(ProxyType::Assets.filter(call), "Assets proxy must allow every PSM call");
+			assert!(
+				!ProxyType::NonTransfer.filter(call),
+				"NonTransfer proxy must reject PSM calls"
+			);
+		}
+		for call in swaps {
+			assert!(!ProxyType::AssetOwner.filter(call), "AssetOwner proxy must reject PSM swaps");
+			assert!(
+				!ProxyType::AssetManager.filter(call),
+				"AssetManager proxy must reject PSM swaps"
+			);
+		}
+		for call in owner {
+			assert!(
+				ProxyType::AssetOwner.filter(call),
+				"AssetOwner proxy must allow PSM ownership calls"
+			);
+			assert!(
+				!ProxyType::AssetManager.filter(call),
+				"AssetManager proxy must reject PSM ownership calls"
+			);
+		}
+		for call in manager {
+			assert!(
+				ProxyType::AssetManager.filter(call),
+				"AssetManager proxy must allow PSM management calls"
+			);
+			assert!(
+				!ProxyType::AssetOwner.filter(call),
+				"AssetOwner proxy must reject PSM management calls"
+			);
+		}
 	}
 
 	#[test]
