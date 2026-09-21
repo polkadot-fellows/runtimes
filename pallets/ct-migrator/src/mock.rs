@@ -156,9 +156,7 @@ frame_support::parameter_types! {
 /// deposits in the right state is its own business, and its own tests.
 pub struct RecordingRegistrar;
 
-impl registrar_primitives::ReceiveMigratedParas for RecordingRegistrar {
-	type AccountId = sp_runtime::AccountId32;
-
+impl registrar_primitives::ReceiveMigratedParas<sp_runtime::AccountId32> for RecordingRegistrar {
 	fn receive_para(
 		para: registrar_primitives::MigratedPara<sp_runtime::AccountId32>,
 	) -> sp_runtime::DispatchResult {

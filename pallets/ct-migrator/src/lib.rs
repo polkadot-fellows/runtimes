@@ -182,7 +182,7 @@ pub mod pallet {
 		///
 		/// A seam rather than direct storage writes: which deposit a registration holds in which
 		/// state is the receiving pallet's invariant, and rebuilding it out here is how it drifts.
-		type RegistrarReceiver: ReceiveMigratedParas<AccountId = Self::AccountId>;
+		type RegistrarReceiver: ReceiveMigratedParas<Self::AccountId>;
 
 		/// Where migrated HRMP channels are handed over. Normally `pallet-hrmp-para`.
 		type HrmpReceiver: ReceiveMigratedChannels;
