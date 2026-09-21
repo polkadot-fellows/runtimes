@@ -1,4 +1,4 @@
-// Copyright (C) Parity Technologies (UK) Ltd.
+// Copyright (C) Polkadot Fellows.
 // This file is part of Polkadot.
 
 // Polkadot is free software: you can redistribute it and/or modify
@@ -12,14 +12,21 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
+// along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 //! Wire types of the AHM v2 migration: what `pallet-rc2-migrator` sends and the receiving
 //! chains' migrator pallets decode.
 //!
 //! They live in their own crate so that a receiving runtime does not have to depend on the
-//! relay-chain migrator pallet to speak the format. A runtime declares what it can represent
+//! Relay Chain migrator pallet to speak the format. A runtime declares what it can represent
 //! with `From` / `TryFrom` impls on these types.
+//!
+//! # Differences from AHM v1
+//!
+//! In v1 these types lived in `pallet_rc_migrator` (`types.rs`) and `pallet_ah_migrator` depended
+//! on that crate, which was ok as AH had all the same pallets that were migrating from RC.
+//! The Coretime chain must not depend on `runtime-parachains`, so for AHMv2, we extract a separate
+//! types crate.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -31,7 +38,7 @@ use sp_runtime::{traits::AccountIdConversion, AccountId32};
 /// Sovereign account of `para_id` as seen from a sibling parachain (`sibl` + para id).
 ///
 /// Same derivation as `SiblingParachainConvertsVia` in the receiving runtime's XCM config. The
-/// relay chain sends deposits to this account and the receiving chain looks them up on it, so
+/// Relay Chain sends deposits to this account and the receiving chain looks them up on it, so
 /// both sides must derive it identically.
 pub fn sibling_account<AccountId>(para_id: u32) -> AccountId
 where
@@ -42,9 +49,9 @@ where
 
 /// Account under which `who`'s balance and records continue on the destination chain.
 ///
-/// A para's sovereign account is `para` + id on the relay chain and `sibl` + id on another
+/// A para's sovereign account is `para` + id on the Relay Chain and `sibl` + id on another
 /// parachain, so those are rewritten. Every other account keeps its address. Every account that
-/// leaves the relay chain goes through here, so that a balance and the records that refer to it
+/// leaves the Relay Chain goes through here, so that a balance and the records that refer to it
 /// land on the same account.
 pub fn translate_destination(who: &AccountId32) -> AccountId32 {
 	match ParaId::try_from_account(who) {
@@ -53,9 +60,9 @@ pub fn translate_destination(who: &AccountId32) -> AccountId32 {
 	}
 }
 
-/// Relay-chain reserve, classified for the receiving chain.
+/// Relay Chain reserve, classified for the receiving chain.
 ///
-/// The migrated pallets only use unnamed reserves on the relay chain. The sender splits each
+/// The migrated pallets only use unnamed reserves on the Relay Chain. The sender splits each
 /// account's reserve into these variants, and the receiving runtime maps each one to its own
 /// `RuntimeHoldReason` with a `From<PortableHoldReason>` impl.
 #[derive(
@@ -78,13 +85,13 @@ pub enum PortableHoldReason {
 	/// rates when they arrive.
 	#[codec(index = 1)]
 	ProxyDeposit,
-	/// Reserve that no deposit record on the relay chain accounts for. Parked on the destination
+	/// Reserve that no deposit record on the Relay Chain accounts for. Parked on the destination
 	/// for investigation.
 	#[codec(index = 2)]
 	UnattributedReserve,
 }
 
-/// Relay-chain proxy permission.
+/// Relay Chain proxy permission.
 ///
 /// Only the permissions the destination represents; others are not sent.
 #[derive(

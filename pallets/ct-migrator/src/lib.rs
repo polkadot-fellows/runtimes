@@ -87,24 +87,24 @@ pub mod pallet {
 		/// The overarching hold reason type.
 		///
 		/// The `From<PortableHoldReason>` bound is where the runtime declares what each migrated
-		/// relay-chain hold becomes locally.
+		/// Relay Chain hold becomes locally.
 		type RuntimeHoldReason: From<HoldReason> + From<PortableHoldReason>;
 	}
 
 	#[pallet::composite_enum]
 	pub enum HoldReason {
-		/// Registrar or HRMP deposit that was reserved on the relay chain.
+		/// Registrar or HRMP deposit that was reserved on the Relay Chain.
 		///
 		/// Held under this reason until the owning pallet receives its state and takes its own
 		/// deposit out of it.
 		#[codec(index = 0)]
 		RcMigratedReserve,
-		/// A relay-chain proxy deposit whose definitions travel here. Released when they arrive:
+		/// A Relay Chain proxy deposit whose definitions travel here. Released when they arrive:
 		/// the recreated entry is re-reserved at this chain's rates and the rest becomes free.
 		#[codec(index = 1)]
 		ProxyDeposit,
-		/// Relay-chain reserve that no pallet's deposit records accounted for. Parked here for
-		/// investigation. Nothing was allowed to stay behind on the relay chain.
+		/// Relay Chain reserve that no pallet's deposit records accounted for. Parked here for
+		/// investigation. Nothing was allowed to stay behind on the Relay Chain.
 		#[codec(index = 2)]
 		UnattributedReserve,
 	}
@@ -121,6 +121,7 @@ pub mod pallet {
 	}
 }
 
+// TODO(ahm-v2): the helpers below have no caller and no test until the accounts stage lands.
 impl<T: Config> Pallet<T> {
 	/// Run `integrate` over every item in its own storage transaction. A failing item is rolled
 	/// back and handed to `park`; the other items are unaffected. Returns `(count_good,

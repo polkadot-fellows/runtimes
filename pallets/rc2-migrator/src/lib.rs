@@ -30,7 +30,7 @@ use sp_runtime::AccountId32;
 
 pub type MigrationStageOf<T> = MigrationStage<BlockNumberFor<T>>;
 
-/// Total balance kept on the relay chain and total migrated, by destination.
+/// Total balance kept on the Relay Chain and total migrated, by destination.
 #[derive(
 	Encode,
 	Decode,
@@ -45,7 +45,7 @@ pub type MigrationStageOf<T> = MigrationStage<BlockNumberFor<T>>;
 	MaxEncodedLen,
 )]
 pub struct MigratedBalances {
-	/// Balance that remains on the relay chain.
+	/// Balance that remains on the Relay Chain.
 	pub kept: u128,
 	/// Deposits burned here and re-established as holds on the Coretime chain.
 	pub ct_reserved: u128,
@@ -122,7 +122,7 @@ pub mod pallet {
 	#[pallet::unbounded]
 	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageOf<T>, ValueQuery>;
 
-	/// Balance kept on the relay chain versus migrated away. Set up by the accounts stage.
+	/// Balance kept on the Relay Chain versus migrated away. Set up by the accounts stage.
 	#[pallet::storage]
 	pub type RcMigratedBalance<T: Config> = StorageValue<_, MigratedBalances, ValueQuery>;
 
