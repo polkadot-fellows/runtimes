@@ -47,12 +47,13 @@ extern crate alloc;
 #[cfg(test)]
 mod tests;
 
-use crate::{Config, Event, ExpectedReserves, Pallet, RcMigratedBalance};
+use crate::{Config, Event, ExpectedReserves, MigratedBalances, Pallet, RcMigratedBalance};
 use alloc::vec::Vec;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::marker::PhantomData;
 use frame_support::{
 	defensive, defensive_assert,
+	storage::with_storage_layer,
 	traits::{
 		fungible::{Inspect, Mutate},
 		tokens::{Fortitude, Precision, Preservation},
@@ -60,14 +61,12 @@ use frame_support::{
 	},
 	BoundedVec,
 };
-use migrator_types::{
-	with_rollback, PortableAccount, PortableHold, PortableHoldReason, PortableProxyType,
-};
+use migrator_types::{PortableAccount, PortableHold, PortableHoldReason, PortableProxyType};
 use polkadot_runtime_common::paras_registrar;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, Zero},
-	AccountId32,
+	AccountId32, DispatchError,
 };
 
 const LOG_TARGET: &str = "runtime::rc2-migrator";
@@ -118,41 +117,6 @@ pub struct ExpectedReserve {
 	pub refund: u128,
 }
 
-/// Where the relay chain's issuance went. Every field is in relay-chain plancks and the sum is
-/// the total issuance the accounts stage started from.
-#[derive(
-	Encode,
-	Decode,
-	DecodeWithMemTracking,
-	Clone,
-	Copy,
-	Default,
-	PartialEq,
-	Eq,
-	Debug,
-	TypeInfo,
-	MaxEncodedLen,
-)]
-pub struct MigratedBalances {
-	/// Balance that remains on the relay chain.
-	pub kept: u128,
-	/// Deposits burned here and re-established as holds on the Coretime chain.
-	pub ct_reserved: u128,
-	/// Free working buffer burned here and minted liquid on the Coretime chain.
-	pub ct_free: u128,
-	/// Free balance burned here and teleported to Asset Hub.
-	pub ah_free: u128,
-	/// Phantom issuance burned by the `TiCorrection` stage (issuance no account held).
-	pub ti_corrected: u128,
-}
-
-impl MigratedBalances {
-	/// Everything that went to the Coretime chain; what `reconcile_balances` reconciles against.
-	pub fn migrated_ct(&self) -> u128 {
-		self.ct_reserved.saturating_add(self.ct_free)
-	}
-}
-
 /// Why an account could not be withdrawn. The caller rolls the account back and skips it.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
@@ -160,6 +124,15 @@ pub enum Error {
 	FailedToWithdrawAccount,
 	/// The migrated/kept balance bookkeeping would overflow.
 	BalanceAccounting,
+}
+
+impl From<Error> for DispatchError {
+	fn from(e: Error) -> Self {
+		DispatchError::Other(match e {
+			Error::FailedToWithdrawAccount => "FailedToWithdrawAccount",
+			Error::BalanceAccounting => "BalanceAccounting",
+		})
+	}
 }
 
 /// Where the pieces of one withdrawn account go.
@@ -295,7 +268,9 @@ impl<T: Config> AccountsMigrator<T> {
 			let Some((who, info)) = iter.next() else { break None };
 			processed += 1;
 
-			match with_rollback(|| Self::withdraw_account(&who, info, manager)) {
+			match with_storage_layer(|| {
+				Self::withdraw_account(&who, info, manager).map_err(DispatchError::from)
+			}) {
 				Ok(Some(Withdrawal { ct, ah })) => {
 					if let Some(account) = ct {
 						ct_hold_sum = ct_hold_sum

@@ -37,11 +37,11 @@ extern crate alloc;
 use crate::Config;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-use frame_support::BoundedVec;
+use frame_support::{storage::with_storage_layer, BoundedVec};
 use migrator_types::{
-	translate_destination, with_rollback, PortableProxy, PortableProxyDelegate, PortableProxyType,
+	translate_destination, PortableProxy, PortableProxyDelegate, PortableProxyType,
 };
-use sp_runtime::{traits::UniqueSaturatedInto, AccountId32};
+use sp_runtime::{traits::UniqueSaturatedInto, AccountId32, DispatchError};
 
 const LOG_TARGET: &str = "runtime::rc2-migrator";
 
@@ -62,6 +62,14 @@ type ProxyDefinitionOf<T> = pallet_proxy::ProxyDefinition<
 pub enum Error {
 	/// More definitions travel than the wire format holds.
 	TooManyDelegates,
+}
+
+impl From<Error> for DispatchError {
+	fn from(e: Error) -> Self {
+		DispatchError::Other(match e {
+			Error::TooManyDelegates => "TooManyDelegates",
+		})
+	}
 }
 
 /// Everything one block of the stage sends, ready to be shipped.
@@ -124,7 +132,9 @@ impl<T: Config> ProxyMigrator<T> {
 			let Some((who, (defs, deposit))) = iter.next() else { break None };
 			processed += 1;
 
-			match with_rollback(|| Self::migrate_single(&who, defs.into_inner(), deposit)) {
+			match with_storage_layer(|| {
+				Self::migrate_single(&who, defs.into_inner(), deposit).map_err(DispatchError::from)
+			}) {
 				Ok(Some(proxy)) => out.proxies.push(proxy),
 				Ok(None) => (),
 				Err(e) => {

@@ -1956,9 +1956,9 @@ parameter_types! {
 	/// designates it.
 	pub SweepBeneficiary: AccountId = TreasuryPalletId::get().into_account_truncating();
 	/// Audited issuance held by no account ("phantom issuance"), burned at the end of the
-	/// migration. Measured at RC block #32,378,714 (`balance_census` prints the exact value);
+	/// migration. Measured at RC block #33,103,807 (`balance_census` prints the exact value);
 	/// re-measure and update ahead of the real run.
-	pub const TiCorrection: u128 = 216_543_537_220_240;
+	pub const TiCorrection: u128 = 216_577_461_180_573;
 	/// Working buffer of free balance that follows a migrated deposit to the Coretime chain.
 	pub const CtFreeBuffer: Balance = UNITS;
 	/// The accounts that may drive the migration collectively. Governance seeds the real set

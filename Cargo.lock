@@ -8798,7 +8798,6 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "scale-info",
- "sp-io 48.0.0",
  "sp-runtime 48.0.0",
 ]
 

@@ -49,12 +49,13 @@ mod tests;
 pub use multisig::{ManagerMultisig, ManagerMultisigVote};
 pub use pallet::*;
 
-use accounts::{ExpectedReserve, MigratedBalances, MAX_ACCOUNTS_PER_BLOCK};
+use accounts::{ExpectedReserve, MAX_ACCOUNTS_PER_BLOCK};
 use alloc::{boxed::Box, vec, vec::Vec};
 use frame_support::{
 	defensive,
 	dispatch::GetDispatchInfo,
 	pallet_prelude::*,
+	storage::with_storage_layer,
 	traits::{
 		fungible::{Inspect, Mutate},
 		tokens::{Fortitude, Precision, Preservation},
@@ -64,8 +65,8 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use migrator_types::{
-	with_rollback, PortableAccount, PortableHrmpChannel, PortableHrmpRequest, PortableParaInfo,
-	PortableProxy, PortableProxyType, QueuePriority,
+	PortableAccount, PortableHrmpChannel, PortableHrmpRequest, PortableParaInfo, PortableProxy,
+	PortableProxyType, QueuePriority,
 };
 use pallet_message_queue::ForceSetHead;
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
@@ -87,6 +88,41 @@ const LOG_TARGET: &str = "runtime::rc2-migrator";
 
 pub type MigrationStageOf<T> =
 	MigrationStage<<T as frame_system::Config>::AccountId, BlockNumberFor<T>, MomentOf<T>>;
+
+/// Total balance kept on the Relay Chain and total migrated, by destination. Every field is in
+/// Relay Chain plancks and the sum is the total issuance the accounts stage started from.
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Clone,
+	Copy,
+	Default,
+	PartialEq,
+	Eq,
+	Debug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct MigratedBalances {
+	/// Balance that remains on the Relay Chain.
+	pub kept: u128,
+	/// Deposits burned here and re-established as holds on the Coretime chain.
+	pub ct_reserved: u128,
+	/// Free working buffer burned here and minted liquid on the Coretime chain.
+	pub ct_free: u128,
+	/// Free balance burned here and teleported to Asset Hub.
+	pub ah_free: u128,
+	/// Phantom issuance burned by the `TiCorrection` stage (issuance no account held).
+	pub ti_corrected: u128,
+}
+
+impl MigratedBalances {
+	/// Everything that went to the Coretime chain; what `reconcile_balances` reconciles against.
+	pub fn migrated_ct(&self) -> u128 {
+		self.ct_reserved.saturating_add(self.ct_free)
+	}
+}
 
 /// Wall-clock type the schedule is expressed in.
 pub type MomentOf<T> = <<T as Config>::TimeProvider as Time>::Moment;
@@ -489,8 +525,7 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Paused<T: Config> = StorageValue<_, bool, ValueQuery>;
 
-	/// Balance kept on the relay chain versus migrated away. Seeded and maintained by the
-	/// accounts stage; the conservation ledger every later stage keeps exact.
+	/// Balance kept on the Relay Chain versus migrated away. Set up by the accounts stage.
 	#[pallet::storage]
 	pub type RcMigratedBalance<T: Config> = StorageValue<_, MigratedBalances, ValueQuery>;
 
@@ -1379,7 +1414,7 @@ pub mod pallet {
 			done: MigrationStageOf<T>,
 			ongoing: impl FnOnce(K) -> MigrationStageOf<T>,
 		) {
-			match with_rollback(migrate) {
+			match with_storage_layer(|| migrate().map_err(DispatchError::from)) {
 				Ok(None) => Self::transition(done),
 				Ok(Some(last_key)) => Self::transition(ongoing(last_key)),
 				Err(e) => {
@@ -1395,7 +1430,7 @@ pub mod pallet {
 			work: impl FnOnce() -> Result<(), Error<T>>,
 			next: MigrationStageOf<T>,
 		) {
-			match with_rollback(work) {
+			match with_storage_layer(|| work().map_err(DispatchError::from)) {
 				Ok(()) => Self::transition(next),
 				Err(e) => {
 					defensive!("Stage failed, retrying: {:?}", e);

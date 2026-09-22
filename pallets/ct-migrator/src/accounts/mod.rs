@@ -34,18 +34,14 @@ use alloc::vec::Vec;
 use core::marker::PhantomData;
 use frame_support::{
 	defensive_assert,
-	traits::{
-		fungible::{Inspect, InspectHold, Mutate, Unbalanced, UnbalancedHold},
-		tokens::{Fortitude, Precision, Preservation},
-	},
+	traits::fungible::{Inspect, InspectHold, Mutate},
 };
-use migrator_types::{with_rollback, PortableAccount};
+use migrator_types::PortableAccount;
 use sp_runtime::{traits::Zero, DispatchError, Saturating};
 
 const LOG_TARGET: &str = "runtime::ct-migrator";
 
-pub type BalanceOf<T> =
-	<<T as Config>::Currency as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+pub use crate::BalanceOf;
 pub type PortableAccountOf<T> =
 	PortableAccount<<T as frame_system::Config>::AccountId, BalanceOf<T>>;
 
@@ -54,6 +50,14 @@ pub type PortableAccountOf<T> =
 pub enum Error {
 	/// Minting the balance or placing one of its holds failed.
 	FailedToProcessAccount,
+}
+
+impl From<Error> for DispatchError {
+	fn from(e: Error) -> Self {
+		DispatchError::Other(match e {
+			Error::FailedToProcessAccount => "FailedToProcessAccount",
+		})
+	}
 }
 
 pub struct AccountsReceiver<T>(PhantomData<T>);
@@ -66,7 +70,7 @@ impl<T: Config> AccountsReceiver<T> {
 	/// `CtMintedTotal`.
 	pub fn receive(accounts: Vec<PortableAccountOf<T>>) {
 		let mut minted: BalanceOf<T> = Zero::zero();
-		let (count_good, count_bad) = Self::receive_batch(
+		let (count_good, count_bad) = Pallet::<T>::receive_batch(
 			accounts,
 			Self::receive_account,
 			|amount| minted = minted.saturating_add(amount),
@@ -85,33 +89,8 @@ impl<T: Config> AccountsReceiver<T> {
 		Pallet::<T>::deposit_event(Event::AccountsReceived { count_good, count_bad });
 	}
 
-	/// Run `integrate` over every item in its own storage transaction, counting successes and
-	/// handing each failure to `park`. Shared by every receiving stage so all of them isolate
-	/// and report failures identically.
-	pub(crate) fn receive_batch<I, R, E>(
-		items: Vec<I>,
-		integrate: impl Fn(&I) -> Result<R, E>,
-		mut on_good: impl FnMut(R),
-		park: impl Fn(I, E),
-	) -> (u32, u32) {
-		let (mut count_good, mut count_bad) = (0, 0);
-		for item in items {
-			match with_rollback(|| integrate(&item)) {
-				Ok(r) => {
-					count_good += 1;
-					on_good(r);
-				},
-				Err(e) => {
-					count_bad += 1;
-					park(item, e);
-				},
-			}
-		}
-		(count_good, count_bad)
-	}
-
 	/// Mint one account and place its holds. Returns the amount minted.
-	fn receive_account(account: &PortableAccountOf<T>) -> Result<BalanceOf<T>, Error> {
+	fn receive_account(account: &PortableAccountOf<T>) -> Result<BalanceOf<T>, DispatchError> {
 		let who = &account.who;
 		let held: BalanceOf<T> = account
 			.holds
@@ -133,53 +112,11 @@ impl<T: Config> AccountsReceiver<T> {
 		defensive_assert!(minted == total, "minted what the relay chain burned");
 
 		for hold in &account.holds {
-			Self::place_hold(&hold.reason.into(), who, hold.amount)
+			Pallet::<T>::place_hold(&hold.reason.into(), who, hold.amount)
 				.map_err(|_| Error::FailedToProcessAccount)?;
 		}
 
 		Ok(minted)
-	}
-
-	/// Place `amount` of `who`'s free balance under `reason` without the account ever sitting
-	/// at zero reserve mid-operation.
-	///
-	/// `MutateHold::hold` decreases the free balance before it books the hold; if that leaves a
-	/// sub-ED free remainder while nothing is reserved yet, pallet-balances dusts the remainder.
-	/// Deposit holders whose liquid dust deliberately travelled here alongside the deposit are in
-	/// exactly that shape, so the two steps run in the reverse (safe) order. The low-level
-	/// primitives keep total issuance untouched, like `hold` itself.
-	pub(crate) fn place_hold(
-		reason: &T::RuntimeHoldReason,
-		who: &T::AccountId,
-		amount: BalanceOf<T>,
-	) -> Result<(), DispatchError> {
-		<T as Config>::Currency::increase_balance_on_hold(reason, who, amount, Precision::Exact)?;
-		<T as Config>::Currency::decrease_balance(
-			who,
-			amount,
-			Precision::Exact,
-			Preservation::Expendable,
-			Fortitude::Force,
-		)?;
-		Ok(())
-	}
-
-	/// The inverse of [`Self::place_hold`]: move `amount` from a hold back to free balance. For
-	/// the stages that re-attribute a migrated reserve to the pallet owning the deposit.
-	///
-	/// Same hazard as there, same fix in reverse. `release` decreases the hold first, and if
-	/// that takes it to zero while the free part is still sub-ED, pallet-balances dusts the
-	/// remainder. Crediting the free part *first* means the hold never passes through zero while
-	/// free is below ED. The two primitives are mint-and-burn of the same amount, so total
-	/// issuance is untouched, just as `release` would be.
-	pub fn release_hold(
-		reason: &T::RuntimeHoldReason,
-		who: &T::AccountId,
-		amount: BalanceOf<T>,
-	) -> Result<(), DispatchError> {
-		<T as Config>::Currency::increase_balance(who, amount, Precision::Exact)?;
-		<T as Config>::Currency::decrease_balance_on_hold(reason, who, amount, Precision::Exact)?;
-		Ok(())
 	}
 
 	/// Release `min(wanted, actually-held)` of `who`'s migrated `RcMigratedReserve` hold to free
@@ -196,7 +133,7 @@ impl<T: Config> AccountsReceiver<T> {
 		let held = <T as Config>::Currency::balance_on_hold(&rc_reason, who);
 		let release = wanted.min(held);
 		if !release.is_zero() {
-			Self::release_hold(&rc_reason, who, release)?;
+			Pallet::<T>::release_hold(&rc_reason, who, release)?;
 		}
 		Ok((release, wanted.saturating_sub(held)))
 	}

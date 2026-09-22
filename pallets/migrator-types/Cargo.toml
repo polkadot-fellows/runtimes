@@ -14,9 +14,6 @@ polkadot-parachain-primitives = { workspace = true }
 scale-info = { workspace = true, features = ["derive"] }
 sp-runtime = { workspace = true }
 
-[dev-dependencies]
-sp-io = { workspace = true, features = ["std"] }
-
 [features]
 default = ["std"]
 std = [

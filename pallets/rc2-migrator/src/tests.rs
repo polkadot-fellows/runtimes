@@ -128,8 +128,10 @@ fn accounts_stage_rolls_back_whole_block_when_a_send_fails() {
 		// WHEN every send fails, the block's work must roll back whole: nothing burned, nothing
 		// sent, cursor unchanged — the same range is retried next block.
 		FailSends::set(true);
-		let result = with_rollback(|| Rc2Migrator::migrate_accounts_block(None));
-		assert!(matches!(result, Err(Error::<Test>::XcmSendFailed)));
+		let result = with_storage_layer(|| {
+			Rc2Migrator::migrate_accounts_block(None).map_err(DispatchError::from)
+		});
+		assert_eq!(result, Err(Error::<Test>::XcmSendFailed.into()));
 		assert_eq!(free(&alice), 700);
 		assert_eq!(reserved(&alice), 300);
 		assert_eq!(total_issuance(), ti_before);
@@ -138,7 +140,9 @@ fn accounts_stage_rolls_back_whole_block_when_a_send_fails() {
 
 		// AND the retry succeeds once sending recovers.
 		FailSends::set(false);
-		let result = with_rollback(|| Rc2Migrator::migrate_accounts_block(None));
+		let result = with_storage_layer(|| {
+			Rc2Migrator::migrate_accounts_block(None).map_err(DispatchError::from)
+		});
 		assert!(matches!(result, Ok(None)));
 		assert!(!frame_system::Account::<Test>::contains_key(&alice));
 		assert_eq!(decode_ct_calls(&take_sent_xcm()).len(), 1);
@@ -159,12 +163,16 @@ fn accounts_stage_stops_at_the_per_block_limit_and_resumes_from_the_cursor() {
 		let ti_before = total_issuance();
 		seed_tracker();
 
-		let cursor = with_rollback(|| Rc2Migrator::migrate_accounts_block(None))
-			.expect("first block succeeds");
+		let cursor = with_storage_layer(|| {
+			Rc2Migrator::migrate_accounts_block(None).map_err(DispatchError::from)
+		})
+		.expect("first block succeeds");
 		let cursor = cursor.expect("more accounts remain than the per-block limit");
 
-		let done = with_rollback(|| Rc2Migrator::migrate_accounts_block(Some(cursor)))
-			.expect("second block succeeds");
+		let done = with_storage_layer(|| {
+			Rc2Migrator::migrate_accounts_block(Some(cursor)).map_err(DispatchError::from)
+		})
+		.expect("second block succeeds");
 		assert_eq!(done, None, "two blocks cover everything");
 
 		// Every account is gone and the ledger is exact: all free balance teleported.
@@ -191,7 +199,10 @@ fn proxy_stage_sends_portable_defs_and_deletes_migrated_delegators() {
 		add_proxy(&bob, &d2, ProxyType::Staking);
 		AccountsMigrator::<Test>::build_expected_reserves();
 		seed_tracker();
-		with_rollback(|| Rc2Migrator::migrate_accounts_block(None)).unwrap();
+		with_storage_layer(|| {
+			Rc2Migrator::migrate_accounts_block(None).map_err(DispatchError::from)
+		})
+		.unwrap();
 		assert!(!frame_system::Account::<Test>::contains_key(&bob));
 		take_sent_xcm();
 
@@ -232,7 +243,10 @@ fn proxy_stage_clamps_entries_of_accounts_that_stay() {
 		frame_system::Pallet::<Test>::inc_consumers(&carol).unwrap();
 		AccountsMigrator::<Test>::build_expected_reserves();
 		seed_tracker();
-		with_rollback(|| Rc2Migrator::migrate_accounts_block(None)).unwrap();
+		with_storage_layer(|| {
+			Rc2Migrator::migrate_accounts_block(None).map_err(DispatchError::from)
+		})
+		.unwrap();
 		assert_eq!(reserved(&carol), 0, "shell-drained");
 
 		proxy::ProxyMigrator::<Test>::migrate_many(None);
@@ -300,7 +314,10 @@ fn announcement_records_of_migrated_announcers_are_dropped() {
 		// Announcement deposits are refunds: they teleport to AH with the announcer's balance.
 		assert_eq!(ExpectedReserves::<Test>::get(&eve).refund, 31);
 		seed_tracker();
-		with_rollback(|| Rc2Migrator::migrate_accounts_block(None)).unwrap();
+		with_storage_layer(|| {
+			Rc2Migrator::migrate_accounts_block(None).map_err(DispatchError::from)
+		})
+		.unwrap();
 		assert!(!frame_system::Account::<Test>::contains_key(&eve));
 
 		assert_eq!(proxy::ProxyMigrator::<Test>::drain_announcements(), 1);

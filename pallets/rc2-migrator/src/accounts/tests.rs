@@ -53,7 +53,8 @@ fn seed_ledger() {
 }
 
 fn migrate_block(last_key: Option<AccountId32>) -> BlockWithdrawals {
-	with_rollback(|| Migrator::migrate_many(last_key, None)).expect("block succeeds")
+	with_storage_layer(|| Migrator::migrate_many(last_key, None).map_err(DispatchError::from))
+		.expect("block succeeds")
 }
 
 // ---------------------------------------------------------------------------
@@ -426,8 +427,10 @@ fn migrate_many_returns_exactly_what_it_burns_and_keeps_the_ledger_exact() {
 		let ti_before = total_issuance();
 		Migrator::init();
 
-		let out =
-			with_rollback(|| Migrator::migrate_many(None, Some(&manager))).expect("block succeeds");
+		let out = with_storage_layer(|| {
+			Migrator::migrate_many(None, Some(&manager)).map_err(DispatchError::from)
+		})
+		.expect("block succeeds");
 
 		// One block covers everything; the payloads carry exactly the burned pieces.
 		assert_eq!(out.last_key, None);

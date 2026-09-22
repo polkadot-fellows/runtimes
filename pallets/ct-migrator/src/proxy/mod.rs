@@ -28,20 +28,15 @@
 
 extern crate alloc;
 
-use crate::{accounts::AccountsReceiver, Config, Event, FailedProxies, HoldReason, Pallet};
+use crate::{Config, Event, FailedProxies, HoldReason, Pallet};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-use frame_support::traits::{
-	fungible::{Inspect, InspectHold},
-	Get, ReservableCurrency,
-};
+use frame_support::traits::{fungible::InspectHold, Get, ReservableCurrency};
 use migrator_types::PortableProxy;
-use sp_runtime::{traits::Zero, SaturatedConversion, Saturating};
+use sp_runtime::{traits::Zero, DispatchError, SaturatedConversion, Saturating};
 
 const LOG_TARGET: &str = "runtime::ct-migrator";
 
-pub type BalanceOf<T> =
-	<<T as Config>::Currency as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 pub type PortableProxyOf<T> = PortableProxy<<T as frame_system::Config>::AccountId>;
 
 /// Why a proxy set could not be integrated. The caller rolls the set back and parks it.
@@ -49,6 +44,14 @@ pub type PortableProxyOf<T> = PortableProxy<<T as frame_system::Config>::Account
 pub enum Error {
 	/// Releasing the migrated deposit or writing the merged definitions failed.
 	FailedToProcessProxy,
+}
+
+impl From<Error> for DispatchError {
+	fn from(e: Error) -> Self {
+		DispatchError::Other(match e {
+			Error::FailedToProcessProxy => "FailedToProcessProxy",
+		})
+	}
 }
 
 pub struct ProxyReceiver<T>(PhantomData<T>);
@@ -59,7 +62,7 @@ impl<T: Config> ProxyReceiver<T> {
 	/// Every set is processed in a transaction of its own: one that fails is rolled back and
 	/// parked in `FailedProxies`, the rest of the batch continues.
 	pub fn receive(proxies: Vec<PortableProxyOf<T>>) {
-		let (count_good, count_bad) = AccountsReceiver::<T>::receive_batch(
+		let (count_good, count_bad) = Pallet::<T>::receive_batch(
 			proxies,
 			Self::do_receive_proxy,
 			|()| (),
@@ -76,14 +79,14 @@ impl<T: Config> ProxyReceiver<T> {
 	}
 
 	/// Receive a single proxy set and write it to storage.
-	fn do_receive_proxy(proxy: &PortableProxyOf<T>) -> Result<(), Error> {
+	fn do_receive_proxy(proxy: &PortableProxyOf<T>) -> Result<(), DispatchError> {
 		// Resize the migrated relay-chain deposit to this chain's rates: release it whole —
 		// making it free balance — and re-reserve below only what the recreated entry needs.
 		// The difference stays free on this chain, in the delegator's hands.
 		let proxy_reason: T::RuntimeHoldReason = HoldReason::ProxyDeposit.into();
 		let migrated = <T as Config>::Currency::balance_on_hold(&proxy_reason, &proxy.delegator);
 		if !migrated.is_zero() {
-			AccountsReceiver::<T>::release_hold(&proxy_reason, &proxy.delegator, migrated)
+			Pallet::<T>::release_hold(&proxy_reason, &proxy.delegator, migrated)
 				.map_err(|_| Error::FailedToProcessProxy)?;
 		}
 		let delay_ratio = T::RcBlockTimeRatio::get().max(1);

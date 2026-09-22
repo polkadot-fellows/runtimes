@@ -53,18 +53,23 @@ use proxy::PortableProxyOf;
 pub use migrator_types::*;
 pub use pallet::*;
 
+pub type BalanceOf<T> =
+	<<T as Config>::Currency as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
 
-use accounts::{AccountsReceiver, BalanceOf, PortableAccountOf};
+use accounts::{AccountsReceiver, PortableAccountOf};
 use alloc::{vec, vec::Vec};
 use cumulus_primitives_core::AggregateMessageOrigin;
 use frame_support::{
 	pallet_prelude::*,
+	storage::with_storage_layer,
 	traits::{
-		fungible::{Inspect, Mutate, MutateHold},
+		fungible::{Inspect, Mutate, MutateHold, Unbalanced, UnbalancedHold},
+		tokens::{Fortitude, Precision, Preservation},
 		EnsureOrigin,
 	},
 	weights::WeightMeter,
@@ -170,7 +175,7 @@ pub mod pallet {
 		/// The overarching hold reason type.
 		///
 		/// The `From<PortableHoldReason>` bound is where the runtime declares what each migrated
-		/// relay-chain hold becomes locally.
+		/// Relay Chain hold becomes locally.
 		type RuntimeHoldReason: From<HoldReason> + From<PortableHoldReason>;
 
 		/// How many of this chain's blocks fit in one relay-chain block's time. Used to convert
@@ -203,19 +208,18 @@ pub mod pallet {
 
 	#[pallet::composite_enum]
 	pub enum HoldReason {
-		/// Balance that was reserved on the relay chain.
+		/// Registrar or HRMP deposit that was reserved on the Relay Chain.
 		///
-		/// Held under this generic reason until the pallet owning the deposit migrates its state
-		/// and re-attributes the hold to its own reason.
+		/// Held under this reason until the owning pallet receives its state and takes its own
+		/// deposit out of it.
 		#[codec(index = 0)]
 		RcMigratedReserve,
-		/// A relay-chain proxy deposit whose definitions travel here. Released when they arrive:
+		/// A Relay Chain proxy deposit whose definitions travel here. Released when they arrive:
 		/// the recreated entry is re-reserved at this chain's rates and the rest becomes free.
 		#[codec(index = 1)]
 		ProxyDeposit,
-		/// Relay-chain reserve that no pallet's deposit records accounted for. Parked here for
-		/// investigation — nothing was allowed to stay behind on the relay chain — and never
-		/// re-attributed by any stage.
+		/// Relay Chain reserve that no pallet's deposit records accounted for. Parked here for
+		/// investigation. Nothing was allowed to stay behind on the Relay Chain.
 		#[codec(index = 2)]
 		UnattributedReserve,
 	}
@@ -687,7 +691,7 @@ pub mod pallet {
 				T::RegistrarReceiver::receive_next_free_para_id(id);
 			}
 
-			let (count_good, count_bad) = AccountsReceiver::<T>::receive_batch(
+			let (count_good, count_bad) = Self::receive_batch(
 				paras,
 				Self::do_receive_para,
 				|()| (),
@@ -714,7 +718,7 @@ pub mod pallet {
 		/// Anything the migrated hold does not cover is a shortfall: parked and reported, since
 		/// the record itself is still correct with a deposit this chain prices lower. A manager
 		/// who cannot pay at all is a failure, and fails the whole batch.
-		fn do_receive_para(para: &PortableParaInfoOf<T>) -> Result<(), Error<T>> {
+		fn do_receive_para(para: &PortableParaInfoOf<T>) -> Result<(), DispatchError> {
 			let (release, shortfall) =
 				AccountsReceiver::<T>::release_rc_reserve(&para.manager, para.deposit)
 					.map_err(|_| Error::<T>::FailedToReattribute)?;
@@ -755,7 +759,7 @@ pub mod pallet {
 		}
 
 		fn do_receive_hrmp(channels: Vec<PortableHrmpChannelOf<T>>) {
-			let (count_good, count_bad) = AccountsReceiver::<T>::receive_batch(
+			let (count_good, count_bad) = Self::receive_batch(
 				channels,
 				Self::do_receive_channel,
 				|()| (),
@@ -834,7 +838,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		fn do_receive_channel(channel: &PortableHrmpChannelOf<T>) -> Result<(), Error<T>> {
+		fn do_receive_channel(channel: &PortableHrmpChannelOf<T>) -> Result<(), DispatchError> {
 			for (para, wanted, side) in [
 				(channel.sender, channel.sender_deposit, true),
 				(channel.recipient, channel.recipient_deposit, false),
@@ -858,5 +862,69 @@ pub mod pallet {
 			.map_err(|_| Error::<T>::FailedToReattribute)?;
 			Ok(())
 		}
+	}
+}
+
+impl<T: Config> Pallet<T> {
+	/// Run `integrate` over every item in its own storage transaction. A failing item is rolled
+	/// back and handed to `park`; the other items are unaffected. Returns `(count_good,
+	/// count_bad)`.
+	pub fn receive_batch<I, R>(
+		items: Vec<I>,
+		integrate: impl Fn(&I) -> Result<R, DispatchError>,
+		mut on_good: impl FnMut(R),
+		park: impl Fn(I, DispatchError),
+	) -> (u32, u32) {
+		let (mut count_good, mut count_bad) = (0, 0);
+		for item in items {
+			match with_storage_layer(|| integrate(&item)) {
+				Ok(r) => {
+					count_good += 1;
+					on_good(r);
+				},
+				Err(e) => {
+					count_bad += 1;
+					park(item, e);
+				},
+			}
+		}
+		(count_good, count_bad)
+	}
+
+	/// Move `amount` of `who`'s free balance under `reason`.
+	///
+	/// Not `MutateHold::hold`: that reduces the free balance first and books the hold second,
+	/// and pallet-balances reaps an account that is below the ED with nothing on hold, burning
+	/// the remainder. Deposit holders arrive here with sub-ED free balance next to their
+	/// deposit, so the hold is booked first. Total issuance is unchanged, as with `hold`.
+	pub fn place_hold(
+		reason: &T::RuntimeHoldReason,
+		who: &T::AccountId,
+		amount: BalanceOf<T>,
+	) -> Result<(), DispatchError> {
+		<T as Config>::Currency::increase_balance_on_hold(reason, who, amount, Precision::Exact)?;
+		<T as Config>::Currency::decrease_balance(
+			who,
+			amount,
+			Precision::Exact,
+			Preservation::Expendable,
+			Fortitude::Force,
+		)?;
+		Ok(())
+	}
+
+	/// Move `amount` from `who`'s hold under `reason` back to free balance.
+	///
+	/// Not `MutateHold::release`, for the mirror reason of [`Self::place_hold`]: it reduces the
+	/// hold first, and the account would be reaped while below the ED with nothing on hold. The
+	/// free balance is credited first. Total issuance is unchanged, as with `release`.
+	pub fn release_hold(
+		reason: &T::RuntimeHoldReason,
+		who: &T::AccountId,
+		amount: BalanceOf<T>,
+	) -> Result<(), DispatchError> {
+		<T as Config>::Currency::increase_balance(who, amount, Precision::Exact)?;
+		<T as Config>::Currency::decrease_balance_on_hold(reason, who, amount, Precision::Exact)?;
+		Ok(())
 	}
 }
