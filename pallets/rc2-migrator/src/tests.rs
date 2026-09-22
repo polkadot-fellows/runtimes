@@ -194,9 +194,9 @@ fn the_manager_drives_the_migration_but_cannot_appoint_one() {
 		assert_ok!(Rc2Migrator::pause_migration(RuntimeOrigin::signed(ALICE)));
 		assert_ok!(Rc2Migrator::force_set_stage(
 			RuntimeOrigin::signed(ALICE),
-			Stage::MigrationDone
+			Stage::WarmUp { end_at: 10 }
 		));
-		assert_stage(Stage::MigrationDone);
+		assert_stage(Stage::WarmUp { end_at: 10 });
 		assert_ok!(Rc2Migrator::resume_migration(RuntimeOrigin::signed(ALICE)));
 
 		// WHEN the manager appoints a manager. THEN it is refused, so the appointment stays with
@@ -499,16 +499,17 @@ fn force_set_stage_needs_a_pause_and_the_admins_powers() {
 			BadOrigin
 		);
 
-		// WHEN root forces stages. THEN it may move anywhere, including backwards
+		// WHEN root forces stages within the run. THEN it may move anywhere, including backwards,
+		// and the pause holds throughout.
 		for target in [
 			Stage::AccountsOngoing { last_key: None },
-			Stage::MigrationDone,
-			Stage::Scheduled { start: 99 * BLOCK_TIME_MS },
-			Stage::Pending,
+			Stage::CoolOff { end_at: 50 },
+			Stage::WarmUp { end_at: 20 },
 			Stage::WaitingForCt,
 		] {
 			assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), target.clone()));
 			assert_stage(target);
+			assert!(Paused::<Test>::get());
 		}
 
 		// WHEN it is resumed. THEN the machine continues from the forced stage and the hatch
@@ -518,6 +519,51 @@ fn force_set_stage_needs_a_pause_and_the_admins_powers() {
 		assert_noop!(
 			Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::MigrationDone),
 			Error::<Test>::NotPaused
+		);
+
+		// WHEN it is paused and forced out of the run, back to pending. THEN the pause goes with
+		// it: nothing to resume, and a fresh schedule runs without any further step.
+		assert_ok!(Rc2Migrator::pause_migration(RuntimeOrigin::root()));
+		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::Pending));
+		assert!(!Paused::<Test>::get());
+		assert_noop!(
+			Rc2Migrator::resume_migration(RuntimeOrigin::root()),
+			Error::<Test>::NotPaused
+		);
+		assert_ok!(Rc2Migrator::schedule_migration(
+			RuntimeOrigin::root(),
+			now_ms() + BLOCK_TIME_MS,
+			WARM_UP,
+			COOL_OFF
+		));
+		run_blocks(2);
+		assert_stage(Stage::WaitingForCt);
+		assert_eq!(sent().len(), 1);
+
+		// WHEN it is paused and forced to a schedule whose start has passed. THEN it starts on
+		// the next block.
+		assert_ok!(Rc2Migrator::pause_migration(RuntimeOrigin::root()));
+		assert_ok!(Rc2Migrator::force_set_stage(
+			RuntimeOrigin::root(),
+			Stage::Scheduled { start: now_ms() }
+		));
+		assert!(!Paused::<Test>::get());
+		run_blocks(1);
+		assert_stage(Stage::WaitingForCt);
+		assert_eq!(sent().len(), 2);
+
+		// WHEN it is paused and forced to done. THEN the pause is gone and neither pause nor
+		// resume has anything to act on.
+		assert_ok!(Rc2Migrator::pause_migration(RuntimeOrigin::root()));
+		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::MigrationDone));
+		assert!(!Paused::<Test>::get());
+		assert_noop!(
+			Rc2Migrator::resume_migration(RuntimeOrigin::root()),
+			Error::<Test>::NotPaused
+		);
+		assert_noop!(
+			Rc2Migrator::pause_migration(RuntimeOrigin::root()),
+			Error::<Test>::NotRunning
 		);
 	});
 }

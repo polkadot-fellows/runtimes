@@ -82,7 +82,8 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// to receive the migration data.
 	WaitingForCt,
 	WarmUp {
-		/// The block number at which the warm-up period will end.
+		/// The block number at which the warm-up period will end. It is absolute and a pause
+		/// does not move it.
 		///
 		/// After the warm-up period ends, the Relay Chain will start to send the migration data
 		/// to the Coretime chain.
@@ -133,7 +134,8 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// Burn the audited issuance that no account holds.
 	TiCorrection,
 	CoolOff {
-		/// The block number at which the post migration cool-off period will end.
+		/// The block number at which the post migration cool-off period will end. It is absolute
+		/// and a pause does not move it.
 		end_at: BlockNumber,
 	},
 	/// The migration is done.
@@ -247,6 +249,8 @@ pub mod pallet {
 	/// stage it then holds. Inbound signals such as `ct_ready` are still recorded; only
 	/// `on_initialize` stands still.
 	///
+	/// Only set while the stage is ongoing. Forcing the stage out of the run clears it.
+	///
 	/// Different from v1's `MigrationStage::MigrationPaused` variant: an independent flag, so the
 	/// stage paused at is kept.
 	#[pallet::storage]
@@ -349,12 +353,19 @@ pub mod pallet {
 		/// This call is intended for emergency use only and is guarded by the
 		/// [`Config::AdminOrigin`] or the [`Manager`]. Unlike v1 it is only accepted while
 		/// [`Paused`]: pause, force, then resume.
+		///
+		/// A target outside the run (`Pending`, `Scheduled`, `MigrationDone`) ends the pause with
+		/// it, so no `resume_migration` follows. `Scheduled` with a `start` already in the past
+		/// starts on the next block.
 		#[pallet::call_index(1)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 2))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 			ensure!(Paused::<T>::get(), Error::<T>::NotPaused);
 
+			if !stage.is_ongoing() {
+				Paused::<T>::kill();
+			}
 			Self::transition(stage);
 			Ok(())
 		}
