@@ -15,22 +15,20 @@
 // limitations under the License.
 
 use crate::{
-	coretime::{BrokerPalletId, CoretimeBurnAccount},
+	coretime::{BrokerPalletId, RetireCoretimeBurnAccount},
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
 	*,
 };
-use coretime::CoretimeAllocator;
 use cumulus_pallet_parachain_system::ValidationData;
 use cumulus_primitives_core::PersistedValidationData;
 use frame_support::{
 	assert_err, assert_ok,
 	traits::{
 		fungible::{Inspect, Mutate},
-		Get, OnInitialize,
+		OnInitialize, OnRuntimeUpgrade,
 	},
 };
-use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
-use pallet_broker::{ConfigRecordOf, RCBlockNumberOf, SaleInfo};
+use pallet_broker::{ConfigRecordOf, SaleInfo};
 use parachains_runtimes_test_utils::{ExtBuilder, GovernanceOrigin};
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::{traits::AccountIdConversion, Either};
@@ -64,7 +62,7 @@ fn advance_to(b: BlockNumber) {
 }
 
 #[test]
-fn bulk_revenue_is_burnt() {
+fn bulk_revenue_is_accumulated() {
 	ExtBuilder::<Runtime>::default()
 		.with_collators(vec![AccountId::from(ALICE)])
 		.with_session_keys(vec![(
@@ -91,15 +89,16 @@ fn bulk_revenue_is_burnt() {
 			let sale_start = SaleInfo::<Runtime>::get().unwrap().sale_start;
 			advance_to(sale_start + config.interlude_length);
 
-			// Check and set initial balances.
+			// The accumulation account holds its ED on chain, or inflows below it are burnt.
 			let broker_account = BrokerPalletId::get().into_account_truncating();
-			let coretime_burn_account = CoretimeBurnAccount::get();
+			let accumulation_account = AccumulateForward::accumulation_account();
 			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();
+			assert_ok!(Balances::mint_into(&accumulation_account, ExistentialDeposit::get()));
 			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * UNITS));
 			let alice_balance_before = Balances::balance(&AccountId::from(ALICE));
 			let treasury_balance_before = Balances::balance(&treasury_account);
 			let broker_balance_before = Balances::balance(&broker_account);
-			let burn_balance_before = Balances::balance(&coretime_burn_account);
+			let issuance_before = Balances::total_issuance();
 
 			// Purchase coretime.
 			assert_ok!(Broker::purchase(
@@ -107,32 +106,62 @@ fn bulk_revenue_is_burnt() {
 				100 * UNITS
 			));
 
-			// Alice decreases.
-			assert!(Balances::balance(&AccountId::from(ALICE)) < alice_balance_before);
-			// Treasury balance does not increase.
+			let price = alice_balance_before - Balances::balance(&AccountId::from(ALICE));
+			assert!(price > 0);
+			// The revenue lands in the accumulation account, to be burnt on Asset Hub.
+			assert_eq!(Balances::balance(&accumulation_account), ExistentialDeposit::get() + price);
 			assert_eq!(Balances::balance(&treasury_account), treasury_balance_before);
-			// Broker pallet account does not increase.
 			assert_eq!(Balances::balance(&broker_account), broker_balance_before);
-			// Coretime burn pot gets the funds.
-			assert!(Balances::balance(&coretime_burn_account) > burn_balance_before);
-
-			// They're burnt on Asset Hub when a day has passed on chain. This is asserted in the
-			// emulated test `coretime_revenue_is_burnt_on_asset_hub`.
+			// Nothing is burnt here.
+			assert_eq!(Balances::total_issuance(), issuance_before);
 		});
 }
 
 #[test]
-fn timeslice_period_is_sane() {
-	// Config TimeslicePeriod is set to this constant - assumption in burning logic.
-	let timeslice_period_config: RCBlockNumberOf<CoretimeAllocator> =
-		<Runtime as pallet_broker::Config>::TimeslicePeriod::get();
-	assert_eq!(timeslice_period_config, TIMESLICE_PERIOD);
+fn retire_coretime_burn_account_reaps_when_empty() {
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		// GIVEN the burn account between two sweeps: no balance, only the provider the burn
+		// handler added.
+		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
+		let accumulation_account = AccumulateForward::accumulation_account();
+		System::inc_providers(&burn_account);
+		assert!(System::account_exists(&burn_account));
+		let issuance_before = Balances::total_issuance();
 
-	// Timeslice period constant non-zero - assumption in burning logic.
-	#[cfg(feature = "fast-runtime")]
-	assert_eq!(TIMESLICE_PERIOD, 20);
-	#[cfg(not(feature = "fast-runtime"))]
-	assert_eq!(TIMESLICE_PERIOD, 80);
+		RetireCoretimeBurnAccount::on_runtime_upgrade();
+
+		// THEN it is gone, and nothing moved or was burnt.
+		assert!(!System::account_exists(&burn_account));
+		assert_eq!(Balances::total_balance(&accumulation_account), 0);
+		assert_eq!(Balances::total_issuance(), issuance_before);
+	});
+}
+
+#[test]
+fn retire_coretime_burn_account_sweeps_residual_and_reaps() {
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		// GIVEN the burn account as the old handler left it, holding revenue not yet swept.
+		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
+		let accumulation_account = AccumulateForward::accumulation_account();
+		System::inc_providers(&burn_account);
+		assert_ok!(Balances::mint_into(&burn_account, 5 * UNITS));
+		assert_ok!(Balances::mint_into(&accumulation_account, ExistentialDeposit::get()));
+		let issuance_before = Balances::total_issuance();
+
+		RetireCoretimeBurnAccount::on_runtime_upgrade();
+
+		// THEN the residual moves to the accumulation account, so it is still burnt on Asset Hub,
+		// and the burn account is gone.
+		assert_eq!(Balances::balance(&accumulation_account), ExistentialDeposit::get() + 5 * UNITS);
+		assert!(!System::account_exists(&burn_account));
+		assert_eq!(Balances::total_issuance(), issuance_before);
+
+		// AND a rerun changes nothing.
+		RetireCoretimeBurnAccount::on_runtime_upgrade();
+		assert_eq!(Balances::balance(&accumulation_account), ExistentialDeposit::get() + 5 * UNITS);
+		assert!(!System::account_exists(&burn_account));
+		assert_eq!(Balances::total_issuance(), issuance_before);
+	});
 }
 
 #[test]
@@ -277,4 +306,44 @@ fn governance_authorize_upgrade_works() {
 		Runtime,
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(AssetHubLocation::get())));
+}
+
+/// Dust accumulates for the forward to Asset Hub instead of being burned here, where the burn
+/// would not show in the network total that Asset Hub tracks.
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	use frame_support::traits::tokens::Preservation;
+
+	const BOB: [u8; 32] = [2u8; 32];
+
+	let existential_deposit: Balance =
+		<Runtime as pallet_balances::Config>::ExistentialDeposit::get();
+	let accumulation_account = AccumulateForward::accumulation_account();
+
+	ExtBuilder::<Runtime>::default()
+		// Funded out of band before the upgrade; without the ED, dust is rejected and burned.
+		.with_balances(vec![(accumulation_account.clone(), existential_deposit)])
+		.build()
+		.execute_with(|| {
+			let alice = AccountId::from(ALICE);
+			let bob = AccountId::from(BOB);
+			assert_ok!(Balances::mint_into(&alice, existential_deposit));
+			assert_ok!(Balances::mint_into(&bob, existential_deposit));
+
+			let issuance_before = Balances::total_issuance();
+			let accumulated_before = Balances::balance(&accumulation_account);
+
+			// Reap Alice, leaving dust behind.
+			let dust = existential_deposit / 2;
+			assert_ok!(<Balances as Mutate<_>>::transfer(
+				&alice,
+				&bob,
+				existential_deposit - dust,
+				Preservation::Expendable,
+			));
+
+			assert_eq!(Balances::balance(&alice), 0);
+			assert_eq!(Balances::balance(&accumulation_account), accumulated_before + dust);
+			assert_eq!(Balances::total_issuance(), issuance_before);
+		});
 }

@@ -16,12 +16,18 @@
 pub use paste;
 
 // Substrate
+pub use frame_support;
+pub use frame_system;
+pub use pallet_accumulate_and_forward;
 pub use pallet_balances;
+pub use pallet_collator_selection;
 pub use pallet_message_queue;
 
 // Polkadot
 pub use pallet_xcm;
-pub use xcm::prelude::{AccountId32, VersionedAssetId, VersionedAssets, Weight, WeightLimit};
+pub use xcm::prelude::{
+	AccountId32, Assets, Junction, Location, VersionedAssetId, VersionedAssets, Weight, WeightLimit,
+};
 pub use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV2;
 
 // Cumulus

@@ -18,7 +18,9 @@ sp-tracing = { workspace = true, default-features = true }
 frame-support = { workspace = true, default-features = true }
 frame-system = { workspace = true, default-features = true }
 pallet-assets = { workspace = true, default-features = true }
+pallet-accumulate-and-forward = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
+pallet-collator-selection = { workspace = true, default-features = true }
 pallet-asset-conversion = { workspace = true, default-features = true }
 pallet-treasury = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
@@ -58,9 +60,11 @@ runtime-benchmarks = [
 	"kusama-runtime-constants/runtime-benchmarks",
 	"kusama-runtime/runtime-benchmarks",
 	"kusama-system-emulated-network/runtime-benchmarks",
+	"pallet-accumulate-and-forward/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
