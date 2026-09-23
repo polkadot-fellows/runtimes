@@ -362,12 +362,23 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::FellowshipCollective(_) |
 					RuntimeCall::FellowshipReferenda(_) |
 					RuntimeCall::FellowshipCore(_) |
-					RuntimeCall::FellowshipSalary(_) |
+					RuntimeCall::FellowshipSalary(pallet_salary::Call::init { .. }) |
+					RuntimeCall::FellowshipSalary(pallet_salary::Call::bump { .. }) |
+					RuntimeCall::FellowshipSalary(pallet_salary::Call::induct { .. }) |
+					RuntimeCall::FellowshipSalary(pallet_salary::Call::register { .. }) |
+					RuntimeCall::FellowshipSalary(pallet_salary::Call::payout { .. }) |
+					RuntimeCall::FellowshipSalary(pallet_salary::Call::check_payment { .. }) |
+					// Specifically omitting salary `payout_other`, which pays to any account
 					RuntimeCall::FellowshipTreasury(_) |
 					RuntimeCall::AmbassadorCollective(_) |
 					RuntimeCall::AmbassadorReferenda(_) |
 					RuntimeCall::AmbassadorCore(_) |
-					RuntimeCall::AmbassadorSalary(_) |
+					RuntimeCall::AmbassadorSalary(pallet_salary::Call::init { .. }) |
+					RuntimeCall::AmbassadorSalary(pallet_salary::Call::bump { .. }) |
+					RuntimeCall::AmbassadorSalary(pallet_salary::Call::induct { .. }) |
+					RuntimeCall::AmbassadorSalary(pallet_salary::Call::register { .. }) |
+					RuntimeCall::AmbassadorSalary(pallet_salary::Call::payout { .. }) |
+					RuntimeCall::AmbassadorSalary(pallet_salary::Call::check_payment { .. }) |
 					RuntimeCall::AmbassadorTreasury(_)
 			),
 			ProxyType::CancelProxy => matches!(
@@ -421,6 +432,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
+			// `Fellowship` and `Ambassador` admit salary `payout_other`; `NonTransfer` does not.
+			(ProxyType::NonTransfer, ProxyType::Fellowship | ProxyType::Ambassador) => false,
 			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
@@ -1493,6 +1506,31 @@ fn test_transasction_byte_fee_is_one_twentieth_of_relay() {
 	let relay_tbf = polkadot_runtime_constants::fee::TRANSACTION_BYTE_FEE;
 	let parachain_tbf = TransactionByteFee::get();
 	assert_eq!(relay_tbf / 20, parachain_tbf);
+}
+
+#[test]
+fn non_transfer_proxy_cannot_redirect_salary() {
+	use frame_support::traits::InstanceFilter;
+
+	let beneficiary = AccountId::from([1u8; 32]);
+	let redirects = [
+		RuntimeCall::FellowshipSalary(pallet_salary::Call::payout_other {
+			beneficiary: beneficiary.clone(),
+		}),
+		RuntimeCall::AmbassadorSalary(pallet_salary::Call::payout_other { beneficiary }),
+	];
+	for call in redirects.iter() {
+		assert!(!ProxyType::NonTransfer.filter(call));
+	}
+	assert!(ProxyType::NonTransfer
+		.filter(&RuntimeCall::FellowshipSalary(pallet_salary::Call::payout {})));
+	assert!(ProxyType::NonTransfer
+		.filter(&RuntimeCall::AmbassadorSalary(pallet_salary::Call::payout {})));
+
+	assert!(ProxyType::Fellowship.filter(&redirects[0]));
+	assert!(ProxyType::Ambassador.filter(&redirects[1]));
+	assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Fellowship));
+	assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Ambassador));
 }
 
 #[test]
