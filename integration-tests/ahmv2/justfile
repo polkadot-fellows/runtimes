@@ -3,8 +3,8 @@
 network := env_var_or_default("NETWORK", "polkadot")
 snap_dir := env_var_or_default("SNAP_DIR", justfile_directory() / "snapshots") / network
 
-# Exactly one network's runtimes are compiled, so the default set is always off.
-features := "--no-default-features --features " + network
+# Exactly one network's runtimes are compiled.
+features := "--features " + network
 snap_env := "SNAP_RC=" + snap_dir / "snap_rc.snap" + " SNAP_CT=" + snap_dir / "snap_ct.snap"
 
 # RPC endpoints used to create missing snapshots. override with `RC_URI` / `CT_URI`

@@ -37,12 +37,11 @@ holds `<network>/snap_rc.snap` and `<network>/snap_ct.snap`. The default endpoin
 override them with `RC_URI` / `CT_URI` to scrape from your own nodes.
 
 To run against specific snapshot files, bypass the justfile. The network is a cargo feature,
-`polkadot` (default) or `kusama`:
+`polkadot` or `kusama`, and one must be given:
 
 ```bash
-SNAP_RC=... SNAP_CT=... cargo test -p polkadot-integration-tests-ahmv2
-SNAP_RC=... SNAP_CT=... cargo test -p polkadot-integration-tests-ahmv2 \
-  --no-default-features --features kusama
+SNAP_RC=... SNAP_CT=... cargo test -p polkadot-integration-tests-ahmv2 --features polkadot
+SNAP_RC=... SNAP_CT=... cargo test -p polkadot-integration-tests-ahmv2 --features kusama
 ```
 
 Snapshots are cached in memory per test process and re-hydrated per test, so each test gets fresh

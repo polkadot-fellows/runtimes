@@ -307,8 +307,7 @@ jobs:
       - name: Test AHM v2 against ${{ matrix.network }} snapshots
         if: steps.snap-rc.outputs.cache-matched-key != '' && steps.snap-ct.outputs.cache-matched-key != ''
         run: |
-          cargo test --release --locked -q -p polkadot-integration-tests-ahmv2 \
-            --no-default-features --features "$NETWORK"
+          cargo test --release --locked -q -p polkadot-integration-tests-ahmv2 --features "$NETWORK"
         env:
           RUSTFLAGS: "-C debug-assertions"
           # The test binary runs with its package as the working directory, so these must be

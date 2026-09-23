@@ -39,8 +39,7 @@ kusama-runtime = { workspace = true, optional = true, features = ["ahm-v2"] }
 kusama-runtime-constants = { workspace = true, default-features = true, optional = true }
 
 [features]
-default = ["polkadot"]
-# The network to run the suite against;
+
 polkadot = [
 	"dep:coretime-polkadot-runtime",
 	"dep:polkadot-runtime",

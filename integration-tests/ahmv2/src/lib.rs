@@ -21,5 +21,13 @@
 //! shuttled between the chains manually. There are no nodes and no networking involved.
 #![cfg(test)]
 
+#[cfg(any(feature = "polkadot", feature = "kusama"))]
 pub mod mock;
+#[cfg(any(feature = "polkadot", feature = "kusama"))]
 pub mod tests;
+
+#[cfg(not(any(feature = "polkadot", feature = "kusama")))]
+#[test]
+fn network_feature_missing() {
+	panic!("enable a network: `--features polkadot` or `--features kusama`");
+}

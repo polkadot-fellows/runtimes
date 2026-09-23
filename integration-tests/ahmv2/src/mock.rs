@@ -49,9 +49,6 @@ use xcm::{
 	VersionedXcm,
 };
 
-#[cfg(not(any(feature = "polkadot", feature = "kusama")))]
-compile_error!("enable a network: the `polkadot` or the `kusama` feature");
-
 /// The runtimes under test, chosen by the network feature.
 ///
 /// Everything else in this crate goes through these aliases, so the suite is written once and runs
