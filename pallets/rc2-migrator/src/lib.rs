@@ -579,7 +579,14 @@ pub mod pallet {
 					}
 					T::DbWeight::get().reads_writes(3, 3)
 				},
-				_ => T::DbWeight::get().reads(1),
+				// Waiting on the clock or a block height.
+				MigrationStage::Scheduled { .. } |
+				MigrationStage::WaitingForCt |
+				MigrationStage::WarmUp { .. } |
+				MigrationStage::CoolOff { .. } => T::DbWeight::get().reads(1),
+				// Nothing runs before the schedule or after the end.
+				MigrationStage::Pending | MigrationStage::MigrationDone =>
+					T::DbWeight::get().reads(1),
 			}
 		}
 
