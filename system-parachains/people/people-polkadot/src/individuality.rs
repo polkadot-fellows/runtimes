@@ -855,8 +855,9 @@ pub mod benchmark_utils {
 			let secret = Crypto::new_secret(entropy);
 			let member = Crypto::member_from_secret(&secret);
 
-			// Build a single-member ring with `member`. The resulting `members` value is the on-chain
-			// ring root we seed below so verification at `(PEOPLE_IDENTIFIER, ring=0, rev=0)` succeeds.
+			// Build a single-member ring with `member`. The resulting `members` value is the
+			// on-chain ring root we seed below so verification at `(PEOPLE_IDENTIFIER, ring=0,
+			// rev=0)` succeeds.
 			let mut intermediate = Crypto::start_members(domain);
 			Crypto::push_members(&mut intermediate, core::iter::once(member), |range| {
 				Ok(chunks[range].to_vec())
