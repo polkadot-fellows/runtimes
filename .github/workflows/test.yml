@@ -319,7 +319,7 @@ jobs:
 
       - name: Report a missing snapshot
         if: steps.snap-rc.outputs.cache-matched-key == '' || steps.snap-ct.outputs.cache-matched-key == ''
-        run: echo "::notice::No cached ${{ matrix.network }} snapshot; skipped the AHM v2 snapshot suite"
+        run: echo "::warning::No cached ${{ matrix.network }} snapshot; skipped the AHM v2 snapshot suite"
 
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
