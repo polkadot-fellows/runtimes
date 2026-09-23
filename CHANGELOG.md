@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- People Polkadot: add the Individuality game pallets: `indiv-pallet-game` (index 55), `indiv-pallet-score` (index 56) and `indiv-pallet-airdrop` (index 70), which `indiv-pallet-game` needs as its airdrop backend. Score payouts are denominated in an asset set by Root through the new `external_asset::AssetLocation` dynamic parameter; it is unset by default, so payouts stay disabled until governance picks the asset. A new **transaction extension pipeline version 2** carries the `ScoreAsParticipant` and `GameAsInvited` origin modifiers.
+
 ### Removed
 
 - People Polkadot: remove the single-use `SeedSubscriptionWhitelist` migration that seeded the Asset Hub `MembersNotifier` subscription whitelist entry. It shipped in 2.5.0 and has run on chain. [#1292](https://github.com/polkadot-fellows/runtimes/pull/1292)).

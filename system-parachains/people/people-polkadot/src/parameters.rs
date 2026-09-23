@@ -118,6 +118,17 @@ pub mod dynamic_params {
 		#[codec(index = 1)]
 		pub static InstanceCreationDeposit: Balance = 10 * UNITS;
 	}
+
+	/// The external asset that score payouts are denominated in.
+	#[dynamic_pallet_params]
+	#[codec(index = 5)]
+	pub mod external_asset {
+		/// Unset by default: no asset has id `Here`, so score payouts fail until governance
+		/// points this at a registered asset. Changing it while the score pot holds funds strands
+		/// those funds in the previous asset.
+		#[codec(index = 0)]
+		pub static AssetLocation: Location = Location::here();
+	}
 }
 
 pub type LitePersonStatementLimit =
@@ -216,6 +227,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use dynamic_params::{
 			bulletin_storage::ParametersKey as BulletinStorageKey,
 			coinage::ParametersKey as CoinageKey,
+			external_asset::ParametersKey as ExternalAssetKey,
 			lite_personhood::ParametersKey as LitePersonhoodKey,
 			origin_restriction::ParametersKey as OriginRestrictionKey,
 			statement_storage::ParametersKey as StatementStorageKey,
@@ -251,14 +263,16 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 					origin.clone(),
 				)
 				.map(|_| ()),
-			// Where the chain sends data, and what coinage costs.
+			// Where the chain sends data, what coinage costs, and what score pays out in.
 			RuntimeParametersKey::BulletinStorage(
 				BulletinStorageKey::BulletinChainLocation(_) |
 				BulletinStorageKey::BulletinTransactionStoragePalletIndex(_),
 			) |
 			RuntimeParametersKey::Coinage(
 				CoinageKey::LoadDepositPrice(_) | CoinageKey::InstanceCreationDeposit(_),
-			) => frame_system::ensure_root(origin.clone()),
+			) |
+			RuntimeParametersKey::ExternalAsset(ExternalAssetKey::AssetLocation(_)) =>
+				frame_system::ensure_root(origin.clone()),
 		}
 		.map_err(|_| origin)
 	}
