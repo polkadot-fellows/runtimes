@@ -73,7 +73,7 @@ use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
 	generic, impl_opaque_keys,
-	traits::{BlakeTwo256, Block as BlockT, PipelineAtVers},
+	traits::{BlakeTwo256, Block as BlockT, MultiVersion, PipelineAtVers},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Debug,
 };
@@ -138,7 +138,8 @@ pub type TxExtensionV0 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	),
 >;
 
-/// The TransactionExtension pipeline version. Latest.
+/// The TransactionExtension pipeline version 1, carrying the Individuality origin modifiers.
+/// **Frozen** — it shipped in 2.5.0, so signers already build against it.
 pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
@@ -167,8 +168,43 @@ pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	),
 >;
 
+/// The TransactionExtension pipeline version 2. Latest.
+///
+/// Version 1 plus the Game and Score origin modifiers. New pipelines are added as a new
+/// version rather than by amending a released one, which would invalidate live signers.
+pub type TxExtensionV2 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
+	Runtime,
+	(
+		// Origin modifiers.
+		(
+			(),
+			pallet_verify_signature::VerifySignature<Runtime>,
+			indiv_pallet_people::extension::AsPerson<Runtime>,
+			indiv_pallet_score::ScoreAsParticipant<Runtime>,
+			indiv_pallet_game::GameAsInvited<Runtime>,
+			indiv_pallet_people_lite::extension::PeopleLiteAuth<Runtime>,
+			indiv_pallet_members::extension::AsMember<Runtime>,
+			indiv_pallet_coinage::extension::AsCoinage<Runtime>,
+			indiv_pallet_resources::extension::AsResources<Runtime>,
+			frame_system::AuthorizeCall<Runtime>,
+		),
+		// General checks and operations.
+		indiv_pallet_origin_restriction::RestrictOrigin<Runtime>,
+		frame_system::CheckNonZeroSender<Runtime>,
+		frame_system::CheckSpecVersion<Runtime>,
+		frame_system::CheckTxVersion<Runtime>,
+		frame_system::CheckGenesis<Runtime>,
+		frame_system::CheckEra<Runtime>,
+		frame_system::CheckNonce<Runtime>,
+		frame_system::CheckWeight<Runtime>,
+		pallet_asset_tx_payment::ChargeAssetTxPayment<Runtime>,
+		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+	),
+>;
+
 /// The transaction extension pipelines with versions other than 0.
-pub type TxExtensionOtherVersions = PipelineAtVers<1, TxExtensionV1>;
+pub type TxExtensionOtherVersions =
+	MultiVersion<PipelineAtVers<1, TxExtensionV1>, PipelineAtVers<2, TxExtensionV2>>;
 
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<
@@ -862,8 +898,8 @@ construct_runtime!(
 		// 52: never used.
 		// 53: never used.
 		// 54: never used.
-		// 55: never used.
-		// 56: never used.
+		Game: indiv_pallet_game = 55,
+		Score: indiv_pallet_score = 56,
 		// 57: never used.
 		DummyDim: indiv_pallet_dummy_dim = 59,
 		PeopleLite: indiv_pallet_people_lite = 62,
@@ -872,7 +908,7 @@ construct_runtime!(
 		Members: indiv_pallet_members = 67,
 		Coinage: indiv_pallet_coinage = 68,
 		MembersNotifier: indiv_pallet_members_notifier = 69,
-		// 70: never used.
+		Airdrop: indiv_pallet_airdrop = 70,
 		// 71: never used.
 		Parameters: pallet_parameters = 73,
 		// 74: never used.
@@ -926,9 +962,11 @@ mod benches {
 		[pallet_xcm_benchmarks::fungible, XcmBalances]
 		[pallet_xcm_benchmarks::generic, XcmGeneric]
 		// Individuality
+		[indiv_pallet_airdrop, Airdrop]
 		[indiv_pallet_chunks_manager, ChunksManager]
 		[indiv_pallet_coinage, Coinage]
 		[indiv_pallet_dummy_dim, DummyDim]
+		[indiv_pallet_game, Game]
 		[indiv_pallet_members, Members]
 		[indiv_pallet_members_notifier, MembersNotifier]
 		[indiv_pallet_origin_restriction, OriginRestriction]
@@ -936,6 +974,7 @@ mod benches {
 		[indiv_pallet_people_lite, PeopleLite]
 		[indiv_pallet_relay_randomness, RelayRandomness]
 		[indiv_pallet_resources, Resources]
+		[indiv_pallet_score, Score]
 	);
 
 	impl frame_system_benchmarking::Config for Runtime {

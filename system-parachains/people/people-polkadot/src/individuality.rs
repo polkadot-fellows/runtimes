@@ -44,10 +44,11 @@ use cumulus_primitives_core::ParaId;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstBool, ConstU128, ConstantStoragePrice, ContainsPair, Get,
-		PalletInfoAccess,
+		fungible::{HoldConsideration, ItemOf},
+		ConstBool, ConstU128, ConstUint, ConstantStoragePrice, ContainsPair, Get, PalletInfoAccess,
 	},
 };
+use indiv_pallet_game::PhaseDurationValues;
 use indiv_pallet_origin_restriction::Allowance;
 #[cfg(feature = "runtime-benchmarks")]
 use indiv_support::traits::{Identifier, RingIndex};
@@ -61,15 +62,14 @@ use indiv_support::{
 };
 use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
 use scale_info::TypeInfo;
-#[cfg(feature = "runtime-benchmarks")]
-use sp_runtime::{traits::AccountIdConversion, MultiSignature};
 use sp_runtime::{
-	traits::{ConstI8, ConstU16},
-	DispatchError, DispatchResult,
+	traits::{AccountIdConversion, ConstI8, ConstU16},
+	DispatchError, DispatchResult, MultiSignature,
 };
 use sp_statement_store::StatementAllowance;
 use system_parachains_constants::polkadot::{
-	consensus::elastic_scaling::MINUTES as PARA_MINUTES, INDIVIDUALITY_NETWORK_SUFFIX,
+	consensus::elastic_scaling::{DAYS as PARA_DAYS, MINUTES as PARA_MINUTES},
+	INDIVIDUALITY_NETWORK_SUFFIX,
 };
 // NOTE: deliberately not `xcm::latest::prelude::*` — its `Assets` would shadow the `Assets` pallet
 // this module configures.
@@ -92,6 +92,13 @@ use crate::parameters::dynamic_params;
 /// The full-featured fungibles implementation, combining `pallet-assets` balances with the hold
 /// functionality supplied by `pallet-assets-holder`.
 pub type AssetsWithHolder = CombineAssetsWithHolder<Assets, AssetsHolder>;
+
+/// The asset that score payouts are denominated in, held here as a reserve-backed asset whose id
+/// is its location.
+pub type ExternalAssetLocation = dynamic_params::external_asset::AssetLocation;
+
+/// A fungible implementation using the external asset id from Asset Hub.
+pub type FungibleExternalAsset = ItemOf<AssetsWithHolder, ExternalAssetLocation, AccountId>;
 
 /// Wall-clock source used by the pallet `Config`s in this module.
 #[cfg(not(feature = "runtime-benchmarks"))]
@@ -489,7 +496,7 @@ impl ContainsPair<RestrictedEntity, RuntimeCall> for OperationAllowedOneTimeExce
 			(entity, call),
 			(
 				RestrictedEntity::LitePerson(_),
-				RuntimeCall::System(frame_system::Call::remark { .. })
+				RuntimeCall::System(frame_system::Call::remark { .. }),
 			)
 		)
 	}
@@ -513,6 +520,147 @@ enum TransactionStorageCalls<AccountId: Encode> {
 	/// `refresh_account_authorization(who)`
 	#[codec(index = 7)]
 	RefreshAccountAuthorization(AccountId),
+}
+
+parameter_types! {
+	pub const ScorePotId: PalletId = PalletId(*b"scorepot");
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub struct ScoreBenchmarkHelper;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl indiv_pallet_score::benchmarking::BenchmarkHelper<Runtime> for ScoreBenchmarkHelper {
+	fn create_member(seed: u64) -> indiv_pallet_score::MemberOf<Runtime> {
+		benchmark_utils::member_from_seed(seed)
+	}
+	fn setup_currency() {
+		benchmark_utils::ensure_external_asset_exists();
+	}
+}
+
+impl indiv_pallet_score::Config for Runtime {
+	type WeightInfo = weights::indiv_pallet_score::WeightInfo<Runtime>;
+	type Suffix = NetworkSuffix;
+	type EnsurePerson = indiv_pallet_people::EnsurePersonalAliasInContext<Runtime>;
+	type ScorePotId = ScorePotId;
+	type Currency = FungibleExternalAsset;
+	type CurrencyLocationInfo = ExternalAssetLocation;
+	type ManagerOrigin = EnsureRoot<Self::AccountId>;
+	type MaxPayoutRoundSchedules = ConstU32<10>;
+	type OffchainWorkInterval = ConstU32<2>;
+	type People = People;
+	type Crypto = BandersnatchVrfVerifiable;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ScoreBenchmarkHelper;
+}
+
+parameter_types! {
+	pub const PlayDepositReason: RuntimeHoldReason =
+		RuntimeHoldReason::Game(indiv_pallet_game::HoldReason::PlayDeposit);
+	pub const PlayDepositDefault: Balance = 2 * UNITS;
+	// TODO(paritytech/individuality#1124): find a reasonable value.
+	pub PlayerStatementLimit: StatementAllowance = StatementAllowance {
+		max_size: 1_000_000,
+		max_count: 1_000_000,
+	};
+	pub GameAirdropSource: AccountId = PalletId(*b"pop/gads").into_account_truncating();
+}
+
+impl indiv_pallet_game::Config for Runtime {
+	type WeightInfo = weights::indiv_pallet_game::WeightInfo<Runtime>;
+	// The game benchmarks sweep `1..=MaxGroupSize` and `1..=MaxRounds` for their linear
+	// regressions. The production bounds (6/3) are too small to fit accurate per-player and
+	// per-round slopes, so the benchmarking build widens them to 10. The fitted weight
+	// formulas stay valid at the production bounds, which only interpolate within the measured
+	// range.
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type MaxGroupSize = ConstU32<6>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type MaxGroupSize = ConstU32<10>;
+	type UnixTime = RuntimeClock;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type MaxRounds = ConstU32<3>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type MaxRounds = ConstU32<10>;
+	type ManagerOrigin = EnsureRoot<Self::AccountId>;
+	type InviteIssuer = EnsureRoot<Self::AccountId>;
+	type EnsureLiteAlias = indiv_pallet_people_lite::EnsureLiteAliasInContext<Runtime>;
+	type NonPlayingKickoutTime = ConstU32<{ 90 * PARA_DAYS }>;
+	type NativeFungible = Balances;
+	type PlayDeposit = HoldConsideration<
+		AccountId,
+		Balances,
+		PlayDepositReason,
+		sp_runtime::traits::Identity,
+		Balance,
+	>;
+	type DefaultPlayDeposit = PlayDepositDefault;
+	type TicketSignature = MultiSignature;
+	type MaxGameSchedules = ConstU32<12>;
+	type MaxAttendanceHistoryDepth = ConstU32<12>;
+	type NftClaimCredits = ();
+	type DefaultPhaseDurations = GamePhaseDurations;
+	type AccountSignature = Signature;
+	type PlayerStatementLimit = PlayerStatementLimit;
+	type PeopleVoteWeight = ConstUint<2>;
+	type CandidateVoteWeight = ConstUint<1>;
+	type MinGroupSize = ConstUint<2>; //TODO: Find a sensible value
+	type AirdropAssetId = <Runtime as pallet_assets::Config>::AssetId;
+	type AirdropAssetBalance = Balance;
+	type Airdrop = Airdrop;
+	type AirdropSource = GameAirdropSource;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = benchmark_utils::GamePalletBenchmarkHelper;
+}
+
+pub struct GamePhaseDurations;
+impl Get<PhaseDurationValues> for GamePhaseDurations {
+	fn get() -> PhaseDurationValues {
+		PhaseDurationValues {
+			registration: 5 * 60,
+			shuffle: 60,
+			post_shuffle_margin: 30,
+			reporting: 10 * 60,
+			player_process: 60,
+		}
+	}
+}
+
+parameter_types! {
+	pub const AirdropPalletId: PalletId = PalletId(*b"pop/adrp");
+}
+
+/// Direct byte-level reinterpretation of an `AccountId32` as an sr25519 public key.
+pub struct AccountIdToSr25519Public;
+impl sp_runtime::traits::TryConvert<AccountId, sp_core::sr25519::Public>
+	for AccountIdToSr25519Public
+{
+	fn try_convert(account: AccountId) -> Result<sp_core::sr25519::Public, AccountId> {
+		let raw: [u8; 32] = account.clone().into();
+		Ok(sp_core::sr25519::Public::from_raw(raw))
+	}
+}
+
+impl indiv_pallet_airdrop::Config for Runtime {
+	type WeightInfo = weights::indiv_pallet_airdrop::WeightInfo<Runtime>;
+	type MemberService = Members;
+	type Fungibles = AssetsWithHolder;
+	type ManagerOrigin = EnsureRoot<Self::AccountId>;
+	type PalletId = AirdropPalletId;
+	type UnixTime = RuntimeClock;
+	// The relay block randomness is known to the validator producing it as soon as the previous
+	// epoch ends, so a player who learns it early could register with keys chosen against it.
+	// That is tolerable here because the draw is only worth gaming at small player counts; the
+	// alternative, using the randomness of one epoch ago, would force a full epoch of waiting
+	// between closing registration and drawing winners.
+	type Randomness = indiv_pallet_relay_randomness::RelayBlockRandomness<Runtime>;
+	type AccountIdToPublic = AccountIdToSr25519Public;
+	type ClearLimit = ConstU32<100>;
+	type DrawLimit = ConstU32<100>;
+	type OffchainWorkerInterval = ConstU32<1>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = benchmark_utils::AirdropBenchmarkHelper;
 }
 
 /// Grants an account a data allowance on the Bulletin Chain, which is where long-term person data
@@ -633,6 +781,131 @@ pub mod benchmark_utils {
 				1u128,
 			)
 			.expect("benchmark: stable asset must be creatable");
+		}
+	}
+
+	pub fn ensure_external_asset_exists() {
+		let asset = ExternalAssetLocation::get();
+		if !<Assets as Inspect<AccountId>>::asset_exists(asset.clone()) {
+			<Assets as Create<AccountId>>::create(
+				asset,
+				AirdropPalletId::get().into_account_truncating(),
+				true,
+				1u128,
+			)
+			.expect("benchmark: external asset must be creatable");
+		}
+	}
+
+	/// A deterministic ring member derived from `seed`.
+	pub fn member_from_seed(
+		seed: u64,
+	) -> <BandersnatchVrfVerifiable as GenerateVerifiable>::Member {
+		let mut entropy = [0u8; 32];
+		entropy[..8].copy_from_slice(&seed.to_le_bytes()[..]);
+		let secret = BandersnatchVrfVerifiable::new_secret(entropy);
+		BandersnatchVrfVerifiable::member_from_secret(&secret)
+	}
+
+	pub struct AirdropBenchmarkHelper;
+	impl indiv_pallet_airdrop::benchmarking::BenchmarkHelper<Runtime> for AirdropBenchmarkHelper {
+		fn set_unix_time(now: core::time::Duration) {
+			pallet_timestamp::Now::<Runtime>::put(now.as_millis() as u64);
+		}
+
+		fn create_asset_id_parameter(id: u32) -> <Runtime as pallet_assets::Config>::AssetId {
+			// The airdrop pot holds and transfers the prize asset, so it has to exist.
+			let location = Location::new(
+				1,
+				[Parachain(ASSET_HUB_ID), PalletInstance(50), GeneralIndex(id as u128)],
+			);
+			if !<Assets as Inspect<AccountId>>::asset_exists(location.clone()) {
+				<Assets as Create<AccountId>>::create(
+					location.clone(),
+					AirdropPalletId::get().into_account_truncating(),
+					true,
+					1u128,
+				)
+				.expect("benchmark: airdrop prize asset must be creatable");
+			}
+			location
+		}
+
+		fn build_membership_proof(
+			context: &indiv_support::traits::Context,
+			message: &[u8],
+			member_seed: u32,
+		) -> (indiv_pallet_airdrop::ProofOf<Runtime>, indiv_support::traits::Alias) {
+			use indiv_support::{
+				crypto::BandersnatchSuite,
+				genesis::ring_verifier_builder_params,
+				traits::{RingMode, PEOPLE_IDENTIFIER},
+			};
+			use verifiable::ring::RingDomainSize;
+
+			type Crypto = BandersnatchVrfVerifiable;
+
+			let ring_exponent = MembersFlexibleRingExponent::get();
+			let domain: RingDomainSize =
+				ring_exponent.try_into().expect("RingExponent → RingDomainSize");
+			let chunks = ring_verifier_builder_params::<BandersnatchSuite>(domain);
+
+			let mut entropy = [0u8; 32];
+			entropy[..4].copy_from_slice(&member_seed.to_le_bytes());
+			let secret = Crypto::new_secret(entropy);
+			let member = Crypto::member_from_secret(&secret);
+
+			// Build a single-member ring with `member`. The resulting `members` value is the on-chain
+			// ring root we seed below so verification at `(PEOPLE_IDENTIFIER, ring=0, rev=0)` succeeds.
+			let mut intermediate = Crypto::start_members(domain);
+			Crypto::push_members(&mut intermediate, core::iter::once(member), |range| {
+				Ok(chunks[range].to_vec())
+			})
+			.expect("push_members for single bench member");
+			let members = Crypto::finish_members(intermediate.clone());
+
+			// Seed the Members pallet so `verify_membership(PEOPLE_IDENTIFIER, 0, 0, ...)`
+			// works.
+			if indiv_pallet_members::Collections::<Runtime>::get(PEOPLE_IDENTIFIER).is_none() {
+				indiv_pallet_members::Collections::<Runtime>::insert(
+					PEOPLE_IDENTIFIER,
+					indiv_pallet_members::types::CollectionInfo {
+						owner: indiv_pallet_members::types::CollectionOwner::External(
+							PeopleCollectionOwner::get(),
+						),
+						mode: RingMode::Flexible,
+						ring_size: ring_exponent,
+						self_inclusion_delay: Some(SelfInclusionDelayValue::get()),
+					},
+				);
+			}
+			indiv_pallet_members::Root::<Runtime>::insert(
+				PEOPLE_IDENTIFIER,
+				0u32,
+				indiv_pallet_members::types::RingRoot {
+					root: members.clone(),
+					revision: 0,
+					intermediate,
+				},
+			);
+
+			let commitment =
+				Crypto::open(domain, &member, core::iter::once(member)).expect("open commitment");
+			let (proof, _aliases) =
+				Crypto::create_multi_context(commitment, &secret, &[&context[..]], message)
+					.expect("create membership proof");
+			let alias = Crypto::alias_in_context(&secret, &context[..]).expect("alias_in_context");
+			(proof, alias)
+		}
+
+		fn account_keypair_for(seed: u32) -> (AccountId, sp_core::sr25519::Pair) {
+			use sp_core::Pair as _;
+			let mut entropy = [0u8; 32];
+			entropy[..4].copy_from_slice(&seed.to_le_bytes());
+			let pair = sp_core::sr25519::Pair::from_seed(&entropy);
+			let account_id: AccountId =
+				sp_runtime::MultiSigner::Sr25519(pair.public()).into_account();
+			(account_id, pair)
 		}
 	}
 
@@ -1054,6 +1327,72 @@ pub mod benchmark_utils {
 				)),
 				RuntimeCall::System(frame_system::Call::remark { remark: Vec::new() }),
 			)
+		}
+	}
+
+	pub struct GamePalletBenchmarkHelper {}
+
+	impl GamePalletBenchmarkHelper {
+		fn sign(seed: u64, msg: &[u8]) -> Signature {
+			let mut entropy = [0u8; 32];
+			entropy[..8].copy_from_slice(&seed.to_le_bytes()[..]);
+			// sp-core doesn't expose the signing for the runtime, so we use the underlying library
+			let secret = ed25519_zebra::SigningKey::from(entropy);
+			sp_core::ed25519::Signature::from_raw(secret.sign(msg).into()).into()
+		}
+
+		fn create_account_id(seed: u64) -> AccountId {
+			use sp_core::Pair;
+			use sp_runtime::traits::IdentifyAccount;
+			let mut entropy = [0u8; 32];
+			entropy[..8].copy_from_slice(&seed.to_le_bytes()[..]);
+			let pair = sp_core::ed25519::Pair::from_seed(&entropy);
+			pair.public().into_account().into()
+		}
+	}
+
+	impl
+		indiv_pallet_game::BenchmarkHelper<
+			Signature,
+			MultiSignature,
+			AccountId,
+			AccountId,
+			<Runtime as pallet_assets::Config>::AssetId,
+		> for GamePalletBenchmarkHelper
+	{
+		fn create_account(seed: u64) -> AccountId {
+			Self::create_account_id(seed)
+		}
+
+		fn sign_account(seed: u64, msg: &[u8]) -> Signature {
+			Self::sign(seed, msg)
+		}
+
+		fn create_ticket(seed: u64) -> AccountId {
+			Self::create_account_id(seed)
+		}
+
+		fn sign_ticket(seed: u64, msg: &[u8]) -> MultiSignature {
+			Self::sign(seed, msg)
+		}
+
+		fn set_valid_time() {
+			Timestamp::set_timestamp(1u32.into());
+		}
+
+		fn set_time(now: core::time::Duration) {
+			// We don't call `set_timestamp` directly because it triggers checks such as aura slot
+			pallet_timestamp::Now::<Runtime>::put(now.as_millis() as u64);
+		}
+
+		fn fund_account(acc: AccountId) {
+			use frame_support::traits::Currency;
+			let balance = 1_000_000_000_000_000u128;
+			let _ = Balances::make_free_balance_be(&acc, balance);
+		}
+
+		fn airdrop_asset_id() -> <Runtime as pallet_assets::Config>::AssetId {
+			ExternalAssetLocation::get()
 		}
 	}
 }
