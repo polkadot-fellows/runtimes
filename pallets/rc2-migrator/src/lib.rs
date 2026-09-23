@@ -165,7 +165,7 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 }
 
 /// `CtMigrator`'s pallet index in the Coretime (receiver) chain.
-pub const CT_MIGRATOR_PALLET_INDEX: u8 = 100;
+pub const CT_MIGRATOR_PALLET_INDEX: u8 = 255;
 
 /// Call encoding for the Coretime chain runtime, reduced to the pallet this chain dispatches into.
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]

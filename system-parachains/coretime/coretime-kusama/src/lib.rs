@@ -722,7 +722,7 @@ construct_runtime!(
 
 		// AHM v2 migrator.
 		#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
-		CtMigrator: pallet_ct_migrator = 100,
+		CtMigrator: pallet_ct_migrator = 255,
 	}
 );
 
