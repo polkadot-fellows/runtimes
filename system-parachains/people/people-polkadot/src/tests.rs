@@ -252,12 +252,14 @@ fn governance_authorize_upgrade_works() {
 }
 
 /// The transaction extension pipeline is versioned: version 0 is the pipeline that predates the
-/// Individuality deployment and must stay frozen so already-built signers keep working, while
-/// version 1 carries the Individuality origin modifiers.
+/// Individuality deployment and must stay frozen so already-built signers keep working, version 1
+/// carries the Individuality origin modifiers shipped in 2.5.0, and version 2 adds the Game and
+/// Score origin modifiers on top of version 1.
 ///
-/// This pins both: the identifiers of version 0 in order, and the fact that version 1 exists and is
-/// version 0 plus the Individuality extensions. Any reordering of version 0 breaks live signers, so
-/// it should only ever change together with `transaction_version`.
+/// This pins the identifiers of version 0 in order, that version 1 is version 0 plus the
+/// Individuality extensions, and that version 2 is version 1 plus the Game and Score extensions.
+/// Any reordering of a released version breaks live signers, so a new pipeline must be added as a
+/// new version rather than by amending an existing one.
 #[test]
 fn transaction_extension_versions_are_stable() {
 	use sp_runtime::traits::{Pipeline, PipelineMetadataBuilder, TransactionExtension};
@@ -283,13 +285,21 @@ fn transaction_extension_versions_are_stable() {
 		],
 	);
 
-	// Version 1 must be advertised in the metadata, otherwise no wallet can construct it.
+	// Versions 1 and 2 must be advertised in the metadata, otherwise no wallet can construct them.
 	let mut builder = PipelineMetadataBuilder::new();
 	<crate::TxExtensionOtherVersions as Pipeline<RuntimeCall>>::build_metadata(&mut builder);
-	let v1_indices = builder.by_version.get(&1).expect("extension version 1 must be advertised");
-	let v1: Vec<&str> =
-		v1_indices.iter().map(|i| builder.in_versions[*i as usize].identifier).collect();
-	assert_eq!(builder.by_version.len(), 1, "only version 1 lives outside version 0");
+	let identifiers = |version: u8| -> Vec<&str> {
+		builder
+			.by_version
+			.get(&version)
+			.unwrap_or_else(|| panic!("extension version {version} must be advertised"))
+			.iter()
+			.map(|i| builder.in_versions[*i as usize].identifier)
+			.collect()
+	};
+	let v1 = identifiers(1);
+	let v2 = identifiers(2);
+	assert_eq!(builder.by_version.len(), 2, "only versions 1 and 2 live outside version 0");
 
 	// Version 1 is version 0 plus the Individuality pipeline: same non-Individuality identifiers,
 	// in the same relative order.
@@ -307,6 +317,15 @@ fn transaction_extension_versions_are_stable() {
 	assert_eq!(v1_without_indiv, v0, "version 1 must extend version 0, not reshuffle it");
 	for id in indiv {
 		assert!(v1.contains(&id), "version 1 must carry `{id}`");
+	}
+
+	// Version 2 is version 1 plus the Game and Score origin modifiers
+	let game_and_score = ["ScoreAsParticipant", "GameAsInvited"];
+	let v2_without_new: Vec<&str> =
+		v2.iter().copied().filter(|id| !game_and_score.contains(id)).collect();
+	assert_eq!(v2_without_new, v1, "version 2 must extend version 1, not reshuffle it");
+	for id in game_and_score {
+		assert!(v2.contains(&id), "version 2 must carry `{id}`");
 	}
 }
 
@@ -441,6 +460,40 @@ fn bulletin_destination_is_governable_but_must_remain_a_sibling_parachain() {
 	});
 }
 
+/// Score payouts carry no hardcoded asset: governance picks it, and until then there is none.
+#[test]
+fn score_payout_asset_is_set_by_governance() {
+	use crate::{
+		parameters::{dynamic_params::external_asset, RuntimeParameters},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use frame_support::traits::Get;
+	use sp_runtime::BuildStorage;
+
+	type PayoutAsset = <Runtime as indiv_pallet_score::Config>::CurrencyLocationInfo;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// GIVEN no asset has been chosen yet.
+		assert_eq!(PayoutAsset::get(), Location::here());
+
+		// WHEN Root points it at an Asset Hub asset.
+		let asset = Location::new(1, [Parachain(1000), PalletInstance(50), GeneralIndex(4242)]);
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::ExternalAsset(external_asset::Parameters::AssetLocation(
+				external_asset::AssetLocation,
+				Some(asset.clone()),
+			)),
+		));
+
+		// THEN score pays out in that asset.
+		assert_eq!(PayoutAsset::get(), asset);
+	});
+}
+
 /// Only assets Asset Hub itself issues may be reserve transferred here from Asset Hub.
 ///
 /// Accepting an asset from a chain that is not its real reserve gives it two reserves, and
@@ -531,7 +584,8 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 	use crate::{
 		parameters::{
 			dynamic_params::{
-				bulletin_storage, coinage, lite_personhood, origin_restriction, statement_storage,
+				bulletin_storage, coinage, external_asset, lite_personhood, origin_restriction,
+				statement_storage,
 			},
 			DynamicParameterOrigin, RuntimeParameters, RuntimeParametersKey,
 		},
@@ -577,6 +631,7 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		BulletinStorage(bulletin_storage::BulletinTransactionStoragePalletIndex.into()),
 		Coinage(coinage::LoadDepositPrice.into()),
 		Coinage(coinage::InstanceCreationDeposit.into()),
+		ExternalAsset(external_asset::AssetLocation.into()),
 	];
 
 	// THEN Root passes all, the voice only the operational keys.

@@ -90,6 +90,7 @@ glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
 grandpa = { version = "0.44.0", package = "sc-consensus-grandpa" }
 grandpa-primitives = { version = "30.0.0", default-features = false, package = "sp-consensus-grandpa" }
 hex-literal = { version = "0.4.1" }
+indiv-pallet-airdrop = { git = "https://github.com/paritytech/individuality-community", rev = "53482baa337278c6c4c8115fb8d2b4b5def08ccb", default-features = false, version = "*" }
 indiv-pallet-alias-accounts = { git = "https://github.com/paritytech/individuality-community", rev = "53482baa337278c6c4c8115fb8d2b4b5def08ccb", default-features = false, version = "*" }
 indiv-pallet-chunks-manager = { git = "https://github.com/paritytech/individuality-community", rev = "53482baa337278c6c4c8115fb8d2b4b5def08ccb", default-features = false, version = "*" }
 indiv-pallet-coinage = { git = "https://github.com/paritytech/individuality-community", rev = "53482baa337278c6c4c8115fb8d2b4b5def08ccb", default-features = false, version = "*" }
@@ -106,6 +107,8 @@ indiv-pallet-pgas = { git = "https://github.com/paritytech/individuality-communi
 indiv-pallet-relay-randomness = { git = "https://github.com/paritytech/individuality-community", rev = "53482baa337278c6c4c8115fb8d2b4b5def08ccb", default-features = false, version = "*" }
 indiv-pallet-resources = { git = "https://github.com/paritytech/individuality-community", rev = "53482baa337278c6c4c8115fb8d2b4b5def08ccb", default-features = false, version = "*" }
 indiv-precompile-personhood = { git = "https://github.com/paritytech/individuality-community", rev = "53482baa337278c6c4c8115fb8d2b4b5def08ccb", default-features = false, version = "*" }
+indiv-pallet-game = { git = "https://github.com/paritytech/individuality-community", rev = "53482baa337278c6c4c8115fb8d2b4b5def08ccb", default-features = false, version = "*" }
+indiv-pallet-score = { git = "https://github.com/paritytech/individuality-community", rev = "53482baa337278c6c4c8115fb8d2b4b5def08ccb", default-features = false, version = "*" }
 indiv-support = { git = "https://github.com/paritytech/individuality-community", rev = "53482baa337278c6c4c8115fb8d2b4b5def08ccb", default-features = false, version = "*" }
 verifiable = { version = "0.3.0", default-features = false }
 integration-tests-helpers = { path = "integration-tests/emulated/helpers" }
