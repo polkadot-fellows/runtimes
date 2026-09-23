@@ -285,40 +285,32 @@ jobs:
 
       # The snapshot suite runs against the cached try-runtime snapshots.
       - name: Restore ${{ matrix.network }} relay snapshot
-        id: snap-rc
         uses: actions/cache/restore@v4
         with:
           path: snapshot.raw
           key: try-runtime-snapshot-${{ matrix.network }}-
-          fail-on-cache-miss: false
-      - if: steps.snap-rc.outputs.cache-matched-key != ''
-        run: mv snapshot.raw snap_rc.snap
+          fail-on-cache-miss: true
+      - run: mv snapshot.raw snap_rc.snap
 
       - name: Restore coretime-${{ matrix.network }} snapshot
-        id: snap-ct
         uses: actions/cache/restore@v4
         with:
           path: snapshot.raw
           key: try-runtime-snapshot-coretime-${{ matrix.network }}-
-          fail-on-cache-miss: false
-      - if: steps.snap-ct.outputs.cache-matched-key != ''
-        run: mv snapshot.raw snap_ct.snap
+          fail-on-cache-miss: true
+      - run: mv snapshot.raw snap_ct.snap
 
       - name: Test AHM v2 against ${{ matrix.network }} snapshots
-        if: steps.snap-rc.outputs.cache-matched-key != '' && steps.snap-ct.outputs.cache-matched-key != ''
         run: |
           cargo test --release --locked -q -p polkadot-integration-tests-ahmv2 --features "$NETWORK"
         env:
           RUSTFLAGS: "-C debug-assertions"
+          SKIP_WASM_BUILD: 1
           # The test binary runs with its package as the working directory, so these must be
           # absolute.
           SNAP_RC: ${{ github.workspace }}/snap_rc.snap
           SNAP_CT: ${{ github.workspace }}/snap_ct.snap
           NETWORK: ${{ matrix.network }}
-
-      - name: Report a missing snapshot
-        if: steps.snap-rc.outputs.cache-matched-key == '' || steps.snap-ct.outputs.cache-matched-key == ''
-        run: echo "::warning::No cached ${{ matrix.network }} snapshot; skipped the AHM v2 snapshot suite"
 
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
