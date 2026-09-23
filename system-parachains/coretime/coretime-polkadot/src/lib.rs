@@ -773,19 +773,6 @@ impl pallet_ct_migrator::Config for Runtime {
 	type DmpQueuePriorityPattern = DmpQueuePriorityPattern;
 }
 
-/// What each hold migrated from the relay chain becomes on this chain.
-impl From<pallet_ct_migrator::PortableHoldReason> for RuntimeHoldReason {
-	fn from(reason: pallet_ct_migrator::PortableHoldReason) -> Self {
-		match reason {
-			pallet_ct_migrator::PortableHoldReason::UnnamedReserve =>
-				RuntimeHoldReason::CtMigrator(pallet_ct_migrator::HoldReason::RcMigratedReserve),
-			pallet_ct_migrator::PortableHoldReason::ProxyDeposit =>
-				RuntimeHoldReason::CtMigrator(pallet_ct_migrator::HoldReason::ProxyDeposit),
-			pallet_ct_migrator::PortableHoldReason::UnattributedReserve =>
-				RuntimeHoldReason::CtMigrator(pallet_ct_migrator::HoldReason::UnattributedReserve),
-		}
-	}
-}
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(

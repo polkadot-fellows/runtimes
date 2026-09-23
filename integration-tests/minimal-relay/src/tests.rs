@@ -795,7 +795,9 @@ async fn accounts_migrate_rc_to_ct() {
 		});
 		ct.commit_all().unwrap();
 
-		if stage == RcStage::AccountsDone {
+		// `AccountsDone` is a one-block checkpoint and this loop samples every third block, so
+		// wait for the machine to have left the accounts stages rather than for that exact stage.
+		if !matches!(stage, RcStage::AccountsInit | RcStage::AccountsOngoing { .. }) {
 			break migrated;
 		}
 	};

@@ -252,20 +252,6 @@ impl pallet_ct_migrator::Config for Test {
 	type DmpQueuePriorityPattern = DmpQueuePriorityPattern;
 }
 
-/// What each migrated hold becomes locally; mirrors the Coretime runtime's mapping.
-impl From<PortableHoldReason> for RuntimeHoldReason {
-	fn from(reason: PortableHoldReason) -> Self {
-		match reason {
-			PortableHoldReason::UnnamedReserve =>
-				RuntimeHoldReason::CtMigrator(HoldReason::RcMigratedReserve),
-			PortableHoldReason::ProxyDeposit =>
-				RuntimeHoldReason::CtMigrator(HoldReason::ProxyDeposit),
-			PortableHoldReason::UnattributedReserve =>
-				RuntimeHoldReason::CtMigrator(HoldReason::UnattributedReserve),
-		}
-	}
-}
-
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	// The recorders are thread locals and outlive a single test, so clear them here.
 	ReceivedParas::set(Vec::new());

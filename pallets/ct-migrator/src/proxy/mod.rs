@@ -31,7 +31,11 @@ extern crate alloc;
 use crate::{Config, Event, FailedProxies, HoldReason, Pallet};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-use frame_support::traits::{fungible::InspectHold, Get, ReservableCurrency};
+use frame_support::traits::{
+	fungible::{InspectHold, MutateHold},
+	tokens::Precision,
+	Get, ReservableCurrency,
+};
 use migrator_types::PortableProxy;
 use sp_runtime::{traits::Zero, DispatchError, SaturatedConversion, Saturating};
 
@@ -86,8 +90,13 @@ impl<T: Config> ProxyReceiver<T> {
 		let proxy_reason: T::RuntimeHoldReason = HoldReason::ProxyDeposit.into();
 		let migrated = <T as Config>::Currency::balance_on_hold(&proxy_reason, &proxy.delegator);
 		if !migrated.is_zero() {
-			Pallet::<T>::release_hold(&proxy_reason, &proxy.delegator, migrated)
-				.map_err(|_| Error::FailedToProcessProxy)?;
+			<T as Config>::Currency::release(
+				&proxy_reason,
+				&proxy.delegator,
+				migrated,
+				Precision::Exact,
+			)
+			.map_err(|_| Error::FailedToProcessProxy)?;
 		}
 		let delay_ratio = T::RcBlockTimeRatio::get().max(1);
 

@@ -34,7 +34,10 @@ use alloc::vec::Vec;
 use core::marker::PhantomData;
 use frame_support::{
 	defensive_assert,
-	traits::fungible::{Inspect, InspectHold, Mutate},
+	traits::{
+		fungible::{Inspect, InspectHold, Mutate, MutateHold},
+		tokens::{Fortitude, Precision, Preservation},
+	},
 };
 use migrator_types::PortableAccount;
 use sp_runtime::{traits::Zero, DispatchError, Saturating};
@@ -90,6 +93,11 @@ impl<T: Config> AccountsReceiver<T> {
 	}
 
 	/// Mint one account and place its holds. Returns the amount minted.
+	///
+	/// Holds are best effort: the existential deposit stays free, and whatever part of a hold
+	/// the free balance cannot cover stays free with it. The owning pallet takes its deposit at
+	/// this chain's rates out of the free balance later, so a short hold surfaces only as a
+	/// shortfall on release.
 	fn receive_account(account: &PortableAccountOf<T>) -> Result<BalanceOf<T>, DispatchError> {
 		let who = &account.who;
 		let held: BalanceOf<T> = account
@@ -98,21 +106,22 @@ impl<T: Config> AccountsReceiver<T> {
 			.fold(Zero::zero(), |acc: BalanceOf<T>, hold| acc.saturating_add(hold.amount));
 		let total = account.free.saturating_add(held);
 
-		// Accounts whose incoming free balance cannot provide the existential deposit get a
-		// provider reference so the mint and hold below cannot fail or dust the account.
-		if frame_system::Pallet::<T>::providers(who).is_zero() &&
-			<T as Config>::Currency::balance(who).saturating_add(account.free) <
-				<T as Config>::Currency::minimum_balance()
-		{
-			frame_system::Pallet::<T>::inc_providers(who);
-		}
-
 		let minted = <T as Config>::Currency::mint_into(who, total)
 			.map_err(|_| Error::FailedToProcessAccount)?;
 		defensive_assert!(minted == total, "minted what the relay chain burned");
 
 		for hold in &account.holds {
-			Pallet::<T>::place_hold(&hold.reason.into(), who, hold.amount)
+			let holdable = <T as Config>::Currency::reducible_balance(
+				who,
+				Preservation::Preserve,
+				Fortitude::Force,
+			);
+			let amount = hold.amount.min(holdable);
+			if amount.is_zero() {
+				continue;
+			}
+			let reason: T::RuntimeHoldReason = HoldReason::from(hold.reason).into();
+			<T as Config>::Currency::hold(&reason, who, amount)
 				.map_err(|_| Error::FailedToProcessAccount)?;
 		}
 
@@ -133,7 +142,7 @@ impl<T: Config> AccountsReceiver<T> {
 		let held = <T as Config>::Currency::balance_on_hold(&rc_reason, who);
 		let release = wanted.min(held);
 		if !release.is_zero() {
-			Pallet::<T>::release_hold(&rc_reason, who, release)?;
+			<T as Config>::Currency::release(&rc_reason, who, release, Precision::Exact)?;
 		}
 		Ok((release, wanted.saturating_sub(held)))
 	}

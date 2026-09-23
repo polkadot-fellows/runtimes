@@ -65,33 +65,32 @@ fn receive_mints_free_and_holds_exactly() {
 }
 
 #[test]
-fn sub_ed_free_survives_hold_placement_and_release() {
+fn sub_ed_free_keeps_the_ed_and_holds_the_rest() {
 	new_test_ext().execute_with(|| {
 		let bob = acc(2); // deposit holder whose liquid dust followed the deposit (free < ED)
 
-		// GIVEN bob does not exist. WHEN his free part cannot provide the ED.
+		// GIVEN bob does not exist. WHEN his free part cannot provide the ED (ED is 10).
 		Receiver::receive(vec![portable_account(
 			&bob,
 			2,
 			vec![(PortableHoldReason::UnnamedReserve, 40)],
 		)]);
 
-		// THEN the account exists (provider reference), the hold landed and the dust was NOT
-		// silently burned mid-hold (balances dusts a sub-ED free remainder whenever the reserve
-		// passes through zero; the integration path must never expose that window).
-		assert_eq!(free(&bob), 2);
-		assert_eq!(held(HoldReason::RcMigratedReserve, &bob), 40);
+		// THEN the ED stays free and the hold takes the rest. The account is provided for by its
+		// own balance, and nothing was burned.
+		assert_eq!(free(&bob), ED);
+		assert_eq!(held(HoldReason::RcMigratedReserve, &bob), 32);
 		assert_eq!(frame_system::Pallet::<Test>::providers(&bob), 1);
+		assert_eq!(frame_system::Pallet::<Test>::consumers(&bob), 1);
 		assert_eq!(CtMintedTotal::<Test>::get(), 42);
 		assert_eq!(total_issuance(), 42);
 
-		// AND WHEN a later stage releases the migrated reserve so the owning pallet can take its
-		// own deposit, the dust survives the release too: releasing the naive way would take the
-		// hold through zero while free was still below ED and burn the remainder.
-		assert_ok!(Receiver::release_rc_reserve(&bob, 40), (40, 0));
+		// AND WHEN a later stage releases the migrated reserve, the record is honoured up to what
+		// is held and the 8 that stayed free is reported as a shortfall.
+		assert_ok!(Receiver::release_rc_reserve(&bob, 40), (32, 8));
 		assert_eq!(free(&bob), 42);
 		assert_eq!(held(HoldReason::RcMigratedReserve, &bob), 0);
-		assert_eq!(total_issuance(), 42, "no dust may be burned by the hand-over");
+		assert_eq!(total_issuance(), 42);
 
 		// AND a record asking for more than arrived is honoured up to what is held, the rest
 		// being reported as a shortfall.

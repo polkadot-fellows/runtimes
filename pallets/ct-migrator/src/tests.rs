@@ -70,27 +70,26 @@ fn receive_accounts_mints_free_and_holds_exactly() {
 }
 
 #[test]
-fn sub_ed_free_survives_hold_placement_and_reattribution() {
+fn sub_ed_free_keeps_the_ed_and_parks_the_shortfall_on_reattribution() {
 	new_test_ext().execute_with(|| {
 		let bob = acc(2); // deposit holder whose liquid dust followed the deposit (free < ED)
 
-		// GIVEN nothing; bob does not exist. WHEN his free part cannot provide the ED.
+		// GIVEN nothing; bob does not exist. WHEN his free part cannot provide the ED (ED is 10).
 		assert_ok!(CtMigrator::receive_accounts(
 			root(),
 			vec![portable_account(&bob, 2, vec![(PortableHoldReason::UnnamedReserve, 40)])],
 		));
 
-		// THEN the account exists (provider reference), the hold landed and the dust was NOT
-		// silently burned mid-hold (balances dusts a sub-ED free remainder whenever the reserve
-		// passes through zero; the integration path must never expose that window).
-		assert_eq!(free(&bob), 2);
-		assert_eq!(held(HoldReason::RcMigratedReserve, &bob), 40);
+		// THEN the ED stays free and the hold takes the rest.
+		assert_eq!(free(&bob), ED);
+		assert_eq!(held(HoldReason::RcMigratedReserve, &bob), 32);
 		assert_eq!(frame_system::Pallet::<Test>::providers(&bob), 1);
 		assert_eq!(CtMintedTotal::<Test>::get(), 42);
 		assert_eq!(total_issuance(), 42);
 
-		// AND WHEN the deposit is later re-attributed (registrar record arrives), the dust
-		// survives the hold flip too.
+		// AND WHEN the deposit is re-attributed (registrar record arrives), what is held is
+		// released so the registrar pallet can take its own deposit at this chain's rates, and
+		// the 8 that stayed free is parked as this para's shortfall.
 		assert_ok!(CtMigrator::receive_registrar(
 			root(),
 			vec![PortableParaInfo {
@@ -103,18 +102,18 @@ fn sub_ed_free_survives_hold_placement_and_reattribution() {
 			}],
 			None,
 		));
-		// The deposit is released to free so the registrar pallet can take its own at this
-		// chain's rates — and crucially the sub-ED dust survives the release. Releasing the naive
-		// way would take the hold through zero while free was still below ED, and
-		// pallet-balances would burn the remainder; `release_hold` credits free first.
 		assert_eq!(free(&bob), 42);
 		assert_eq!(held(HoldReason::RcMigratedReserve, &bob), 0);
-		assert_eq!(total_issuance(), 42, "no dust may be burned by the hand-over");
+		assert_eq!(ReattributedDeposits::<Test>::get(), 32);
+		assert_eq!(ParkedDepositShortfalls::<Test>::iter().collect::<Vec<_>>(), vec![(2000, 8)]);
+		assert!(migrator_events()
+			.contains(&Event::DepositShortfallParked { para_id: 2000, shortfall: 8 }));
+		assert_eq!(total_issuance(), 42, "nothing is burned by the hand-over");
 	});
 }
 
 #[test]
-fn sub_ed_free_survives_proxy_deposit_resize() {
+fn sub_ed_free_keeps_the_ed_through_proxy_deposit_resize() {
 	new_test_ext().execute_with(|| {
 		let pure = acc(10); // keyless delegator with sub-ED liquid dust and a proxy deposit
 		assert_ok!(CtMigrator::receive_accounts(
@@ -134,8 +133,8 @@ fn sub_ed_free_survives_proxy_deposit_resize() {
 		};
 		assert_ok!(CtMigrator::receive_proxies(root(), vec![proxies]));
 
-		// The resize releases the whole migrated hold and re-reserves 120 at local rates; the
-		// 3-planck dust must ride along, not burn while the hold is momentarily empty.
+		// The account arrived with the ED free and the rest held; the resize releases the whole
+		// migrated hold and re-reserves 120 at local rates. Nothing is burned on the way.
 		assert_eq!(pallet_balances::Pallet::<Test>::reserved_balance(&pure), 120);
 		assert_eq!(free(&pure), 3 + 400 - 120);
 		assert_eq!(total_issuance(), 403);

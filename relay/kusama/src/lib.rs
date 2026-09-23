@@ -1735,6 +1735,8 @@ parameter_types! {
 		TreasuryPalletId::get().into_account_truncating(),
 		SocietyPalletId::get().into_account_truncating(),
 		OnDemandPalletId::get().into_account_truncating(),
+		// The accumulate-and-forward pot that collects relay-chain dust for Asset Hub.
+		PalletId(*b"acf/ksmt").into_account_truncating(),
 	];
 	/// Where swept pots and dust land on Asset Hub. Kusama sweeps to the treasury; Polkadot
 	/// sweeps to its DAP buffer. Same `PalletId` derivation, so the same address on both sides.
@@ -1742,10 +1744,10 @@ parameter_types! {
 	/// Audited issuance held by no account ("phantom issuance"), burned at the end of the
 	/// migration.
 	///
-	/// Measured by the `balance_census` test against the 28 Aug 2026 snapshot, which prints the
+	/// Measured by the `balance_census` test against the 22 Sep 2026 snapshot, which prints the
 	/// exact planck value. Re-measure and update ahead of the real run: this is a one-shot burn,
 	/// and burning more than the chain actually carries is unrecoverable.
-	pub const TiCorrection: u128 = 2_052_086_889_496;
+	pub const TiCorrection: u128 = 2_054_657_180_420;
 	/// Working buffer of free balance that follows a migrated deposit to the Coretime chain.
 	/// One KSM, mirroring Polkadot's one DOT — the two are different amounts of money, and the
 	/// point is a usable buffer on each chain rather than a matching number.
