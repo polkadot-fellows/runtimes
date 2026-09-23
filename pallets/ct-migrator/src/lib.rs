@@ -29,10 +29,7 @@ use alloc::vec::Vec;
 use frame_support::{
 	pallet_prelude::*,
 	storage::with_storage_layer,
-	traits::{
-		fungible::{Inspect, Mutate, MutateHold, Unbalanced, UnbalancedHold},
-		tokens::{Fortitude, Precision, Preservation},
-	},
+	traits::fungible::{Inspect, Mutate, MutateHold},
 };
 use migrator_types::PortableHoldReason;
 use sp_runtime::DispatchError;
@@ -85,10 +82,7 @@ pub mod pallet {
 			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>;
 
 		/// The overarching hold reason type.
-		///
-		/// The `From<PortableHoldReason>` bound is where the runtime declares what each migrated
-		/// Relay Chain hold becomes locally.
-		type RuntimeHoldReason: From<HoldReason> + From<PortableHoldReason>;
+		type RuntimeHoldReason: From<HoldReason>;
 	}
 
 	#[pallet::composite_enum]
@@ -121,7 +115,18 @@ pub mod pallet {
 	}
 }
 
-// TODO(ahm-v2): the helpers below have no caller and no test until the accounts stage lands.
+/// What each hold migrated from the Relay Chain becomes on this chain.
+impl From<PortableHoldReason> for HoldReason {
+	fn from(reason: PortableHoldReason) -> Self {
+		match reason {
+			PortableHoldReason::UnnamedReserve => HoldReason::RcMigratedReserve,
+			PortableHoldReason::ProxyDeposit => HoldReason::ProxyDeposit,
+			PortableHoldReason::UnattributedReserve => HoldReason::UnattributedReserve,
+		}
+	}
+}
+
+// TODO(ahm-v2): the helper below has no caller and no test until the accounts stage lands.
 impl<T: Config> Pallet<T> {
 	/// Run `integrate` over every item in its own storage transaction. A failing item is rolled
 	/// back and handed to `park`; the other items are unaffected. Returns `(count_good,
@@ -146,42 +151,5 @@ impl<T: Config> Pallet<T> {
 			}
 		}
 		(count_good, count_bad)
-	}
-
-	/// Move `amount` of `who`'s free balance under `reason`.
-	///
-	/// Not `MutateHold::hold`: that reduces the free balance first and books the hold second,
-	/// and pallet-balances reaps an account that is below the ED with nothing on hold, burning
-	/// the remainder. Deposit holders arrive here with sub-ED free balance next to their
-	/// deposit, so the hold is booked first. Total issuance is unchanged, as with `hold`.
-	pub fn place_hold(
-		reason: &T::RuntimeHoldReason,
-		who: &T::AccountId,
-		amount: BalanceOf<T>,
-	) -> Result<(), DispatchError> {
-		T::Currency::increase_balance_on_hold(reason, who, amount, Precision::Exact)?;
-		T::Currency::decrease_balance(
-			who,
-			amount,
-			Precision::Exact,
-			Preservation::Expendable,
-			Fortitude::Force,
-		)?;
-		Ok(())
-	}
-
-	/// Move `amount` from `who`'s hold under `reason` back to free balance.
-	///
-	/// Not `MutateHold::release`, for the mirror reason of [`Self::place_hold`]: it reduces the
-	/// hold first, and the account would be reaped while below the ED with nothing on hold. The
-	/// free balance is credited first. Total issuance is unchanged, as with `release`.
-	pub fn release_hold(
-		reason: &T::RuntimeHoldReason,
-		who: &T::AccountId,
-		amount: BalanceOf<T>,
-	) -> Result<(), DispatchError> {
-		T::Currency::increase_balance(who, amount, Precision::Exact)?;
-		T::Currency::decrease_balance_on_hold(reason, who, amount, Precision::Exact)?;
-		Ok(())
 	}
 }
