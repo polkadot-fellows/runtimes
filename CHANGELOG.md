@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Collectives Polkadot: the `NonTransfer` proxy no longer admits salary `payout_other`, which pays the member's salary to any account, and is no longer a superset of `Fellowship` or `Ambassador`.
+- Collectives Polkadot: the `NonTransfer` proxy no longer admits salary `payout_other`, which pays the member's salary to any account, and is no longer a superset of `Fellowship` or `Ambassador` ([#1307](https://github.com/polkadot-fellows/runtimes/pull/1307)).
 - Coretime Kusama: bulk revenue now accumulates with dust and is burnt on Asset Hub through `pallet-accumulate-and-forward`, and a migration retires the `py/ctbrn` holding account ([#1301](https://github.com/polkadot-fellows/runtimes/pull/1301)).
 - Kusama relay: dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1289](https://github.com/polkadot-fellows/runtimes/pull/1289)).
 - Bridge Hub, Coretime, People and Encointer Kusama:  dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1287](https://github.com/polkadot-fellows/runtimes/pull/1287)).
