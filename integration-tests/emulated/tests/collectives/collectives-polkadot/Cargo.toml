@@ -24,6 +24,9 @@ pallet-message-queue = { workspace = true, default-features = true }
 pallet-scheduler = { workspace = true, default-features = true }
 pallet-utility = { workspace = true, default-features = true }
 pallet-whitelist = { workspace = true, default-features = true }
+pallet-core-fellowship = { workspace = true, default-features = true }
+pallet-proxy = { workspace = true, default-features = true }
+pallet-salary = { workspace = true, default-features = true }
 
 # Polkadot
 polkadot-runtime-common = { workspace = true, default-features = true }
@@ -61,7 +64,10 @@ runtime-benchmarks = [
 	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-core-fellowship/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
+	"pallet-proxy/runtime-benchmarks",
+	"pallet-salary/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
