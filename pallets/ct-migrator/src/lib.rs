@@ -183,7 +183,7 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(4, 2))]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
-			Self::ensure_root_or_admin_or_manager(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 
 			// TODO(ahm-v2): lock this chain down before answering, until the migration ends:
 			// filter the calls whose state is about to move, and refuse inbound XCM from anyone
@@ -212,7 +212,7 @@ pub mod pallet {
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn end_lockdown(origin: OriginFor<T>) -> DispatchResult {
-			Self::ensure_root_or_admin_or_manager(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 
 			match CtMigrationStage::<T>::get() {
 				MigrationStage::DataMigrationOngoing =>
@@ -244,7 +244,7 @@ pub mod pallet {
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
-			T::AdminOrigin::ensure_origin(origin)?;
+			Self::ensure_root_or_admin(origin)?;
 
 			let old = Manager::<T>::get();
 			Manager::<T>::set(new.clone());
@@ -254,24 +254,23 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
+		/// Ensure that the origin is root, or [`Config::AdminOrigin`].
+		fn ensure_root_or_admin(origin: OriginFor<T>) -> DispatchResult {
+			if ensure_root(origin.clone()).is_err() {
+				T::AdminOrigin::ensure_origin(origin)?;
+			}
+			Ok(())
+		}
+
+		/// Ensure that the origin is one accepted by [`Self::ensure_root_or_admin`] or signed by
+		/// the [`Manager`] account id.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(who) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().is_some_and(|manager| manager == who) {
 					return Ok(());
 				}
 			}
-			T::AdminOrigin::ensure_origin(origin)?;
-			Ok(())
-		}
-
-		/// Ensure that the origin is root, which the Relay Chain's messages dispatch as, or one
-		/// accepted by [`Self::ensure_admin_or_manager`].
-		fn ensure_root_or_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
-			if ensure_root(origin.clone()).is_err() {
-				Self::ensure_admin_or_manager(origin)?;
-			}
-			Ok(())
+			Self::ensure_root_or_admin(origin)
 		}
 
 		/// Execute a stage transition and log it.

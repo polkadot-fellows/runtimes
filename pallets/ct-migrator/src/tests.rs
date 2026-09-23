@@ -68,7 +68,7 @@ fn the_manager_drives_the_migration_but_cannot_appoint_one() {
 		assert_noop!(CtMigrator::set_manager(RuntimeOrigin::signed(ALICE), Some(ALICE)), BadOrigin);
 
 		// GIVEN Alice appointed manager by the admin origin.
-		assert_ok!(CtMigrator::set_manager(RuntimeOrigin::root(), Some(ALICE)));
+		assert_ok!(CtMigrator::set_manager(RuntimeOrigin::signed(ADMIN), Some(ALICE)));
 		assert_eq!(Manager::<Test>::get(), Some(ALICE));
 		System::assert_last_event(Event::ManagerSet { old: None, new: Some(ALICE) }.into());
 
@@ -89,7 +89,7 @@ fn the_manager_drives_the_migration_but_cannot_appoint_one() {
 		// the admin origin alone.
 		assert_noop!(CtMigrator::set_manager(RuntimeOrigin::signed(ALICE), None), BadOrigin);
 
-		// WHEN the admin origin removes the manager. THEN Alice loses the powers.
+		// WHEN root removes the manager. THEN Alice loses the powers.
 		assert_ok!(CtMigrator::set_manager(RuntimeOrigin::root(), None));
 		assert_eq!(Manager::<Test>::get(), None);
 		System::assert_last_event(Event::ManagerSet { old: Some(ALICE), new: None }.into());

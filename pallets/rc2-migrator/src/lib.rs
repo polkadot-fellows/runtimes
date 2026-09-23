@@ -424,7 +424,7 @@ pub mod pallet {
 		#[pallet::call_index(4)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
-			T::AdminOrigin::ensure_origin(origin)?;
+			Self::ensure_root_or_admin(origin)?;
 			if let Some(ref who) = new {
 				ensure!(
 					frame_system::Pallet::<T>::consumers(who) == 0,
@@ -471,7 +471,16 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
+		/// Ensure that the origin is root or [`Config::AdminOrigin`].
+		fn ensure_root_or_admin(origin: OriginFor<T>) -> DispatchResult {
+			if ensure_root(origin.clone()).is_err() {
+				T::AdminOrigin::ensure_origin(origin)?;
+			}
+			Ok(())
+		}
+
+		/// Ensure that the origin is one accepted by [`Self::ensure_root_or_admin`] or signed by
+		/// the [`Manager`] account id.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			// TODO(ahm-v2): allow hardcoded local multisig to act as manager as well.
 			if let Ok(who) = ensure_signed(origin.clone()) {
@@ -479,8 +488,7 @@ pub mod pallet {
 					return Ok(());
 				}
 			}
-			T::AdminOrigin::ensure_origin(origin)?;
-			Ok(())
+			Self::ensure_root_or_admin(origin)
 		}
 
 		/// Execute one block of the stage machine.

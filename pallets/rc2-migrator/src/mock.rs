@@ -22,7 +22,7 @@ use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{OnInitialize, Time},
 };
-use frame_system::{EnsureRoot, EnsureSignedBy};
+use frame_system::EnsureSignedBy;
 use sp_runtime::BuildStorage;
 use xcm::prelude::*;
 
@@ -46,6 +46,9 @@ pub const CORETIME: AccountId = 1005;
 
 /// Somebody
 pub const ALICE: AccountId = 1;
+
+/// The account behind the admin origin.
+pub const ADMIN: AccountId = 2;
 
 pub const CT_PARA_ID: u32 = 1005;
 pub const WARM_UP: u64 = 4;
@@ -104,6 +107,7 @@ impl SendXcm for RecordingRouter {
 
 ord_parameter_types! {
 	pub const CoretimeAccount: AccountId = CORETIME;
+	pub const AdminAccount: AccountId = ADMIN;
 }
 
 impl pallet_rc2_migrator::Config for Test {
@@ -112,7 +116,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type CtParaId = CtParaId;
 	type TimeProvider = MockTime;
 	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId>;
-	type AdminOrigin = EnsureRoot<AccountId>;
+	type AdminOrigin = EnsureSignedBy<AdminAccount, AccountId>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

@@ -18,8 +18,8 @@
 
 use crate as pallet_ct_migrator;
 use codec::Decode;
-use frame_support::{derive_impl, parameter_types};
-use frame_system::EnsureRoot;
+use frame_support::{derive_impl, ord_parameter_types, parameter_types};
+use frame_system::EnsureSignedBy;
 use sp_runtime::BuildStorage;
 use xcm::prelude::*;
 
@@ -40,6 +40,12 @@ impl frame_system::Config for Test {
 
 // Somebody
 pub const ALICE: AccountId = 1;
+// The account behind the admin origin.
+pub const ADMIN: AccountId = 2;
+
+ord_parameter_types! {
+	pub const AdminAccount: AccountId = ADMIN;
+}
 
 parameter_types! {
 	/// Every message the pallet successfully sent, in order.
@@ -77,7 +83,7 @@ impl SendXcm for RecordingRouter {
 impl pallet_ct_migrator::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = RecordingRouter;
-	type AdminOrigin = EnsureRoot<AccountId>;
+	type AdminOrigin = EnsureSignedBy<AdminAccount, AccountId>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

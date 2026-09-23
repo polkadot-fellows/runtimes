@@ -172,7 +172,7 @@ fn the_manager_drives_the_migration_but_cannot_appoint_one() {
 		);
 
 		// GIVEN Alice appointed manager by the admin origin.
-		assert_ok!(Rc2Migrator::set_manager(RuntimeOrigin::root(), Some(ALICE)));
+		assert_ok!(Rc2Migrator::set_manager(RuntimeOrigin::signed(ADMIN), Some(ALICE)));
 		assert_eq!(Manager::<Test>::get(), Some(ALICE));
 		System::assert_last_event(Event::ManagerSet { old: None, new: Some(ALICE) }.into());
 
@@ -206,8 +206,8 @@ fn the_manager_drives_the_migration_but_cannot_appoint_one() {
 			BadOrigin
 		);
 
-		// WHEN the admin origin appoints an account that something else references. THEN it is
-		// refused: the migration reaps the manager account at the end.
+		// WHEN root appoints an account that something else references. THEN it is refused: the
+		// migration reaps the manager account at the end.
 		frame_system::Pallet::<Test>::inc_providers(&CORETIME);
 		assert_ok!(frame_system::Pallet::<Test>::inc_consumers(&CORETIME));
 		assert_noop!(
