@@ -45,7 +45,8 @@ pub type MigrationStageOf<T> = MigrationStage<BlockNumberFor<T>>;
 	MaxEncodedLen,
 )]
 pub struct MigratedBalances {
-	/// Balance that remains on the Relay Chain.
+	/// Issuance still on the Relay Chain. Seeded with the total issuance when the accounts stage
+	/// starts, and falls as the stages burn balance here. Zero once the migration ends.
 	pub kept: u128,
 	/// Deposits burned here and re-established as holds on the Coretime chain.
 	pub ct_reserved: u128,

@@ -87,19 +87,21 @@ pub mod pallet {
 
 	#[pallet::composite_enum]
 	pub enum HoldReason {
-		/// Registrar or HRMP deposit that was reserved on the Relay Chain.
-		///
-		/// Held under this reason until the owning pallet receives its state and takes its own
-		/// deposit out of it.
+		/// A Relay Chain para registration deposit. Held until the para record arrives and the
+		/// registrar pallet takes its own deposit out of it.
 		#[codec(index = 0)]
-		RcMigratedReserve,
+		RegistrarDeposit,
+		/// A Relay Chain HRMP channel deposit. Held until the channel record arrives and the
+		/// HRMP pallet takes its own deposit out of it.
+		#[codec(index = 1)]
+		HrmpDeposit,
 		/// A Relay Chain proxy deposit whose definitions travel here. Released when they arrive:
 		/// the recreated entry is re-reserved at this chain's rates and the rest becomes free.
-		#[codec(index = 1)]
+		#[codec(index = 2)]
 		ProxyDeposit,
 		/// Relay Chain reserve that no pallet's deposit records accounted for. Parked here for
 		/// investigation. Nothing was allowed to stay behind on the Relay Chain.
-		#[codec(index = 2)]
+		#[codec(index = 3)]
 		UnattributedReserve,
 	}
 
@@ -119,7 +121,8 @@ pub mod pallet {
 impl From<PortableHoldReason> for HoldReason {
 	fn from(reason: PortableHoldReason) -> Self {
 		match reason {
-			PortableHoldReason::UnnamedReserve => HoldReason::RcMigratedReserve,
+			PortableHoldReason::RegistrarDeposit => HoldReason::RegistrarDeposit,
+			PortableHoldReason::HrmpDeposit => HoldReason::HrmpDeposit,
 			PortableHoldReason::ProxyDeposit => HoldReason::ProxyDeposit,
 			PortableHoldReason::UnattributedReserve => HoldReason::UnattributedReserve,
 		}

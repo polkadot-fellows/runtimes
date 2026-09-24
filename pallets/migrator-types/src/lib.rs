@@ -78,16 +78,19 @@ pub fn translate_destination(who: &AccountId32) -> AccountId32 {
 	MaxEncodedLen,
 )]
 pub enum PortableHoldReason {
-	/// Registrar and HRMP deposits. Re-attributed to the owning pallet when its state arrives.
+	///  Registrar deposits. Re-attributed to the owning pallet when its state arrives.
 	#[codec(index = 0)]
-	UnnamedReserve,
+	RegistrarDeposit,
+	/// HRMP deposits. Re-attributed to the owning pallet when its state arrives.
+	#[codec(index = 1)]
+	HrmpDeposit,
 	/// Proxy deposit of a delegator whose definitions travel too. Resized to the destination's
 	/// rates when they arrive.
-	#[codec(index = 1)]
+	#[codec(index = 2)]
 	ProxyDeposit,
 	/// Reserve that no deposit record on the Relay Chain accounts for. Parked on the destination
 	/// for investigation.
-	#[codec(index = 2)]
+	#[codec(index = 3)]
 	UnattributedReserve,
 }
 
