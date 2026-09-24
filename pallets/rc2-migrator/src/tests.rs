@@ -103,7 +103,7 @@ fn accounts_stage_tracks_and_sends_exactly_what_it_burns() {
 					who: alice.clone(),
 					free: 100,
 					holds: vec![migrator_types::PortableHold {
-						reason: PortableHoldReason::UnnamedReserve,
+						reason: PortableHoldReason::RegistrarDeposit,
 						amount: 300,
 					}]
 					.try_into()
@@ -1019,6 +1019,20 @@ fn force_set_stage_needs_a_pause_and_the_admins_powers() {
 			Rc2Migrator::force_set_stage(root(), Stage::ProxyInit),
 			Error::<Test>::NotPaused
 		);
+
+		// WHEN it is paused and forced out of the run. THEN the pause goes with it: there is
+		// nothing to resume, and a fresh schedule starts without any further step.
+		assert_ok!(Rc2Migrator::pause_migration(root()));
+		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::Pending));
+		assert!(!Paused::<Test>::get());
+		assert_noop!(Rc2Migrator::resume_migration(root()), Error::<Test>::NotPaused);
+
+		// WHEN it is paused and forced to done. THEN the pause is gone as well.
+		set_stage(Stage::ProxyInit);
+		assert_ok!(Rc2Migrator::pause_migration(root()));
+		assert_ok!(Rc2Migrator::force_set_stage(root(), Stage::MigrationDone));
+		assert!(!Paused::<Test>::get());
+		assert_noop!(Rc2Migrator::resume_migration(root()), Error::<Test>::NotPaused);
 	});
 }
 

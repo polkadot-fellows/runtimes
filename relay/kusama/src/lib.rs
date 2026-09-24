@@ -153,6 +153,9 @@ mod bag_thresholds;
 // Historical information of society finances.
 mod past_payouts;
 
+// AHM v2 migration wiring.
+pub mod ahm_v2;
+
 // XCM configurations.
 pub mod para_control;
 pub mod xcm_config;
@@ -1725,58 +1728,6 @@ impl parachains_scheduler::Config for Runtime {}
 
 parameter_types! {
 	pub const BrokerId: u32 = system_parachain::BROKER_ID;
-	pub const AssetHubId: u32 = system_parachain::ASSET_HUB_ID;
-	/// Leftover pots emptied by the migration's `Sweep` stage.
-	///
-	/// Kusama's list is not Polkadot's: there is no retired direct-allocation pot here, and the
-	/// Society pot is Kusama-only. Each entry is a pot whose balance has no owner to migrate it
-	/// to, so it is swept rather than left stranded on a chain that will hold no DOT/KSM.
-	pub SweepAccounts: Vec<AccountId> = vec![
-		TreasuryPalletId::get().into_account_truncating(),
-		SocietyPalletId::get().into_account_truncating(),
-		OnDemandPalletId::get().into_account_truncating(),
-		// The accumulate-and-forward pot that collects relay-chain dust for Asset Hub.
-		PalletId(*b"acf/ksmt").into_account_truncating(),
-	];
-	/// Where swept pots and dust land on Asset Hub. Kusama sweeps to the treasury; Polkadot
-	/// sweeps to its DAP buffer. Same `PalletId` derivation, so the same address on both sides.
-	pub SweepBeneficiary: AccountId = TreasuryPalletId::get().into_account_truncating();
-	/// Audited issuance held by no account ("phantom issuance"), burned at the end of the
-	/// migration.
-	///
-	/// Measured by the `balance_census` test against the 22 Sep 2026 snapshot, which prints the
-	/// exact planck value. Re-measure and update ahead of the real run: this is a one-shot burn,
-	/// and burning more than the chain actually carries is unrecoverable.
-	pub const TiCorrection: u128 = 2_054_657_180_420;
-	/// Working buffer of free balance that follows a migrated deposit to the Coretime chain.
-	/// One KSM, mirroring Polkadot's one DOT — the two are different amounts of money, and the
-	/// point is a usable buffer on each chain rather than a matching number.
-	pub const CtFreeBuffer: Balance = UNITS;
-	/// The accounts that may drive the migration collectively. Governance seeds the real set
-	/// before a migration is scheduled; empty means only root and the appointed manager can act.
-	pub MigrationMultisigMembers: alloc::vec::Vec<AccountId> = alloc::vec::Vec::new();
-	/// Votes needed from distinct members.
-	pub const MigrationMultisigThreshold: u32 = 3;
-	/// Votes one member may cast per round.
-	pub const MigrationMultisigMaxVotesPerRound: u32 = 5;
-	/// A vote is signed over (who, call, round) and nothing else, so two networks sitting at the
-	/// same round would accept each other's signatures. This is what keeps them apart.
-	/// While the migration runs, the Coretime chain's upward queue is served first for this many
-	/// blocks out of every cycle, and every queue takes its turn for the rest.
-	pub const CtUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
-	pub const MigrationMultisigStartRound: u32 = 200;
-	/// How long a batch sent to the Coretime chain may go unanswered before the migration halts
-	/// itself. Generous next to a round trip through both message queues: the point is to catch a
-	/// message that will never be answered, not to police latency.
-	pub const MigrationXcmResponseTimeout: BlockNumber = 100;
-	/// How many batches may be outstanding before data extraction pauses for a block. Keeps the
-	/// relay chain from running far ahead of what Coretime has acknowledged, without serialising
-	/// the migration on a full round trip per batch.
-	pub const MigrationUnprocessedMsgBuffer: u32 = 8;
-	/// Asset Hub's existential deposit; mirrors
-	/// `system_parachains_constants::kusama::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT`
-	/// without pulling that crate into the relay runtime.
-	pub const AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 10;
 	pub const BrokerPalletId: PalletId = PalletId(*b"py/broke");
 	pub MaxXcmTransactWeight: Weight = Weight::from_parts(
 		250 * WEIGHT_REF_TIME_PER_MICROS,
@@ -2118,51 +2069,6 @@ impl pallet_rc_migrator::Config for Runtime {
 	type Currency = Balances;
 }
 
-impl pallet_rc2_migrator::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type SendXcm = xcm_config::XcmRouter;
-	type CtParaId = BrokerId;
-	type AhParaId = AssetHubId;
-	type CtFreeBuffer = CtFreeBuffer;
-	type AhExistentialDeposit = AhExistentialDeposit;
-	type SweepAccounts = SweepAccounts;
-	type SweepBeneficiary = SweepBeneficiary;
-	type TiCorrection = TiCorrection;
-	type TimeProvider = Timestamp;
-	type CtOrigin = pallet_xcm::EnsureXcm<frame_support::traits::Equals<xcm_config::Broker>>;
-	type AdminOrigin = EnsureRoot<AccountId>;
-	type RuntimeCall = RuntimeCall;
-	type MultisigMembers = MigrationMultisigMembers;
-	type MultisigThreshold = MigrationMultisigThreshold;
-	type MultisigMaxVotesPerRound = MigrationMultisigMaxVotesPerRound;
-	type MultisigStartRound = MigrationMultisigStartRound;
-	type MessageQueue = MessageQueue;
-	type CtUmpQueuePriorityPattern = CtUmpQueuePriorityPattern;
-	type XcmResponseTimeout = MigrationXcmResponseTimeout;
-	type UnprocessedMsgBuffer = MigrationUnprocessedMsgBuffer;
-	type NotifyQueryHandler = Runtime;
-	type ResponseOrigin =
-		pallet_xcm::EnsureResponse<frame_support::traits::Equals<xcm_config::Broker>>;
-}
-
-#[cfg(test)]
-mod ahm_v2_tests {
-	use crate::{Runtime, RuntimeCall};
-	use codec::Encode;
-	use pallet_ct_migrator::{Rc2MigratorCall, Rc2RuntimeCall};
-
-	/// The Coretime chain hand-encodes this chain's pallet and call index; decode what it sends
-	/// with the real `RuntimeCall` so a `construct_runtime!` reorder cannot pass silently.
-	#[test]
-	fn the_coretime_chain_encodes_this_chains_calls_correctly() {
-		assert_eq!(
-			Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady).encode(),
-			RuntimeCall::Rc2Migrator(pallet_rc2_migrator::Call::<Runtime>::ct_ready {}).encode(),
-		);
-	}
-}
-
 construct_runtime! {
 	pub enum Runtime
 	{
@@ -2295,14 +2201,16 @@ construct_runtime! {
 		// Relay Chain Migrator
 		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
 		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
+		RcMigrator: pallet_rc_migrator = 255,
+		// AHM v2 migrator. Below `MessageQueue` for the same reason as `RcMigrator`: its
+		// `on_initialize` has to see the block's inbound messages.
+		Rc2Migrator: pallet_rc2_migrator = 254,
+
 		// The parachain control plane's relay-chain half. Driven only by the Coretime chain
 		// over XCM; see `para_control`. Indices match Polkadot's so both networks encode the
 		// same bytes.
 		RegistrarRelay: pallet_registrar_relay = 250,
 		HrmpRelay: pallet_hrmp_relay = 251,
-
-		Rc2Migrator: pallet_rc2_migrator = 254,
-		RcMigrator: pallet_rc_migrator = 255,
 	}
 }
 

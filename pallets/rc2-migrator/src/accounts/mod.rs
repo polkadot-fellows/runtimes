@@ -105,10 +105,12 @@ type AccountInfoFor<T> = frame_system::AccountInfo<
 	MaxEncodedLen,
 )]
 pub struct ExpectedReserve {
-	/// Continues on the Coretime chain as an `UnnamedReserve` hold: registrar deposits recorded
-	/// for the account as manager, HRMP channel and request deposits recorded for it as (child)
-	/// para sovereign.
-	pub ct: u128,
+	/// Continues on the Coretime chain as a `RegistrarDeposit` hold: registration deposits
+	/// recorded for the account as manager.
+	pub registrar: u128,
+	/// Continues on the Coretime chain as an `HrmpDeposit` hold: channel and open-request
+	/// deposits recorded for the account as (child) para sovereign.
+	pub hrmp: u128,
 	/// Continues on the Coretime chain as a `ProxyDeposit` hold (resized when the definitions
 	/// arrive): proxy deposits of delegators with at least one portable definition.
 	pub proxy: u128,
@@ -194,23 +196,24 @@ impl<T: Config> AccountsMigrator<T> {
 				});
 			}
 		};
-		let add_ct = |who, amount| add(who, amount, |e| &mut e.ct);
+		let add_registrar = |who, amount| add(who, amount, |e| &mut e.registrar);
+		let add_hrmp = |who, amount| add(who, amount, |e| &mut e.hrmp);
 		let add_proxy = |who, amount| add(who, amount, |e| &mut e.proxy);
 		let add_refund = |who, amount| add(who, amount, |e| &mut e.refund);
 
 		for (_, info) in paras_registrar::Paras::<T>::iter() {
-			add_ct(info.manager, info.deposit);
+			add_registrar(info.manager, info.deposit);
 			records += 1;
 		}
 		for (id, channel) in runtime_parachains::hrmp::HrmpChannels::<T>::iter() {
-			add_ct(id.sender.into_account_truncating(), channel.sender_deposit);
-			add_ct(id.recipient.into_account_truncating(), channel.recipient_deposit);
+			add_hrmp(id.sender.into_account_truncating(), channel.sender_deposit);
+			add_hrmp(id.recipient.into_account_truncating(), channel.recipient_deposit);
 			records += 1;
 		}
 		// Pending open-channel requests migrate to the Coretime chain with their deposits, so
 		// the sender sovereigns' request deposits are Coretime-bound like channel deposits.
 		for (id, request) in runtime_parachains::hrmp::HrmpOpenChannelRequests::<T>::iter() {
-			add_ct(id.sender.into_account_truncating(), request.sender_deposit);
+			add_hrmp(id.sender.into_account_truncating(), request.sender_deposit);
 			records += 1;
 		}
 		for (who, (defs, deposit)) in pallet_proxy::Proxies::<T>::iter() {
@@ -384,7 +387,7 @@ impl<T: Config> AccountsMigrator<T> {
 			defensive_assert!(burned == total, "burned the account's whole balance");
 		}
 
-		// The split, in priority order: Coretime-bound deposits, then proxy deposits, then
+		// The split, in priority order: registrar deposits, HRMP deposits, proxy deposits, then
 		// refunds; whatever the expectations do not cover is unattributed. Each line consumes
 		// from one remainder, so a live reserve that under-covers the records is attributed to
 		// the deposits that continue first.
@@ -394,7 +397,8 @@ impl<T: Config> AccountsMigrator<T> {
 			remainder -= taken;
 			taken
 		};
-		let ct_hold = consume(expected.ct);
+		let registrar_hold = consume(expected.registrar);
+		let hrmp_hold = consume(expected.hrmp);
 		let proxy_hold = consume(expected.proxy);
 		let refunded = consume(expected.refund);
 		let unattributed = remainder;
@@ -420,7 +424,10 @@ impl<T: Config> AccountsMigrator<T> {
 		// Exception: a never-signed delegator granting an `Any` proxy is a keyless pure proxy in
 		// all but name. Its delegate keeps full control only on the Coretime chain, where the
 		// proxy stage recreates the definitions, so ALL of its liquid balance goes there.
-		let held = ct_hold.saturating_add(proxy_hold).saturating_add(unattributed);
+		let held = registrar_hold
+			.saturating_add(hrmp_hold)
+			.saturating_add(proxy_hold)
+			.saturating_add(unattributed);
 		let liquid = free.saturating_add(refunded);
 		let mut ct_free = if Self::is_pure_like(who, &info) {
 			liquid
@@ -441,7 +448,8 @@ impl<T: Config> AccountsMigrator<T> {
 		} else {
 			let mut holds = BoundedVec::default();
 			for (reason, amount) in [
-				(PortableHoldReason::UnnamedReserve, ct_hold),
+				(PortableHoldReason::RegistrarDeposit, registrar_hold),
+				(PortableHoldReason::HrmpDeposit, hrmp_hold),
 				(PortableHoldReason::ProxyDeposit, proxy_hold),
 				(PortableHoldReason::UnattributedReserve, unattributed),
 			] {

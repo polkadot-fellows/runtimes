@@ -35,7 +35,7 @@ fn receive_mints_free_and_holds_exactly() {
 
 		// WHEN a batch arrives with one fresh and one pre-existing account.
 		Receiver::receive(vec![
-			portable_account(&alice, 50, vec![(PortableHoldReason::UnnamedReserve, 500)]),
+			portable_account(&alice, 50, vec![(PortableHoldReason::RegistrarDeposit, 500)]),
 			portable_account(
 				&charlie,
 				30,
@@ -48,7 +48,7 @@ fn receive_mints_free_and_holds_exactly() {
 
 		// THEN each account holds exactly what was sent, split free vs held per reason.
 		assert_eq!(free(&alice), 50);
-		assert_eq!(held(HoldReason::RcMigratedReserve, &alice), 500);
+		assert_eq!(held(HoldReason::RegistrarDeposit, &alice), 500);
 		assert_eq!(free(&charlie), 100 + 30);
 		assert_eq!(held(HoldReason::ProxyDeposit, &charlie), 70);
 		assert_eq!(held(HoldReason::UnattributedReserve, &charlie), 5);
@@ -73,13 +73,13 @@ fn sub_ed_free_keeps_the_ed_and_holds_the_rest() {
 		Receiver::receive(vec![portable_account(
 			&bob,
 			2,
-			vec![(PortableHoldReason::UnnamedReserve, 40)],
+			vec![(PortableHoldReason::RegistrarDeposit, 40)],
 		)]);
 
 		// THEN the ED stays free and the hold takes the rest. The account is provided for by its
 		// own balance, and nothing was burned.
 		assert_eq!(free(&bob), ED);
-		assert_eq!(held(HoldReason::RcMigratedReserve, &bob), 32);
+		assert_eq!(held(HoldReason::RegistrarDeposit, &bob), 32);
 		assert_eq!(frame_system::Pallet::<Test>::providers(&bob), 1);
 		assert_eq!(frame_system::Pallet::<Test>::consumers(&bob), 1);
 		assert_eq!(CtMintedTotal::<Test>::get(), 42);
@@ -87,9 +87,12 @@ fn sub_ed_free_keeps_the_ed_and_holds_the_rest() {
 
 		// AND WHEN a later stage releases the migrated reserve, the record is honoured up to what
 		// is held and the 8 that stayed free is reported as a shortfall.
-		assert_ok!(Receiver::release_rc_reserve(&bob, 40), (32, 8));
+		assert_ok!(
+			Receiver::release_migrated_deposit(HoldReason::RegistrarDeposit, &bob, 40),
+			(32, 8)
+		);
 		assert_eq!(free(&bob), 42);
-		assert_eq!(held(HoldReason::RcMigratedReserve, &bob), 0);
+		assert_eq!(held(HoldReason::RegistrarDeposit, &bob), 0);
 		assert_eq!(total_issuance(), 42);
 
 		// AND a record asking for more than arrived is honoured up to what is held, the rest
@@ -103,10 +106,13 @@ fn hypothetically_release_shortfall(who: &AccountId32) {
 		Receiver::receive(vec![portable_account(
 			who,
 			0,
-			vec![(PortableHoldReason::UnnamedReserve, 30)],
+			vec![(PortableHoldReason::RegistrarDeposit, 30)],
 		)]);
-		assert_ok!(Receiver::release_rc_reserve(who, 50), (30, 20));
-		assert_eq!(held(HoldReason::RcMigratedReserve, who), 0);
+		assert_ok!(
+			Receiver::release_migrated_deposit(HoldReason::RegistrarDeposit, who, 50),
+			(30, 20)
+		);
+		assert_eq!(held(HoldReason::RegistrarDeposit, who), 0);
 	});
 }
 

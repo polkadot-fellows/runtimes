@@ -66,8 +66,8 @@ fn unpaid_transact_native<Call: Encode>(call: Call) -> Vec<u8> {
 /// keyed (`nonce > 0`) accounts whose reserve is fully CT-bound (which is what
 /// [`find_clean_manager`] selects); never-signed `Any`-delegators route everything to CT instead.
 fn expected_split(free: u128, reserved: u128) -> (u128, u128) {
-	let buffer: u128 = crate::mock::network::relay::CtFreeBuffer::get();
-	let ah_ed: u128 = crate::mock::network::relay::AhExistentialDeposit::get();
+	let buffer: u128 = crate::mock::network::relay::ahm_v2::CtFreeBuffer::get();
+	let ah_ed: u128 = crate::mock::network::relay::ahm_v2::AhExistentialDeposit::get();
 	let mut ct_free = if reserved == 0 { 0 } else { free.min(buffer) };
 	let mut ah_free = free - ct_free;
 	if ah_free > 0 && ah_free < ah_ed && reserved > 0 {
@@ -725,7 +725,7 @@ async fn proxy_census() {
 ///
 /// On the relay chain that deposit is an anonymous reserve (old `Currency::reserve` API, no
 /// record of why). The migration must not recreate anonymous money: the amount has to arrive on
-/// Coretime as a hold under an explicit reason — `CtMigrator(RcMigratedReserve)` until the pallet
+/// Coretime as a hold under an explicit reason — `CtMigrator(RegistrarDeposit)` until the pallet
 /// owning the deposit migrates and re-attributes it — which is what the hold assertions below
 /// pin down.
 #[tokio::test(flavor = "multi_thread")]
@@ -858,7 +858,7 @@ async fn accounts_migrate_rc_to_ct() {
 		assert_eq!(
 			holds[0].id,
 			crate::mock::network::ct::RuntimeHoldReason::CtMigrator(
-				pallet_ct_migrator::HoldReason::RcMigratedReserve
+				pallet_ct_migrator::HoldReason::RegistrarDeposit
 			)
 		);
 		assert_eq!(holds[0].amount, rc_reserved);
@@ -970,13 +970,14 @@ async fn full_migration_rc_to_ct() {
 	let (treasury, sweep_pots, sweep_dust, sibl_before) = rc.execute_with(|| {
 		let treasury: AccountId32 =
 			crate::mock::network::relay::TreasuryPalletId::get().into_account_truncating();
-		let pots: Vec<(AccountId32, u128)> = crate::mock::network::relay::SweepAccounts::get()
-			.into_iter()
-			.map(|who| {
-				let amount = frame_system::Account::<Rc>::get(&who).data.free;
-				(who, amount)
-			})
-			.collect();
+		let pots: Vec<(AccountId32, u128)> =
+			crate::mock::network::relay::ahm_v2::SweepAccounts::get()
+				.into_iter()
+				.map(|who| {
+					let amount = frame_system::Account::<Rc>::get(&who).data.free;
+					(who, amount)
+				})
+				.collect();
 		let ed = pallet_balances::Pallet::<Rc>::minimum_balance();
 		let mut dust = 0u128;
 		for (_, info) in frame_system::Account::<Rc>::iter() {
@@ -1521,7 +1522,7 @@ async fn full_migration_rc_to_ct() {
 		// measured unaccounted issuance on this snapshot, so nothing remains and no anomaly.
 		assert_eq!(
 			tracker.ti_corrected,
-			crate::mock::network::relay::TiCorrection::get(),
+			crate::mock::network::relay::ahm_v2::TiCorrection::get(),
 			"TI correction burned exactly the audited amount"
 		);
 		(tracker, migrated_nonce0)

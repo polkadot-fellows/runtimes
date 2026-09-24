@@ -128,17 +128,18 @@ impl<T: Config> AccountsReceiver<T> {
 		Ok(minted)
 	}
 
-	/// Release `min(wanted, actually-held)` of `who`'s migrated `RcMigratedReserve` hold to free
+	/// Release `min(wanted, actually-held)` of `who`'s migrated hold under `reason` to free
 	/// balance, returning `(released, shortfall)`.
 	///
 	/// The reconciliation rule of the whole receiving side: recorded deposits are honoured up to
 	/// what actually arrived held, and the difference is the caller's to park under its own key.
 	/// One implementation so every deposit kind reconciles identically.
-	pub fn release_rc_reserve(
+	pub fn release_migrated_deposit(
+		reason: HoldReason,
 		who: &T::AccountId,
 		wanted: BalanceOf<T>,
 	) -> Result<(BalanceOf<T>, BalanceOf<T>), DispatchError> {
-		let rc_reason: T::RuntimeHoldReason = HoldReason::RcMigratedReserve.into();
+		let rc_reason: T::RuntimeHoldReason = reason.into();
 		let held = <T as Config>::Currency::balance_on_hold(&rc_reason, who);
 		let release = wanted.min(held);
 		if !release.is_zero() {

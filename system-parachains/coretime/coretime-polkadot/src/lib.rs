@@ -24,6 +24,8 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 extern crate alloc;
 
+// AHM v2 migration wiring.
+mod ahm_v2;
 mod coretime;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
@@ -751,29 +753,6 @@ impl cumulus_pallet_weight_reclaim::Config for Runtime {
 	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
 }
 
-parameter_types! {
-	/// While the migration runs, the relay chain's downward queue is served first for this many
-	/// blocks out of every cycle, and every queue takes its turn for the rest.
-	pub const DmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
-}
-
-impl pallet_ct_migrator::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type RuntimeHoldReason = RuntimeHoldReason;
-	// Relay blocks are 6s, this chain's are 12s: migrated proxy delays halve.
-	type RcBlockTimeRatio = ConstU32<2>;
-	// Migrated records are handed straight to the pallets that own them, which take their own
-	// deposits at this chain's rates rather than inheriting the relay chain's amounts.
-	type RegistrarReceiver = RegistrarPara;
-	type HrmpReceiver = HrmpPara;
-	type SendXcm = xcm_config::XcmRouter;
-	type AdminOrigin = EnsureRoot<AccountId>;
-	type MessageQueue = MessageQueue;
-	type DmpQueuePriorityPattern = DmpQueuePriorityPattern;
-}
-
-
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -810,15 +789,14 @@ construct_runtime!(
 		// The main stage.
 		Broker: pallet_broker = 50,
 
-		// Coretime-chain side of the Minimal Relay migration. The pallet index is encoded into
-		// the calls that `pallet-rc2-migrator` sends here; keep them in sync.
 		// The user-facing half of the parachain control plane. The pallet indices are encoded
 		// into the calls the relay chain sends here; keep them in sync with `para_control` on
 		// both sides.
 		RegistrarPara: pallet_registrar_para = 60,
 		HrmpPara: pallet_hrmp_para = 61,
 
-		CtMigrator: pallet_ct_migrator = 100,
+		// AHM v2 migrator.
+		CtMigrator: pallet_ct_migrator = 255,
 	}
 );
 

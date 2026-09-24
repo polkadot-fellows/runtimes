@@ -89,8 +89,7 @@ const LOG_TARGET: &str = "runtime::rc2-migrator";
 pub type MigrationStageOf<T> =
 	MigrationStage<<T as frame_system::Config>::AccountId, BlockNumberFor<T>, MomentOf<T>>;
 
-/// Total balance kept on the Relay Chain and total migrated, by destination. Every field is in
-/// Relay Chain plancks and the sum is the total issuance the accounts stage started from.
+/// Total balance kept on the Relay Chain and total migrated, by destination.
 #[derive(
 	Encode,
 	Decode,
@@ -105,7 +104,8 @@ pub type MigrationStageOf<T> =
 	MaxEncodedLen,
 )]
 pub struct MigratedBalances {
-	/// Balance that remains on the Relay Chain.
+	/// Issuance still on the Relay Chain. Seeded with the total issuance when the accounts stage
+	/// starts, and falls as the stages burn balance here. Zero once the migration ends.
 	pub kept: u128,
 	/// Deposits burned here and re-established as holds on the Coretime chain.
 	pub ct_reserved: u128,
@@ -169,7 +169,8 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// to receive the migration data.
 	WaitingForCt,
 	WarmUp {
-		/// The block number at which the warm-up period will end.
+		/// The block number at which the warm-up period will end. It is absolute and a pause
+		/// does not move it.
 		///
 		/// After the warm-up period ends, the Relay Chain will start to send the migration data
 		/// to the Coretime chain.
@@ -220,7 +221,8 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// Burn the audited issuance that no account holds.
 	TiCorrection,
 	CoolOff {
-		/// The block number at which the post migration cool-off period will end.
+		/// The block number at which the post migration cool-off period will end. It is absolute
+		/// and a pause does not move it.
 		end_at: BlockNumber,
 	},
 	/// The migration is done.
@@ -269,7 +271,7 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 }
 
 /// `CtMigrator`'s pallet index in the Coretime (receiver) chain.
-pub const CT_MIGRATOR_PALLET_INDEX: u8 = 100;
+pub const CT_MIGRATOR_PALLET_INDEX: u8 = 255;
 
 /// Call encoding for the Coretime chain runtime, reduced to the pallet this chain dispatches into.
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
@@ -355,6 +357,10 @@ where
 pub mod pallet {
 	use super::*;
 
+	/// Bound to `pallet_balances` rather than the fungible traits because the accounts stage
+	/// edits `frame_system::Account` and `pallet_balances::TotalIssuance` directly: a migrating
+	/// account is burned whole, including one that other pallets still reference, and no
+	/// fungible API allows that.
 	#[pallet::config]
 	pub trait Config:
 		frame_system::Config<
@@ -519,6 +525,8 @@ pub mod pallet {
 	/// may be repositioned with `force_set_stage`, and `resume_migration` continues from whatever
 	/// stage it then holds. Inbound signals such as `ct_ready` and batch reports are still
 	/// recorded; only `on_initialize` stands still.
+	///
+	/// Only set while the stage is ongoing. Forcing the stage out of the run clears it.
 	///
 	/// Different from v1's `MigrationStage::MigrationPaused` variant: an independent flag, so the
 	/// stage paused at is kept.
@@ -817,12 +825,19 @@ pub mod pallet {
 		/// This call is intended for emergency use only and is guarded by the
 		/// [`Config::AdminOrigin`] or the [`Manager`]. Unlike v1 it is only accepted while
 		/// [`Paused`]: pause, force, then resume.
+		///
+		/// A target outside the run (`Pending`, `Scheduled`, `MigrationDone`) ends the pause with
+		/// it, so no `resume_migration` follows. `Scheduled` with a `start` already in the past
+		/// starts on the next block.
 		#[pallet::call_index(1)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 2))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 			ensure!(Paused::<T>::get(), Error::<T>::NotPaused);
 
+			if !stage.is_ongoing() {
+				Paused::<T>::kill();
+			}
 			Self::transition(stage);
 			Ok(())
 		}
@@ -881,7 +896,7 @@ pub mod pallet {
 		#[pallet::call_index(4)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
-			T::AdminOrigin::ensure_origin(origin)?;
+			Self::ensure_root_or_admin(origin)?;
 			if let Some(ref who) = new {
 				ensure!(
 					frame_system::Pallet::<T>::consumers(who) == 0,
@@ -1094,8 +1109,16 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		/// Ensure that the origin is [`Config::AdminOrigin`], or signed by the [`Manager`] account
-		/// id or by the manager multisig.
+		/// Ensure that the origin is root or [`Config::AdminOrigin`].
+		fn ensure_root_or_admin(origin: OriginFor<T>) -> DispatchResult {
+			if ensure_root(origin.clone()).is_err() {
+				T::AdminOrigin::ensure_origin(origin)?;
+			}
+			Ok(())
+		}
+
+		/// Ensure that the origin is one accepted by [`Self::ensure_root_or_admin`] or signed by
+		/// the [`Manager`] account id or by the manager multisig.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(who) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().is_some_and(|manager| manager == who) {
@@ -1105,8 +1128,7 @@ pub mod pallet {
 					return Ok(());
 				}
 			}
-			T::AdminOrigin::ensure_origin(origin)?;
-			Ok(())
+			Self::ensure_root_or_admin(origin)
 		}
 
 		/// Put the Coretime chain's upward queue at the head of the service ring for the next
@@ -1349,7 +1371,14 @@ pub mod pallet {
 					);
 					T::DbWeight::get().reads_writes(6, 6)
 				},
-				_ => T::DbWeight::get().reads(1),
+				// Waiting on the clock or a block height.
+				MigrationStage::Scheduled { .. } |
+				MigrationStage::WaitingForCt |
+				MigrationStage::WarmUp { .. } |
+				MigrationStage::CoolOff { .. } => T::DbWeight::get().reads(1),
+				// Nothing runs before the schedule or after the end.
+				MigrationStage::Pending | MigrationStage::MigrationDone =>
+					T::DbWeight::get().reads(1),
 			}
 		}
 
@@ -1479,8 +1508,7 @@ pub mod pallet {
 
 		/// Execute a stage transition and log it.
 		pub(crate) fn transition(new: MigrationStageOf<T>) {
-			let old = RcMigrationStage::<T>::get();
-			RcMigrationStage::<T>::put(new.clone());
+			let old = RcMigrationStage::<T>::mutate(|stage| core::mem::replace(stage, new.clone()));
 			log::info!(target: LOG_TARGET, "Stage transition: {old:?} -> {new:?}");
 			Self::deposit_event(Event::StageTransition { old, new });
 		}

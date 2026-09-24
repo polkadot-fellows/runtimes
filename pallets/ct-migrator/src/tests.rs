@@ -42,14 +42,14 @@ fn receive_accounts_mints_free_and_holds_exactly() {
 		assert_ok!(CtMigrator::receive_accounts(
 			root(),
 			vec![
-				portable_account(&alice, 50, vec![(PortableHoldReason::UnnamedReserve, 500)]),
+				portable_account(&alice, 50, vec![(PortableHoldReason::RegistrarDeposit, 500)]),
 				portable_account(&charlie, 30, vec![(PortableHoldReason::ProxyDeposit, 70)]),
 			],
 		));
 
 		// THEN each account holds exactly what was sent, split free vs held per reason.
 		assert_eq!(free(&alice), 50);
-		assert_eq!(held(HoldReason::RcMigratedReserve, &alice), 500);
+		assert_eq!(held(HoldReason::RegistrarDeposit, &alice), 500);
 		assert_eq!(free(&charlie), 100 + 30);
 		assert_eq!(held(HoldReason::ProxyDeposit, &charlie), 70);
 
@@ -77,12 +77,12 @@ fn sub_ed_free_keeps_the_ed_and_parks_the_shortfall_on_reattribution() {
 		// GIVEN nothing; bob does not exist. WHEN his free part cannot provide the ED (ED is 10).
 		assert_ok!(CtMigrator::receive_accounts(
 			root(),
-			vec![portable_account(&bob, 2, vec![(PortableHoldReason::UnnamedReserve, 40)])],
+			vec![portable_account(&bob, 2, vec![(PortableHoldReason::RegistrarDeposit, 40)])],
 		));
 
 		// THEN the ED stays free and the hold takes the rest.
 		assert_eq!(free(&bob), ED);
-		assert_eq!(held(HoldReason::RcMigratedReserve, &bob), 32);
+		assert_eq!(held(HoldReason::RegistrarDeposit, &bob), 32);
 		assert_eq!(frame_system::Pallet::<Test>::providers(&bob), 1);
 		assert_eq!(CtMintedTotal::<Test>::get(), 42);
 		assert_eq!(total_issuance(), 42);
@@ -103,7 +103,7 @@ fn sub_ed_free_keeps_the_ed_and_parks_the_shortfall_on_reattribution() {
 			None,
 		));
 		assert_eq!(free(&bob), 42);
-		assert_eq!(held(HoldReason::RcMigratedReserve, &bob), 0);
+		assert_eq!(held(HoldReason::RegistrarDeposit, &bob), 0);
 		assert_eq!(ReattributedDeposits::<Test>::get(), 32);
 		assert_eq!(ParkedDepositShortfalls::<Test>::iter().collect::<Vec<_>>(), vec![(2000, 8)]);
 		assert!(migrator_events()
@@ -145,7 +145,7 @@ fn sub_ed_free_keeps_the_ed_through_proxy_deposit_resize() {
 fn receive_registrar_releases_the_deposit_and_hands_the_para_over() {
 	new_test_ext().execute_with(|| {
 		let alice = acc(1); // parachain manager
-		give_hold(&alice, HoldReason::RcMigratedReserve, 500);
+		give_hold(&alice, HoldReason::RegistrarDeposit, 500);
 		let para = PortableParaInfo {
 			para_id: 2000,
 			manager: alice.clone(),
@@ -162,7 +162,7 @@ fn receive_registrar_releases_the_deposit_and_hands_the_para_over() {
 		// holds its deposits as `Consideration` tickets, which can only be minted by taking
 		// funds, and it prices them at this chain's rates. Anything beyond the recorded amount
 		// stays parked under the generic migrated reason.
-		assert_eq!(held(HoldReason::RcMigratedReserve, &alice), 200);
+		assert_eq!(held(HoldReason::RegistrarDeposit, &alice), 200);
 		assert_eq!(ReattributedDeposits::<Test>::get(), 300);
 		assert!(ParkedDepositShortfalls::<Test>::iter().next().is_none());
 
@@ -190,7 +190,7 @@ fn receive_registrar_releases_the_deposit_and_hands_the_para_over() {
 fn registrar_shortfall_is_parked_never_minted() {
 	new_test_ext().execute_with(|| {
 		let alice = acc(1); // manager whose recorded deposit exceeds what arrived (RC anomaly)
-		give_hold(&alice, HoldReason::RcMigratedReserve, 100);
+		give_hold(&alice, HoldReason::RegistrarDeposit, 100);
 
 		let para = PortableParaInfo {
 			para_id: 2000,
@@ -203,7 +203,7 @@ fn registrar_shortfall_is_parked_never_minted() {
 		let ti_before = total_issuance();
 		assert_ok!(CtMigrator::receive_registrar(root(), vec![para.clone()], None));
 
-		assert_eq!(held(HoldReason::RcMigratedReserve, &alice), 0);
+		assert_eq!(held(HoldReason::RegistrarDeposit, &alice), 0);
 		assert_eq!(ParkedDepositShortfalls::<Test>::get(2000), Some(150));
 		assert_eq!(total_issuance(), ti_before);
 		// The para still lands: a shortfall is an accounting gap, not a failed record. It is a
@@ -221,7 +221,7 @@ fn registrar_shortfall_is_parked_never_minted() {
 fn multi_para_manager_attribution_is_capped_by_what_arrived() {
 	new_test_ext().execute_with(|| {
 		let alice = acc(1); // manager of two paras, arrived hold covers only 500 of 600
-		give_hold(&alice, HoldReason::RcMigratedReserve, 500);
+		give_hold(&alice, HoldReason::RegistrarDeposit, 500);
 		let para = |id| PortableParaInfo {
 			para_id: id,
 			manager: alice.clone(),
@@ -236,7 +236,7 @@ fn multi_para_manager_attribution_is_capped_by_what_arrived() {
 		// The first para's deposit is released in full, the second gets only the remainder, and
 		// the gap parks under it. What arrived caps what can be handed over, however many paras
 		// share a manager.
-		assert_eq!(held(HoldReason::RcMigratedReserve, &alice), 0);
+		assert_eq!(held(HoldReason::RegistrarDeposit, &alice), 0);
 		assert_eq!(ReattributedDeposits::<Test>::get(), 500);
 		assert_eq!(ParkedDepositShortfalls::<Test>::get(2100), None);
 		assert_eq!(ParkedDepositShortfalls::<Test>::get(2200), Some(100));
@@ -253,8 +253,8 @@ fn receive_hrmp_reattributes_both_sides_on_sibling_sovereigns() {
 	new_test_ext().execute_with(|| {
 		let sov_sender: AccountId32 = sibling_account(2000);
 		let sov_recipient: AccountId32 = sibling_account(2001);
-		give_hold(&sov_sender, HoldReason::RcMigratedReserve, 100);
-		give_hold(&sov_recipient, HoldReason::RcMigratedReserve, 50);
+		give_hold(&sov_sender, HoldReason::HrmpDeposit, 100);
+		give_hold(&sov_recipient, HoldReason::HrmpDeposit, 50);
 
 		let channel = PortableHrmpChannel {
 			sender: 2000,
@@ -269,7 +269,7 @@ fn receive_hrmp_reattributes_both_sides_on_sibling_sovereigns() {
 
 		// Released rather than re-labelled, for the same reason as the registrar's: the HRMP
 		// pallet mints its own `Consideration` tickets at this chain's rates.
-		assert_eq!(held(HoldReason::RcMigratedReserve, &sov_sender), 0);
+		assert_eq!(held(HoldReason::HrmpDeposit, &sov_sender), 0);
 		assert_eq!(ReattributedHrmpDeposits::<Test>::get(), 150);
 		assert!(ParkedHrmpShortfalls::<Test>::iter().next().is_none());
 
@@ -306,7 +306,7 @@ fn receive_hrmp_reattributes_both_sides_on_sibling_sovereigns() {
 fn receive_hrmp_requests_relabels_and_always_stores() {
 	new_test_ext().execute_with(|| {
 		let sov: AccountId32 = sibling_account(2000);
-		give_hold(&sov, HoldReason::RcMigratedReserve, 60);
+		give_hold(&sov, HoldReason::HrmpDeposit, 60);
 
 		let request = |recipient, deposit| PortableHrmpRequest {
 			sender: 2000,

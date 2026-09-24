@@ -204,19 +204,21 @@ pub mod pallet {
 
 	#[pallet::composite_enum]
 	pub enum HoldReason {
-		/// Registrar or HRMP deposit that was reserved on the Relay Chain.
-		///
-		/// Held under this reason until the owning pallet receives its state and takes its own
-		/// deposit out of it.
+		/// A Relay Chain para registration deposit. Held until the para record arrives and the
+		/// registrar pallet takes its own deposit out of it.
 		#[codec(index = 0)]
-		RcMigratedReserve,
+		RegistrarDeposit,
+		/// A Relay Chain HRMP channel deposit. Held until the channel record arrives and the
+		/// HRMP pallet takes its own deposit out of it.
+		#[codec(index = 1)]
+		HrmpDeposit,
 		/// A Relay Chain proxy deposit whose definitions travel here. Released when they arrive:
 		/// the recreated entry is re-reserved at this chain's rates and the rest becomes free.
-		#[codec(index = 1)]
+		#[codec(index = 2)]
 		ProxyDeposit,
 		/// Relay Chain reserve that no pallet's deposit records accounted for. Parked here for
 		/// investigation. Nothing was allowed to stay behind on the Relay Chain.
-		#[codec(index = 2)]
+		#[codec(index = 3)]
 		UnattributedReserve,
 	}
 
@@ -282,13 +284,11 @@ pub mod pallet {
 	pub type ParkedDepositShortfalls<T: Config> =
 		StorageMap<_, Twox64Concat, u32, BalanceOf<T>, OptionQuery>;
 
-	/// Total released from `RcMigratedReserve` for registrar deposits, so the registrar pallet
-	/// could take its own.
+	/// Total released from `RegistrarDeposit` holds, so the registrar pallet could take its own.
 	#[pallet::storage]
 	pub type ReattributedDeposits<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
-	/// Total released from `RcMigratedReserve` for HRMP deposits, so the HRMP pallet could take
-	/// its own.
+	/// Total released from `HrmpDeposit` holds, so the HRMP pallet could take its own.
 	#[pallet::storage]
 	pub type ReattributedHrmpDeposits<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
@@ -393,7 +393,7 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(4, 2))]
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
-			Self::ensure_root_or_admin_or_manager(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 
 			// TODO(ahm-v2): lock this chain down before answering, until the migration ends:
 			// filter the calls whose state is about to move, and refuse inbound XCM from anyone
@@ -420,7 +420,7 @@ pub mod pallet {
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn end_lockdown(origin: OriginFor<T>) -> DispatchResult {
-			Self::ensure_root_or_admin_or_manager(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 
 			match CtMigrationStage::<T>::get() {
 				MigrationStage::CoolOff => Self::transition(MigrationStage::MigrationDone),
@@ -453,7 +453,7 @@ pub mod pallet {
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
-			T::AdminOrigin::ensure_origin(origin)?;
+			Self::ensure_root_or_admin(origin)?;
 
 			let old = Manager::<T>::get();
 			Manager::<T>::set(new.clone());
@@ -568,7 +568,7 @@ pub mod pallet {
 		/// Receive a batch of pending HRMP open-channel requests migrated from the relay chain.
 		///
 		/// Each record is handed over and the sender's deposit — which arrived as an
-		/// `RcMigratedReserve` hold on the sibling sovereign during the accounts stage — is
+		/// `HrmpDeposit` hold on the sibling sovereign during the accounts stage — is
 		/// released for the HRMP pallet to take its own, same rule as channel deposits.
 		#[pallet::call_index(9)]
 		#[pallet::weight(
@@ -591,7 +591,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			new: QueuePriority<BlockNumberFor<T>>,
 		) -> DispatchResult {
-			T::AdminOrigin::ensure_origin(origin)?;
+			Self::ensure_admin_or_manager(origin)?;
 			let old = DmpQueuePriorityConfig::<T>::get();
 			ensure!(old != new, Error::<T>::QueuePriorityAlreadySet);
 			if let QueuePriority::OverrideConfig(priority_blocks, _) = new {
@@ -604,24 +604,23 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		/// Ensure that the origin is [`Config::AdminOrigin`] or signed by [`Manager`] account id.
+		/// Ensure that the origin is root, or [`Config::AdminOrigin`].
+		fn ensure_root_or_admin(origin: OriginFor<T>) -> DispatchResult {
+			if ensure_root(origin.clone()).is_err() {
+				T::AdminOrigin::ensure_origin(origin)?;
+			}
+			Ok(())
+		}
+
+		/// Ensure that the origin is one accepted by [`Self::ensure_root_or_admin`] or signed by
+		/// the [`Manager`] account id.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			if let Ok(who) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().is_some_and(|manager| manager == who) {
 					return Ok(());
 				}
 			}
-			T::AdminOrigin::ensure_origin(origin)?;
-			Ok(())
-		}
-
-		/// Ensure that the origin is root, which the Relay Chain's messages dispatch as, or one
-		/// accepted by [`Self::ensure_admin_or_manager`].
-		fn ensure_root_or_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
-			if ensure_root(origin.clone()).is_err() {
-				Self::ensure_admin_or_manager(origin)?;
-			}
-			Ok(())
+			Self::ensure_root_or_admin(origin)
 		}
 
 		/// Execute a stage transition and log it.
@@ -715,9 +714,12 @@ pub mod pallet {
 		/// the record itself is still correct with a deposit this chain prices lower. A manager
 		/// who cannot pay at all is a failure, and fails the whole batch.
 		fn do_receive_para(para: &PortableParaInfoOf<T>) -> Result<(), DispatchError> {
-			let (release, shortfall) =
-				AccountsReceiver::<T>::release_rc_reserve(&para.manager, para.deposit)
-					.map_err(|_| Error::<T>::FailedToReattribute)?;
+			let (release, shortfall) = AccountsReceiver::<T>::release_migrated_deposit(
+				HoldReason::RegistrarDeposit,
+				&para.manager,
+				para.deposit,
+			)
+			.map_err(|_| Error::<T>::FailedToReattribute)?;
 			ReattributedDeposits::<T>::mutate(|t| *t = t.saturating_add(release));
 			if !shortfall.is_zero() {
 				ParkedDepositShortfalls::<T>::insert(para.para_id, shortfall);
@@ -775,7 +777,7 @@ pub mod pallet {
 			let count = requests.len() as u32;
 			for request in requests {
 				// A failed release parks nothing: the deposit simply stays under
-				// `RcMigratedReserve` and surfaces in the parked-shortfall checks.
+				// `HrmpDeposit` and surfaces in the parked-shortfall checks.
 				if let Err(e) = Self::release_hrmp_deposit(
 					request.sender,
 					(request.sender, request.recipient, true),
@@ -819,9 +821,12 @@ pub mod pallet {
 			wanted: BalanceOf<T>,
 		) -> Result<(), Error<T>> {
 			let sovereign: T::AccountId = sibling_account(para);
-			let (release, shortfall) =
-				AccountsReceiver::<T>::release_rc_reserve(&sovereign, wanted)
-					.map_err(|_| Error::<T>::FailedToReattribute)?;
+			let (release, shortfall) = AccountsReceiver::<T>::release_migrated_deposit(
+				HoldReason::HrmpDeposit,
+				&sovereign,
+				wanted,
+			)
+			.map_err(|_| Error::<T>::FailedToReattribute)?;
 			ReattributedHrmpDeposits::<T>::mutate(|t| *t = t.saturating_add(release));
 			if !shortfall.is_zero() {
 				ParkedHrmpShortfalls::<T>::insert(key, shortfall);
@@ -865,7 +870,8 @@ pub mod pallet {
 impl From<PortableHoldReason> for HoldReason {
 	fn from(reason: PortableHoldReason) -> Self {
 		match reason {
-			PortableHoldReason::UnnamedReserve => HoldReason::RcMigratedReserve,
+			PortableHoldReason::RegistrarDeposit => HoldReason::RegistrarDeposit,
+			PortableHoldReason::HrmpDeposit => HoldReason::HrmpDeposit,
 			PortableHoldReason::ProxyDeposit => HoldReason::ProxyDeposit,
 			PortableHoldReason::UnattributedReserve => HoldReason::UnattributedReserve,
 		}

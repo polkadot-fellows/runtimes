@@ -7,7 +7,7 @@ license = "GPL-3.0-only"                                        # TODO <https://
 
 [workspace.dependencies]
 pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
-migrator-types = { path = "pallets/migrator-types", default-features = false }
+migrator-types = { path = "pallets/rc2-migrator/primitives", default-features = false }
 # The parachain control plane, from the local polkadot-sdk checkout. These crates are not
 # published, so they are plain path dependencies rather than entries in `[patch.crates-io]`.
 hrmp-primitives = { path = "../sdk-poc/substrate/frame/hrmp/primitives", default-features = false }
@@ -350,9 +350,9 @@ members = [
 	"integration-tests/zombienet",
 	"pallets/ah-ops",
 	"pallets/ct-migrator",
-	"pallets/migrator-types",
 	"pallets/rc-migrator",
 	"pallets/rc2-migrator",
+	"pallets/rc2-migrator/primitives",
 	"pallets/remote-proxy",
 	"relay/kusama",
 	"relay/kusama/constants",

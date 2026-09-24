@@ -34,7 +34,7 @@ use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{traits::ConstU32, BoundedVec};
 use polkadot_parachain_primitives::primitives::{Id as ParaId, Sibling};
 use scale_info::TypeInfo;
-use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::{traits::AccountIdConversion, AccountId32};
 
 /// Sovereign account of `para_id` as seen from a sibling parachain (`sibl` + para id).
 ///
@@ -54,10 +54,7 @@ where
 /// parachain, so those are rewritten. Every other account keeps its address. Every account that
 /// leaves the Relay Chain goes through here, so that a balance and the records that refer to it
 /// land on the same account.
-// TODO(ahm-v2): confirm against live state that no registrar manager or HRMP depositor is a
-// Relay Chain pallet account (treasury and the like). Those bytes exist on the destination but
-// nothing there can sign for them, so they would need their own rule here.
-pub fn translate_destination(who: &sp_runtime::AccountId32) -> sp_runtime::AccountId32 {
+pub fn translate_destination(who: &AccountId32) -> AccountId32 {
 	match ParaId::try_from_account(who) {
 		Some(para_id) => sibling_account(para_id.into()),
 		None => who.clone(),
@@ -110,16 +107,19 @@ pub struct PortableHold<Balance> {
 	MaxEncodedLen,
 )]
 pub enum PortableHoldReason {
-	/// Registrar and HRMP deposits. Re-attributed to the owning pallet when its state arrives.
+	///  Registrar deposits. Re-attributed to the owning pallet when its state arrives.
 	#[codec(index = 0)]
-	UnnamedReserve,
+	RegistrarDeposit,
+	/// HRMP deposits. Re-attributed to the owning pallet when its state arrives.
+	#[codec(index = 1)]
+	HrmpDeposit,
 	/// Proxy deposit of a delegator whose definitions travel too. Resized to the destination's
 	/// rates when they arrive.
-	#[codec(index = 1)]
+	#[codec(index = 2)]
 	ProxyDeposit,
 	/// Reserve that no deposit record on the Relay Chain accounts for. Parked on the destination
 	/// for investigation.
-	#[codec(index = 2)]
+	#[codec(index = 3)]
 	UnattributedReserve,
 }
 

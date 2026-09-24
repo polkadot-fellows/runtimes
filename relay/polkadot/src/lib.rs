@@ -146,6 +146,8 @@ use governance::{
 	pallet_custom_origins, AuctionAdmin, FellowshipAdmin, GeneralAdmin, LeaseAdmin, StakingAdmin,
 	Treasurer, TreasurySpender,
 };
+// AHM v2 migration wiring.
+pub mod ahm_v2;
 pub mod impls;
 pub mod para_control;
 pub mod xcm_config;
@@ -1941,99 +1943,6 @@ impl pallet_rc_migrator::Config for Runtime {
 	type Currency = Balances;
 }
 
-parameter_types! {
-	pub const AssetHubId: u32 = system_parachain::ASSET_HUB_ID;
-	/// Leftover pots emptied by the migration's `Sweep` stage. `dap/satl` is the retired
-	/// direct-allocation pot's `PalletId`; the on-demand pot can accrue order revenue up to
-	/// the migration.
-	pub SweepAccounts: Vec<AccountId> = vec![
-		TreasuryPalletId::get().into_account_truncating(),
-		PalletId(*b"dap/satl").into_account_truncating(),
-		OnDemandPalletId::get().into_account_truncating(),
-	];
-	/// Where swept pots and dust land on Asset Hub: the AH treasury account (same `PalletId`
-	/// derivation, so the same address). TODO: point at the DAP buffer account once governance
-	/// designates it.
-	pub SweepBeneficiary: AccountId = TreasuryPalletId::get().into_account_truncating();
-	/// Audited issuance held by no account ("phantom issuance"), burned at the end of the
-	/// migration. Measured at RC block #33,103,807 (`balance_census` prints the exact value);
-	/// re-measure and update ahead of the real run.
-	pub const TiCorrection: u128 = 216_577_461_180_573;
-	/// Working buffer of free balance that follows a migrated deposit to the Coretime chain.
-	pub const CtFreeBuffer: Balance = UNITS;
-	/// The accounts that may drive the migration collectively. Governance seeds the real set
-	/// before a migration is scheduled; empty means only root and the appointed manager can act.
-	pub MigrationMultisigMembers: alloc::vec::Vec<AccountId> = alloc::vec::Vec::new();
-	/// Votes needed from distinct members.
-	pub const MigrationMultisigThreshold: u32 = 3;
-	/// Votes one member may cast per round.
-	pub const MigrationMultisigMaxVotesPerRound: u32 = 5;
-	/// A vote is signed over (who, call, round) and nothing else, so two networks sitting at the
-	/// same round would accept each other's signatures. This is what keeps them apart.
-	/// While the migration runs, the Coretime chain's upward queue is served first for this many
-	/// blocks out of every cycle, and every queue takes its turn for the rest.
-	pub const CtUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
-	pub const MigrationMultisigStartRound: u32 = 100;
-	/// How long a batch sent to the Coretime chain may go unanswered before the migration halts
-	/// itself. Generous next to a round trip through both message queues: the point is to catch a
-	/// message that will never be answered, not to police latency.
-	pub const MigrationXcmResponseTimeout: BlockNumber = 100;
-	/// How many batches may be outstanding before data extraction pauses for a block. Keeps the
-	/// relay chain from running far ahead of what Coretime has acknowledged, without serialising
-	/// the migration on a full round trip per batch.
-	pub const MigrationUnprocessedMsgBuffer: u32 = 8;
-	/// Asset Hub's existential deposit; mirrors
-	/// `system_parachains_constants::polkadot::currency::SYSTEM_PARA_EXISTENTIAL_DEPOSIT`
-	/// (= relay ED / 10) without pulling that crate into the relay runtime.
-	pub const AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 10;
-}
-
-impl pallet_rc2_migrator::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type SendXcm = xcm_config::XcmRouter;
-	type CtParaId = BrokerId;
-	type AhParaId = AssetHubId;
-	type CtFreeBuffer = CtFreeBuffer;
-	type AhExistentialDeposit = AhExistentialDeposit;
-	type SweepAccounts = SweepAccounts;
-	type SweepBeneficiary = SweepBeneficiary;
-	type TiCorrection = TiCorrection;
-	type TimeProvider = Timestamp;
-	type CtOrigin =
-		pallet_xcm::EnsureXcm<frame_support::traits::Equals<xcm_config::CoretimeLocation>>;
-	type AdminOrigin = EnsureRoot<AccountId>;
-	type RuntimeCall = RuntimeCall;
-	type MultisigMembers = MigrationMultisigMembers;
-	type MultisigThreshold = MigrationMultisigThreshold;
-	type MultisigMaxVotesPerRound = MigrationMultisigMaxVotesPerRound;
-	type MultisigStartRound = MigrationMultisigStartRound;
-	type MessageQueue = MessageQueue;
-	type CtUmpQueuePriorityPattern = CtUmpQueuePriorityPattern;
-	type XcmResponseTimeout = MigrationXcmResponseTimeout;
-	type UnprocessedMsgBuffer = MigrationUnprocessedMsgBuffer;
-	type NotifyQueryHandler = Runtime;
-	type ResponseOrigin =
-		pallet_xcm::EnsureResponse<frame_support::traits::Equals<xcm_config::CoretimeLocation>>;
-}
-
-#[cfg(test)]
-mod ahm_v2_tests {
-	use crate::{Runtime, RuntimeCall};
-	use codec::Encode;
-	use pallet_ct_migrator::{Rc2MigratorCall, Rc2RuntimeCall};
-
-	/// The Coretime chain hand-encodes this chain's pallet and call index; decode what it sends
-	/// with the real `RuntimeCall` so a `construct_runtime!` reorder cannot pass silently.
-	#[test]
-	fn the_coretime_chain_encodes_this_chains_calls_correctly() {
-		assert_eq!(
-			Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady).encode(),
-			RuntimeCall::Rc2Migrator(pallet_rc2_migrator::Call::<Runtime>::ct_ready {}).encode(),
-		);
-	}
-}
-
 construct_runtime! {
 	pub enum Runtime
 		{
@@ -2143,15 +2052,14 @@ construct_runtime! {
 		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
 		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
 		RcMigrator: pallet_rc_migrator = 255,
+		// AHM v2 migrator. Below `MessageQueue` for the same reason as `RcMigrator`: its
+		// `on_initialize` has to see the block's inbound messages.
+		Rc2Migrator: pallet_rc2_migrator = 254,
 
-		// Relay-chain side of the Minimal Relay migration. Below `MessageQueue` for the same
-		// reason as `RcMigrator`: its `on_initialize` must see the block's inbound messages.
 		// The relay chain's half of the parachain control plane. Driven only by the Coretime
 		// chain and by unsigned code uploads; no signed origin can reach either.
 		RegistrarRelay: pallet_registrar_relay = 250,
 		HrmpRelay: pallet_hrmp_relay = 251,
-
-		Rc2Migrator: pallet_rc2_migrator = 254,
 	}
 }
 

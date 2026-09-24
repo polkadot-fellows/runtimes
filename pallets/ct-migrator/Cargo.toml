@@ -1,6 +1,6 @@
 [package]
 name = "pallet-ct-migrator"
-description = "Migrates registrar and HRMP state with their deposits from the relay chain to the Coretime chain. Coretime-chain side."
+description = "Moves account, proxy, registrar and HRMP state from the relay chain to the Coretime chain. Coretime-chain side."
 license = "Apache-2.0"
 version = "0.1.0"
 edition.workspace = true
@@ -24,8 +24,8 @@ pallet-message-queue = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 
 [dev-dependencies]
-pallet-balances = { workspace = true, features = ["std"] }
-sp-io = { workspace = true, features = ["std"] }
+pallet-balances = { workspace = true, default-features = true }
+sp-io = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]

@@ -16,10 +16,10 @@
 //! Registrar stage: drains `paras_registrar::Paras` records from the relay chain and sends them
 //! to the Coretime chain in portable format.
 //!
-//! The registration deposits themselves already moved during the accounts stage (as
-//! `RcMigratedReserve` holds on the manager accounts); the receiving side re-attributes them to
-//! `RegistrarDeposit` holds as each record arrives. `NextFreeParaId` moves in the stage-init
-//! message; `PendingSwap` is deliberately left behind.
+//! The registration deposits themselves already moved during the accounts stage, as
+//! `RegistrarDeposit` holds on the manager accounts; the receiving side releases each one as its
+//! record arrives so the registrar pallet can take its own deposit. `NextFreeParaId` moves in the
+//! stage-init message; `PendingSwap` is deliberately left behind.
 
 use crate::*;
 use runtime_parachains::paras;

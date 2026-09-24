@@ -109,10 +109,10 @@ fn build_expected_reserves_indexes_every_deposit_source() {
 		assert_eq!(records, 8, "para + channel + request + 3 proxies + announcement + multisig");
 		assert_eq!(
 			ExpectedReserves::<Test>::get(&alice),
-			ExpectedReserve { ct: 300, ..Default::default() }
+			ExpectedReserve { registrar: 300, ..Default::default() }
 		);
-		assert_eq!(ExpectedReserves::<Test>::get(child_sov(2000)).ct, 70 + 25);
-		assert_eq!(ExpectedReserves::<Test>::get(child_sov(2001)).ct, 30);
+		assert_eq!(ExpectedReserves::<Test>::get(child_sov(2000)).hrmp, 70 + 25);
+		assert_eq!(ExpectedReserves::<Test>::get(child_sov(2001)).hrmp, 30);
 		assert_eq!(ExpectedReserves::<Test>::get(&bob).proxy, 44);
 		assert_eq!(ExpectedReserves::<Test>::get(&frank).proxy, 44);
 		assert_eq!(ExpectedReserves::<Test>::get(&carol).refund, 44);
@@ -196,7 +196,7 @@ fn withdraw_splits_deposit_buffer_and_teleport() {
 		let w = withdraw(&alice).expect("migrates");
 
 		// Deposit -> Coretime hold, one buffer of free follows it, the rest teleports to AH.
-		assert_eq!(ct_holds(&w), vec![(PortableHoldReason::UnnamedReserve, 300)]);
+		assert_eq!(ct_holds(&w), vec![(PortableHoldReason::RegistrarDeposit, 300)]);
 		assert_eq!(w.ct.as_ref().unwrap().free, 100);
 		assert_eq!(w.ah, Some((alice.clone(), 600)));
 		// The account is gone and exactly its total was burned.
@@ -251,16 +251,22 @@ fn withdraw_attributes_shortfall_in_priority_order() {
 		let dave = acc(4); // account whose live reserve under-covers the recorded deposits
 		fund(&dave, 200);
 		reserve(&dave, 100);
-		// Recorded expectations exceed the live 100: Coretime-bound deposits are made whole
-		// first, proxy deposits second, refunds last. (Set directly: only the split math is under
+		// Recorded expectations exceed the live 100: registrar deposits are made whole first,
+		// proxy deposits second, refunds last. (Set directly: only the split math is under
 		// test.)
-		ExpectedReserves::<Test>::insert(&dave, ExpectedReserve { ct: 50, proxy: 30, refund: 40 });
+		ExpectedReserves::<Test>::insert(
+			&dave,
+			ExpectedReserve { registrar: 50, proxy: 30, refund: 40, ..Default::default() },
+		);
 
 		let w = withdraw(&dave).expect("migrates");
 
 		assert_eq!(
 			ct_holds(&w),
-			vec![(PortableHoldReason::UnnamedReserve, 50), (PortableHoldReason::ProxyDeposit, 30)]
+			vec![
+				(PortableHoldReason::RegistrarDeposit, 50),
+				(PortableHoldReason::ProxyDeposit, 30)
+			]
 		);
 		// Of the refundable 40 only 20 reserve was left; it becomes liquid.
 		assert_eq!(
@@ -321,7 +327,10 @@ fn withdraw_keeps_sub_ah_ed_dust_with_the_deposit() {
 		let heidi = acc(8); // deposit holder whose teleport remainder would be below AH's ED
 		fund(&heidi, 404);
 		reserve(&heidi, 300);
-		ExpectedReserves::<Test>::insert(&heidi, ExpectedReserve { ct: 300, ..Default::default() });
+		ExpectedReserves::<Test>::insert(
+			&heidi,
+			ExpectedReserve { registrar: 300, ..Default::default() },
+		);
 
 		let w = withdraw(&heidi).expect("migrates");
 
@@ -371,7 +380,10 @@ fn withdraw_drains_consumer_referenced_accounts_to_shells() {
 		let ida = acc(11); // validator-like account: session keys hold a consumer reference
 		fund(&ida, 1_000);
 		reserve(&ida, 300);
-		ExpectedReserves::<Test>::insert(&ida, ExpectedReserve { ct: 300, ..Default::default() });
+		ExpectedReserves::<Test>::insert(
+			&ida,
+			ExpectedReserve { registrar: 300, ..Default::default() },
+		);
 		// The extra reference some pallet (session keys in production) holds on the account.
 		frame_system::Pallet::<Test>::inc_consumers(&ida).unwrap();
 		let ti_before = total_issuance();
@@ -379,7 +391,7 @@ fn withdraw_drains_consumer_referenced_accounts_to_shells() {
 		let w = withdraw(&ida).expect("migrates");
 
 		// The money moves like any other account's...
-		assert_eq!(ct_holds(&w), vec![(PortableHoldReason::UnnamedReserve, 300)]);
+		assert_eq!(ct_holds(&w), vec![(PortableHoldReason::RegistrarDeposit, 300)]);
 		assert_eq!(w.ct.as_ref().unwrap().free, 100);
 		assert_eq!(w.ah, Some((ida.clone(), 600)));
 		// ...but the record survives as a zero-balance shell.
@@ -404,7 +416,7 @@ fn withdraw_translates_child_sovereigns_to_sibling_addresses() {
 
 		let ct = w.ct.as_ref().unwrap();
 		assert_eq!(ct.who, migrator_types::sibling_account::<AccountId32>(2000));
-		assert_eq!(ct_holds(&w), vec![(PortableHoldReason::UnnamedReserve, 70)]);
+		assert_eq!(ct_holds(&w), vec![(PortableHoldReason::HrmpDeposit, 70)]);
 		// The sovereign's free balance (the ED it was funded with) is below the buffer, so it
 		// all follows the deposit as working buffer.
 		assert_eq!(ct.free, ED);
@@ -440,7 +452,7 @@ fn migrate_many_returns_exactly_what_it_burns_and_keeps_the_ledger_exact() {
 				who: alice.clone(),
 				free: 100,
 				holds: vec![PortableHold {
-					reason: PortableHoldReason::UnnamedReserve,
+					reason: PortableHoldReason::RegistrarDeposit,
 					amount: 300
 				}]
 				.try_into()
