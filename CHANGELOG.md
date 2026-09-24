@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Asset Hub Polkadot & Kusama, Collectives Polkadot: `is_superset` no longer declares `NonTransfer` a superset of `Collator` or `Secretary`; those filters admit `CollatorSelection` and `SecretarySalary` calls, which move funds out of the proxied account ([#1296](https://github.com/polkadot-fellows/runtimes/pull/1296)).
+- Asset Hub Polkadot & Kusama, Collectives Polkadot: `is_superset` no longer declares `NonTransfer` a superset of `Collator` or `Secretary`, whose calls it does not admit, so a `NonTransfer` proxy can no longer add either ([#1296](https://github.com/polkadot-fellows/runtimes/pull/1296)).
 - Coretime Kusama: bulk revenue now accumulates with dust and is burnt on Asset Hub through `pallet-accumulate-and-forward`, and a migration retires the `py/ctbrn` holding account ([#1301](https://github.com/polkadot-fellows/runtimes/pull/1301)).
 - Kusama relay: dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1289](https://github.com/polkadot-fellows/runtimes/pull/1289)).
 - Bridge Hub, Coretime, People and Encointer Kusama:  dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1287](https://github.com/polkadot-fellows/runtimes/pull/1287)).

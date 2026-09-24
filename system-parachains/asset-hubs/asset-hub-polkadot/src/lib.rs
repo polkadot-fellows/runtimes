@@ -847,7 +847,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(ProxyType::Assets, ProxyType::AssetOwner) => true,
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
 			(ProxyType::Staking, ProxyType::StakingOperator) => true,
-			// `CollatorSelection` moves a candidacy bond out of the proxied account.
+			// `NonTransfer` does not admit `CollatorSelection`.
 			(
 				ProxyType::NonTransfer,
 				ProxyType::Assets |
