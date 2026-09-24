@@ -4089,9 +4089,11 @@ dependencies = [
  "pallet-balances",
  "pallet-broker",
  "pallet-collator-selection",
+ "pallet-ct-migrator",
  "pallet-message-queue",
  "pallet-multisig",
  "pallet-proxy",
+ "pallet-rc2-migrator",
  "pallet-session",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -4201,9 +4203,11 @@ dependencies = [
  "pallet-balances",
  "pallet-broker",
  "pallet-collator-selection",
+ "pallet-ct-migrator",
  "pallet-message-queue",
  "pallet-multisig",
  "pallet-proxy",
+ "pallet-rc2-migrator",
  "pallet-session",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -11227,10 +11231,14 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "log",
  "migrator-types",
+ "pallet-balances",
  "parity-scale-codec",
  "scale-info",
+ "sp-io 48.0.0",
  "sp-runtime 48.0.0",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -12157,11 +12165,14 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "log",
  "pallet-balances",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "scale-info",
+ "sp-io 48.0.0",
  "sp-runtime 48.0.0",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -13664,6 +13675,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "polkadot-integration-tests-ahmv2"
+version = "0.1.0"
+dependencies = [
+ "coretime-kusama-runtime",
+ "coretime-polkadot-runtime",
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "frame-remote-externalities",
+ "frame-support",
+ "frame-system",
+ "kusama-runtime-constants",
+ "log",
+ "pallet-balances",
+ "pallet-ct-migrator",
+ "pallet-message-queue",
+ "pallet-rc2-migrator",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "polkadot-runtime",
+ "polkadot-runtime-constants",
+ "polkadot-runtime-parachains",
+ "sp-core 43.0.0",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "sp-storage 25.0.0",
+ "sp-tracing",
+ "staging-kusama-runtime",
+ "staging-xcm",
+ "tokio",
+]
+
+[[package]]
 name = "polkadot-parachain-primitives"
 version = "23.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13741,6 +13784,7 @@ dependencies = [
  "pallet-broker",
  "pallet-child-bounties",
  "pallet-conviction-voting",
+ "pallet-ct-migrator",
  "pallet-delegated-staking",
  "pallet-election-provider-multi-phase",
  "pallet-election-provider-support-benchmarking",
@@ -13759,6 +13803,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
+ "pallet-rc2-migrator",
  "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
@@ -19404,6 +19449,7 @@ dependencies = [
  "pallet-bounties",
  "pallet-child-bounties",
  "pallet-conviction-voting",
+ "pallet-ct-migrator",
  "pallet-delegated-staking",
  "pallet-election-provider-multi-phase",
  "pallet-election-provider-support-benchmarking",
@@ -19424,6 +19470,7 @@ dependencies = [
  "pallet-proxy",
  "pallet-ranked-collective",
  "pallet-rc-migrator",
+ "pallet-rc2-migrator",
  "pallet-recovery",
  "pallet-referenda",
  "pallet-scheduler",
