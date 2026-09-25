@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Asset Hub Polkadot: the `Assets` proxy can dispatch every `Psm` call, `AssetOwner` can create and remove a PSM and set its admins and external assets, and `AssetManager` can set its fees, debt limit, circuit breakers and ceiling weights ([#1304](https://github.com/polkadot-fellows/runtimes/pull/1304)).
 - Coretime Kusama: bulk revenue now accumulates with dust and is burnt on Asset Hub through `pallet-accumulate-and-forward`, and a migration retires the `py/ctbrn` holding account ([#1301](https://github.com/polkadot-fellows/runtimes/pull/1301)).
 - Kusama relay: dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1289](https://github.com/polkadot-fellows/runtimes/pull/1289)).
 - Bridge Hub, Coretime, People and Encointer Kusama:  dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1287](https://github.com/polkadot-fellows/runtimes/pull/1287)).
