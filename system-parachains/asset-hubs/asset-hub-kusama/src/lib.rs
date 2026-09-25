@@ -859,9 +859,13 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(ProxyType::Assets, ProxyType::AssetOwner) => true,
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
 			(ProxyType::Staking, ProxyType::StakingOperator) => true,
+			// `NonTransfer` does not admit `CollatorSelection`.
 			(
 				ProxyType::NonTransfer,
-				ProxyType::Assets | ProxyType::AssetOwner | ProxyType::AssetManager,
+				ProxyType::Assets |
+				ProxyType::AssetOwner |
+				ProxyType::AssetManager |
+				ProxyType::Collator,
 			) => false,
 			(ProxyType::NonTransfer, _) => true,
 			_ => false,
@@ -2992,14 +2996,14 @@ mod tests {
 		// Assets IS supertype of AssetOwner and AssetManager
 		assert!(ProxyType::Assets.is_superset(&ProxyType::AssetOwner));
 		assert!(ProxyType::Assets.is_superset(&ProxyType::AssetManager));
-		// NonTransfer is NOT supertype of Any, Assets, AssetOwner and AssetManager
+		// NonTransfer is NOT supertype of Any, Assets, AssetOwner, AssetManager and Collator
 		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Any));
 		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Assets));
 		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::AssetOwner));
 		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::AssetManager));
+		assert!(!ProxyType::NonTransfer.is_superset(&ProxyType::Collator));
 		// NonTransfer is supertype of remaining stuff
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::CancelProxy));
-		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Collator));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Governance));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::Staking));
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::StakingOperator));
@@ -3008,6 +3012,88 @@ mod tests {
 		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::ParaRegistration));
 		// Staking IS supertype of StakingOperator
 		assert!(ProxyType::Staking.is_superset(&ProxyType::StakingOperator));
+	}
+
+	/// Every declared `is_superset` edge must hold at the filter level: the superset must admit
+	/// every call the subset admits.
+	#[test]
+	fn proxy_type_superset_relation_matches_call_filters() {
+		use frame_support::traits::InstanceFilter;
+
+		let all = [
+			ProxyType::Any,
+			ProxyType::NonTransfer,
+			ProxyType::CancelProxy,
+			ProxyType::Assets,
+			ProxyType::AssetOwner,
+			ProxyType::AssetManager,
+			ProxyType::Collator,
+			ProxyType::Governance,
+			ProxyType::Staking,
+			ProxyType::NominationPools,
+			ProxyType::Auction,
+			ProxyType::ParaRegistration,
+			ProxyType::Society,
+			ProxyType::Spokesperson,
+			ProxyType::StakingOperator,
+		];
+		// A new variant breaks this match: add it above.
+		for proxy_type in all.iter() {
+			match proxy_type {
+				ProxyType::Any |
+				ProxyType::NonTransfer |
+				ProxyType::CancelProxy |
+				ProxyType::Assets |
+				ProxyType::AssetOwner |
+				ProxyType::AssetManager |
+				ProxyType::Collator |
+				ProxyType::Governance |
+				ProxyType::Staking |
+				ProxyType::NominationPools |
+				ProxyType::Auction |
+				ProxyType::ParaRegistration |
+				ProxyType::Society |
+				ProxyType::Spokesperson |
+				ProxyType::StakingOperator => (),
+			}
+		}
+
+		// One call per filter boundary.
+		let calls = [
+			RuntimeCall::System(frame_system::Call::remark { remark: vec![] }),
+			RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive {
+				dest: AccountId::from([1u8; 32]).into(),
+				value: 1,
+			}),
+			RuntimeCall::CollatorSelection(pallet_collator_selection::Call::leave_intent {}),
+			RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }),
+			RuntimeCall::Multisig(pallet_multisig::Call::cancel_as_multi {
+				threshold: 2,
+				other_signatories: vec![AccountId::from([1u8; 32])],
+				timepoint: pallet_multisig::Timepoint { height: 0, index: 0 },
+				call_hash: [0u8; 32],
+			}),
+			RuntimeCall::Referenda(pallet_referenda::Call::cancel { index: 0 }),
+			RuntimeCall::Staking(pallet_staking_async::Call::chill {}),
+			RuntimeCall::NominationPools(pallet_nomination_pools::Call::claim_payout {}),
+		];
+
+		for superset in all.iter() {
+			for subset in all.iter() {
+				if !superset.is_superset(subset) {
+					continue;
+				}
+				for call in calls.iter() {
+					if subset.filter(call) {
+						assert!(
+							superset.filter(call),
+							"lattice violated: {superset:?} claims to be a superset of \
+							 {subset:?} but rejects {call:?}",
+						);
+					}
+				}
+			}
+		}
 	}
 
 	#[test]
