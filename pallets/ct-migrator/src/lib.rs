@@ -47,10 +47,22 @@ mod tests;
 
 pub use pallet::*;
 
-use alloc::vec;
-use frame_support::{pallet_prelude::*, traits::EnsureOrigin};
+use alloc::{vec, vec::Vec};
+use frame_support::{
+	pallet_prelude::*,
+	storage::with_storage_layer,
+	traits::{
+		fungible::{Inspect, Mutate, MutateHold},
+		EnsureOrigin,
+	},
+};
 use frame_system::pallet_prelude::*;
+use migrator_types::PortableHoldReason;
+use sp_runtime::DispatchError;
 use xcm::prelude::*;
+
+pub type BalanceOf<T> =
+	<<T as Config>::Currency as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
 const LOG_TARGET: &str = "runtime::ct-migrator";
 
@@ -127,6 +139,33 @@ pub mod pallet {
 
 		/// The origin that can perform permissioned operations like setting the migration stage.
 		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
+
+		/// Native currency. Migrated balances are minted here; migrated reserves land as holds.
+		type Currency: Mutate<Self::AccountId>
+			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>;
+
+		/// The overarching hold reason type.
+		type RuntimeHoldReason: From<HoldReason>;
+	}
+
+	#[pallet::composite_enum]
+	pub enum HoldReason {
+		/// A Relay Chain para registration deposit. Held until the para record arrives and the
+		/// registrar pallet takes its own deposit out of it.
+		#[codec(index = 0)]
+		RegistrarDeposit,
+		/// A Relay Chain HRMP channel deposit. Held until the channel record arrives and the
+		/// HRMP pallet takes its own deposit out of it.
+		#[codec(index = 1)]
+		HrmpDeposit,
+		/// A Relay Chain proxy deposit whose definitions travel here. Released when they arrive:
+		/// the recreated entry is re-reserved at this chain's rates and the rest becomes free.
+		#[codec(index = 2)]
+		ProxyDeposit,
+		/// Relay Chain reserve that no pallet's deposit records accounted for. Parked here for
+		/// investigation. Nothing was allowed to stay behind on the Relay Chain.
+		#[codec(index = 3)]
+		UnattributedReserve,
 	}
 
 	#[pallet::pallet]
@@ -302,5 +341,45 @@ pub mod pallet {
 			})?;
 			Ok(())
 		}
+	}
+}
+
+/// What each hold migrated from the Relay Chain becomes on this chain.
+impl From<PortableHoldReason> for HoldReason {
+	fn from(reason: PortableHoldReason) -> Self {
+		match reason {
+			PortableHoldReason::RegistrarDeposit => HoldReason::RegistrarDeposit,
+			PortableHoldReason::HrmpDeposit => HoldReason::HrmpDeposit,
+			PortableHoldReason::ProxyDeposit => HoldReason::ProxyDeposit,
+			PortableHoldReason::UnattributedReserve => HoldReason::UnattributedReserve,
+		}
+	}
+}
+
+// TODO(ahm-v2): the helper below has no caller and no test until the accounts stage lands.
+impl<T: Config> Pallet<T> {
+	/// Run `integrate` over every item in its own storage transaction. A failing item is rolled
+	/// back and handed to `park`; the other items are unaffected. Returns `(count_good,
+	/// count_bad)`.
+	pub fn receive_batch<I, R>(
+		items: Vec<I>,
+		integrate: impl Fn(&I) -> Result<R, DispatchError>,
+		mut on_good: impl FnMut(R),
+		park: impl Fn(I, DispatchError),
+	) -> (u32, u32) {
+		let (mut count_good, mut count_bad) = (0, 0);
+		for item in items {
+			match with_storage_layer(|| integrate(&item)) {
+				Ok(r) => {
+					count_good += 1;
+					on_good(r);
+				},
+				Err(e) => {
+					count_bad += 1;
+					park(item, e);
+				},
+			}
+		}
+		(count_good, count_bad)
 	}
 }

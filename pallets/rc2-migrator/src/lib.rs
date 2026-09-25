@@ -48,9 +48,38 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
+use sp_runtime::AccountId32;
 use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::rc2-migrator";
+
+/// Total balance kept on the Relay Chain and total migrated, by destination.
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Clone,
+	Copy,
+	Default,
+	PartialEq,
+	Eq,
+	Debug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct MigratedBalances {
+	/// Issuance still on the Relay Chain. Seeded with the total issuance when the accounts stage
+	/// starts, and falls as the stages burn balance here. Zero once the migration ends.
+	pub kept: u128,
+	/// Deposits burned here and re-established as holds on the Coretime chain.
+	pub ct_reserved: u128,
+	/// Free working buffer burned here and minted liquid on the Coretime chain.
+	pub ct_free: u128,
+	/// Free balance burned here and teleported to Asset Hub.
+	pub ah_free: u128,
+	/// Phantom issuance burned by the `TiCorrection` stage (issuance no account held).
+	pub ti_corrected: u128,
+}
 
 /// Wall-clock type the schedule is expressed in.
 pub type MomentOf<T> = <<T as Config>::TimeProvider as Time>::Moment;
@@ -189,8 +218,17 @@ pub enum CtMigratorCall {
 pub mod pallet {
 	use super::*;
 
+	/// Bound to `pallet_balances` rather than the fungible traits because the accounts stage
+	/// edits `frame_system::Account` and `pallet_balances::TotalIssuance` directly: a migrating
+	/// account is burned whole, including one that other pallets still reference, and no
+	/// fungible API allows that.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config:
+		frame_system::Config<
+			AccountId = AccountId32,
+			AccountData = pallet_balances::AccountData<u128>,
+		> + pallet_balances::Config<Balance = u128>
+	{
 		/// The overarching event type.
 		#[allow(deprecated)]
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -219,6 +257,10 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::unbounded]
 	pub type RcMigrationStage<T: Config> = StorageValue<_, MigrationStageOf<T>, ValueQuery>;
+
+	/// Balance kept on the Relay Chain versus migrated away. Set up by the accounts stage.
+	#[pallet::storage]
+	pub type RcMigratedBalance<T: Config> = StorageValue<_, MigratedBalances, ValueQuery>;
 
 	/// The duration of the pre migration warm-up period.
 	///

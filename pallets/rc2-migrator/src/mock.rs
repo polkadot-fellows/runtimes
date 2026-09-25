@@ -23,15 +23,16 @@ use frame_support::{
 	traits::{OnInitialize, Time},
 };
 use frame_system::EnsureSignedBy;
-use sp_runtime::BuildStorage;
+use sp_runtime::{traits::IdentityLookup, AccountId32, BuildStorage};
 use xcm::prelude::*;
 
 type Block = frame_system::mocking::MockBlock<Test>;
-pub type AccountId = u64;
+pub type AccountId = AccountId32;
 
 frame_support::construct_runtime! {
 	pub enum Test {
 		System: frame_system,
+		Balances: pallet_balances,
 		Rc2Migrator: pallet_rc2_migrator,
 	}
 }
@@ -39,16 +40,25 @@ frame_support::construct_runtime! {
 #[derive_impl(frame_system::config_preludes::TestDefaultConfig)]
 impl frame_system::Config for Test {
 	type Block = Block;
+	type AccountId = AccountId;
+	type Lookup = IdentityLookup<AccountId>;
+	type AccountData = pallet_balances::AccountData<u128>;
+}
+
+#[derive_impl(pallet_balances::config_preludes::TestDefaultConfig)]
+impl pallet_balances::Config for Test {
+	type Balance = u128;
+	type AccountStore = System;
 }
 
 /// The account the mock treats as the Coretime chain's dispatch origin.
-pub const CORETIME: AccountId = 1005;
+pub const CORETIME: AccountId = AccountId32::new([5; 32]);
 
 /// Somebody
-pub const ALICE: AccountId = 1;
+pub const ALICE: AccountId = AccountId32::new([1; 32]);
 
 /// The account behind the admin origin.
-pub const ADMIN: AccountId = 2;
+pub const ADMIN: AccountId = AccountId32::new([2; 32]);
 
 pub const CT_PARA_ID: u32 = 1005;
 pub const WARM_UP: u64 = 4;
