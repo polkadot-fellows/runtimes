@@ -17,8 +17,9 @@
 use crate::{
 	assets::hollar::HOLLAR_UNITS,
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Block, DotWeightToFee as WeightToFee, Runtime, RuntimeCall, RuntimeOrigin,
+	Block, DotWeightToFee as WeightToFee, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys,
 };
+use codec::Encode;
 use cumulus_primitives_core::relay_chain::AccountId;
 use sp_core::crypto::Ss58Codec;
 use xcm::prelude::*;
@@ -616,5 +617,13 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 			),
 			DispatchError::BadOrigin,
 		);
+	});
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_common::test_helpers::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
 	});
 }

@@ -1576,3 +1576,11 @@ fn dust_removal_terminates_when_staging_is_dusted() {
 		);
 	});
 }
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_common::test_helpers::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
+}

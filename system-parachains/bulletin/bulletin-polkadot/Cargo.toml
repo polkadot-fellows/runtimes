@@ -89,6 +89,7 @@ system-parachains-constants = { workspace = true }
 [dev-dependencies]
 bulletin-transaction-storage-primitives = { workspace = true, features = ["std"] }
 parachains-runtimes-test-utils = { workspace = true }
+system-parachains-common = { features = ["test-helpers"], workspace = true }
 pallet-bulletin-data-renewal = { workspace = true, features = ["std"] }
 pallet-bulletin-transaction-storage = { workspace = true, features = ["std"] }
 sp-io = { workspace = true }

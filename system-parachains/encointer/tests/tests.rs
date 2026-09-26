@@ -1,6 +1,7 @@
+use codec::Encode;
 use encointer_kusama_runtime::{
 	xcm_config::{AssetHubLocation, RelayChainLocation},
-	Runtime, RuntimeOrigin,
+	Runtime, RuntimeOrigin, SessionKeys,
 };
 use frame_support::{assert_err, assert_ok};
 use parachains_runtimes_test_utils::GovernanceOrigin;
@@ -37,4 +38,12 @@ fn governance_authorize_upgrade_works() {
 		Runtime,
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(AssetHubLocation::get())));
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_common::test_helpers::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
 }

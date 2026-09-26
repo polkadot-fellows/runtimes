@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Asset Hub, Bridge Hub, Coretime and People Polkadot & Kusama, Collectives Polkadot, Bulletin Polkadot and Encointer: `pallet_session::set_keys` now holds a deposit priced with `system_para_deposit` so a first registration needs free balance of at least ED plus the deposit. Keys registered before this change stay deposit-free ([#TODO](https://github.com/polkadot-fellows/runtimes/pull/TODO)).
 - Coretime Kusama: bulk revenue now accumulates with dust and is burnt on Asset Hub through `pallet-accumulate-and-forward`, and a migration retires the `py/ctbrn` holding account ([#1301](https://github.com/polkadot-fellows/runtimes/pull/1301)).
 - Kusama relay: dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1289](https://github.com/polkadot-fellows/runtimes/pull/1289)).
 - Bridge Hub, Coretime, People and Encointer Kusama:  dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1287](https://github.com/polkadot-fellows/runtimes/pull/1287)).
