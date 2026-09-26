@@ -846,8 +846,8 @@ impl pallet_authorship::Config for Runtime {
 
 parameter_types! {
 	/// One `NextKeys` entry plus one `KeyOwner` entry per session key.
-	pub SessionKeyDeposit: Balance = system_para_deposit(1, SessionKeys::max_encoded_len() as u32)
-		.saturating_add(system_para_deposit(
+	pub SessionKeyDeposit: Balance = kusama_runtime_constants::currency::deposit(1, SessionKeys::max_encoded_len() as u32)
+		.saturating_add(kusama_runtime_constants::currency::deposit(
 			<SessionKeys as sp_runtime::traits::OpaqueKeys>::key_ids().len() as u32,
 			<Runtime as pallet_session::Config>::ValidatorId::max_encoded_len() as u32,
 		));
