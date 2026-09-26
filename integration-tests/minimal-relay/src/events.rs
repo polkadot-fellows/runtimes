@@ -455,15 +455,15 @@ fn emit_ct_block() {
 			"reattributed_hrmp": planck(pallet_ct_migrator::ReattributedHrmpDeposits::<Ct>::get()),
 			// Read from the pallets that own the state, not from the migrator: it hands records
 			// over rather than parking them, so counting its storage would report zero forever.
-			// A channel the relay chain already had arrives `Open`; an unconfirmed request
-			// arrives `Pending`, which is the same split the relay-chain census reports.
+			// Coretime holds HRMP deposits, not channels: `hrmp_channels` counts the channels and
+			// requests it holds at least one deposit for.
 			"paras": pallet_registrar_para::Paras::<Ct>::iter_keys().count(),
-			"hrmp_channels": pallet_hrmp_para::Channels::<Ct>::iter_values()
-				.filter(|c| matches!(c.state, pallet_hrmp_para::ChannelState::Open))
-				.count(),
-			"hrmp_requests": pallet_hrmp_para::Channels::<Ct>::iter_values()
-				.filter(|c| !matches!(c.state, pallet_hrmp_para::ChannelState::Open))
-				.count(),
+			"hrmp_channels": pallet_hrmp_para::Deposits::<Ct>::iter_keys()
+				.map(|key| key.channel)
+				.collect::<std::collections::BTreeSet<_>>()
+				.len(),
+			"hrmp_deposits": pallet_hrmp_para::Deposits::<Ct>::iter_keys().count(),
+			"hrmp_deposits_held": planck(pallet_hrmp_para::Deposits::<Ct>::iter_values().sum()),
 			"failed_accounts": pallet_ct_migrator::FailedAccounts::<Ct>::iter_keys().count(),
 			"failed_paras": pallet_ct_migrator::FailedParas::<Ct>::iter_keys().count(),
 			"failed_hrmp": pallet_ct_migrator::FailedHrmpChannels::<Ct>::iter_keys().count(),

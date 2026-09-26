@@ -632,6 +632,8 @@ pub mod pallet {
 		UnknownQuery,
 		/// The response to a batch was not a dispatch result.
 		UnexpectedResponse,
+		/// The queued HRMP channel closes could not be processed.
+		HrmpClosesFailed,
 	}
 
 	impl<T> From<accounts::Error> for Error<T> {
@@ -761,6 +763,9 @@ pub mod pallet {
 		/// A batch went unanswered for [`Config::XcmResponseTimeout`]. Reported once; the entry
 		/// stays outstanding for `retry_batch`.
 		BatchTimedOut { query_id: u64, stage: MigrationStageOf<T> },
+		/// Queued HRMP channel closes were processed ahead of the session boundary, so their
+		/// deposits are refunded before the accounts stage moves them.
+		HrmpClosesProcessed { count: u32 },
 	}
 
 	#[pallet::hooks]
@@ -1242,6 +1247,7 @@ pub mod pallet {
 					// fallible step added here later inherits it instead of silently lacking it.
 					Self::migrate_stage_once(
 						|| {
+							hrmp::HrmpMigrator::<T>::process_queued_closes()?;
 							accounts::AccountsMigrator::<T>::init();
 							Ok(())
 						},

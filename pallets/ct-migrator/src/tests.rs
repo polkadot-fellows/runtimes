@@ -22,6 +22,7 @@
 
 use crate::{mock::*, *};
 use frame_support::{assert_noop, assert_ok, hypothetically, traits::fungible::Mutate};
+use hrmp_primitives::{DepositKey, DepositSide};
 use sp_runtime::{traits::BadOrigin, AccountId32};
 
 fn root() -> RuntimeOrigin {
@@ -273,14 +274,14 @@ fn receive_hrmp_reattributes_both_sides_on_sibling_sovereigns() {
 		assert_eq!(ReattributedHrmpDeposits::<Test>::get(), 150);
 		assert!(ParkedHrmpShortfalls::<Test>::iter().next().is_none());
 
-		// A channel that exists on the relay chain arrives confirmed, so the receiving pallet
-		// takes both ends' deposits.
+		// Each end's deposit is handed to the HRMP pallet against its channel and side.
+		let id = hrmp_primitives::ChannelId { sender: 2000, recipient: 2001 };
 		assert_eq!(
-			ReceivedChannels::get(),
-			vec![hrmp_primitives::MigratedChannel {
-				channel: hrmp_primitives::ChannelId { sender: 2000, recipient: 2001 },
-				confirmed: true,
-			}]
+			ReceivedDeposits::get(),
+			vec![
+				(DepositKey { channel: id, side: DepositSide::Sender }, 100),
+				(DepositKey { channel: id, side: DepositSide::Recipient }, 50),
+			]
 		);
 		assert!(migrator_events().contains(&Event::HrmpReceived { count_good: 1, count_bad: 0 }));
 
@@ -308,30 +309,43 @@ fn receive_hrmp_requests_relabels_and_always_stores() {
 		let sov: AccountId32 = sibling_account(2000);
 		give_hold(&sov, HoldReason::HrmpDeposit, 60);
 
-		let request = |recipient, deposit| PortableHrmpRequest {
+		let sov_recipient: AccountId32 = sibling_account(2001);
+		give_hold(&sov_recipient, HoldReason::HrmpDeposit, 15);
+
+		let request = |recipient, deposit, recipient_deposit| PortableHrmpRequest {
 			sender: 2000,
 			recipient,
-			confirmed: true,
+			confirmed: recipient_deposit > 0,
 			sender_deposit: deposit,
 			max_message_size: 1024,
 			max_capacity: 8,
 			max_total_size: 4096,
+			recipient_deposit,
 		};
 
-		// WHEN two requests arrive but the sovereign's hold only covers the first.
+		// WHEN two requests arrive, one of them accepted, but the sender's hold only covers the
+		// first.
 		assert_ok!(CtMigrator::receive_hrmp_requests(
 			root(),
-			vec![request(2001, 60), request(2002, 40)],
+			vec![request(2001, 60, 15), request(2002, 40, 0)],
 		));
 
-		// THEN the covered deposit is released, the uncovered one parks — and BOTH records are
-		// still handed over, because a shortfall is an accounting gap and not a failed record.
+		// THEN the covered deposits are released and the uncovered one parks — and every deposit
+		// is still handed over, because a shortfall is an accounting gap and not a failed record.
 		assert_eq!(ParkedHrmpShortfalls::<Test>::get((2000, 2002, true)), Some(40));
-		let handed: Vec<(u32, u32)> = ReceivedChannels::get()
-			.into_iter()
-			.map(|c| (c.channel.sender, c.channel.recipient))
-			.collect();
-		assert_eq!(handed, vec![(2000, 2001), (2000, 2002)]);
+		assert_eq!(held(HoldReason::HrmpDeposit, &sov_recipient), 0);
+		let key = |recipient, side| DepositKey {
+			channel: hrmp_primitives::ChannelId { sender: 2000, recipient },
+			side,
+		};
+		assert_eq!(
+			ReceivedDeposits::get(),
+			vec![
+				(key(2001, DepositSide::Sender), 60),
+				(key(2001, DepositSide::Recipient), 15),
+				(key(2002, DepositSide::Sender), 40),
+			]
+		);
 		assert!(migrator_events().contains(&Event::HrmpRequestsReceived { count: 2 }));
 	});
 }

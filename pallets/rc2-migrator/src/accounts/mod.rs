@@ -211,9 +211,14 @@ impl<T: Config> AccountsMigrator<T> {
 			records += 1;
 		}
 		// Pending open-channel requests migrate to the Coretime chain with their deposits, so
-		// the sender sovereigns' request deposits are Coretime-bound like channel deposits.
+		// the request deposits are Coretime-bound like channel deposits: the sender's, and the
+		// recipient's once it has accepted.
 		for (id, request) in runtime_parachains::hrmp::HrmpOpenChannelRequests::<T>::iter() {
 			add_hrmp(id.sender.into_account_truncating(), request.sender_deposit);
+			add_hrmp(
+				id.recipient.into_account_truncating(),
+				crate::hrmp::HrmpMigrator::<T>::request_recipient_deposit(&id, &request),
+			);
 			records += 1;
 		}
 		for (who, (defs, deposit)) in pallet_proxy::Proxies::<T>::iter() {

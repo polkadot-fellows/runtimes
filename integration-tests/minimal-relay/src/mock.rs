@@ -256,12 +256,14 @@ pub async fn load_externalities() -> (TestExternalities, TestExternalities, Test
 
 /// Execute the next Relay Chain block.
 ///
-/// Only runs the hooks that the migration relies on: `MessageQueue` first (as declared in the
-/// runtime, so inbound messages are processed before the migrator acts) and then `Rc2Migrator`.
+/// Only runs the hooks that the migration and the control plane rely on, in the order the runtime
+/// declares them: `MessageQueue` first (so inbound messages are processed before the migrator
+/// acts), then `Rc2Migrator`, then `HrmpRelay` (which sends queued deposit releases to Coretime).
 pub fn next_block_rc() {
 	next_block::<Polkadot>(LOG_RC, |now| {
 		let mut weight = <network::relay::MessageQueue as OnInitialize<_>>::on_initialize(now);
 		weight += <network::relay::Rc2Migrator as OnInitialize<_>>::on_initialize(now);
+		weight += <network::relay::HrmpRelay as OnInitialize<_>>::on_initialize(now);
 		<network::relay::MessageQueue as OnFinalize<_>>::on_finalize(now);
 		<network::relay::Rc2Migrator as OnFinalize<_>>::on_finalize(now);
 		weight

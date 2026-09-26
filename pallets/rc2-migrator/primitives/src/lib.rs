@@ -186,6 +186,8 @@ pub struct PortableHrmpRequest<Balance> {
 	pub max_message_size: u32,
 	pub max_capacity: u32,
 	pub max_total_size: u32,
+	/// What the recipient reserved on accepting. Zero until it has.
+	pub recipient_deposit: Balance,
 }
 
 /// Relay Chain proxy permission.

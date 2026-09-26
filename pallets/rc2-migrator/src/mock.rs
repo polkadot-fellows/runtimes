@@ -132,8 +132,7 @@ parameter_types! {
 }
 
 impl parachains_hrmp::Config for Test {
-	type ParaSelfOrigin = runtime_parachains::origin::EnsureParachain;
-	type ParaRequests = ();
+	type ChannelDeposits = parachains_hrmp::ReserveDeposits<Test>;
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
 	type ChannelManager = EnsureRoot<AccountId32>;

@@ -377,45 +377,64 @@ fn registrar_stage_moves_next_free_id_and_drains_records() {
 // HRMP stage
 // ---------------------------------------------------------------------------
 
-/// The HRMP stage copies records to Coretime and keeps the relay chain's own, because the relay
-/// chain still routes every message through `HrmpChannels` and still completes handshakes from
-/// `HrmpOpenChannelRequests` at a session boundary. Only the deposits move.
+/// The HRMP stage tells Coretime every deposit and keeps the relay chain's records as they are,
+/// because the relay chain still routes every message through `HrmpChannels`, still completes
+/// handshakes from `HrmpOpenChannelRequests` at a session boundary, and still decides every
+/// deposit afterwards.
 #[test]
-fn hrmp_stage_copies_requests_and_channels_and_keeps_them_deposit_free() {
+fn hrmp_stage_sends_every_deposit_and_keeps_the_records() {
 	new_test_ext().execute_with(|| {
-		// GIVEN one open channel with deposits at both ends, and one unconfirmed request.
+		// GIVEN one open channel with deposits at both ends, one unconfirmed request, and one
+		// request its recipient has accepted.
+		let recipient_deposit = 10; // the configured recipient deposit, reserved on accepting
+		runtime_parachains::configuration::ActiveConfig::<Test>::mutate(|c| {
+			c.hrmp_recipient_deposit = recipient_deposit
+		});
 		open_channel(2000, 2001, 70, 30);
 		open_request(2000, 2002, 25);
+		open_request(2001, 2003, 25);
+		let accepted = HrmpChannelId { sender: ParaId::from(2001), recipient: ParaId::from(2003) };
+		parachains_hrmp::HrmpOpenChannelRequests::<Test>::mutate(&accepted, |r| {
+			r.as_mut().unwrap().confirmed = true
+		});
 
-		// WHEN the requests are copied.
+		// WHEN the requests are sent.
 		hrmp::HrmpMigrator::<Test>::copy_open_requests().unwrap();
 
-		// THEN Coretime is told the deposit that was taken...
+		// THEN Coretime is told each deposit taken, the recipient's only once it accepted...
+		let request =
+			|sender, recipient, confirmed, recipient_deposit| migrator_types::PortableHrmpRequest {
+				sender,
+				recipient,
+				confirmed,
+				sender_deposit: 25,
+				max_message_size: 1024,
+				max_capacity: 8,
+				max_total_size: 4096,
+				recipient_deposit,
+			};
 		assert_eq!(
 			decode_ct_calls(&take_sent_xcm()),
 			vec![CtMigratorCall::ReceiveHrmpRequests {
-				requests: vec![migrator_types::PortableHrmpRequest {
-					sender: 2000,
-					recipient: 2002,
-					confirmed: false,
-					sender_deposit: 25,
-					max_message_size: 1024,
-					max_capacity: 8,
-					max_total_size: 4096,
-				}],
+				requests: vec![
+					request(2000, 2002, false, 0),
+					request(2001, 2003, true, recipient_deposit),
+				],
 			}]
 		);
-		assert!(migrator_events().contains(&Event::HrmpRequestsSent { count: 1 }));
+		assert!(migrator_events().contains(&Event::HrmpRequestsSent { count: 2 }));
 
-		// ...and the request stays here so the session boundary can still promote it, with the
-		// deposit zeroed so a cancellation does not refund money that has left the chain. The
-		// counts stay too: the relay chain still bounds requests per para.
+		// ...and the requests stay here, deposits and counts included, so the session boundary
+		// can still promote them and a later cancellation releases what they name.
 		let request_id =
 			HrmpChannelId { sender: ParaId::from(2000), recipient: ParaId::from(2002) };
 		let request = parachains_hrmp::HrmpOpenChannelRequests::<Test>::get(&request_id)
 			.expect("the open request must stay on the relay chain");
-		assert_eq!(request.sender_deposit, 0);
-		assert_eq!(parachains_hrmp::HrmpOpenChannelRequestsList::<Test>::get(), vec![request_id]);
+		assert_eq!(request.sender_deposit, 25);
+		assert_eq!(
+			parachains_hrmp::HrmpOpenChannelRequestsList::<Test>::get(),
+			vec![request_id, accepted]
+		);
 		assert_eq!(
 			parachains_hrmp::HrmpOpenChannelRequestCount::<Test>::get(ParaId::from(2000)),
 			1
@@ -441,15 +460,44 @@ fn hrmp_stage_copies_requests_and_channels_and_keeps_them_deposit_free() {
 			}]
 		);
 
-		// ...and the channel stays here, deposit-free, so messages still route.
+		// ...and the channel stays here as it was, so messages still route.
 		let channel_id =
 			HrmpChannelId { sender: ParaId::from(2000), recipient: ParaId::from(2001) };
 		let channel = parachains_hrmp::HrmpChannels::<Test>::get(&channel_id)
 			.expect("the channel must stay on the relay chain: it is what routes messages");
-		assert_eq!(channel.sender_deposit, 0);
-		assert_eq!(channel.recipient_deposit, 0);
+		assert_eq!(channel.sender_deposit, 70);
+		assert_eq!(channel.recipient_deposit, 30);
 		assert_eq!(channel.max_capacity, 8);
 		assert_eq!(channel.max_message_size, 1024);
+	});
+}
+
+/// A close queued before the migration started would otherwise be enacted at a session boundary
+/// mid-migration, refunding against reserves the accounts stage has moved. The accounts stage
+/// processes it first, so the refund lands here.
+#[test]
+fn queued_hrmp_closes_are_processed_before_the_accounts_stage() {
+	new_test_ext().execute_with(|| {
+		// GIVEN an open channel with a close queued for the next session boundary.
+		open_channel(2000, 2001, 70, 30);
+		let id = HrmpChannelId { sender: ParaId::from(2000), recipient: ParaId::from(2001) };
+		parachains_hrmp::HrmpCloseChannelRequests::<Test>::insert(&id, ());
+		parachains_hrmp::HrmpCloseChannelRequestsList::<Test>::put(vec![id.clone()]);
+		let (sender, recipient) = (child_sov(2000), child_sov(2001));
+		assert_eq!((reserved(&sender), reserved(&recipient)), (70, 30));
+
+		// WHEN the queued closes are processed
+		hrmp::HrmpMigrator::<Test>::process_queued_closes().unwrap();
+
+		// THEN the channel is gone and both deposits are back, before any reserve moves.
+		assert!(parachains_hrmp::HrmpChannels::<Test>::get(&id).is_none());
+		assert!(parachains_hrmp::HrmpCloseChannelRequestsList::<Test>::get().is_empty());
+		assert_eq!((reserved(&sender), reserved(&recipient)), (0, 0));
+		assert!(migrator_events().contains(&Event::HrmpClosesProcessed { count: 1 }));
+
+		// AND with nothing queued it does nothing.
+		hrmp::HrmpMigrator::<Test>::process_queued_closes().unwrap();
+		assert!(!migrator_events().contains(&Event::HrmpClosesProcessed { count: 0 }));
 	});
 }
 
@@ -960,17 +1008,22 @@ fn full_stage_machine_drains_the_chain_to_zero() {
 		// The records Coretime now owns outright are drained...
 		assert!(paras_registrar::Paras::<Test>::iter().next().is_none());
 		assert!(pallet_proxy::Proxies::<Test>::iter().next().is_none());
-		// ...while the HRMP records the relay chain still reads stay, deposit-free. It routes
-		// every message through `HrmpChannels` and promotes handshakes from
-		// `HrmpOpenChannelRequests` at a session boundary; draining either would stop parachains
-		// talking to each other.
-		for (_, channel) in parachains_hrmp::HrmpChannels::<Test>::iter() {
-			assert_eq!(channel.sender_deposit, 0);
-			assert_eq!(channel.recipient_deposit, 0);
-		}
-		for (_, request) in parachains_hrmp::HrmpOpenChannelRequests::<Test>::iter() {
-			assert_eq!(request.sender_deposit, 0);
-		}
+		// ...while the HRMP records the relay chain still reads stay, deposits named. It routes
+		// every message through `HrmpChannels`, promotes handshakes from
+		// `HrmpOpenChannelRequests` at a session boundary, and releases what they name on
+		// Coretime.
+		let deposits =
+			|(_, c): (_, parachains_hrmp::HrmpChannel)| (c.sender_deposit, c.recipient_deposit);
+		assert_eq!(
+			parachains_hrmp::HrmpChannels::<Test>::iter().map(deposits).collect::<Vec<_>>(),
+			vec![(70, 30)]
+		);
+		assert_eq!(
+			parachains_hrmp::HrmpOpenChannelRequests::<Test>::iter()
+				.map(|(_, r)| r.sender_deposit)
+				.collect::<Vec<_>>(),
+			vec![25]
+		);
 		// ...every account is gone...
 		assert_eq!(frame_system::Account::<Test>::iter().count(), 0);
 		// ...and the ledger balances to zero, exactly.

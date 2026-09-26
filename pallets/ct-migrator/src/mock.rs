@@ -143,8 +143,8 @@ frame_support::parameter_types! {
 	pub static ReceivedParas: Vec<registrar_primitives::MigratedPara<sp_runtime::AccountId32>> = Vec::new();
 	/// The id counter this chain adopted, if one arrived.
 	pub static ReceivedNextFreeParaId: Option<u32> = None;
-	/// Channels handed to the HRMP pallet, oldest first.
-	pub static ReceivedChannels: Vec<hrmp_primitives::MigratedChannel> = Vec::new();
+	/// Deposits handed to the HRMP pallet, oldest first.
+	pub static ReceivedDeposits: Vec<(hrmp_primitives::DepositKey, u128)> = Vec::new();
 	/// When set, the next hand-over is refused, so the parking path can be exercised.
 	pub static ReceiveFails: bool = false;
 }
@@ -175,12 +175,15 @@ impl registrar_primitives::ReceiveMigratedParas<sp_runtime::AccountId32> for Rec
 /// Stands in for `pallet-hrmp-para`. See [`RecordingRegistrar`].
 pub struct RecordingHrmp;
 
-impl hrmp_primitives::ReceiveMigratedChannels for RecordingHrmp {
-	fn receive_channel(channel: hrmp_primitives::MigratedChannel) -> sp_runtime::DispatchResult {
+impl hrmp_primitives::ReceiveMigratedDeposits for RecordingHrmp {
+	fn receive_deposit(
+		key: hrmp_primitives::DepositKey,
+		amount: u128,
+	) -> sp_runtime::DispatchResult {
 		if ReceiveFails::get() {
 			return Err(sp_runtime::DispatchError::Other("receiver refused"));
 		}
-		ReceivedChannels::mutate(|v| v.push(channel));
+		ReceivedDeposits::mutate(|v| v.push((key, amount)));
 		Ok(())
 	}
 }
@@ -256,7 +259,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	// The recorders are thread locals and outlive a single test, so clear them here.
 	ReceivedParas::set(Vec::new());
 	ReceivedNextFreeParaId::set(None);
-	ReceivedChannels::set(Vec::new());
+	ReceivedDeposits::set(Vec::new());
 	ReceiveFails::set(false);
 
 	let t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();

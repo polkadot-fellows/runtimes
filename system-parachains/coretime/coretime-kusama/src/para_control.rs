@@ -22,29 +22,30 @@
 //! Two pairs of pallets, one per concern:
 //!
 //! - `pallet-registrar-para` here, `pallet-registrar-relay` there.
-//! - `pallet-hrmp-para` here, `pallet-hrmp-relay` there.
+//! - `pallet-hrmp-para` here, `pallet-hrmp-relay` there. HRMP itself stays on the relay chain; this
+//!   chain only holds its deposits, as the relay chain asks.
 //!
 //! Requests go up as `Transact` with `OriginKind::Native`, so they land on the relay chain as
-//! `Origin::Parachain(BROKER_ID)` — the origin its `ParaOrigin` accepts. Verdicts come back with
-//! `OriginKind::Superuser`, landing here as Root, which is what `RelayOrigin` accepts.
+//! `Origin::Parachain(BROKER_ID)` — the origin its `ParaOrigin` accepts. The relay chain's messages
+//! come back with `OriginKind::Superuser`, landing here as Root, which is what `RelayOrigin`
+//! accepts.
 
-use alloc::{vec, vec::Vec};
 use crate::{
 	xcm_config::LocationToAccountId, AccountId, Balance, Balances, Runtime, RuntimeEvent,
 	RuntimeHoldReason,
 };
+use alloc::{vec, vec::Vec};
 use codec::Encode;
 use cumulus_primitives_core::relay_chain;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstBool, ConstU32, ConstantStoragePrice, Contains,
-		EnsureOrigin, LinearStoragePrice,
+		fungible::HoldConsideration, ConstBool, ConstU32, ConstantStoragePrice, EnsureOrigin,
+		LinearStoragePrice,
 	},
 };
 use frame_system::EnsureRoot;
 use pallet_broker::CoreAssignment;
-use kusama_runtime_constants::system_parachain::BROKER_ID;
 use system_parachains_constants::kusama::currency::{system_para_deposit, CENTS};
 use xcm::latest::prelude::*;
 use xcm_executor::traits::ConvertLocation;
@@ -52,9 +53,6 @@ use xcm_executor::traits::ConvertLocation;
 parameter_types! {
 	/// The relay chain, where every request goes.
 	pub RelayLocation: Location = Location::parent();
-
-	/// This chain's own para id, naming it as one end of a system channel.
-	pub const SelfParaId: u32 = BROKER_ID;
 
 	/// Mirrors the relay chain's `LOWEST_PUBLIC_ID`: ids below it are system chains, and this
 	/// chain never hands one out.
@@ -66,8 +64,6 @@ parameter_types! {
 	pub const MinCodeSize: u32 = 9;
 	pub const MaxCodeSize: u32 = polkadot_primitives::MAX_CODE_SIZE;
 	pub const MaxHeadDataSize: u32 = polkadot_primitives::MAX_HEAD_DATA_SIZE;
-	pub const MaxHrmpCapacity: u32 = 1_000;
-	pub const MaxHrmpMessageSize: u32 = 102_400;
 
 	/// How long a manager waits before a request counts as gone quiet. In *relay-chain* blocks,
 	/// since that is what `BlockNumberProvider` measures here — so it keeps its meaning through a
@@ -79,8 +75,6 @@ parameter_types! {
 	pub const ParaDeposit: Balance = 40 * CENTS;
 	/// Per byte of head data plus the largest validation code the relay chain accepts.
 	pub const DataDepositPerByte: Balance = system_para_deposit(0, 1);
-	/// One end of an HRMP channel.
-	pub const HrmpChannelDeposit: Balance = 10 * CENTS;
 	/// What it costs to skip the rest of a para's upgrade cooldown. Burned, not held.
 	pub const UpgradeCooldownCost: Balance = 100 * CENTS;
 
@@ -88,20 +82,6 @@ parameter_types! {
 		RuntimeHoldReason::RegistrarPara(pallet_registrar_para::HoldReason::ParaIdReservation);
 	pub const RegistrationHoldReason: RuntimeHoldReason =
 		RuntimeHoldReason::RegistrarPara(pallet_registrar_para::HoldReason::Registration);
-	pub const HrmpChannelHoldReason: RuntimeHoldReason =
-		RuntimeHoldReason::HrmpPara(pallet_hrmp_para::HoldReason::Channel);
-}
-
-/// Which paras this chain treats as system chains.
-///
-/// Two things hang off it: a channel with or amongst system chains is deposit-free, and a para may
-/// pair *itself* with a system chain without going through governance.
-pub struct SystemParas;
-
-impl Contains<u32> for SystemParas {
-	fn contains(para_id: &u32) -> bool {
-		*para_id < FirstPublicParaId::get()
-	}
 }
 
 /// A para's sovereign account on this chain.
@@ -149,9 +129,9 @@ impl pallet_registrar_para::AssignmentChecker for CoretimeAssignments {
 		}
 
 		pallet_broker::Workload::<Runtime>::iter_values().any(|schedule| {
-			schedule
-				.iter()
-				.any(|item| matches!(item.assignment, CoreAssignment::Task(task) if task == para_id))
+			schedule.iter().any(
+				|item| matches!(item.assignment, CoreAssignment::Task(task) if task == para_id),
+			)
 		})
 	}
 }
@@ -167,9 +147,10 @@ impl EnsureOrigin<crate::RuntimeOrigin> for EnsureSiblingPara {
 	type Success = u32;
 
 	fn try_origin(o: crate::RuntimeOrigin) -> Result<Self::Success, crate::RuntimeOrigin> {
-		match <crate::RuntimeOrigin as Into<Result<cumulus_pallet_xcm::Origin, crate::RuntimeOrigin>>>::into(
-			o.clone(),
-		) {
+		match <crate::RuntimeOrigin as Into<
+			Result<cumulus_pallet_xcm::Origin, crate::RuntimeOrigin>,
+		>>::into(o.clone())
+		{
 			Ok(cumulus_pallet_xcm::Origin::SiblingParachain(id)) => Ok(id.into()),
 			_ => Err(o),
 		}
@@ -242,7 +223,7 @@ impl pallet_registrar_para::SendToRelay for RegistrarRequestToRelay {
 	}
 }
 
-/// The HRMP half of the transport.
+/// The HRMP half of the transport: answers to deposit holds.
 pub struct HrmpRequestToRelay;
 
 impl pallet_hrmp_para::SendToRelay for HrmpRequestToRelay {
@@ -287,24 +268,14 @@ impl pallet_registrar_para::Config for Runtime {
 
 impl pallet_hrmp_para::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type ChannelConsideration = HoldConsideration<
-		AccountId,
-		Balances,
-		HrmpChannelHoldReason,
-		ConstantStoragePrice<HrmpChannelDeposit, Balance>,
-	>;
-	type SendToRelay = HrmpRequestToRelay;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type Currency = Balances;
+	// The relay chain sends with `OriginKind::Superuser`, which arrives here as Root.
 	type RelayOrigin = EnsureRoot<AccountId>;
-	type ParachainOrigin = EnsureSiblingPara;
-	// Deposits are held on the para's sovereign account here, not on whoever calls — which is
-	// where the migration lands them.
+	type SendToRelay = HrmpRequestToRelay;
+	// Deposits are held on the para's sovereign account here, which is where the migration lands
+	// them.
 	type SovereignAccountOf = SovereignAccountOf;
-	type SelfParaId = SelfParaId;
-	type SystemParas = SystemParas;
-	type MaxCapacity = MaxHrmpCapacity;
-	type MaxMessageSize = MaxHrmpMessageSize;
-	type PendingDeadline = PendingDeadline;
-	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
 	type WeightInfo = ();
 }
 

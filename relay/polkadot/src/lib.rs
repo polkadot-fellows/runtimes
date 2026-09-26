@@ -269,14 +269,19 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			// them in with the pallets below — severs every registrar and HRMP flow on both
 			// chains, and does it silently, because a filtered call inside XCM surfaces only as a
 			// `Transact` that did nothing.
+			//
+			// `relay_request` is the exception: it is how a parachain reaches this chain's HRMP for
+			// itself, and it is shut while the migration runs, for the same reason as the
+			// para-facing registrar calls below.
+			HrmpRelay(pallet_hrmp_relay::Call::<Runtime>::relay_request { .. }) =>
+				!pallet_rc2_migrator::RcMigrationStage::<Runtime>::get().is_ongoing(),
 			RegistrarRelay(..) | HrmpRelay(..) => true,
 
-			// The para-facing registrar and HRMP calls a parachain dispatches for *itself*. These
-			// stay reachable for good, because after the migration their bodies no longer touch
-			// this chain — they forward the request to Coretime on the para's behalf (see
-			// `para_control::ForwardToCoretime`). Keeping them is what lets every parachain go on
-			// encoding exactly the call it encodes today: same pallet index, same call index, same
-			// arguments, no coordination with fifty teams.
+			// The para-facing registrar calls a parachain dispatches for *itself*. These stay
+			// reachable for good, because after the migration their bodies no longer touch this
+			// chain — they forward the request to Coretime on the para's behalf (see
+			// `para_control::ForwardToCoretime`). A parachain reaches HRMP through
+			// `HrmpRelay::relay_request` instead, above.
 			//
 			// Blocked only *while the migration runs*, and that window is load-bearing: the
 			// forwarder turns on when the migration is **finished**, so mid-migration these would
@@ -291,21 +296,14 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 				paras_registrar::Call::<Runtime>::add_lock { .. } |
 				paras_registrar::Call::<Runtime>::remove_lock { .. } |
 				paras_registrar::Call::<Runtime>::set_current_head { .. },
-			) |
-			Hrmp(
-				runtime_parachains::hrmp::Call::<Runtime>::hrmp_init_open_channel { .. } |
-				runtime_parachains::hrmp::Call::<Runtime>::hrmp_accept_open_channel { .. } |
-				runtime_parachains::hrmp::Call::<Runtime>::hrmp_close_channel { .. } |
-				runtime_parachains::hrmp::Call::<Runtime>::hrmp_cancel_open_request { .. } |
-				runtime_parachains::hrmp::Call::<Runtime>::establish_channel_with_system { .. },
 			) => !pallet_rc2_migrator::RcMigrationStage::<Runtime>::get().is_ongoing(),
 
-			// Everything else on those two pallets moves to the Coretime chain; see
-			// `para_control`. Closing them here is what stops there being two live control planes,
-			// which would diverge the moment either side acted. Root still reaches both — Root
-			// bypasses this filter — which is what governance and the migration need, and the
-			// relay-side pallets above drive them by direct call rather than by dispatch, so they
-			// are unaffected.
+			// Everything else on those two pallets is closed to direct callers. The registrar moves
+			// to the Coretime chain; HRMP stays here and is reached through
+			// `HrmpRelay::relay_request`, which dispatches into it as the para. Root still reaches
+			// both — Root bypasses this filter — which is what governance and the migration need,
+			// and the relay-side pallets above drive them by direct call rather than by dispatch,
+			// so they are unaffected.
 			//
 			// Gated on the migration rather than on the upgrade, and the distinction matters: the
 			// Coretime pallets hold no state until the migration hands it over, so closing these
@@ -1493,8 +1491,8 @@ parameter_types! {
 }
 
 impl parachains_hrmp::Config for Runtime {
-	type ParaRequests = crate::para_control::ForwardToCoretime;
-	type ParaSelfOrigin = crate::para_control::EnsureAnyParaSelf;
+	// Reserved here until the migration is done, held on Coretime from then on.
+	type ChannelDeposits = crate::para_control::HrmpDeposits;
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
 	type ChannelManager = EitherOfDiverse<

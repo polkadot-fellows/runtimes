@@ -16,9 +16,12 @@
 //! The relay chain's half of the parachain control plane.
 //!
 //! After the Minimal Relay migration this chain accepts no signed origins, so the user-facing
-//! registrar and HRMP calls all start on the Coretime chain. What stays here is the part only this
-//! chain can do — onboarding, lifecycles, PVF pre-checks, message routing — reached through
-//! `pallet-registrar-relay` and `pallet-hrmp-relay`.
+//! registrar calls start on the Coretime chain. What stays here is the part only this chain can do
+//! — onboarding, lifecycles, PVF pre-checks — reached through `pallet-registrar-relay`.
+//!
+//! HRMP stays on this chain. A parachain reaches it through `HrmpRelay::relay_request`, and only
+//! its deposits move: once the migration is done they are held on the Coretime chain, which
+//! `pallet-hrmp-relay` asks to hold and release them (see [`HrmpDeposits`]).
 //!
 //! Requests arrive from exactly one origin: the Coretime chain, as an XCM `Transact` converted to
 //! `parachains_origin::Origin::Parachain`. Reports go back as `Transact` with
@@ -122,23 +125,8 @@ pub enum RegistrarParaCalls {
 
 #[derive(Encode)]
 pub enum HrmpParaCalls {
-	/// `(sender, recipient, max_capacity, max_message_size)`.
 	#[codec(index = 0)]
-	OpenChannel(u32, u32, u32, u32),
-	/// `(sender, recipient)`.
-	#[codec(index = 1)]
-	AcceptOpenChannel(u32, u32),
-	/// `(sender, recipient, initiator)`.
-	#[codec(index = 2)]
-	CloseChannel(u32, u32, u32),
-	/// `(sender, recipient)`.
-	#[codec(index = 3)]
-	CancelOpenRequest(u32, u32),
-	#[codec(index = 4)]
 	Receive(hrmp_primitives::MessageToPara),
-	/// `(sender, recipient)`.
-	#[codec(index = 5)]
-	EstablishSystemChannel(u32, u32),
 }
 
 /// A parachain acting for itself, whether or not it is a system chain.
@@ -225,10 +213,6 @@ impl ForwardToCoretime {
 	fn registrar(as_para: u32, call: RegistrarParaCalls) -> Result<(), ()> {
 		forward_as_para(as_para, CoretimeRuntimePallets::RegistrarPara(call).encode())
 	}
-
-	fn hrmp(as_para: u32, call: HrmpParaCalls) -> Result<(), ()> {
-		forward_as_para(as_para, CoretimeRuntimePallets::HrmpPara(call).encode())
-	}
 }
 
 impl registrar_primitives::ParaRequestRouter for ForwardToCoretime {
@@ -250,46 +234,6 @@ impl registrar_primitives::ParaRequestRouter for ForwardToCoretime {
 
 	fn set_current_head(para_id: u32, head: Vec<u8>) -> Result<(), ()> {
 		Self::registrar(para_id, RegistrarParaCalls::SetCurrentHead(para_id, head))
-	}
-}
-
-impl hrmp_primitives::ParaRequestRouter for ForwardToCoretime {
-	fn is_remote() -> bool {
-		Self::remote()
-	}
-
-	fn open_channel(
-		sender: u32,
-		recipient: u32,
-		max_capacity: u32,
-		max_message_size: u32,
-	) -> Result<(), ()> {
-		Self::hrmp(
-			sender,
-			HrmpParaCalls::OpenChannel(sender, recipient, max_capacity, max_message_size),
-		)
-	}
-
-	fn accept_open_channel(sender: u32, recipient: u32) -> Result<(), ()> {
-		Self::hrmp(recipient, HrmpParaCalls::AcceptOpenChannel(sender, recipient))
-	}
-
-	// The initiator travels explicitly. Either end may close, so this is not about authority — it
-	// is about Coretime and then the relay chain recording *which* para asked, which only this
-	// chain knows: it is the para origin the call arrived with.
-	fn close_channel(initiator: u32, channel: hrmp_primitives::ChannelId) -> Result<(), ()> {
-		Self::hrmp(
-			initiator,
-			HrmpParaCalls::CloseChannel(channel.sender, channel.recipient, initiator),
-		)
-	}
-
-	fn cancel_open_request(sender: u32, channel: hrmp_primitives::ChannelId) -> Result<(), ()> {
-		Self::hrmp(sender, HrmpParaCalls::CancelOpenRequest(channel.sender, channel.recipient))
-	}
-
-	fn establish_channel_with_system(sender: u32, target: u32) -> Result<(), ()> {
-		Self::hrmp(sender, HrmpParaCalls::EstablishSystemChannel(sender, target))
 	}
 }
 
@@ -405,10 +349,10 @@ impl pallet_registrar_relay::SendToPara for RegistrarReportToCoretime {
 	}
 }
 
-/// The HRMP half of the transport.
-pub struct HrmpReportToCoretime;
+/// The HRMP half of the transport: deposit holds and releases.
+pub struct HrmpToCoretime;
 
-impl pallet_hrmp_relay::SendToPara for HrmpReportToCoretime {
+impl pallet_hrmp_relay::SendToPara for HrmpToCoretime {
 	fn send(message: hrmp_primitives::MessageToPara) -> Result<(), ()> {
 		send_to_coretime(CoretimeRuntimePallets::HrmpPara(HrmpParaCalls::Receive(message)).encode())
 	}
@@ -435,9 +379,175 @@ impl pallet_registrar_relay::Config for Runtime {
 impl pallet_hrmp_relay::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ParaOrigin = EnsureCoretime;
-	type SendToPara = HrmpReportToCoretime;
-	// The real HRMP pallet, driven deposit-free: the deposits live on Coretime now, so reserving
-	// here would charge a para twice, against a sovereign account the migration has emptied.
-	type Registry = Hrmp;
+	type ParachainOrigin = EnsureAnyParaSelf;
+	type SendToPara = HrmpToCoretime;
+	type Hrmp = HrmpAsPara;
+	type OnDepositHeld = HrmpDepositAnswers;
+	// Shares the registrar's per-para budget: one request per para per block, across both.
+	type AdmitRequest = RationParaRequests;
 	type WeightInfo = ();
+}
+
+/// `hrmp`'s deposit key, as the wire names it.
+fn to_wire(key: &runtime_parachains::hrmp::DepositKey) -> hrmp_primitives::DepositKey {
+	use runtime_parachains::hrmp::DepositSide;
+	hrmp_primitives::DepositKey {
+		channel: hrmp_primitives::ChannelId {
+			sender: key.channel.sender.into(),
+			recipient: key.channel.recipient.into(),
+		},
+		side: match key.side {
+			DepositSide::Sender => hrmp_primitives::DepositSide::Sender,
+			DepositSide::Recipient => hrmp_primitives::DepositSide::Recipient,
+		},
+	}
+}
+
+/// The wire's deposit key, as `hrmp` names it.
+fn from_wire(key: hrmp_primitives::DepositKey) -> runtime_parachains::hrmp::DepositKey {
+	use runtime_parachains::hrmp::DepositKey;
+	let channel = polkadot_primitives::HrmpChannelId {
+		sender: key.channel.sender.into(),
+		recipient: key.channel.recipient.into(),
+	};
+	match key.side {
+		hrmp_primitives::DepositSide::Sender => DepositKey::sender(channel),
+		hrmp_primitives::DepositSide::Recipient => DepositKey::recipient(channel),
+	}
+}
+
+/// Where `hrmp` holds channel deposits.
+///
+/// Reserved on this chain until the migration is done, and held on the Coretime chain from then
+/// on. The migration moves every reserve, and hands Coretime a record of each deposit, before it
+/// is done.
+pub struct HrmpDeposits;
+
+impl HrmpDeposits {
+	fn on_coretime() -> bool {
+		pallet_rc2_migrator::RcMigrationStage::<Runtime>::get().is_finished()
+	}
+}
+
+impl runtime_parachains::hrmp::ChannelDeposits for HrmpDeposits {
+	fn hold(
+		key: &runtime_parachains::hrmp::DepositKey,
+		amount: polkadot_primitives::Balance,
+	) -> Result<runtime_parachains::hrmp::HoldOutcome, sp_runtime::DispatchError> {
+		if !Self::on_coretime() {
+			return runtime_parachains::hrmp::ReserveDeposits::<Runtime>::hold(key, amount);
+		}
+		pallet_hrmp_relay::Pallet::<Runtime>::hold(to_wire(key), amount)
+			.map_err(|()| sp_runtime::DispatchError::Other("the hold could not be sent"))?;
+		Ok(runtime_parachains::hrmp::HoldOutcome::Pending)
+	}
+
+	fn release(key: &runtime_parachains::hrmp::DepositKey, amount: polkadot_primitives::Balance) {
+		if !Self::on_coretime() {
+			return runtime_parachains::hrmp::ReserveDeposits::<Runtime>::release(key, amount);
+		}
+		pallet_hrmp_relay::Pallet::<Runtime>::release(to_wire(key), None);
+	}
+
+	fn reduce(key: &runtime_parachains::hrmp::DepositKey, amount: polkadot_primitives::Balance) {
+		if !Self::on_coretime() {
+			return runtime_parachains::hrmp::ReserveDeposits::<Runtime>::reduce(key, amount);
+		}
+		pallet_hrmp_relay::Pallet::<Runtime>::release(to_wire(key), Some(amount));
+	}
+
+	fn release_offboarded(
+		key: &runtime_parachains::hrmp::DepositKey,
+		amount: polkadot_primitives::Balance,
+	) {
+		if !Self::on_coretime() {
+			return runtime_parachains::hrmp::ReserveDeposits::<Runtime>::release_offboarded(
+				key, amount,
+			);
+		}
+		pallet_hrmp_relay::Pallet::<Runtime>::release(to_wire(key), None);
+	}
+}
+
+/// Hands Coretime's answer to a hold back to `hrmp`.
+pub struct HrmpDepositAnswers;
+
+impl hrmp_primitives::OnDepositHeld for HrmpDepositAnswers {
+	fn on_deposit_held(key: hrmp_primitives::DepositKey, held: bool) {
+		<Hrmp as runtime_parachains::hrmp::OnDepositHeld>::on_deposit_held(from_wire(key), held);
+	}
+}
+
+/// `hrmp`'s para-facing calls, dispatched as the asking para.
+pub struct HrmpAsPara;
+
+impl HrmpAsPara {
+	fn origin(para: u32) -> RuntimeOrigin {
+		parachains_origin::Origin::Parachain(para.into()).into()
+	}
+
+	fn channel(channel: hrmp_primitives::ChannelId) -> polkadot_primitives::HrmpChannelId {
+		polkadot_primitives::HrmpChannelId {
+			sender: channel.sender.into(),
+			recipient: channel.recipient.into(),
+		}
+	}
+}
+
+impl hrmp_primitives::RelayHrmp for HrmpAsPara {
+	fn init_open_channel(
+		para: u32,
+		recipient: u32,
+		proposed_max_capacity: u32,
+		proposed_max_message_size: u32,
+	) -> sp_runtime::DispatchResult {
+		Hrmp::hrmp_init_open_channel(
+			Self::origin(para),
+			recipient.into(),
+			proposed_max_capacity,
+			proposed_max_message_size,
+		)
+	}
+
+	fn accept_open_channel(para: u32, sender: u32) -> sp_runtime::DispatchResult {
+		Hrmp::hrmp_accept_open_channel(Self::origin(para), sender.into())
+	}
+
+	fn close_channel(para: u32, channel: hrmp_primitives::ChannelId) -> sp_runtime::DispatchResult {
+		Hrmp::hrmp_close_channel(Self::origin(para), Self::channel(channel))
+	}
+
+	fn cancel_open_request(
+		para: u32,
+		channel: hrmp_primitives::ChannelId,
+		open_requests: u32,
+	) -> sp_runtime::DispatchResult {
+		Hrmp::hrmp_cancel_open_request(Self::origin(para), Self::channel(channel), open_requests)
+	}
+
+	fn establish_channel_with_system(
+		para: u32,
+		target_system_chain: u32,
+	) -> sp_runtime::DispatchResult {
+		Hrmp::establish_channel_with_system(Self::origin(para), target_system_chain.into())
+			.map(|_| ())
+			.map_err(|e| e.error)
+	}
+
+	fn poke_channel_deposits(channel: hrmp_primitives::ChannelId) -> sp_runtime::DispatchResult {
+		Hrmp::do_poke_channel_deposits(channel.sender.into(), channel.recipient.into())
+	}
+
+	fn establish_system_channel(channel: hrmp_primitives::ChannelId) -> sp_runtime::DispatchResult {
+		Hrmp::do_establish_system_channel(channel.sender.into(), channel.recipient.into())
+	}
+}
+
+/// Rations a parachain's HRMP requests with its registrar forwards.
+pub struct RationParaRequests;
+
+impl pallet_hrmp_relay::AdmitRequest for RationParaRequests {
+	fn admit(para: u32) -> bool {
+		pallet_registrar_relay::Pallet::<Runtime>::note_forwarded(para)
+	}
 }

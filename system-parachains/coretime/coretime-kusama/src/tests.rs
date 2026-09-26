@@ -344,11 +344,9 @@ fn the_para_control_plane_is_inert_until_the_migration_finishes() {
 	use pallet_ct_migrator::{CtMigrationStage, MigrationStage};
 
 	let reserve = RuntimeCall::RegistrarPara(pallet_registrar_para::Call::reserve {});
-	let open_channel = RuntimeCall::HrmpPara(pallet_hrmp_para::Call::open_channel {
+	let poke = RuntimeCall::HrmpPara(pallet_hrmp_para::Call::poke_channel_deposits {
 		sender: 2000,
 		recipient: 2001,
-		max_capacity: 8,
-		max_message_size: 1024,
 	});
 	// An unrelated call, to show the gate is scoped to these two pallets and not a global freeze.
 	let unrelated = RuntimeCall::System(frame_system::Call::remark { remark: vec![1] });
@@ -359,14 +357,14 @@ fn the_para_control_plane_is_inert_until_the_migration_finishes() {
 		for stage in [MigrationStage::Pending, MigrationStage::DataMigrationOngoing] {
 			CtMigrationStage::<Runtime>::put(stage.clone());
 			assert!(!Filter::contains(&reserve), "reserve must be inert at {stage:?}");
-			assert!(!Filter::contains(&open_channel), "open_channel must be inert at {stage:?}");
+			assert!(!Filter::contains(&poke), "poke must be inert at {stage:?}");
 			assert!(Filter::contains(&unrelated), "the gate must not freeze the whole chain");
 		}
 
 		// Once the state is here, the pallets serve users.
 		CtMigrationStage::<Runtime>::put(MigrationStage::MigrationDone);
 		assert!(Filter::contains(&reserve));
-		assert!(Filter::contains(&open_channel));
+		assert!(Filter::contains(&poke));
 	});
 }
 

@@ -13,65 +13,85 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! HRMP stage: **copies** the `hrmp` pallet's channel records and pending open-channel requests to
-//! the Coretime chain in portable format, and zeroes the deposits on the records left behind.
+//! HRMP stage: sends the Coretime chain a record of every HRMP deposit, so it can hold each one
+//! against its channel and side once the migration is done.
 //!
-//! Copied, not drained, and that distinction is load-bearing. The relay chain routes every HRMP
-//! message through `HrmpChannels` — `check_outbound_hrmp` refuses a candidate whose channel it
-//! cannot find — and it completes an open handshake at a *session boundary*, from
-//! `HrmpOpenChannelRequests`. Removing either map stops parachains talking to each other and
-//! destroys handshakes that have not yet been promoted, including the control-plane channels the
-//! registrar stage asks for on its way through. The ingress/egress indexes are maintained
-//! incrementally against `HrmpChannels` and are never rebuilt, so a drain also leaves them
-//! permanently orphaned — which the relay chain's own HRMP try-state asserts against.
+//! The records themselves stay here, deposits included. The relay chain routes every HRMP message
+//! through `HrmpChannels` and completes an open handshake at a session boundary from
+//! `HrmpOpenChannelRequests`, and after the migration it still decides every deposit: it asks the
+//! Coretime chain to hold or release the amounts these records name.
 //!
-//! What moves is the **money**, and only the money:
-//! - The channel and request deposits travel via the accounts stage: they arrive as holds on the
-//!   paras' *sibling sovereign* accounts and are re-attributed by the receiving side as each record
-//!   lands. Coretime is then the sole authority on them.
-//! - So the deposit fields on the records retained here are zeroed. Closing a channel refunds
-//!   `sender_deposit`/`recipient_deposit` from the paras' sovereign accounts, which the accounts
-//!   stage has emptied; a non-zero figure left behind is a refund against money that is no longer
-//!   there. Zero is also how the relay chain is driven afterwards — `HrmpRegistry` opens every
-//!   channel with a zero deposit override.
-//!
-//! The dynamic message state (`msg_count`, `total_size`, `mqc_head`) stays where it is read and is
-//! not part of the wire format.
+//! The deposits themselves travel via the accounts stage: they arrive as holds on the paras'
+//! *sibling sovereign* accounts, and the receiving side re-attributes them to the HRMP pallet as
+//! each record lands.
 
 use crate::*;
-use runtime_parachains::hrmp::{
-	HrmpChannels, HrmpOpenChannelRequests, HrmpOpenChannelRequestsList,
+use polkadot_parachain_primitives::primitives::IsSystem;
+use runtime_parachains::{
+	configuration,
+	hrmp::{
+		HrmpChannels, HrmpCloseChannelRequestsList, HrmpOpenChannelRequests,
+		HrmpOpenChannelRequestsList,
+	},
 };
 
 pub struct HrmpMigrator<T>(PhantomData<T>);
 
 impl<T: Config> HrmpMigrator<T> {
-	/// Copy every pending open-channel request to the Coretime chain, which takes over accounting
-	/// for their deposits, and zero the deposit on the copy left here.
+	/// Close every channel with a close queued for the next session boundary, now.
 	///
-	/// The requests themselves stay: the relay chain promotes them to channels at its next session
-	/// boundary, and it is the only thing that can. `HrmpOpenChannelRequestCount` and
-	/// `HrmpAcceptedChannelRequestCount` stay with them, because they bound how many requests a
-	/// para may have outstanding and the relay chain still enforces that.
+	/// No new close can be asked for once the migration has started, but one asked for before it
+	/// would otherwise be enacted mid-migration, refunding against reserves the accounts stage has
+	/// moved. Processed here, just before the accounts stage reads the reserves, the refunds land
+	/// on this chain like any other.
+	pub fn process_queued_closes() -> Result<(), Error<T>> {
+		let count = HrmpCloseChannelRequestsList::<T>::decode_len().unwrap_or(0) as u32;
+		if count == 0 {
+			return Ok(());
+		}
+		runtime_parachains::hrmp::Pallet::<T>::force_process_hrmp_close(
+			frame_system::RawOrigin::Root.into(),
+			count,
+		)
+		.map_err(|_| Error::<T>::HrmpClosesFailed)?;
+		Pallet::<T>::deposit_event(Event::HrmpClosesProcessed { count });
+		Ok(())
+	}
+
+	/// What the recipient of an open-channel request reserved on accepting it.
+	///
+	/// `hrmp` does not record it on the request: `accept_open_channel` reserves the configured
+	/// recipient deposit, unless either end is a system chain.
+	pub fn request_recipient_deposit(
+		id: &HrmpChannelId,
+		request: &runtime_parachains::hrmp::HrmpOpenChannelRequest,
+	) -> u128 {
+		let system = id.sender.is_system() || id.recipient.is_system();
+		if request.confirmed && !system {
+			configuration::ActiveConfig::<T>::get().hrmp_recipient_deposit
+		} else {
+			0
+		}
+	}
+
+	/// Send every pending open-channel request to the Coretime chain.
 	///
 	/// One-shot, called by `HrmpInit`; the request count is small (dozens). The caller wraps
 	/// this in a storage transaction so a failed send rolls everything back for a retry.
 	pub fn copy_open_requests() -> Result<(), Error<T>> {
 		let mut batch = Vec::new();
 		for id in HrmpOpenChannelRequestsList::<T>::get() {
-			HrmpOpenChannelRequests::<T>::mutate(&id, |maybe_request| {
-				if let Some(request) = maybe_request {
-					batch.push(migrator_types::PortableHrmpRequest {
-						sender: id.sender.into(),
-						recipient: id.recipient.into(),
-						confirmed: request.confirmed,
-						sender_deposit: request.sender_deposit,
-						max_message_size: request.max_message_size,
-						max_capacity: request.max_capacity,
-						max_total_size: request.max_total_size,
-					});
-					request.sender_deposit = 0;
-				}
+			let Some(request) = HrmpOpenChannelRequests::<T>::get(&id) else { continue };
+			let recipient_deposit = Self::request_recipient_deposit(&id, &request);
+			batch.push(migrator_types::PortableHrmpRequest {
+				sender: id.sender.into(),
+				recipient: id.recipient.into(),
+				confirmed: request.confirmed,
+				sender_deposit: request.sender_deposit,
+				max_message_size: request.max_message_size,
+				max_capacity: request.max_capacity,
+				max_total_size: request.max_total_size,
+				recipient_deposit,
 			});
 		}
 
@@ -84,8 +104,7 @@ impl<T: Config> HrmpMigrator<T> {
 		Ok(())
 	}
 
-	/// Copy HRMP channel records until the per-block limit is reached, zeroing the deposits on the
-	/// records left behind.
+	/// Send HRMP channel records until the per-block limit is reached.
 	///
 	/// Returns the cursor to continue from on the next block, or `None` once the map is
 	/// exhausted. The caller wraps this in a storage transaction; an `Err` rolls back the whole
@@ -93,17 +112,16 @@ impl<T: Config> HrmpMigrator<T> {
 	pub fn migrate_many(
 		last_key: Option<HrmpChannelId>,
 	) -> Result<Option<HrmpChannelId>, Error<T>> {
+		// Get iterator starting after last processed key.
 		let iter = match &last_key {
 			Some(last_key) => HrmpChannels::<T>::iter_from_key(last_key),
 			None => HrmpChannels::<T>::iter(),
 		};
 
-		// The cursor comes from `iter_from_key`, which resumes strictly after the last key seen,
-		// so progress does not depend on the records being removed.
 		Pallet::<T>::drain_records(
 			iter,
-			|channel_id, mut channel| {
-				let portable = PortableHrmpChannel {
+			|channel_id, channel| {
+				Ok(Some(PortableHrmpChannel {
 					sender: channel_id.sender.into(),
 					recipient: channel_id.recipient.into(),
 					max_capacity: channel.max_capacity,
@@ -111,14 +129,7 @@ impl<T: Config> HrmpMigrator<T> {
 					max_message_size: channel.max_message_size,
 					sender_deposit: channel.sender_deposit,
 					recipient_deposit: channel.recipient_deposit,
-				};
-
-				// The record stays — the relay chain routes through it. Only the deposits leave.
-				channel.sender_deposit = 0;
-				channel.recipient_deposit = 0;
-				HrmpChannels::<T>::insert(channel_id, channel);
-
-				Ok(Some(portable))
+				}))
 			},
 			Pallet::<T>::send_hrmp,
 		)

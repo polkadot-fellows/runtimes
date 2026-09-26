@@ -115,6 +115,42 @@ fn dot(v: u128) -> f64 {
 /// would block their withdrawal — the pre-migration prediction, where printing the millions of
 /// migratable accounts would be noise. Without it, every remaining account is printed: the
 /// post-migration measurement of the "RC → 0" gap.
+/// Every HRMP deposit the relay chain names, keyed as Coretime holds it: `(sender, recipient,
+/// true)` for the sender's end, `false` for the recipient's.
+fn rc_hrmp_deposits() -> BTreeMap<(u32, u32, bool), u128> {
+	type Rc = crate::mock::network::relay::Runtime;
+	let mut deposits = BTreeMap::new();
+	let mut add = |key, amount: u128| {
+		if amount > 0 {
+			deposits.insert(key, amount);
+		}
+	};
+	for (id, channel) in HrmpChannels::<Rc>::iter() {
+		let (s, r) = (u32::from(id.sender), u32::from(id.recipient));
+		add((s, r, true), channel.sender_deposit);
+		add((s, r, false), channel.recipient_deposit);
+	}
+	for (id, request) in runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::iter() {
+		let (s, r) = (u32::from(id.sender), u32::from(id.recipient));
+		add((s, r, true), request.sender_deposit);
+		add(
+			(s, r, false),
+			pallet_rc2_migrator::hrmp::HrmpMigrator::<Rc>::request_recipient_deposit(&id, &request),
+		);
+	}
+	deposits
+}
+
+/// What a para sends the relay chain to reach its own HRMP: an unpaid `Transact` of
+/// `HrmpRelay::relay_request`.
+fn ask_hrmp(request: hrmp_primitives::ParaRequestV1) -> Vec<u8> {
+	unpaid_transact_native(crate::mock::network::relay::RuntimeCall::HrmpRelay(
+		pallet_hrmp_relay::Call::relay_request {
+			request: hrmp_primitives::ParaRequest::V1(request),
+		},
+	))
+}
+
 fn print_remaining_on_rc(only_referenced: bool) {
 	type Rc = crate::mock::network::relay::Runtime;
 	let ed = pallet_balances::Pallet::<Rc>::minimum_balance();
@@ -906,8 +942,7 @@ async fn full_migration_rc_to_ct() {
 		paras_before,
 		paras_before_detail,
 		hrmp_before,
-		requests_before,
-		requests_before_detail,
+		hrmp_deposits_before,
 		rc_ti_before,
 		sample,
 	) = rc.execute_with(|| {
@@ -930,20 +965,25 @@ async fn full_migration_rc_to_ct() {
 		let channels: Vec<(_, u128, u128)> = HrmpChannels::<Rc>::iter()
 			.map(|(id, ch)| (id, ch.sender_deposit, ch.recipient_deposit))
 			.collect();
-		let requests: Vec<u128> = runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::iter()
-			.map(|(_, r)| r.sender_deposit)
-			.collect();
-		let requests_detail: Vec<(u32, u32, bool)> =
-			runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::iter()
-				.map(|(id, r)| (id.sender.into(), id.recipient.into(), r.confirmed))
-				.collect();
 
 		(
 			paras,
 			detail,
 			channels,
-			requests,
-			requests_detail,
+			// A channel with a close queued is closed as the accounts stage begins, so its
+			// deposits are refunded here rather than migrated.
+			{
+				let closing: BTreeSet<(u32, u32)> =
+					runtime_parachains::hrmp::HrmpCloseChannelRequestsList::<Rc>::get()
+						.into_iter()
+						.map(|id| (id.sender.into(), id.recipient.into()))
+						.collect();
+				println!("HRMP closes queued at the snapshot: {}", closing.len());
+				rc_hrmp_deposits()
+					.into_iter()
+					.filter(|((s, r, _), _)| !closing.contains(&(*s, *r)))
+					.collect::<BTreeMap<_, _>>()
+			},
 			pallet_balances::TotalIssuance::<Rc>::get(),
 			find_clean_manager(),
 		)
@@ -1007,8 +1047,7 @@ async fn full_migration_rc_to_ct() {
 	assert!(!paras_before.is_empty(), "live RC snapshot has registered paras");
 	assert!(!hrmp_before.is_empty(), "live RC snapshot has HRMP channels");
 	let recorded_deposits: u128 = paras_before.iter().map(|(_, d)| d).sum();
-	let recorded_hrmp: u128 = hrmp_before.iter().map(|(_, s, r)| s + r).sum::<u128>() +
-		requests_before.iter().sum::<u128>();
+	let recorded_hrmp: u128 = hrmp_deposits_before.values().sum();
 
 	// Proxy state before: the delegators with portable definitions (which travel to CT), one
 	// delegator with both an Any and a ParaRegistration delegate for the dispatch checks, and
@@ -1203,10 +1242,10 @@ async fn full_migration_rc_to_ct() {
 				paras <= paras_before.len(),
 				"more paras on CT ({paras}) than the relay chain ever had"
 			);
-			let channels = pallet_hrmp_para::Channels::<Ct>::iter_keys().count();
+			let deposits = pallet_hrmp_para::Deposits::<Ct>::iter_keys().count();
 			assert!(
-				channels <= hrmp_before.len() + requests_before_detail.len(),
-				"more migrated channels on CT ({channels}) than the relay chain ever had"
+				deposits <= hrmp_deposits_before.len(),
+				"more HRMP deposits on CT ({deposits}) than the relay chain ever named"
 			);
 
 			paras_before_detail
@@ -1301,35 +1340,30 @@ async fn full_migration_rc_to_ct() {
 
 	// THEN the RC has given up the registry, kept what it still routes on, and reduced issuance by
 	// exactly the burn.
-	let (tracker, migrated_nonce0) = rc.execute_with(|| {
+	let (tracker, migrated_nonce0, hrmp_deposits_after) = rc.execute_with(|| {
 		crate::events::emit_rc_census("after");
 		assert!(
 			paras_registrar::Paras::<Rc>::iter().next().is_none(),
 			"all registrar records must be drained from the RC"
 		);
 
-		// The HRMP records stay. The relay chain refuses any candidate whose outbound channel it
-		// cannot find (`check_outbound_hrmp`), and it is the only thing that promotes an open
-		// request to a channel, at a session boundary. What leaves is the money: Coretime holds
-		// every deposit now, so a figure left behind here would be a refund against an account the
-		// accounts stage has emptied.
+		// The HRMP records stay, deposits and all. The relay chain refuses any candidate whose
+		// outbound channel it cannot find (`check_outbound_hrmp`), it is the only thing that
+		// promotes an open request to a channel at a session boundary, and it still decides every
+		// deposit: the amounts these records name are what it releases on Coretime.
 		assert!(
 			HrmpChannels::<Rc>::iter().next().is_some(),
 			"the RC must keep its HRMP channels: it routes every message through them"
 		);
-		for (id, channel) in HrmpChannels::<Rc>::iter() {
-			assert_eq!(
-				(channel.sender_deposit, channel.recipient_deposit),
-				(0, 0),
-				"channel {id:?} kept a deposit the RC can no longer refund"
-			);
-		}
-		for (id, request) in runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::iter() {
-			assert_eq!(
-				request.sender_deposit, 0,
-				"open request {id:?} kept a deposit the RC can no longer refund"
-			);
-		}
+		assert!(
+			runtime_parachains::hrmp::HrmpCloseChannelRequestsList::<Rc>::get().is_empty(),
+			"no HRMP close may be left for a session boundary after the migration started"
+		);
+		let hrmp_deposits_after = rc_hrmp_deposits();
+		assert_eq!(
+			hrmp_deposits_after, hrmp_deposits_before,
+			"the migration must leave every HRMP deposit the relay chain names as it was"
+		);
 
 		// The relay chain's own HRMP invariant, which nothing here used to check. The
 		// ingress/egress indexes must describe exactly the set of channels in `HrmpChannels`;
@@ -1525,7 +1559,7 @@ async fn full_migration_rc_to_ct() {
 			crate::mock::network::relay::ahm_v2::TiCorrection::get(),
 			"TI correction burned exactly the audited amount"
 		);
-		(tracker, migrated_nonce0)
+		(tracker, migrated_nonce0, hrmp_deposits_after)
 	});
 	let migrated_ct = tracker.migrated_ct();
 
@@ -1535,7 +1569,6 @@ async fn full_migration_rc_to_ct() {
 		use pallet_ct_migrator::*;
 		crate::events::emit_ct_census("after");
 
-		use pallet_hrmp_para::ChannelState;
 		use pallet_registrar_para::RegistrationState;
 
 		assert_eq!(CtMigrationStage::<Ct>::get(), MigrationStage::MigrationDone);
@@ -1601,42 +1634,37 @@ async fn full_migration_rc_to_ct() {
 			}
 		}
 
-		// --- and the HRMP pallet owns the channels ----------------------------------------
-		// Exactly the migrated channels and requests — nothing more. There is deliberately no
-		// CT↔para control channel per registered para any more: the control link is relayed
-		// through the relay chain, which keeps its para-facing calls and forwards them, so no
-		// per-para channel exists to be capped, refused while onboarding, or collided with.
-		// (Kusama is what forced this: the relay chain caps how many channels one para may hold,
-		// the old design wanted one per para it managed, and 156 of 214 directions were refused
-		// `LimitExceeded` — see B25 and `decisions.md` 2026-08-31.)
-		let want: std::collections::BTreeSet<_> = hrmp_before
-			.iter()
-			.map(|(id, _, _)| (u32::from(id.sender), u32::from(id.recipient)))
-			.chain(requests_before_detail.iter().map(|(s, r, _)| (*s, *r)))
+		// --- and the HRMP pallet holds exactly the deposits the relay chain names ---------
+		// Keyed by channel and side, the way the relay chain releases them. An end whose sovereign
+		// could not cover its deposit holds less, and only that end, with the gap parked.
+		let ledger: BTreeMap<(u32, u32, bool), u128> = pallet_hrmp_para::Deposits::<Ct>::iter()
+			.map(|(key, amount)| {
+				let sender_side = key.side == hrmp_primitives::DepositSide::Sender;
+				((key.channel.sender, key.channel.recipient, sender_side), amount)
+			})
 			.collect();
-		let have: std::collections::BTreeSet<_> = pallet_hrmp_para::Channels::<Ct>::iter_keys()
-			.map(|c| (c.sender, c.recipient))
-			.collect();
-		assert_eq!(have, want, "the HRMP pallet holds exactly the migrated channels and requests");
-		for (id, _, _) in &hrmp_before {
-			let key = hrmp_primitives::ChannelId {
-				sender: id.sender.into(),
-				recipient: id.recipient.into(),
-			};
-			let info = pallet_hrmp_para::Channels::<Ct>::get(key)
-				.unwrap_or_else(|| panic!("channel {key:?} must land"));
-			// An existing channel means both ends paid, so it arrives fully open.
-			assert_eq!(info.state, ChannelState::Open, "channel {key:?} must arrive open");
+		for key in ledger.keys() {
+			assert!(
+				hrmp_deposits_after.contains_key(key),
+				"Coretime holds {key:?}, which the relay chain does not name"
+			);
 		}
-		for (sender, recipient, confirmed) in &requests_before_detail {
-			let key = hrmp_primitives::ChannelId { sender: *sender, recipient: *recipient };
-			let info = pallet_hrmp_para::Channels::<Ct>::get(key)
-				.unwrap_or_else(|| panic!("request {key:?} must land"));
-			// An unconfirmed request is the sender's deposit alone, which is exactly what
-			// `Pending` means here. Getting this wrong would hold money nobody paid.
-			let want = if *confirmed { ChannelState::Open } else { ChannelState::Pending };
-			assert_eq!(info.state, want, "request {key:?} must arrive in the right state");
+		let mut short = 0usize;
+		for (key, recorded) in &hrmp_deposits_after {
+			let held = ledger.get(key).copied().unwrap_or(0);
+			if held != *recorded {
+				assert!(held < *recorded, "{key:?}: holds {held}, more than the {recorded} named");
+				assert!(
+					ParkedHrmpShortfalls::<Ct>::contains_key(key),
+					"{key:?}: holds {held} of {recorded} with no shortfall parked"
+				);
+				short += 1;
+			}
 		}
+		println!(
+			"HRMP deposits held on CT: {} in full, {short} short",
+			hrmp_deposits_after.len() - short
+		);
 
 		// --- the id counter cannot hand out something already taken ----------------------
 		// After the drain the relay chain's counter is gone, so Coretime's is the only one. If
@@ -1709,8 +1737,8 @@ async fn full_migration_rc_to_ct() {
 		);
 
 		// The migrator releases every migrated registrar and HRMP deposit for the owning pallet
-		// to take its own `Consideration` at this chain's rates, so the only holds it may still
-		// carry are proxy deposits awaiting their definitions and the parked unattributed reserve.
+		// to hold, so the only holds it may still carry are proxy deposits awaiting their
+		// definitions and the parked unattributed reserve.
 		let proxy_id =
 			crate::mock::network::ct::RuntimeHoldReason::CtMigrator(HoldReason::ProxyDeposit);
 		let unattributed_id = crate::mock::network::ct::RuntimeHoldReason::CtMigrator(
@@ -1993,22 +2021,26 @@ async fn full_migration_rc_to_ct() {
 	});
 	rc.commit_all().unwrap();
 
-	// And a parachain can still open a channel *by dispatching exactly the call it dispatches
-	// today*. This is the whole forwarding design end to end: the para's `Transact` lands on the
-	// relay chain, whose body forwards it to Coretime, which takes the deposit and drives the relay
-	// chain back — and the channel materialises at the session boundary like any other.
+	// And a parachain still manages its own channels, through `HrmpRelay::relay_request`. The relay
+	// chain serves every request itself; only the deposit travels, held on Coretime at the relay
+	// chain's price, and a request is recorded once Coretime has answered.
 	let (opener, target) = rc.execute_with(|| {
 		// Two live paras that have no channel between them yet, so the request is a real one.
 		let existing: BTreeSet<(u32, u32)> = HrmpChannels::<Rc>::iter_keys()
 			.map(|id| (id.sender.into(), id.recipient.into()))
+			.chain(
+				runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::iter_keys()
+					.map(|id| (id.sender.into(), id.recipient.into())),
+			)
 			.collect();
 		let live: Vec<u32> = paras_before_detail
 			.iter()
 			.map(|(id, _, _)| *id)
 			.filter(|id| {
-				runtime_parachains::paras::Pallet::<Rc>::is_valid_para(
-					polkadot_primitives::Id::from(*id),
-				)
+				*id >= 2000 &&
+					runtime_parachains::paras::Pallet::<Rc>::is_valid_para(
+						polkadot_primitives::Id::from(*id),
+					)
 			})
 			.collect();
 		live.iter()
@@ -2018,104 +2050,211 @@ async fn full_migration_rc_to_ct() {
 	});
 	rc.commit_all().unwrap();
 
-	// Coretime takes the channel deposit from the opener's sovereign account there, so it has to be
-	// able to pay. Funding it is legitimate setup: what is under test is the control plane, not
-	// whether this particular para happens to be solvent.
+	use hrmp_primitives::{DepositKey, DepositSide, ParaRequestV1};
+	let coretime: polkadot_primitives::Id = CoretimePara::PARA_ID.into();
+	let channel = hrmp_primitives::ChannelId { sender: opener, recipient: target };
+	let id = polkadot_primitives::HrmpChannelId { sender: opener.into(), recipient: target.into() };
+	let key = |side| DepositKey { channel, side };
+	let (sender_deposit, recipient_deposit) = rc.execute_with(|| {
+		let config = runtime_parachains::configuration::ActiveConfig::<Rc>::get();
+		(config.hrmp_sender_deposit, config.hrmp_recipient_deposit)
+	});
+	assert!(
+		sender_deposit > 0 && recipient_deposit > 0,
+		"the network must charge HRMP deposits, or nothing below is exercised"
+	);
+
+	// Coretime holds each end's deposit on that para's sovereign account there, so both have to be
+	// able to pay. Funding them is setup: what is under test is the control plane.
 	ct.execute_with(|| {
-		let sovereign = <<Ct as pallet_hrmp_para::Config>::SovereignAccountOf as Convert<
-			u32,
-			AccountId32,
-		>>::convert(opener);
-		let _ =
-			<pallet_balances::Pallet<Ct> as frame_support::traits::fungible::Mutate<_>>::mint_into(
+		for para in [opener, target] {
+			let sovereign = <<Ct as pallet_hrmp_para::Config>::SovereignAccountOf as Convert<
+				u32,
+				AccountId32,
+			>>::convert(para);
+			let _ = <pallet_balances::Pallet<Ct> as frame_support::traits::fungible::Mutate<_>>::mint_into(
 				&sovereign,
-				10_000_000_000_000,
+				10 * (sender_deposit + recipient_deposit),
 			);
+		}
 	});
 	ct.commit_all().unwrap();
 
-	let request = crate::mock::network::relay::RuntimeCall::Hrmp(runtime_parachains::hrmp::Call::<
-		Rc,
-	>::hrmp_init_open_channel {
-		recipient: target.into(),
-		proposed_max_capacity: 8,
-		proposed_max_message_size: 1024,
-	});
+	// Serve one UMP message from `para` on the relay chain; return what it sends Coretime.
+	let relay_serves = |rc: &mut sp_io::TestExternalities, para: u32, msg: Vec<u8>| {
+		let sent = rc.execute_with(|| {
+			let _ = take_dmp(coretime);
+			frame_system::Pallet::<Rc>::reset_events();
+			enqueue_ump(para.into(), vec![msg]);
+			next_block_rc();
+			assert!(
+				frame_system::Pallet::<Rc>::events().into_iter().any(|record| matches!(
+					record.event,
+					crate::mock::network::relay::RuntimeEvent::MessageQueue(
+						pallet_message_queue::Event::Processed { success: true, .. }
+					)
+				)),
+				"para {para}'s unpaid request must be admitted and dispatched"
+			);
+			take_dmp(coretime)
+		});
+		rc.commit_all().unwrap();
+		sent
+	};
+	// Serve what the relay chain sent Coretime; return Coretime's answer.
+	let coretime_serves = |ct: &mut sp_io::TestExternalities, sent: Vec<_>| {
+		let answer = ct.execute_with(|| {
+			enqueue_dmp::<CoretimePara>(sent);
+			next_block_para::<CoretimePara>();
+			take_ump::<CoretimePara>()
+		});
+		ct.commit_all().unwrap();
+		answer
+	};
 
-	// The para asks the relay chain with **exactly the message it sends today**: an unpaid
-	// `Transact` of its own call, delivered as real UMP. Post-migration the barrier admits this
-	// shape from any child para (closing B26), the origin converter hands it the narrow
-	// control-plane origin, and the call's body forwards — so this drives the whole loop:
-	// barrier, origin, seam, Coretime.
-	let to_ct = rc.execute_with(|| {
-		let _ = take_dmp(CoretimePara::PARA_ID.into());
-		frame_system::Pallet::<Rc>::reset_events();
-		enqueue_ump(polkadot_primitives::Id::from(opener), vec![unpaid_transact_native(request)]);
+	// WHEN the opener asks for a channel
+	let to_ct = relay_serves(
+		&mut rc,
+		opener,
+		ask_hrmp(ParaRequestV1::InitOpenChannel {
+			recipient: target,
+			proposed_max_capacity: 8,
+			proposed_max_message_size: 1024,
+		}),
+	);
+	// THEN the relay chain parks the request on its deposit: nothing recorded here yet.
+	rc.execute_with(|| {
+		assert!(runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::get(&id).is_none());
+		assert!(runtime_parachains::hrmp::PendingDeposits::<Rc>::contains_key(
+			runtime_parachains::hrmp::DepositKey::sender(id.clone())
+		));
+	});
+	// AND Coretime holds the sender's deposit at the relay chain's price, and answers.
+	assert!(!to_ct.is_empty(), "the relay chain must ask Coretime to hold the deposit");
+	let to_rc = coretime_serves(&mut ct, to_ct);
+	ct.execute_with(|| {
+		assert_eq!(
+			pallet_hrmp_para::Deposits::<Ct>::get(key(DepositSide::Sender)),
+			Some(sender_deposit)
+		);
+	});
+	// AND the answer lets the relay chain record the request, reserving nothing here.
+	rc.execute_with(|| {
+		enqueue_ump(coretime, to_rc);
 		next_block_rc();
-		assert!(
-			frame_system::Pallet::<Rc>::events().into_iter().any(|record| matches!(
-				record.event,
-				crate::mock::network::relay::RuntimeEvent::MessageQueue(
-					pallet_message_queue::Event::Processed { success: true, .. }
-				)
-			)),
-			"the para's unpaid control-plane message must be admitted and dispatched"
-		);
-		let forwarded = take_dmp(CoretimePara::PARA_ID.into());
-		assert!(
-			!forwarded.is_empty(),
-			"the relay chain must forward para {opener}'s request to Coretime, not act on it"
-		);
-		// And it must NOT have acted locally: the request belongs to Coretime now.
-		assert!(
-			runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::get(
-				&polkadot_primitives::HrmpChannelId {
-					sender: opener.into(),
-					recipient: target.into()
-				}
-			)
-			.is_none(),
-			"the relay chain must not have recorded the request itself"
-		);
-		forwarded
+		let request = runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::get(&id)
+			.expect("the relay chain must record the request once the deposit is held");
+		assert!(!request.confirmed);
+		assert_eq!(request.sender_deposit, sender_deposit);
+		assert_eq!(runtime_parachains::hrmp::PendingDeposits::<Rc>::iter().count(), 0);
+		let sovereign: AccountId32 =
+			polkadot_primitives::Id::from(opener).into_account_truncating();
+		assert_eq!(frame_system::Account::<Rc>::get(&sovereign).data.reserved, 0);
 	});
 	rc.commit_all().unwrap();
 
-	// Coretime records it, takes the deposit, and asks the relay chain.
-	let to_rc = ct.execute_with(|| {
-		enqueue_dmp::<CoretimePara>(to_ct);
-		next_block_para::<CoretimePara>();
-		let channel = hrmp_primitives::ChannelId { sender: opener, recipient: target };
-		let info = pallet_hrmp_para::Channels::<Ct>::get(channel)
-			.expect("Coretime must hold the channel the para asked for");
-		assert!(
-			matches!(info.state, pallet_hrmp_para::ChannelState::Opening { .. }),
-			"expected Opening, got {:?}",
-			info.state
+	// WHEN the target accepts
+	let to_ct = relay_serves(
+		&mut rc,
+		target,
+		ask_hrmp(ParaRequestV1::AcceptOpenChannel { sender: opener }),
+	);
+	let to_rc = coretime_serves(&mut ct, to_ct);
+	// THEN Coretime holds the recipient's deposit,
+	ct.execute_with(|| {
+		assert_eq!(
+			pallet_hrmp_para::Deposits::<Ct>::get(key(DepositSide::Recipient)),
+			Some(recipient_deposit)
 		);
-		assert!(info.sender_ticket.is_some(), "Coretime must hold the sender's deposit");
+	});
+	// AND the relay chain confirms the request, and opens the channel at the session boundary.
+	rc.execute_with(|| {
+		enqueue_ump(coretime, to_rc);
+		next_block_rc();
+		assert!(
+			runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::get(&id)
+				.unwrap()
+				.confirmed
+		);
+		rotate_session_rc();
+		next_block_rc();
+		let live = HrmpChannels::<Rc>::get(&id).expect("the channel opens at the session boundary");
+		assert_eq!(
+			(live.sender_deposit, live.recipient_deposit),
+			(sender_deposit, recipient_deposit)
+		);
+	});
+	rc.commit_all().unwrap();
+
+	// WHEN the relay chain's prices change and a user pokes the channel from Coretime
+	let (new_sender, new_recipient) = (sender_deposit * 2, recipient_deposit / 2);
+	rc.execute_with(|| {
+		runtime_parachains::configuration::ActiveConfig::<Rc>::mutate(|c| {
+			c.hrmp_sender_deposit = new_sender;
+			c.hrmp_recipient_deposit = new_recipient;
+		});
+	});
+	rc.commit_all().unwrap();
+	let to_rc = ct.execute_with(|| {
+		assert_ok!(pallet_hrmp_para::Pallet::<Ct>::poke_channel_deposits(
+			crate::mock::network::ct::RuntimeOrigin::signed(AccountId32::new([9u8; 32])),
+			opener,
+			target,
+		));
 		take_ump::<CoretimePara>()
 	});
 	ct.commit_all().unwrap();
-
-	// The relay chain records the request, and the session boundary is what turns it into a
-	// channel — as it is for any HRMP channel, migrated or not.
-	rc.execute_with(|| {
-		assert!(!to_rc.is_empty(), "Coretime must ask the relay chain to record the request");
-		enqueue_ump(CoretimePara::PARA_ID.into(), to_rc);
+	// THEN the relay chain reprices through Coretime: the decrease released, the increase held.
+	let to_ct = rc.execute_with(|| {
+		let _ = take_dmp(coretime);
+		enqueue_ump(coretime, to_rc);
 		next_block_rc();
-
-		let id =
-			polkadot_primitives::HrmpChannelId { sender: opener.into(), recipient: target.into() };
-		let request = runtime_parachains::hrmp::HrmpOpenChannelRequests::<Rc>::get(&id)
-			.expect("the relay chain must now hold the request");
-		assert!(!request.confirmed, "the recipient has not accepted yet");
-		assert_eq!(
-			request.sender_deposit, 0,
-			"the relay chain takes no deposit: Coretime holds the money"
-		);
+		take_dmp(coretime)
 	});
 	rc.commit_all().unwrap();
+	let to_rc = coretime_serves(&mut ct, to_ct);
+	ct.execute_with(|| {
+		assert_eq!(
+			pallet_hrmp_para::Deposits::<Ct>::get(key(DepositSide::Sender)),
+			Some(new_sender)
+		);
+		assert_eq!(
+			pallet_hrmp_para::Deposits::<Ct>::get(key(DepositSide::Recipient)),
+			Some(new_recipient)
+		);
+		assert_ok!(pallet_hrmp_para::Pallet::<Ct>::do_try_state());
+	});
+	// AND records the new prices once the increase is answered.
+	rc.execute_with(|| {
+		enqueue_ump(coretime, to_rc);
+		next_block_rc();
+		let live = HrmpChannels::<Rc>::get(&id).unwrap();
+		assert_eq!((live.sender_deposit, live.recipient_deposit), (new_sender, new_recipient));
+		assert_eq!(runtime_parachains::hrmp::PendingDeposits::<Rc>::iter().count(), 0);
+	});
+	rc.commit_all().unwrap();
+
+	// WHEN the opener closes it, and the session turns
+	let _ = relay_serves(&mut rc, opener, ask_hrmp(ParaRequestV1::CloseChannel { channel }));
+	let to_ct = rc.execute_with(|| {
+		let _ = take_dmp(coretime);
+		rotate_session_rc();
+		next_block_rc();
+		assert!(
+			HrmpChannels::<Rc>::get(&id).is_none(),
+			"the channel closes at the session boundary"
+		);
+		take_dmp(coretime)
+	});
+	rc.commit_all().unwrap();
+	// THEN both deposits are released on Coretime.
+	assert!(!to_ct.is_empty(), "the relay chain must ask Coretime to release both deposits");
+	let _ = coretime_serves(&mut ct, to_ct);
+	ct.execute_with(|| {
+		assert_eq!(pallet_hrmp_para::Deposits::<Ct>::get(key(DepositSide::Sender)), None);
+		assert_eq!(pallet_hrmp_para::Deposits::<Ct>::get(key(DepositSide::Recipient)), None);
+		assert_ok!(pallet_hrmp_para::Pallet::<Ct>::do_try_state());
+	});
 }
 
 /// The hand-written cross-chain call encodings must match the runtimes that receive them.
@@ -2133,7 +2272,7 @@ mod call_encoding {
 	use coretime_polkadot_runtime::para_control::{
 		HrmpRelayCalls, RegistrarRelayCalls, RelayRuntimePallets,
 	};
-	use hrmp_primitives::{ChannelId, MessageToRelayV1 as HrmpToRelay};
+	use hrmp_primitives::{ChannelId, DepositKey, DepositSide, MessageToRelayV1 as HrmpToRelay};
 	use polkadot_runtime::para_control::{
 		CoretimeRuntimePallets, HrmpParaCalls, RegistrarParaCalls,
 	};
@@ -2205,20 +2344,13 @@ mod call_encoding {
 	/// Every HRMP message Coretime can send, same check.
 	#[test]
 	fn coretime_hrmp_calls_decode_on_the_relay_chain() {
-		let messages = vec![
-			HrmpToRelay::InitOpenChannel {
-				channel: channel(),
-				message_id: MSG_ID,
-				max_capacity: 8,
-				max_message_size: 1024,
-			},
-			HrmpToRelay::AcceptOpenChannel { channel: channel(), message_id: MSG_ID },
-			HrmpToRelay::CloseChannel { channel: channel(), message_id: MSG_ID, initiator: PARA },
-			HrmpToRelay::CancelOpenRequest { channel: channel(), message_id: MSG_ID },
-			HrmpToRelay::EstablishSystemChannel { channel: channel(), message_id: MSG_ID },
-		];
-
-		for message in messages {
+		let key = DepositKey { channel: channel(), side: DepositSide::Recipient };
+		for message in [
+			HrmpToRelay::HoldResult { key, held: true },
+			HrmpToRelay::HoldResult { key, held: false },
+			HrmpToRelay::PokeChannelDeposits { channel: channel() },
+			HrmpToRelay::EstablishSystemChannel { channel: channel() },
+		] {
 			let sent = hrmp_primitives::MessageToRelay::V1(message);
 			let encoded =
 				RelayRuntimePallets::HrmpRelay(HrmpRelayCalls::Receive(sent.clone())).encode();
@@ -2254,25 +2386,27 @@ mod call_encoding {
 			other => panic!("registrar report decoded as {other:?}"),
 		}
 
-		let hrmp_report =
-			hrmp_primitives::MessageToPara::V1(hrmp_primitives::MessageToParaV1::OpenResponse {
-				channel: channel(),
-				message_id: MSG_ID,
-				outcome: Ok(()),
-			});
-		let encoded =
-			CoretimeRuntimePallets::HrmpPara(HrmpParaCalls::Receive(hrmp_report.clone())).encode();
-		match CoretimeCall::decode(&mut &encoded[..]).expect("HRMP report does not decode") {
-			CoretimeCall::HrmpPara(pallet_hrmp_para::Call::receive { message }) =>
-				assert_eq!(message, hrmp_report),
-			other => panic!("HRMP report decoded as {other:?}"),
+		let key = DepositKey { channel: channel(), side: DepositSide::Sender };
+		for hrmp_message in [
+			hrmp_primitives::MessageToParaV1::Hold { key, amount: 10_000_000_000 },
+			hrmp_primitives::MessageToParaV1::Release { key, amount: None },
+			hrmp_primitives::MessageToParaV1::Release { key, amount: Some(1_000_000_000) },
+		] {
+			let hrmp_message = hrmp_primitives::MessageToPara::V1(hrmp_message);
+			let encoded =
+				CoretimeRuntimePallets::HrmpPara(HrmpParaCalls::Receive(hrmp_message.clone()))
+					.encode();
+			match CoretimeCall::decode(&mut &encoded[..]).expect("HRMP message does not decode") {
+				CoretimeCall::HrmpPara(pallet_hrmp_para::Call::receive { message }) =>
+					assert_eq!(message, hrmp_message),
+				other => panic!("HRMP message decoded as {other:?}"),
+			}
 		}
 	}
 
-	/// Every call the relay chain forwards on a para's behalf must decode on Coretime as the
-	/// matching extrinsic with the same arguments. `full_migration_rc_to_ct` drives only
-	/// `OpenChannel` end to end, so the other eight of these hand-written indices are pinned here
-	/// or nowhere.
+	/// Every registrar call the relay chain forwards on a para's behalf must decode on Coretime
+	/// as the matching extrinsic with the same arguments. These hand-written indices are pinned
+	/// here or nowhere.
 	#[test]
 	fn forwarded_para_calls_decode_on_coretime() {
 		let decode = |encoded: Vec<u8>| {
@@ -2304,51 +2438,6 @@ mod call_encoding {
 		];
 		for (sent, expected) in registrar_cases {
 			assert_eq!(decode(CoretimeRuntimePallets::RegistrarPara(sent).encode()), expected);
-		}
-
-		use pallet_hrmp_para::Call as HrmpCall;
-		let hrmp_cases = vec![
-			(
-				HrmpParaCalls::OpenChannel(PARA, OTHER, 8, 1024),
-				CoretimeCall::HrmpPara(HrmpCall::open_channel {
-					sender: PARA,
-					recipient: OTHER,
-					max_capacity: 8,
-					max_message_size: 1024,
-				}),
-			),
-			(
-				HrmpParaCalls::AcceptOpenChannel(PARA, OTHER),
-				CoretimeCall::HrmpPara(HrmpCall::accept_open_channel {
-					sender: PARA,
-					recipient: OTHER,
-				}),
-			),
-			(
-				HrmpParaCalls::CloseChannel(PARA, OTHER, PARA),
-				CoretimeCall::HrmpPara(HrmpCall::close_channel {
-					sender: PARA,
-					recipient: OTHER,
-					initiator: PARA,
-				}),
-			),
-			(
-				HrmpParaCalls::CancelOpenRequest(PARA, OTHER),
-				CoretimeCall::HrmpPara(HrmpCall::cancel_open_request {
-					sender: PARA,
-					recipient: OTHER,
-				}),
-			),
-			(
-				HrmpParaCalls::EstablishSystemChannel(PARA, OTHER),
-				CoretimeCall::HrmpPara(HrmpCall::establish_system_channel {
-					sender: PARA,
-					recipient: OTHER,
-				}),
-			),
-		];
-		for (sent, expected) in hrmp_cases {
-			assert_eq!(decode(CoretimeRuntimePallets::HrmpPara(sent).encode()), expected);
 		}
 	}
 }
@@ -2589,30 +2678,40 @@ async fn a_fresh_registration_across_sessions_and_the_relayed_control_route() {
 			assert!(HrmpOpenChannelRequests::<Rc>::get(id).is_none());
 		}
 
-		// WHEN the new para sends the exact message any para sends today — an unpaid `Transact`
-		// of its own call — twice in one block.
-		let ask = crate::mock::network::relay::RuntimeCall::Hrmp(runtime_parachains::hrmp::Call::<
-			Rc,
-		>::hrmp_init_open_channel {
-			recipient: 2000.into(),
-			proposed_max_capacity: 8,
-			proposed_max_message_size: 1024,
-		});
+		// WHEN the new para asks for a channel the way any para does — an unpaid `Transact` of
+		// `HrmpRelay::relay_request` — twice in one block.
+		let ask = crate::mock::network::relay::RuntimeCall::HrmpRelay(
+			pallet_hrmp_relay::Call::relay_request {
+				request: hrmp_primitives::ParaRequest::V1(
+					hrmp_primitives::ParaRequestV1::InitOpenChannel {
+						recipient: 2000,
+						proposed_max_capacity: 8,
+						proposed_max_message_size: 1024,
+					},
+				),
+			},
+		);
 		let _ = take_dmp(coretime);
 		enqueue_ump(fresh, vec![as_coretime(ask.clone()), as_coretime(ask)]);
 		next_block_rc();
 
-		// THEN exactly one request is forwarded to the control plane: the route works with no
-		// further setup, and the second ask fell to the per-para per-block forward budget.
+		// THEN exactly one request is served: its deposit is asked of Coretime with no further
+		// setup, and the second ask fell to the per-para per-block budget.
 		assert_eq!(
 			take_dmp(coretime).len(),
 			1,
-			"one forward per para per block: the first must go through, the second must not"
+			"one request per para per block: the first must go through, the second must not"
 		);
 		assert!(
 			HrmpOpenChannelRequests::<Rc>::iter_keys().all(|id| id.sender != fresh),
-			"the relay chain must forward the para's request, not act on it"
+			"the request waits on its deposit before the relay chain records it"
 		);
+		assert!(runtime_parachains::hrmp::PendingDeposits::<Rc>::contains_key(
+			runtime_parachains::hrmp::DepositKey::sender(polkadot_primitives::HrmpChannelId {
+				sender: fresh,
+				recipient: 2000.into(),
+			})
+		));
 	});
 }
 
@@ -2689,11 +2788,15 @@ async fn a_non_system_para_can_only_reach_the_relay_chain_by_paying() {
 	let mut rc = load(Chain::Relay).await;
 
 	let para: u32 = 2000;
-	let call = crate::mock::network::relay::RuntimeCall::Hrmp(
-		runtime_parachains::hrmp::Call::<Rc>::hrmp_init_open_channel {
-			recipient: 2001.into(),
-			proposed_max_capacity: 8,
-			proposed_max_message_size: 1024,
+	let call = crate::mock::network::relay::RuntimeCall::HrmpRelay(
+		pallet_hrmp_relay::Call::relay_request {
+			request: hrmp_primitives::ParaRequest::V1(
+				hrmp_primitives::ParaRequestV1::InitOpenChannel {
+					recipient: 2001,
+					proposed_max_capacity: 8,
+					proposed_max_message_size: 1024,
+				},
+			),
 		},
 	);
 
@@ -2750,16 +2853,16 @@ async fn a_non_system_para_can_only_reach_the_relay_chain_by_paying() {
 	});
 }
 
-/// Before the migration, the relay chain serves HRMP itself — the forwarding seam is inert.
+/// Before the migration, the relay chain holds HRMP deposits itself — the deposit seam is inert.
 ///
 /// The PRD's Phase 1 rule for this chain is *"before-migrate-v2 — same as existing"*, and this is
-/// what makes that concrete: the seam we added to `pallet_hrmp` reads the migration stage, so at
-/// `Pending` it must take the local path and write local state, exactly as it always has. Nothing
-/// should reach Coretime, whose pallets hold no state yet and would record a channel for a para it
-/// has never heard of.
+/// what makes that concrete: `pallet_hrmp`'s deposits go through `HrmpDeposits`, which reads the
+/// migration stage, so at `Pending` it must reserve here exactly as it always has. Nothing should
+/// reach Coretime, whose pallets hold nothing yet.
 ///
-/// The complementary half — that the same call *forwards* once the migration is done — is asserted
-/// at the end of `full_migration_rc_to_ct`, against the state the migration really produced.
+/// The complementary half — that the same request holds its deposit on Coretime once the migration
+/// is done — is asserted at the end of `full_migration_rc_to_ct`, against the state the migration
+/// really produced.
 #[tokio::test]
 async fn before_the_migration_the_relay_chain_still_serves_hrmp_itself() {
 	type Rc = crate::mock::network::relay::Runtime;
@@ -2813,11 +2916,15 @@ async fn before_the_migration_the_relay_chain_still_serves_hrmp_itself() {
 		let _ = take_dmp(CoretimePara::PARA_ID.into());
 
 		// The para asks, with the origin the XCM converter hands it.
-		assert_ok!(crate::mock::network::relay::RuntimeCall::Hrmp(
-			runtime_parachains::hrmp::Call::<Rc>::hrmp_init_open_channel {
-				recipient: recipient.into(),
-				proposed_max_capacity: 8,
-				proposed_max_message_size: 1024,
+		assert_ok!(crate::mock::network::relay::RuntimeCall::HrmpRelay(
+			pallet_hrmp_relay::Call::relay_request {
+				request: hrmp_primitives::ParaRequest::V1(
+					hrmp_primitives::ParaRequestV1::InitOpenChannel {
+						recipient,
+						proposed_max_capacity: 8,
+						proposed_max_message_size: 1024,
+					},
+				),
 			}
 		)
 		.dispatch(pallet_registrar_relay::Origin::Para(sender).into()));

@@ -83,21 +83,10 @@ fn para_facing_calls_reopen_as_forwarders_once_the_migration_is_done() {
 			para: 2000.into(),
 			new_head: polkadot_primitives::HeadData(vec![1, 2, 3]),
 		}),
-		RuntimeCall::Hrmp(hrmp::Call::<Runtime>::hrmp_init_open_channel {
-			recipient: 2001.into(),
-			proposed_max_capacity: 8,
-			proposed_max_message_size: 1024,
-		}),
-		RuntimeCall::Hrmp(hrmp::Call::<Runtime>::hrmp_accept_open_channel { sender: 2000.into() }),
-		RuntimeCall::Hrmp(hrmp::Call::<Runtime>::hrmp_close_channel {
-			channel_id: HrmpChannelId { sender: 2000.into(), recipient: 2001.into() },
-		}),
-		RuntimeCall::Hrmp(hrmp::Call::<Runtime>::hrmp_cancel_open_request {
-			channel_id: HrmpChannelId { sender: 2000.into(), recipient: 2001.into() },
-			open_requests: 1,
-		}),
-		RuntimeCall::Hrmp(hrmp::Call::<Runtime>::establish_channel_with_system {
-			target_system_chain: 1000.into(),
+		RuntimeCall::HrmpRelay(pallet_hrmp_relay::Call::<Runtime>::relay_request {
+			request: hrmp_primitives::ParaRequest::V1(
+				hrmp_primitives::ParaRequestV1::AcceptOpenChannel { sender: 2000 },
+			),
 		}),
 	] {
 		// Before the migration begins: served locally, exactly as today.
@@ -122,6 +111,39 @@ fn para_facing_calls_reopen_as_forwarders_once_the_migration_is_done() {
 			allowed_at(&Stage::MigrationDone, &call),
 			"{call:?} must reopen as a forwarder once the migration is done"
 		);
+	}
+}
+
+/// HRMP's own para-facing calls close at the start of the migration and stay closed: a parachain
+/// reaches HRMP through `HrmpRelay::relay_request` instead, which dispatches into it as the para.
+#[test]
+fn hrmp_para_facing_calls_close_for_good_once_the_migration_starts() {
+	for call in [
+		RuntimeCall::Hrmp(hrmp::Call::<Runtime>::hrmp_init_open_channel {
+			recipient: 2001.into(),
+			proposed_max_capacity: 8,
+			proposed_max_message_size: 1024,
+		}),
+		RuntimeCall::Hrmp(hrmp::Call::<Runtime>::hrmp_accept_open_channel { sender: 2000.into() }),
+		RuntimeCall::Hrmp(hrmp::Call::<Runtime>::hrmp_close_channel {
+			channel_id: HrmpChannelId { sender: 2000.into(), recipient: 2001.into() },
+		}),
+		RuntimeCall::Hrmp(hrmp::Call::<Runtime>::hrmp_cancel_open_request {
+			channel_id: HrmpChannelId { sender: 2000.into(), recipient: 2001.into() },
+			open_requests: 1,
+		}),
+		RuntimeCall::Hrmp(hrmp::Call::<Runtime>::establish_channel_with_system {
+			target_system_chain: 1000.into(),
+		}),
+	] {
+		assert!(allowed_at(&Stage::Pending, &call), "{call:?} must survive the upgrade");
+		assert!(
+			allowed_at(&Stage::Scheduled { start: 100 }, &call),
+			"{call:?} must stay open until the migration begins"
+		);
+		for stage in [Stage::RegistrarInit, Stage::HrmpInit, Stage::MigrationDone] {
+			assert!(!allowed_at(&stage, &call), "{call:?} must be closed at {stage:?}");
+		}
 	}
 }
 

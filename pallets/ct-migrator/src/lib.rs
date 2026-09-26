@@ -74,10 +74,13 @@ use frame_support::{
 	weights::WeightMeter,
 };
 use frame_system::pallet_prelude::*;
-use hrmp_primitives::{MigratedChannel, ReceiveMigratedChannels};
+use hrmp_primitives::{ChannelId, DepositKey, DepositSide, ReceiveMigratedDeposits};
 use pallet_message_queue::ForceSetHead;
 use registrar_primitives::{MigratedPara, MigratedParaState, ReceiveMigratedParas};
-use sp_runtime::traits::{One, Saturating, Zero};
+use sp_runtime::{
+	traits::{One, Saturating, Zero},
+	SaturatedConversion,
+};
 use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::ct-migrator";
@@ -185,8 +188,8 @@ pub mod pallet {
 		/// state is the receiving pallet's invariant, and rebuilding it out here is how it drifts.
 		type RegistrarReceiver: ReceiveMigratedParas<Self::AccountId>;
 
-		/// Where migrated HRMP channels are handed over. Normally `pallet-hrmp-para`.
-		type HrmpReceiver: ReceiveMigratedChannels;
+		/// Where migrated HRMP deposits are handed over. Normally `pallet-hrmp-para`.
+		type HrmpReceiver: ReceiveMigratedDeposits;
 
 		/// Send UMP message.
 		type SendXcm: SendXcm;
@@ -567,9 +570,9 @@ pub mod pallet {
 
 		/// Receive a batch of pending HRMP open-channel requests migrated from the relay chain.
 		///
-		/// Each record is handed over and the sender's deposit — which arrived as an
-		/// `HrmpDeposit` hold on the sibling sovereign during the accounts stage — is
-		/// released for the HRMP pallet to take its own, same rule as channel deposits.
+		/// Each deposit a request names — which arrived as an `HrmpDeposit` hold on the sibling
+		/// sovereign during the accounts stage — is released and handed to the HRMP pallet, same
+		/// rule as channel deposits.
 		#[pallet::call_index(9)]
 		#[pallet::weight(
 			T::DbWeight::get().reads_writes(4, 4).saturating_mul((requests.len() as u64).max(1))
@@ -776,45 +779,47 @@ pub mod pallet {
 		fn do_receive_hrmp_requests(requests: Vec<PortableHrmpRequestOf<T>>) {
 			let count = requests.len() as u32;
 			for request in requests {
-				// A failed release parks nothing: the deposit simply stays under
-				// `HrmpDeposit` and surfaces in the parked-shortfall checks.
-				if let Err(e) = Self::release_hrmp_deposit(
-					request.sender,
-					(request.sender, request.recipient, true),
-					request.sender_deposit,
-				) {
-					log::error!(
-						target: LOG_TARGET,
-						"Failed to release request deposit {}->{}: {e:?}",
-						request.sender, request.recipient,
-					);
-				}
-				// `confirmed` decides how many deposits are owed: an unconfirmed request is the
-				// sender's alone, which is exactly the distinction the receiving pallet draws
-				// between its `Pending` and `Open` states.
-				if let Err(e) = T::HrmpReceiver::receive_channel(MigratedChannel {
-					channel: hrmp_primitives::ChannelId {
-						sender: request.sender,
-						recipient: request.recipient,
-					},
-					confirmed: request.confirmed,
-				}) {
-					log::error!(
-						target: LOG_TARGET,
-						"Failed to hand over request {}->{}: {e:?}",
-						request.sender, request.recipient,
-					);
+				let channel = ChannelId { sender: request.sender, recipient: request.recipient };
+				for (side, wanted) in [
+					(DepositSide::Sender, request.sender_deposit),
+					(DepositSide::Recipient, request.recipient_deposit),
+				] {
+					// A failed hand-over parks nothing: the deposit simply stays under
+					// `HrmpDeposit` and surfaces in the parked-shortfall checks.
+					if let Err(e) =
+						Self::hand_over_hrmp_deposit(DepositKey { channel, side }, wanted)
+					{
+						log::error!(
+							target: LOG_TARGET,
+							"Failed to hand over request deposit {}->{} {side:?}: {e:?}",
+							request.sender, request.recipient,
+						);
+					}
 				}
 			}
 			Self::deposit_event(Event::HrmpRequestsReceived { count });
 		}
 
+		/// Release one migrated HRMP deposit and hand it to the HRMP pallet, which holds it
+		/// against `key`. Nothing is handed over for a zero deposit.
+		fn hand_over_hrmp_deposit(
+			key: DepositKey,
+			wanted: BalanceOf<T>,
+		) -> Result<(), DispatchError> {
+			if wanted.is_zero() {
+				return Ok(());
+			}
+			let side = matches!(key.side, DepositSide::Sender);
+			Self::release_hrmp_deposit(
+				key.para(),
+				(key.channel.sender, key.channel.recipient, side),
+				wanted,
+			)?;
+			T::HrmpReceiver::receive_deposit(key, wanted.saturated_into())
+		}
+
 		/// Release the HRMP deposit that arrived held on `para`'s sibling sovereign, so the HRMP
-		/// pallet can take its own at this chain's rates.
-		///
-		/// Same reasoning as the registrar's: a `Consideration` ticket can only be minted by
-		/// taking funds, so the migrated hold has to become free balance first. A shortfall is
-		/// parked and reported exactly as it was when the hold was merely re-labelled.
+		/// pallet can hold it under its own reason. A shortfall is parked and reported.
 		fn release_hrmp_deposit(
 			para: u32,
 			key: (u32, u32, bool),
@@ -840,27 +845,13 @@ pub mod pallet {
 		}
 
 		fn do_receive_channel(channel: &PortableHrmpChannelOf<T>) -> Result<(), DispatchError> {
-			for (para, wanted, side) in [
-				(channel.sender, channel.sender_deposit, true),
-				(channel.recipient, channel.recipient_deposit, false),
+			let id = ChannelId { sender: channel.sender, recipient: channel.recipient };
+			for (side, wanted) in [
+				(DepositSide::Sender, channel.sender_deposit),
+				(DepositSide::Recipient, channel.recipient_deposit),
 			] {
-				Self::release_hrmp_deposit(
-					para,
-					(channel.sender, channel.recipient, side),
-					wanted,
-				)?;
+				Self::hand_over_hrmp_deposit(DepositKey { channel: id, side }, wanted)?;
 			}
-
-			// A channel that exists on the relay chain arrives fully open, so the receiving
-			// pallet takes both ends' deposits.
-			T::HrmpReceiver::receive_channel(MigratedChannel {
-				channel: hrmp_primitives::ChannelId {
-					sender: channel.sender,
-					recipient: channel.recipient,
-				},
-				confirmed: true,
-			})
-			.map_err(|_| Error::<T>::FailedToReattribute)?;
 			Ok(())
 		}
 	}
