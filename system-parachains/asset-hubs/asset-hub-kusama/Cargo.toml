@@ -146,6 +146,7 @@ snowbridge-inbound-queue-primitives = { workspace = true }
 asset-test-utils = { workspace = true }
 kusama-runtime = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
+system-parachains-common = { features = ["test-helpers"], workspace = true }
 sp-io = { workspace = true, default-features = true }
 sp-tracing = { workspace = true, default-features = true }
 

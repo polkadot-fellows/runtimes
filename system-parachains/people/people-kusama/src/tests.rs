@@ -16,8 +16,9 @@
 
 use crate::{
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Block, Runtime, RuntimeCall, RuntimeOrigin, WeightToFee,
+	Block, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys, WeightToFee,
 };
+use codec::Encode;
 use polkadot_primitives::AccountId;
 use sp_core::crypto::Ss58Codec;
 use xcm::prelude::*;
@@ -215,4 +216,12 @@ fn dust_accumulates_instead_of_being_burned() {
 			assert_eq!(Balances::balance(&accumulation_account), accumulated_before + dust);
 			assert_eq!(Balances::total_issuance(), issuance_before);
 		});
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_common::test_helpers::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
 }

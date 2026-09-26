@@ -19,8 +19,8 @@
 use bulletin_polkadot_runtime::{
 	storage::{StorageCallInspector, StoragePriorityBoost, ValidateBulletinCalls},
 	xcm_config::{GovernanceLocation, LocationToAccountId, PeopleLocation},
-	Balances, Block, Executive, HopPromotion, Runtime, RuntimeCall, RuntimeOrigin, System,
-	TransactionStorage, TxExtension, UncheckedExtrinsic,
+	Balances, Block, Executive, HopPromotion, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys,
+	System, TransactionStorage, TxExtension, UncheckedExtrinsic,
 };
 use bulletin_transaction_storage_primitives::cids::{
 	calculate_cid, CidConfig, HashingAlgorithm, RAW_CODEC,
@@ -2202,4 +2202,12 @@ mod hop_promotion {
 			assert!(HopPromotion::is_promoted_on_chain(content_hash));
 		});
 	}
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_common::test_helpers::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
 }
