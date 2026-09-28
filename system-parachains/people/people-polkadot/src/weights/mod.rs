@@ -32,6 +32,7 @@ pub mod indiv_pallet_members_notifier;
 pub mod indiv_pallet_network_suffix;
 pub mod indiv_pallet_origin_restriction;
 pub mod indiv_pallet_people;
+pub mod indiv_pallet_people_airdrops;
 pub mod indiv_pallet_people_lite;
 pub mod indiv_pallet_relay_randomness;
 pub mod indiv_pallet_resources;

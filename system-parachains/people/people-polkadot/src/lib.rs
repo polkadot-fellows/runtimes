@@ -920,6 +920,7 @@ construct_runtime!(
 		MembersNotifier: indiv_pallet_members_notifier = 69,
 		Airdrop: indiv_pallet_airdrop = 70,
 		// 71: never used.
+		PeopleAirdrops: indiv_pallet_people_airdrops = 72,
 		Parameters: pallet_parameters = 73,
 		// 74: never used.
 		NetworkSuffix: indiv_pallet_network_suffix = 75,
@@ -985,6 +986,7 @@ mod benches {
 		[indiv_pallet_relay_randomness, RelayRandomness]
 		[indiv_pallet_resources, Resources]
 		[indiv_pallet_score, Score]
+		[indiv_pallet_people_airdrops, PeopleAirdrops]
 	);
 
 	impl frame_system_benchmarking::Config for Runtime {

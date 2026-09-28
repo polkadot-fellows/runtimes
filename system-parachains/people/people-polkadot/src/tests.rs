@@ -495,6 +495,56 @@ fn score_payout_asset_is_set_by_governance() {
 	});
 }
 
+/// The people-airdrops pallet reads its prize source from the governance parameter.
+#[test]
+fn people_airdrops_prize_source_is_set_by_governance() {
+	use crate::{
+		parameters::{dynamic_params::people_airdrops, RuntimeParameters},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use frame_support::{traits::Get, PalletId};
+	use sp_runtime::{traits::AccountIdConversion, BuildStorage};
+
+	type PrizeSource = <Runtime as indiv_pallet_people_airdrops::Config>::PrizeSource;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// GIVEN the default prize source is the dedicated pallet account.
+		let default: AccountId = PalletId(*b"pop/pads").into_account_truncating();
+		assert_eq!(PrizeSource::get(), default);
+
+		// WHEN Root points it at another account.
+		let updated = AccountId::from(ALICE);
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::PeopleAirdrops(people_airdrops::Parameters::PrizeSource(
+				people_airdrops::PrizeSource,
+				Some(updated.clone()),
+			)),
+		));
+
+		// THEN the pallet funds draws from that account.
+		assert_eq!(PrizeSource::get(), updated);
+	});
+}
+
+#[test]
+fn people_airdrops_context_is_an_account_context() {
+	use crate::{individuality::AccountContexts, PeopleAirdrops, Resources, RuntimeGenesisConfig};
+	use frame_support::traits::Contains;
+	use sp_runtime::BuildStorage;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		let airdrops = PeopleAirdrops::people_airdrops_context();
+		assert!(AccountContexts::contains(&airdrops));
+	});
+}
+
 /// Only assets Asset Hub itself issues may be reserve transferred here from Asset Hub.
 ///
 /// Accepting an asset from a chain that is not its real reserve gives it two reserves, and
@@ -586,7 +636,7 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		parameters::{
 			dynamic_params::{
 				bulletin_storage, coinage, external_asset, lite_personhood, origin_restriction,
-				statement_storage,
+				people_airdrops, statement_storage,
 			},
 			DynamicParameterOrigin, RuntimeParameters, RuntimeParametersKey,
 		},
@@ -633,6 +683,7 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		Coinage(coinage::LoadDepositPrice.into()),
 		Coinage(coinage::InstanceCreationDeposit.into()),
 		ExternalAsset(external_asset::AssetLocation.into()),
+		PeopleAirdrops(people_airdrops::PrizeSource.into()),
 	];
 
 	// THEN Root passes all, the voice only the operational keys.

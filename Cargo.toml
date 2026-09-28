@@ -104,6 +104,7 @@ indiv-pallet-network-suffix = { git = "https://github.com/paritytech/individuali
 indiv-pallet-origin-restriction = { git = "https://github.com/paritytech/individuality-community", rev = "24033977b174dad1006f7f4b195acf45ce41daae", default-features = false, version = "*" }
 indiv-pallet-people = { git = "https://github.com/paritytech/individuality-community", rev = "24033977b174dad1006f7f4b195acf45ce41daae", default-features = false, version = "*" }
 indiv-pallet-people-lite = { git = "https://github.com/paritytech/individuality-community", rev = "24033977b174dad1006f7f4b195acf45ce41daae", default-features = false, version = "*" }
+indiv-pallet-people-airdrops = { git = "https://github.com/paritytech/individuality-community", rev = "24033977b174dad1006f7f4b195acf45ce41daae", default-features = false, version = "*" }
 indiv-pallet-pgas = { git = "https://github.com/paritytech/individuality-community", rev = "24033977b174dad1006f7f4b195acf45ce41daae", default-features = false, version = "*" }
 indiv-pallet-relay-randomness = { git = "https://github.com/paritytech/individuality-community", rev = "24033977b174dad1006f7f4b195acf45ce41daae", default-features = false, version = "*" }
 indiv-pallet-resources = { git = "https://github.com/paritytech/individuality-community", rev = "24033977b174dad1006f7f4b195acf45ce41daae", default-features = false, version = "*" }

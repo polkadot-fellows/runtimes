@@ -190,7 +190,9 @@ impl indiv_pallet_members::Config for Runtime {
 pub struct AccountContexts;
 impl frame_support::traits::Contains<Context> for AccountContexts {
 	fn contains(context: &Context) -> bool {
-		context == &indiv_pallet_resources::Pallet::<Runtime>::resources_context()
+		context == &indiv_pallet_resources::Pallet::<Runtime>::resources_context() ||
+			context ==
+				&indiv_pallet_people_airdrops::Pallet::<Runtime>::people_airdrops_context()
 	}
 }
 
@@ -663,6 +665,23 @@ impl indiv_pallet_airdrop::Config for Runtime {
 	type BenchmarkHelper = benchmark_utils::AirdropBenchmarkHelper;
 }
 
+impl indiv_pallet_people_airdrops::Config for Runtime {
+	type WeightInfo = weights::indiv_pallet_people_airdrops::WeightInfo<Runtime>;
+	type Suffix = NetworkSuffix;
+	type EnsurePerson = indiv_pallet_people::EnsurePersonalAliasInContext<Runtime>;
+	type AirdropAssetId = <Runtime as pallet_assets::Config>::AssetId;
+	type AirdropAssetBalance = Balance;
+	type Airdrop = Airdrop;
+	type ManagerOrigin = EnsureRoot<Self::AccountId>;
+	type PrizeSource = crate::parameters::PeopleAirdropsPrizeSource;
+	type Randomness = indiv_pallet_relay_randomness::RelayBlockRandomness<Runtime>;
+	type UnixTime = RuntimeClock;
+	type MaxScheduleBatch = ConstU32<16>;
+	type MaxRegisterBatch = ConstU32<16>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = benchmark_utils::PeopleAirdropsBenchmarkHelper;
+}
+
 /// Grants an account a data allowance on the Bulletin Chain, which is where long-term person data
 /// lives.
 pub struct BulletinDataStore;
@@ -907,6 +926,98 @@ pub mod benchmark_utils {
 			let account_id: AccountId =
 				sp_runtime::MultiSigner::Sr25519(pair.public()).into_account();
 			(account_id, pair)
+		}
+	}
+
+	/// Benchmark hooks for the people-airdrops pallet: places draws into lifecycle phases by
+	/// writing the airdrop pallet's storage directly, since the `Airdrop` trait deliberately
+	/// cannot.
+	pub struct PeopleAirdropsBenchmarkHelper;
+
+	impl indiv_pallet_people_airdrops::benchmarking::BenchmarkHelper<Runtime>
+		for PeopleAirdropsBenchmarkHelper
+	{
+		fn fund_prize_source(
+			source: &AccountId,
+			draws: u32,
+		) -> alloc::vec::Vec<indiv_pallet_people_airdrops::AirdropEventInfoOf<Runtime>> {
+			use indiv_pallet_airdrop::{
+				benchmarking::BenchmarkHelper as _, pallet::SupportedAssets,
+			};
+			const BENCH_ASSET_BASE: u32 = 42;
+			const BENCH_PRIZE: Balance = 1_000;
+			// `UnixTime::now` is read on the claim path; make sure it is past genesis.
+			if pallet_timestamp::Now::<Runtime>::get() == 0 {
+				Self::set_unix_time(1);
+			}
+			let pot = indiv_pallet_airdrop::Pallet::<Runtime>::airdrop_pot_id();
+			// One distinct asset per draw so a batch schedule touches distinct asset storage per
+			// draw (see the `BenchmarkHelper` trait doc).
+			(0..draws)
+				.map(|i| {
+					let asset_id =
+						AirdropBenchmarkHelper::create_asset_id_parameter(BENCH_ASSET_BASE + i);
+					// Mirror `enable_asset`: mark the asset supported and keep the pot's asset
+					// account alive.
+					if !SupportedAssets::<Runtime>::contains_key(&asset_id) {
+						Assets::mint_into(asset_id.clone(), &pot, 1).expect("fund pot ed");
+						SupportedAssets::<Runtime>::insert(&asset_id, 1u128);
+					}
+					Assets::mint_into(asset_id.clone(), source, BENCH_PRIZE)
+						.expect("fund prize source");
+					indiv_pallet_people_airdrops::AirdropEventInfoOf::<Runtime> {
+						prize: indiv_pallet_airdrop::types::AirdropPrize {
+							asset_id,
+							asset_amount: BENCH_PRIZE,
+							max_winners: 1,
+							winner_cap: sp_runtime::Permill::one(),
+						},
+						registration_starts: 100,
+						draw_time: 200,
+						end_time: 300,
+					}
+				})
+				.collect()
+		}
+
+		fn open_registration(event_id: &indiv_pallet_airdrop::types::EventId) {
+			indiv_pallet_airdrop::pallet::Events::<Runtime>::mutate(event_id, |event| {
+				if let Some(event) = event {
+					event.status =
+						indiv_pallet_airdrop::types::Status::Registering { total_participants: 0 };
+				}
+			});
+		}
+
+		fn start_claiming(event_id: &indiv_pallet_airdrop::types::EventId) {
+			use indiv_pallet_airdrop::pallet::{Registrations, Winners};
+			let registrations =
+				Registrations::<Runtime>::iter_prefix(event_id).collect::<alloc::vec::Vec<_>>();
+			for (slot, entry) in &registrations {
+				Winners::<Runtime>::insert(event_id, entry.clone(), *slot);
+			}
+			indiv_pallet_airdrop::pallet::Events::<Runtime>::mutate(event_id, |event| {
+				if let Some(event) = event {
+					event.status = indiv_pallet_airdrop::types::Status::Claiming {
+						total_participants: registrations.len() as u32,
+						effective_winners: registrations.len() as u32,
+						claimed: 0,
+					};
+				}
+			});
+		}
+
+		fn count_registrations(event_id: &indiv_pallet_airdrop::types::EventId) -> u32 {
+			indiv_pallet_airdrop::pallet::Registrations::<Runtime>::iter_prefix(event_id).count()
+				as u32
+		}
+
+		fn count_winners(event_id: &indiv_pallet_airdrop::types::EventId) -> u32 {
+			indiv_pallet_airdrop::pallet::Winners::<Runtime>::iter_prefix(event_id).count() as u32
+		}
+
+		fn set_unix_time(now_secs: u64) {
+			pallet_timestamp::Now::<Runtime>::put(now_secs * 1_000);
 		}
 	}
 
