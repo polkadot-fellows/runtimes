@@ -16,5 +16,5 @@ frame-system = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-session = { workspace = true, default-features = true }
 parachains-runtimes-test-utils = { workspace = true }
-sp-keystore = { workspace = true, default-features = true }
+sp-keystore = { workspace = true }
 sp-runtime = { workspace = true, default-features = true }
