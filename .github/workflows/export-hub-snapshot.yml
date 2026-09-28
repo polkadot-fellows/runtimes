@@ -1,0 +1,87 @@
+name: Export Polkadot Hub snapshot
+
+on:
+  workflow_dispatch:
+    inputs:
+      snapshot_date:
+        description: 'Cache date (YYYYMMDD); leave empty for the newest available snapshot'
+        required: false
+        type: string
+  push:
+    branches:
+      - oty-export-hub-snapshot
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Select snapshot cache
+        id: select
+        env:
+          SNAPSHOT_DATE: ${{ inputs.snapshot_date }}
+        shell: bash
+        run: |
+          if [[ -n "$SNAPSHOT_DATE" && ! "$SNAPSHOT_DATE" =~ ^[0-9]{8}$ ]]; then
+            echo '::error::snapshot_date must be empty or YYYYMMDD'
+            exit 1
+          fi
+          echo "key=try-runtime-snapshot-asset-hub-polkadot-${SNAPSHOT_DATE}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore existing snapshot
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          # Match the path/version used by check-migrations.yml.
+          path: snapshot.raw
+          key: ${{ steps.select.outputs.key }}
+          fail-on-cache-miss: true
+
+      - name: Verify snapshot and record export provenance
+        env:
+          REQUESTED_KEY: ${{ steps.select.outputs.key }}
+          MATCHED_KEY: ${{ steps.restore.outputs.cache-matched-key }}
+          SNAPSHOT_DATE: ${{ inputs.snapshot_date }}
+        shell: bash
+        run: |
+          if [[ ! "$MATCHED_KEY" =~ ^try-runtime-snapshot-asset-hub-polkadot-[0-9]{8}$ ]]; then
+            echo '::error::Unexpected snapshot cache key'
+            exit 1
+          fi
+          if [[ -n "$SNAPSHOT_DATE" && "$MATCHED_KEY" != "$REQUESTED_KEY" ]]; then
+            echo '::error::Requested snapshot date was not restored exactly'
+            exit 1
+          fi
+          test -s snapshot.raw || { echo '::error::Snapshot is missing or empty'; exit 1; }
+          sha256sum snapshot.raw > snapshot.raw.sha256
+          jq -n \
+            --arg cache_key "$MATCHED_KEY" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg run_url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --arg workflow_sha "$GITHUB_SHA" \
+            --arg exported_at "$(date -u +%FT%TZ)" \
+            --arg sha256 "$(cut -d ' ' -f 1 snapshot.raw.sha256)" \
+            --argjson bytes "$(stat -c %s snapshot.raw)" \
+            '{cache_key: $cache_key, repository: $repository, run_url: $run_url,
+              workflow_sha: $workflow_sha, exported_at: $exported_at,
+              snapshot_sha256: $sha256, snapshot_bytes: $bytes}' \
+            > export-provenance.json
+          {
+            echo "Exported cache: \`$MATCHED_KEY\`"
+            echo
+            cat snapshot.raw.sha256
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload snapshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: try-runtime-snapshot-asset-hub-polkadot
+          path: |
+            snapshot.raw
+            snapshot.raw.sha256
+            export-provenance.json
+          if-no-files-found: error
+          retention-days: 7
