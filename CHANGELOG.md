@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Kusama: remove `pallet-election-provider-multi-phase` from the relay runtime. Staking elections run on Asset Hub since the AHM, and a migration clears the pallet's storage ([#1309](https://github.com/polkadot-fellows/runtimes/issues/1309)).
 - People Polkadot: remove the single-use `SeedSubscriptionWhitelist` migration that seeded the Asset Hub `MembersNotifier` subscription whitelist entry. It shipped in 2.5.0 and has run on chain. [#1292](https://github.com/polkadot-fellows/runtimes/pull/1292)).
 
 ### Changed
