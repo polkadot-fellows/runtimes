@@ -220,7 +220,7 @@ fn dust_accumulates_instead_of_being_burned() {
 
 #[test]
 fn session_key_deposit_works() {
-	system_parachains_common::test_helpers::session_key_deposit_works::<Runtime>(|owner| {
+	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
 		let generated = SessionKeys::generate(&owner.encode(), None);
 		(generated.keys, generated.proof.encode())
 	});

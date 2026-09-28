@@ -312,6 +312,7 @@ sp-weights = { version = "36.0.0", default-features = false }
 substrate-wasm-builder = { version = "34.0.1" }
 system-parachains-constants = { path = "system-parachains/constants", default-features = false }
 system-parachains-common = { path = "system-parachains/common", default-features = false }
+system-parachains-test-utils = { path = "system-parachains/common/test-utils" }
 tokio = { version = "1.45.0" }
 xcm = { version = "24.1.0", default-features = false, package = "staging-xcm" }
 xcm-builder = { version = "29.0.1", default-features = false, package = "staging-xcm-builder" }
@@ -386,6 +387,7 @@ members = [
 	"system-parachains/collectives/collectives-polkadot",
 	"system-parachains/collectives/collectives-polkadot/constants",
 	"system-parachains/common",
+	"system-parachains/common/test-utils",
 	"system-parachains/constants",
 	"system-parachains/coretime/coretime-kusama",
 	"system-parachains/coretime/coretime-polkadot",
