@@ -13,7 +13,9 @@ codec = { workspace = true, default-features = true }
 # Substrate
 sp-runtime = { workspace = true, default-features = true }
 frame-support = { workspace = true, default-features = true }
+pallet-accumulate-and-forward = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
+pallet-collator-selection = { workspace = true, default-features = true }
 pallet-broker = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 pallet-identity = { workspace = true, default-features = true }
@@ -54,8 +56,10 @@ runtime-benchmarks = [
 	"kusama-runtime-constants/runtime-benchmarks",
 	"kusama-runtime/runtime-benchmarks",
 	"kusama-system-emulated-network/runtime-benchmarks",
+	"pallet-accumulate-and-forward/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-broker/runtime-benchmarks",
+	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",

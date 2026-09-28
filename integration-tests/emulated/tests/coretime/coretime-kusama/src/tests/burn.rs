@@ -16,13 +16,9 @@
 
 use crate::*;
 use cumulus_pallet_parachain_system::ValidationData;
-use integration_tests_helpers::{
-	frame_support::{
-		traits::{fungible::Inspect as _, Hooks, OnInitialize},
-		PalletId,
-	},
-	frame_system, pallet_accumulate_and_forward, pallet_balances, pallet_collator_selection,
-	pallet_message_queue, pallet_xcm,
+use frame_support::{
+	traits::{fungible::Inspect as _, Hooks, OnInitialize},
+	PalletId,
 };
 use kusama_runtime_constants::currency::UNITS;
 use pallet_broker::{ConfigRecordOf, SaleInfo};
@@ -168,9 +164,11 @@ fn coretime_revenue_is_burnt_on_asset_hub() {
 	assert_eq!(check_delta, teleported - forwarded);
 }
 
-integration_tests_helpers::test_accumulated_funds_are_burnt_on_asset_hub!(
-	CoretimeKusama,
-	AssetHubKusama,
-	CORETIME_KUSAMA_ED,
-	ASSET_HUB_KUSAMA_ED,
-);
+#[test]
+fn accumulated_funds_are_burnt_on_asset_hub() {
+	use coretime_kusama_runtime::System;
+	integration_tests_helpers::burn::test_accumulated_funds_are_burnt_on_asset_hub::<
+		CoretimeKusama,
+		AssetHubKusama,
+	>(AssetHubKusamaSender::get(), System::set_block_number);
+}

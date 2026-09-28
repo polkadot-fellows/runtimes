@@ -18,7 +18,7 @@
 use crate::*;
 
 use coretime_kusama_runtime::xcm_config::XcmConfig as CoretimeKusamaXcmConfig;
-use integration_tests_helpers::test_chain_can_claim_assets;
+use emulated_integration_tests_common::test_chain_can_claim_assets;
 
 #[test]
 fn assets_can_be_claimed() {

@@ -18,6 +18,7 @@ mod tests;
 
 // Substrate
 pub use emulated_integration_tests_common::{
+	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 	xcm_emulator::{
 		assert_expected_events, bx, helpers::weight_within_threshold, Chain, Parachain as Para,
 		RelayChain as Relay, Test, TestArgs, TestContext, TestExt,
@@ -30,9 +31,6 @@ pub use frame_support::{
 	pallet_prelude::Weight,
 	sp_runtime::{AccountId32, DispatchError, DispatchResult},
 	traits::fungibles::Inspect,
-};
-pub use integration_tests_helpers::{
-	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 };
 pub use kusama_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{

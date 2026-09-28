@@ -17,7 +17,7 @@
 
 use crate::*;
 
-use integration_tests_helpers::test_chain_can_claim_assets;
+use emulated_integration_tests_common::test_chain_can_claim_assets;
 use people_polkadot_runtime::xcm_config::XcmConfig as PeoplePolkadotXcmConfig;
 
 #[test]

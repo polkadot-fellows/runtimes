@@ -20,7 +20,7 @@ use crate::*;
 use asset_hub_polkadot_runtime::{
 	xcm_config::XcmConfig as AssetHubPolkadotXcmConfig, ExistentialDeposit,
 };
-use integration_tests_helpers::test_chain_can_claim_assets;
+use emulated_integration_tests_common::test_chain_can_claim_assets;
 
 #[test]
 fn assets_can_be_claimed() {
