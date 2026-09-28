@@ -356,7 +356,8 @@ impl_runtime_apis! {
 				fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Self::Keys, Vec<u8>) {
 					use frame_support::traits::fungible::Mutate;
 					// Mint the key deposit on top of the balance the benchmark already funded.
-					// TODO: remove after https://github.com/paritytech/polkadot-sdk/issues/13336
+					// TODO: Remove after https://github.com/paritytech/polkadot-sdk/issues/13336
+					// is fixed.
 					Balances::mint_into(&owner, SessionKeyDeposit::get()).expect("mint session key deposit");
 					let keys = crate::SessionKeys::generate(&owner.encode(), None);
 					(keys.keys, keys.proof.encode())
