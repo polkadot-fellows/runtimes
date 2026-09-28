@@ -38,7 +38,10 @@ use beefy_primitives::{
 };
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::cmp::Ordering;
-use frame_election_provider_support::{bounds::ElectionBoundsBuilder, onchain, SequentialPhragmen};
+use frame_election_provider_support::{
+	bounds::ElectionBoundsBuilder, onchain, BoundedSupportsOf, ElectionProvider, PageIndex,
+	SequentialPhragmen,
+};
 use frame_support::{
 	construct_runtime,
 	dispatch::RawOrigin,
@@ -626,6 +629,40 @@ impl onchain::Config for OnChainSeqPhragmen {
 	type MaxWinnersPerPage = MaxWinnersPerPage;
 }
 
+type OnChainElection = onchain::OnChainExecution<OnChainSeqPhragmen>;
+
+/// The on-chain election of `Staking`, which never reports an ongoing election.
+///
+/// `pallet-staking` calls `elect` without reading `status`, and it treats any `Ok` from `status`
+/// as an ongoing election, which pauses fast unstake. An on-chain election ends inside `elect`.
+pub struct StakingElection;
+impl ElectionProvider for StakingElection {
+	type AccountId = <OnChainElection as ElectionProvider>::AccountId;
+	type BlockNumber = <OnChainElection as ElectionProvider>::BlockNumber;
+	type Error = <OnChainElection as ElectionProvider>::Error;
+	type MaxWinnersPerPage = <OnChainElection as ElectionProvider>::MaxWinnersPerPage;
+	type MaxBackersPerWinner = <OnChainElection as ElectionProvider>::MaxBackersPerWinner;
+	type MaxBackersPerWinnerFinal = <OnChainElection as ElectionProvider>::MaxBackersPerWinnerFinal;
+	type Pages = <OnChainElection as ElectionProvider>::Pages;
+	type DataProvider = <OnChainElection as ElectionProvider>::DataProvider;
+
+	fn elect(page: PageIndex) -> Result<BoundedSupportsOf<Self>, Self::Error> {
+		OnChainElection::elect(page)
+	}
+
+	fn duration() -> Self::BlockNumber {
+		OnChainElection::duration()
+	}
+
+	fn start() -> Result<(), Self::Error> {
+		OnChainElection::start()
+	}
+
+	fn status() -> Result<Option<Weight>, ()> {
+		Err(())
+	}
+}
+
 parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
 }
@@ -837,14 +874,8 @@ impl pallet_staking::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type UnixTime = Timestamp;
 	type CurrencyToVote = CurrencyToVote;
-	type ElectionProvider = frame_election_provider_support::NoElection<(
-		AccountId,
-		BlockNumber,
-		Staking,
-		MaxWinnersPerPage,
-		MaxBackersPerWinner,
-	)>;
-	type GenesisElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
+	type ElectionProvider = StakingElection;
+	type GenesisElectionProvider = OnChainElection;
 	type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
 	type RuntimeEvent = RuntimeEvent;
 	type Slash = ResolveTo<TreasuryAccount, Balances>;
@@ -2097,6 +2128,7 @@ mod benches {
 		[runtime_parachains::configuration, Configuration]
 		[runtime_parachains::hrmp, Hrmp]
 		[runtime_parachains::disputes, ParasDisputes]
+		[runtime_parachains::disputes::slashing, ParasSlashing]
 		[runtime_parachains::inclusion, ParaInclusion]
 		[runtime_parachains::initializer, Initializer]
 		[runtime_parachains::paras_inherent, ParaInherent]
@@ -2153,6 +2185,7 @@ mod benches {
 	impl pallet_election_provider_support_benchmarking::Config for Runtime {}
 	impl frame_system_benchmarking::Config for Runtime {}
 	impl frame_benchmarking::baseline::Config for Runtime {}
+	impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
 
 	parameter_types! {
 		pub ExistentialDepositAsset: Option<Asset> = Some((
