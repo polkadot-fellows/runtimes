@@ -355,8 +355,8 @@ impl_runtime_apis! {
 			impl cumulus_pallet_session_benchmarking::Config for Runtime {
 				fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Self::Keys, Vec<u8>) {
 					use frame_support::traits::fungible::Mutate;
-					// Mint the key deposit so it does not eat into balance the caller bench already funded.
-					// TODO: https://github.com/paritytech/polkadot-sdk/issues/13336
+					// Mint the key deposit on top of the balance the benchmark already funded.
+					// TODO: remove after https://github.com/paritytech/polkadot-sdk/issues/13336
 					Balances::mint_into(&owner, SessionKeyDeposit::get()).expect("mint session key deposit");
 					let keys = crate::SessionKeys::generate(&owner.encode(), None);
 					(keys.keys, keys.proof.encode())
