@@ -1,4 +1,4 @@
-name: Export Polkadot Hub snapshot
+name: Export Polkadot relay snapshot
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         type: string
   push:
     branches:
-      - oty-export-hub-snapshot
+      - oty-export-relay-snapshot
 
 permissions:
   contents: read
@@ -29,7 +29,7 @@ jobs:
             echo '::error::snapshot_date must be empty or YYYYMMDD'
             exit 1
           fi
-          echo "key=try-runtime-snapshot-asset-hub-polkadot-${SNAPSHOT_DATE}" >> "$GITHUB_OUTPUT"
+          echo "key=try-runtime-snapshot-polkadot-${SNAPSHOT_DATE}" >> "$GITHUB_OUTPUT"
 
       - name: Restore existing snapshot
         id: restore
@@ -47,7 +47,7 @@ jobs:
           SNAPSHOT_DATE: ${{ inputs.snapshot_date }}
         shell: bash
         run: |
-          if [[ ! "$MATCHED_KEY" =~ ^try-runtime-snapshot-asset-hub-polkadot-[0-9]{8}$ ]]; then
+          if [[ ! "$MATCHED_KEY" =~ ^try-runtime-snapshot-polkadot-[0-9]{8}$ ]]; then
             echo '::error::Unexpected snapshot cache key'
             exit 1
           fi
@@ -78,7 +78,7 @@ jobs:
       - name: Upload snapshot artifact
         uses: actions/upload-artifact@v4
         with:
-          name: try-runtime-snapshot-asset-hub-polkadot
+          name: try-runtime-snapshot-polkadot
           path: |
             snapshot.raw
             snapshot.raw.sha256
