@@ -1804,6 +1804,7 @@ construct_runtime! {
 		ChildBounties: pallet_child_bounties = 38,
 
 		// Staking 36-40s, see also Staking, Offences, Historical and Session
+		// ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 36, (removed)
 		VoterList: pallet_bags_list::<Instance1> = 37,
 		NominationPools: pallet_nomination_pools = 39,
 		FastUnstake: pallet_fast_unstake = 40,
