@@ -1689,6 +1689,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -1900,6 +1901,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "tokio",
  "verifiable",
  "xcm-runtime-apis",
@@ -2941,6 +2943,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "tuplex",
  "xcm-runtime-apis",
 ]
@@ -3123,6 +3126,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "tuplex",
  "xcm-runtime-apis",
 ]
@@ -3341,6 +3345,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -3814,6 +3819,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -4129,6 +4135,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -4245,6 +4252,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -5831,6 +5839,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -13304,6 +13313,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -13453,6 +13463,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "verifiable",
  "xcm-runtime-apis",
 ]
@@ -20363,6 +20374,20 @@ dependencies = [
  "sp-dap",
  "sp-runtime 48.0.0",
  "staging-xcm",
+]
+
+[[package]]
+name = "system-parachains-test-utils"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-session",
+ "parachains-runtimes-test-utils",
+ "parity-scale-codec",
+ "sp-keystore 0.49.0",
+ "sp-runtime 48.0.0",
 ]
 
 [[package]]
