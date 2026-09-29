@@ -1960,6 +1960,8 @@ construct_runtime! {
 		Bounties: pallet_bounties = 35,
 		ChildBounties: pallet_child_bounties = 40,
 
+		// ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 37, (removed)
+
 		// NIS pallets removed.
 		// Nis: pallet_nis = 38,
 		// NisCounterpartBalances: pallet_balances::<Instance2> = 45,
