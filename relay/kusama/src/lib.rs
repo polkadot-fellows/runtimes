@@ -633,6 +633,11 @@ type OnChainElection = onchain::OnChainExecution<OnChainSeqPhragmen>;
 
 /// The on-chain election of `Staking`, which never reports an ongoing election.
 ///
+/// It exists only so that the parachains slashing benchmark can elect its validator set through
+/// `Staking`. TODO: use `NoElection` once
+/// <https://github.com/paritytech/polkadot-sdk/issues/12513> decouples that benchmark from
+/// `pallet-staking`.
+///
 /// `pallet-staking` calls `elect` without reading `status`, and it treats any `Ok` from `status`
 /// as an ongoing election, which pauses fast unstake. An on-chain election ends inside `elect`.
 pub struct StakingElection;
