@@ -3,7 +3,7 @@ version = "1.0.0"
 authors = ["Polkadot Fellowship"]
 edition = "2021"
 repository = "https://github.com/polkadot-fellows/runtimes.git"
-license = "GPL-3.0-only"                                        # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
+license = "GPL-3.0-only"
 
 [workspace.dependencies]
 pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
