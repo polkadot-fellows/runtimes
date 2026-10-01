@@ -39,7 +39,7 @@ use beefy_primitives::{
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::cmp::Ordering;
 use frame_election_provider_support::{
-	bounds::ElectionBoundsBuilder, generate_solution_type, onchain, NposSolution,
+	bounds::ElectionBoundsBuilder, onchain, BoundedSupportsOf, ElectionProvider, PageIndex,
 	SequentialPhragmen,
 };
 use frame_support::{
@@ -65,7 +65,6 @@ pub use frame_system::Call as SystemCall;
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{proxy::ProxyType, system_parachain::coretime::TIMESLICE_PERIOD};
 pub use pallet_balances::Call as BalancesCall;
-pub use pallet_election_provider_multi_phase::{Call as EPMCall, GeometricDepositBase};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId};
 use pallet_session::historical as session_historical;
 use pallet_staking::UseValidatorsMap;
@@ -213,24 +212,10 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 	fn contains(call: &RuntimeCall) -> bool {
 		use RuntimeCall::*;
 		match call {
-			Scheduler(..) |
-			Indices(..) |
-			Staking(..) |
-			Treasury(..) |
-			ConvictionVoting(..) |
-			Referenda(..) |
-			Claims(..) |
-			Vesting(..) |
-			Bounties(..) |
-			ChildBounties(..) |
-			ElectionProviderMultiPhase(..) |
-			VoterList(..) |
-			NominationPools(..) |
-			FastUnstake(..) |
-			Slots(..) |
-			Auctions(..) |
-			AssetRate(..) |
-			Society(..) => false,
+			Scheduler(..) | Indices(..) | Staking(..) | Treasury(..) | ConvictionVoting(..) |
+			Referenda(..) | Claims(..) | Vesting(..) | Bounties(..) | ChildBounties(..) |
+			VoterList(..) | NominationPools(..) | FastUnstake(..) | Slots(..) | Auctions(..) |
+			AssetRate(..) | Society(..) => false,
 
 			// Session keys are managed via Asset Hub post-AHM (forwarded to the relay through
 			// `ah_client::set_keys_from_ah`); the direct relay extrinsics are disabled.
@@ -616,39 +601,12 @@ impl pallet_session::historical::Config for Runtime {
 }
 
 parameter_types! {
-	// phase durations. 1/4 of the last session for each.
-	// in testing: 1min or half of the session for each
-	pub SignedPhase: u32 = prod_or_fast!(
-		EPOCH_DURATION_IN_SLOTS / 4,
-		MINUTES.min(EpochDuration::get().saturated_into::<u32>() / 2),
-		"KSM_SIGNED_PHASE"
-	);
-	pub UnsignedPhase: u32 = prod_or_fast!(
-		EPOCH_DURATION_IN_SLOTS / 4,
-		MINUTES.min(EpochDuration::get().saturated_into::<u32>() / 2),
-		"KSM_UNSIGNED_PHASE"
-	);
-
-	// signed config
-	pub const SignedMaxSubmissions: u32 = 16;
-	pub const SignedMaxRefunds: u32 = 16 / 4;
-	pub const SignedFixedDeposit: Balance = deposit(2, 0);
-	pub const SignedDepositIncreaseFactor: Percent = Percent::from_percent(10);
-	pub const SignedDepositByte: Balance = deposit(0, 10) / 1024;
-	// Each good submission will get 1/10 KSM as reward
-	pub SignedRewardBase: Balance =  UNITS / 10;
-
-	// 1 hour session, 15 minutes unsigned phase, 8 offchain executions.
-	pub OffchainRepeat: BlockNumber = UnsignedPhase::get() / 8;
-
 	pub const MaxElectingVoters: u32 = 12_500;
 	/// We take the top 12500 nominators as electing voters and all of the validators as electable
 	/// targets. Whilst this is the case, we cannot and shall not increase the size of the
 	/// validator intentions.
 	pub ElectionBounds: frame_election_provider_support::bounds::ElectionBounds =
 		ElectionBoundsBuilder::default().voters_count(MaxElectingVoters::get().into()).build();
-	pub NposSolutionPriority: TransactionPriority =
-		Perbill::from_percent(90) * TransactionPriority::MAX;
 	/// Setup election pallet to support maximum winners upto 2000. This will mean Staking Pallet
 	/// cannot have active validators higher than this count.
 	pub const MaxActiveValidators: u32 = 2000;
@@ -657,16 +615,6 @@ parameter_types! {
 	// Unbounded, thus the max backers per winner maps to the max electing voters limit.
 	pub const MaxBackersPerWinner: u32 = MaxElectingVoters::get();
 }
-
-generate_solution_type!(
-	#[compact]
-	pub struct NposCompactSolution24::<
-		VoterIndex = u32,
-		TargetIndex = u16,
-		Accuracy = sp_runtime::PerU16,
-		MaxVoters = MaxElectingVoters,
-	>(24)
-);
 
 pub struct OnChainSeqPhragmen;
 impl onchain::Config for OnChainSeqPhragmen {
@@ -681,77 +629,43 @@ impl onchain::Config for OnChainSeqPhragmen {
 	type MaxWinnersPerPage = MaxWinnersPerPage;
 }
 
-impl pallet_election_provider_multi_phase::MinerConfig for Runtime {
-	type AccountId = AccountId;
-	type MaxLength = OffchainSolutionLengthLimit;
-	type MaxWeight = OffchainSolutionWeightLimit;
-	type Solution = NposCompactSolution24;
-	type MaxVotesPerVoter = <
-		<Self as pallet_election_provider_multi_phase::Config>::DataProvider
-		as
-		frame_election_provider_support::ElectionDataProvider
-	>::MaxVotesPerVoter;
-	type MaxBackersPerWinner = MaxBackersPerWinner;
-	type MaxWinners = MaxWinnersPerPage;
+type OnChainElection = onchain::OnChainExecution<OnChainSeqPhragmen>;
 
-	// The unsigned submissions have to respect the weight of the submit_unsigned call, thus their
-	// weight estimate function is wired to this call's weight.
-	fn solution_weight(v: u32, t: u32, a: u32, d: u32) -> Weight {
-		<
-			<Self as pallet_election_provider_multi_phase::Config>::WeightInfo
-			as
-			pallet_election_provider_multi_phase::WeightInfo
-		>::submit_unsigned(v, t, a, d)
+/// The on-chain election of `Staking`, which never reports an ongoing election.
+///
+/// It exists only so that the parachains slashing benchmark can elect its validator set through
+/// `Staking`. TODO: use `NoElection` once
+/// <https://github.com/paritytech/polkadot-sdk/issues/12513> decouples that benchmark from
+/// `pallet-staking`.
+///
+/// `pallet-staking` calls `elect` without reading `status`, and it treats any `Ok` from `status`
+/// as an ongoing election, which pauses fast unstake. An on-chain election ends inside `elect`.
+pub struct StakingElection;
+impl ElectionProvider for StakingElection {
+	type AccountId = <OnChainElection as ElectionProvider>::AccountId;
+	type BlockNumber = <OnChainElection as ElectionProvider>::BlockNumber;
+	type Error = <OnChainElection as ElectionProvider>::Error;
+	type MaxWinnersPerPage = <OnChainElection as ElectionProvider>::MaxWinnersPerPage;
+	type MaxBackersPerWinner = <OnChainElection as ElectionProvider>::MaxBackersPerWinner;
+	type MaxBackersPerWinnerFinal = <OnChainElection as ElectionProvider>::MaxBackersPerWinnerFinal;
+	type Pages = <OnChainElection as ElectionProvider>::Pages;
+	type DataProvider = <OnChainElection as ElectionProvider>::DataProvider;
+
+	fn elect(page: PageIndex) -> Result<BoundedSupportsOf<Self>, Self::Error> {
+		OnChainElection::elect(page)
 	}
-}
 
-impl pallet_election_provider_multi_phase::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type EstimateCallFee = TransactionPayment;
-	type UnsignedPhase = UnsignedPhase;
-	type SignedMaxSubmissions = SignedMaxSubmissions;
-	type SignedMaxRefunds = SignedMaxRefunds;
-	type SignedRewardBase = SignedRewardBase;
-	type SignedDepositBase =
-		GeometricDepositBase<Balance, SignedFixedDeposit, SignedDepositIncreaseFactor>;
-	type SignedDepositByte = SignedDepositByte;
-	type SignedDepositWeight = ();
-	type SignedMaxWeight =
-		<Self::MinerConfig as pallet_election_provider_multi_phase::MinerConfig>::MaxWeight;
-	type MinerConfig = Self;
-	type SlashHandler = (); // burn slashes
-	type RewardHandler = (); // nothing to do upon rewards
-	type SignedPhase = SignedPhase;
-	type BetterSignedThreshold = ();
-	type OffchainRepeat = OffchainRepeat;
-	type MinerTxPriority = NposSolutionPriority;
-	type MaxBackersPerWinner = MaxBackersPerWinner;
-	type DataProvider = Staking;
-	#[cfg(any(feature = "fast-runtime", feature = "runtime-benchmarks"))]
-	type Fallback = onchain::OnChainExecution<OnChainSeqPhragmen>;
-	#[cfg(not(any(feature = "fast-runtime", feature = "runtime-benchmarks")))]
-	type Fallback = frame_election_provider_support::NoElection<(
-		AccountId,
-		BlockNumber,
-		Staking,
-		MaxWinnersPerPage,
-		MaxBackersPerWinner,
-	)>;
-	type GovernanceFallback = onchain::OnChainExecution<OnChainSeqPhragmen>;
-	type Solver = SequentialPhragmen<
-		AccountId,
-		pallet_election_provider_multi_phase::SolutionAccuracyOf<Self>,
-		(),
-	>;
-	type BenchmarkingConfig = polkadot_runtime_common::elections::BenchmarkConfig;
-	type ForceOrigin = EitherOfDiverse<
-		EitherOf<EnsureRoot<Self::AccountId>, StakingAdmin>,
-		EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
-	>;
-	type WeightInfo = weights::pallet_election_provider_multi_phase::WeightInfo<Self>;
-	type MaxWinners = MaxWinnersPerPage;
-	type ElectionBounds = ElectionBounds;
+	fn duration() -> Self::BlockNumber {
+		OnChainElection::duration()
+	}
+
+	fn start() -> Result<(), Self::Error> {
+		OnChainElection::start()
+	}
+
+	fn status() -> Result<Option<Weight>, ()> {
+		Err(())
+	}
 }
 
 parameter_types! {
@@ -954,8 +868,7 @@ parameter_types! {
 	// of nominators.
 	pub const MaxNominators: u32 = 512;
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
-	// 24
-	pub const MaxNominations: u32 = <NposCompactSolution24 as NposSolution>::LIMIT as u32;
+	pub const MaxNominations: u32 = 24;
 	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
@@ -966,8 +879,8 @@ impl pallet_staking::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type UnixTime = Timestamp;
 	type CurrencyToVote = CurrencyToVote;
-	type ElectionProvider = ElectionProviderMultiPhase;
-	type GenesisElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
+	type ElectionProvider = StakingElection;
+	type GenesisElectionProvider = OnChainElection;
 	type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
 	type RuntimeEvent = RuntimeEvent;
 	type Slash = ResolveTo<TreasuryAccount, Balances>;
@@ -2052,8 +1965,7 @@ construct_runtime! {
 		Bounties: pallet_bounties = 35,
 		ChildBounties: pallet_child_bounties = 40,
 
-		// Election pallet. Only works with staking, but placed here to maintain indices.
-		ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 37,
+		// ElectionProviderMultiPhase: pallet_election_provider_multi_phase = 37, (removed)
 
 		// NIS pallets removed.
 		// Nis: pallet_nis = 38,
@@ -2167,10 +2079,16 @@ pub mod migrations {
 
 	parameter_types! {
 		pub const RecoveryPalletName: &'static str = "Recovery";
+		pub const ElectionProviderMultiPhaseName: &'static str = "ElectionProviderMultiPhase";
 	}
 
 	pub type RemoveRecoveryPallet = frame_support::migrations::RemovePallet<
 		RecoveryPalletName,
+		<crate::Runtime as frame_system::Config>::DbWeight,
+	>;
+
+	pub type RemoveElectionProviderMultiPhasePallet = frame_support::migrations::RemovePallet<
+		ElectionProviderMultiPhaseName,
 		<crate::Runtime as frame_system::Config>::DbWeight,
 	>;
 
@@ -2181,6 +2099,7 @@ pub mod migrations {
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
 		RemoveRecoveryPallet,
+		RemoveElectionProviderMultiPhasePallet,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
@@ -2232,7 +2151,6 @@ mod benches {
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
 		[pallet_conviction_voting, ConvictionVoting]
-		[pallet_election_provider_multi_phase, ElectionProviderMultiPhase]
 		[frame_election_provider_support, ElectionProviderBench::<Runtime>]
 		[pallet_fast_unstake, FastUnstake]
 		[pallet_indices, Indices]
@@ -3190,20 +3108,6 @@ sp_api::impl_runtime_apis! {
 
 			Ok(batches)
 		}
-	}
-}
-
-#[cfg(test)]
-mod fees_tests {
-	use super::*;
-	use sp_runtime::assert_eq_error_rate;
-
-	#[test]
-	fn signed_deposit_is_sensible() {
-		// ensure this number does not change, or that it is checked after each change.
-		// a 1 MB solution should need around 0.16 KSM deposit
-		let deposit = SignedFixedDeposit::get() + (SignedDepositByte::get() * 1024 * 1024);
-		assert_eq_error_rate!(deposit, UNITS * 167 / 100, UNITS / 100);
 	}
 }
 
