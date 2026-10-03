@@ -18,7 +18,7 @@
 use sp_core::storage::Storage;
 
 // Cumulus
-use bulletin_polkadot_runtime::xcm_config::TreasuryAccount;
+use bulletin_polkadot_runtime::xcm_config::AccumulateForwardAccount;
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
@@ -35,7 +35,7 @@ pub fn genesis() -> Storage {
 		balances: bulletin_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances()
 				.into_iter()
-				.chain([TreasuryAccount::get()])
+				.chain([AccumulateForwardAccount::get()])
 				.map(|k| (k, ENDOWMENT))
 				.collect(),
 			dev_accounts: None,
