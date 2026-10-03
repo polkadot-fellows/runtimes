@@ -23,11 +23,15 @@
 //! `ChargePGAS` runs. These tests are ported from the `next-asset-hub-paseo` runtime of the
 //! `individuality-community` repository, where the equivalent tests use old-school signed (v4)
 //! transactions because that runtime carries `ChargePGAS` in its version-0 pipeline.
+//!
+//! Scarcity: an NFT-only purse key transacts through `AsScarcity` in transaction extension
+//! pipeline version 2, holding neither a System account nor a balance.
 
 use asset_hub_polkadot_runtime::{
 	individuality::{PgasAssetId, PgasMinBalance},
 	Assets, Balances, Executive, ExistentialDeposit, Runtime, RuntimeCall, RuntimeEvent,
-	SessionKeys, System, TxExtensionV1, UncheckedExtrinsic,
+	RuntimeHoldReason, RuntimeOrigin, Scarcity, SessionKeys, System, TxExtensionV1, TxExtensionV2,
+	UncheckedExtrinsic,
 };
 use asset_test_utils::ExtBuilder;
 use codec::Encode;
@@ -35,8 +39,9 @@ use frame_support::{
 	assert_ok,
 	dispatch::GetDispatchInfo,
 	traits::{
-		fungible::{Inspect as FungibleInspect, Mutate as FungibleMutate},
+		fungible::{Inspect as FungibleInspect, InspectHold, Mutate as FungibleMutate},
 		fungibles::{Inspect as FungiblesInspect, Mutate as FungiblesMutate},
+		Get,
 	},
 };
 use parachains_common::{AccountId, AssetHubPolkadotAuraId as AuraId};
@@ -45,14 +50,20 @@ use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
 use sp_keyring::Sr25519Keyring;
 use sp_runtime::{
 	generic,
-	traits::{ExtensionVariant, PipelineAtVers, TransactionExtension},
+	traits::{
+		DispatchTransaction, ExtensionVariant, MultiVersion, PipelineAtVers, TransactionExtension,
+	},
 	MultiSignature,
 };
+use system_parachains_constants::polkadot::currency::UNITS;
 
 const ALICE: [u8; 32] = [1u8; 32];
 
 /// The extension version byte a general (v5) transaction selects for `TxExtensionV1`.
 const TX_EXT_VERSION: u8 = 1;
+
+/// The extension version byte a general (v5) transaction selects for `TxExtensionV2`.
+const TX_EXT_V2_VERSION: u8 = 2;
 
 fn test_ext() -> sp_io::TestExternalities {
 	let alice = AccountId::from(ALICE);
@@ -133,7 +144,9 @@ fn construct_v1_signed_extrinsic(sender: Sr25519Keyring, call: RuntimeCall) -> U
 
 	sp_runtime::generic::UncheckedExtrinsic::from_parts(
 		call,
-		generic::Preamble::General(ExtensionVariant::Other(PipelineAtVers::new(tx_ext))),
+		generic::Preamble::General(ExtensionVariant::Other(MultiVersion::A(PipelineAtVers::new(
+			tx_ext,
+		)))),
 	)
 	.into()
 }
@@ -230,6 +243,145 @@ fn dot_pays_the_fee_when_pgas_is_insufficient() {
 				RuntimeEvent::PgasAllowance(pallet_pgas_allowance::Event::PGASFeePaid { .. })
 			)),
 			"no fee should have been taken in PGAS"
+		);
+	});
+}
+
+/// The version-2 pipeline, authorizing a purse-key call for `state_nonce` of instance 0.
+fn scarcity_tx_extension(state_nonce: u64) -> TxExtensionV2 {
+	cumulus_pallet_weight_reclaim::StorageWeightReclaim::new((
+		(
+			(),
+			pallet_verify_signature::VerifySignature::<Runtime>::new_disabled(),
+			indiv_pallet_scarcity::extension::AsScarcity::<Runtime>::new(Some(
+				indiv_pallet_scarcity::extension::AsScarcityInfo::AsNft {
+					instance: 0,
+					state_nonce,
+				},
+			)),
+			frame_system::AuthorizeCall::<Runtime>::new(),
+			indiv_pallet_pgas::AsPgas::<Runtime>::new(None),
+			indiv_pallet_dotns_gateway::AsDotnsGateway::<Runtime>::new(None),
+		),
+		indiv_pallet_origin_restriction::RestrictOrigin::<Runtime>::new(true),
+		frame_system::CheckNonZeroSender::<Runtime>::new(),
+		frame_system::CheckSpecVersion::<Runtime>::new(),
+		frame_system::CheckTxVersion::<Runtime>::new(),
+		frame_system::CheckGenesis::<Runtime>::new(),
+		frame_system::CheckEra::<Runtime>::from(generic::Era::Immortal),
+		frame_system::CheckNonce::<Runtime>::from(0),
+		frame_system::CheckWeight::<Runtime>::new(),
+		pallet_pgas_allowance::ChargePGAS::<
+			Runtime,
+			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+		>::from(pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(
+			0, None,
+		)),
+		pallet_claims::PrevalidateAttests::<Runtime>::new(),
+		(
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+			pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::default(),
+		),
+	))
+}
+
+/// Runs `test` on the purse key holding instance 0 of a transferable Scarcity item. The key has
+/// neither a balance nor a System account.
+fn with_scarcity_purse(test: impl FnOnce(AccountId)) {
+	test_ext().execute_with(|| {
+		frame_system::Pallet::<Runtime>::set_block_number(1);
+		pallet_timestamp::Now::<Runtime>::put(1_000_000);
+
+		// The collection owner pays every Scarcity deposit; the purse key pays nothing.
+		let owner = AccountId::from(ALICE);
+		let purse = AccountId::from([2u8; 32]);
+		assert_ok!(<Balances as FungibleMutate<AccountId>>::mint_into(&owner, 100 * UNITS));
+		assert_ok!(Scarcity::create_collection(RuntimeOrigin::signed(owner.clone())));
+		assert_ok!(Scarcity::define_item(
+			RuntimeOrigin::signed(owner.clone()),
+			0,
+			indiv_pallet_scarcity::Transferability::Transferable,
+			Vec::new(),
+		));
+		assert_ok!(Scarcity::mint(
+			RuntimeOrigin::signed(owner.clone()),
+			0,
+			0,
+			purse.clone(),
+			Vec::new(),
+		));
+
+		let held = Balances::balance_on_hold(
+			&RuntimeHoldReason::Scarcity(indiv_pallet_scarcity::HoldReason::StorageDeposit),
+			&owner,
+		);
+		assert!(held > 0, "the collection's storage deposit is held from its owner");
+		assert!(!frame_system::Pallet::<Runtime>::account_exists(&purse));
+
+		test(purse);
+	});
+}
+
+/// An NFT-only purse key can send a feeless transfer through pipeline version 2. This pins the
+/// security-critical placement of `AsScarcity` in `TxExtensionV2`.
+#[test]
+fn nft_only_purse_without_system_account_can_transfer() {
+	with_scarcity_purse(|purse| {
+		let to = AccountId::from([3u8; 32]);
+		let call = RuntimeCall::Scarcity(indiv_pallet_scarcity::Call::transfer { to: to.clone() });
+		let info = call.get_dispatch_info();
+
+		let result = scarcity_tx_extension(0).dispatch_transaction(
+			RuntimeOrigin::signed(purse.clone()),
+			call,
+			&info,
+			0,
+			TX_EXT_V2_VERSION,
+		);
+		assert!(matches!(result, Ok(Ok(_))), "transaction failed: {result:?}");
+
+		assert!(!frame_system::Pallet::<Runtime>::account_exists(&purse));
+		assert!(!indiv_pallet_scarcity::NftsByOwner::<Runtime>::contains_key(&purse));
+		assert_eq!(
+			indiv_pallet_scarcity::NftsByOwner::<Runtime>::get(&to).map(|nft| nft.state_nonce),
+			Some(1),
+		);
+	});
+}
+
+/// A failed purse dispatch charges nothing, restores the NFT, and locks the key for
+/// `LockPeriod` — Coinage's retry model.
+#[test]
+fn failed_scarcity_transfer_is_feeless_and_locks_the_purse() {
+	with_scarcity_purse(|purse| {
+		// A state nonce at `u64::MAX` passes validation but makes the dispatch overflow.
+		indiv_pallet_scarcity::NftsByOwner::<Runtime>::mutate(&purse, |nft| {
+			nft.as_mut().expect("purse holds the minted instance").state_nonce = u64::MAX
+		});
+		let to = AccountId::from([3u8; 32]);
+		let call = RuntimeCall::Scarcity(indiv_pallet_scarcity::Call::transfer { to: to.clone() });
+		let info = call.get_dispatch_info();
+
+		let result = scarcity_tx_extension(u64::MAX).dispatch_transaction(
+			RuntimeOrigin::signed(purse.clone()),
+			call,
+			&info,
+			0,
+			TX_EXT_V2_VERSION,
+		);
+		assert!(matches!(result, Ok(Err(_))), "expected a failed dispatch: {result:?}");
+
+		assert!(!frame_system::Pallet::<Runtime>::account_exists(&purse));
+		assert_eq!(
+			indiv_pallet_scarcity::NftsByOwner::<Runtime>::get(&purse).map(|nft| nft.state_nonce),
+			Some(u64::MAX),
+		);
+		assert!(!indiv_pallet_scarcity::NftsByOwner::<Runtime>::contains_key(&to));
+		let lock_period =
+			<<Runtime as indiv_pallet_scarcity::Config>::LockPeriod as Get<u64>>::get();
+		assert_eq!(
+			indiv_pallet_scarcity::Locked::<Runtime>::get(&purse).map(|lock| lock.until),
+			Some(1_000 + lock_period),
 		);
 	});
 }

@@ -102,8 +102,8 @@ use sp_core::{crypto::KeyTypeId, ConstU128, Get, OpaqueMetadata};
 use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
-		AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentityLookup, PipelineAtVers,
-		Verify,
+		AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentityLookup, MultiVersion,
+		PipelineAtVers, Verify,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedU128, Perbill, Permill,
@@ -1812,6 +1812,7 @@ construct_runtime!(
 		DotnsGateway: indiv_pallet_dotns_gateway = 152,
 		OriginRestriction: indiv_pallet_origin_restriction = 153,
 		NetworkSuffix: indiv_pallet_network_suffix = 154,
+		Scarcity: indiv_pallet_scarcity = 155,
 		PgasAllowance: pallet_pgas_allowance = 252,
 
 		// Asset Hub Migration in the 250s
@@ -1846,7 +1847,8 @@ pub type TxExtensionV0 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	),
 >;
 
-/// The `TransactionExtension` pipeline version 1: latest.
+/// The `TransactionExtension` pipeline version 1. **Frozen** — it shipped in 2.5.0, so signers
+/// already build against it.
 pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
 	(
@@ -1881,8 +1883,50 @@ pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	),
 >;
 
+/// The `TransactionExtension` pipeline version 2. Latest.
+///
+/// Version 1 plus the Scarcity origin modifier. New pipelines are added as a new version rather
+/// than by amending a released one, which would invalidate live signers.
+pub type TxExtensionV2 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
+	Runtime,
+	(
+		// Origin modifiers.
+		(
+			(),
+			pallet_verify_signature::VerifySignature<Runtime>,
+			// Must precede `AuthorizeCall`, the account checks and payment: a purse key holds no
+			// account, and its transfers are feeless because payment sees no signed origin.
+			indiv_pallet_scarcity::extension::AsScarcity<Runtime>,
+			frame_system::AuthorizeCall<Runtime>,
+			indiv_pallet_pgas::AsPgas<Runtime>,
+			indiv_pallet_dotns_gateway::AsDotnsGateway<Runtime>,
+		),
+		// General checks and operations.
+		indiv_pallet_origin_restriction::RestrictOrigin<Runtime>,
+		frame_system::CheckNonZeroSender<Runtime>,
+		frame_system::CheckSpecVersion<Runtime>,
+		frame_system::CheckTxVersion<Runtime>,
+		frame_system::CheckGenesis<Runtime>,
+		frame_system::CheckEra<Runtime>,
+		frame_system::CheckNonce<Runtime>,
+		frame_system::CheckWeight<Runtime>,
+		pallet_pgas_allowance::ChargePGAS<
+			Runtime,
+			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+		>,
+		pallet_claims::PrevalidateAttests<Runtime>,
+		// Nested only to stay within the 12-element limit of `TransactionExtension`'s tuple impls.
+		// A nested tuple encodes exactly like the flattened one.
+		(
+			frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+			pallet_revive::evm::tx_extension::SetOrigin<Runtime>,
+		),
+	),
+>;
+
 /// The transaction extension pipelines a general transaction may select other than version 0.
-pub type TxExtensionOtherVersions = PipelineAtVers<1, TxExtensionV1>;
+pub type TxExtensionOtherVersions =
+	MultiVersion<PipelineAtVers<1, TxExtensionV1>, PipelineAtVers<2, TxExtensionV2>>;
 
 /// Default extensions applied to Ethereum transactions.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -2106,6 +2150,7 @@ mod benches {
 		[indiv_pallet_members_subscriber, MembersSubscriber]
 		[indiv_pallet_origin_restriction, OriginRestriction]
 		[indiv_pallet_pgas, Pgas]
+		[indiv_pallet_scarcity, Scarcity]
 		[pallet_pgas_allowance, PgasAllowance]
 	);
 
@@ -2868,6 +2913,14 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 		}
 	}
 
+	impl indiv_pallet_scarcity::runtime_api::ScarcityApi<Block> for Runtime {
+		fn metadata_batch(
+			queries: indiv_pallet_scarcity::runtime_api::MetadataQueries,
+		) -> Vec<indiv_pallet_scarcity::runtime_api::MetadataLayers> {
+			Scarcity::metadata_batch(queries)
+		}
+	}
+
 	impl assets_common::runtime_api::FungiblesApi<
 		Block,
 		AccountId,
@@ -3109,7 +3162,8 @@ mod tests {
 
 	type WeightToFee = DotWeightToFee<Runtime>;
 
-	/// Pin transaction extension version 0 and assert that version 1 appears in the metadata.
+	/// Pin transaction extension version 0, and assert that version 1 extends it with the
+	/// Individuality origin modifiers and version 2 extends version 1 with the Scarcity one.
 	#[test]
 	fn transaction_extension_versions_are_stable() {
 		use sp_runtime::traits::{Pipeline, PipelineMetadataBuilder, TransactionExtension};
@@ -3137,14 +3191,22 @@ mod tests {
 			],
 		);
 
-		// Version 1 must be advertised in the metadata, otherwise no wallet can construct it.
+		// Versions 1 and 2 must be advertised in the metadata, otherwise no wallet can construct
+		// them.
 		let mut builder = PipelineMetadataBuilder::new();
 		<crate::TxExtensionOtherVersions as Pipeline<RuntimeCall>>::build_metadata(&mut builder);
-		let v1_indices =
-			builder.by_version.get(&1).expect("extension version 1 must be advertised");
-		let v1: Vec<&str> =
-			v1_indices.iter().map(|i| builder.in_versions[*i as usize].identifier).collect();
-		assert_eq!(builder.by_version.len(), 1, "only version 1 lives outside version 0");
+		let identifiers = |version: u8| -> Vec<&str> {
+			builder
+				.by_version
+				.get(&version)
+				.unwrap_or_else(|| panic!("extension version {version} must be advertised"))
+				.iter()
+				.map(|i| builder.in_versions[*i as usize].identifier)
+				.collect()
+		};
+		let v1 = identifiers(1);
+		let v2 = identifiers(2);
+		assert_eq!(builder.by_version.len(), 2, "only versions 1 and 2 live outside version 0");
 
 		let v1_additions = [
 			"UnitTransactionExtension",
@@ -3158,6 +3220,22 @@ mod tests {
 		assert_eq!(v1_without_additions, v0, "version 1 must extend version 0, not reshuffle it");
 		for id in v1_additions {
 			assert!(v1.contains(&id), "version 1 must carry `{id}`");
+		}
+
+		// Version 2 is version 1 plus the Scarcity origin modifier.
+		let v2_without_scarcity: Vec<&str> =
+			v2.iter().copied().filter(|id| *id != "AsScarcity").collect();
+		assert_eq!(v2_without_scarcity, v1, "version 2 must extend version 1, not reshuffle it");
+		assert!(v2.contains(&"AsScarcity"), "version 2 must carry `AsScarcity`");
+
+		// `AsScarcity` must replace the signed origin before anything that reads the signer as an
+		// account: a purse key has none, and payment charging it would make purse transfers paid.
+		let position = |id: &str| v2.iter().position(|i| *i == id).expect("identifier is present");
+		for later in ["AuthorizeCall", "CheckNonce", "ChargeAssetTxPayment"] {
+			assert!(
+				position("AsScarcity") < position(later),
+				"`AsScarcity` must precede `{later}`"
+			);
 		}
 	}
 

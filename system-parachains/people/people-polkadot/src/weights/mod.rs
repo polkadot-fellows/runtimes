@@ -36,7 +36,6 @@ pub mod indiv_pallet_people_airdrops;
 pub mod indiv_pallet_people_lite;
 pub mod indiv_pallet_relay_randomness;
 pub mod indiv_pallet_resources;
-pub mod indiv_pallet_scarcity;
 pub mod indiv_pallet_score;
 pub mod pallet_asset_conversion;
 pub mod pallet_asset_rate;

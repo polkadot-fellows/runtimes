@@ -38,7 +38,6 @@ indiv-pallet-people = { workspace = true }
 indiv-pallet-people-lite = { workspace = true }
 indiv-pallet-relay-randomness = { workspace = true }
 indiv-pallet-resources = { workspace = true }
-indiv-pallet-scarcity = { workspace = true }
 indiv-pallet-people-airdrops = { workspace = true }
 indiv-pallet-score = { workspace = true }
 indiv-support = { workspace = true }
@@ -156,7 +155,6 @@ std = [
 	"indiv-pallet-people/std",
 	"indiv-pallet-relay-randomness/std",
 	"indiv-pallet-resources/std",
-	"indiv-pallet-scarcity/std",
 	"indiv-pallet-score/std",
 	"indiv-support/std",
 	"log/std",
@@ -244,7 +242,6 @@ runtime-benchmarks = [
 	"indiv-pallet-people/runtime-benchmarks",
 	"indiv-pallet-relay-randomness/runtime-benchmarks",
 	"indiv-pallet-resources/runtime-benchmarks",
-	"indiv-pallet-scarcity/runtime-benchmarks",
 	"indiv-pallet-score/runtime-benchmarks",
 	"indiv-support/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
@@ -307,7 +304,6 @@ try-runtime = [
 	"indiv-pallet-people/try-runtime",
 	"indiv-pallet-relay-randomness/try-runtime",
 	"indiv-pallet-resources/try-runtime",
-	"indiv-pallet-scarcity/try-runtime",
 	"indiv-pallet-score/try-runtime",
 	"pallet-asset-conversion/try-runtime",
 	"pallet-asset-rate/try-runtime",

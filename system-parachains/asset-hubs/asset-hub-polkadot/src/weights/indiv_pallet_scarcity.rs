@@ -14,7 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! TMP weights
+//! TMP weights for `indiv_pallet_scarcity`, to be replaced by a benchmark on reference hardware.
+//!
+//! Until this runtime is benchmarked, these are the weights of upstream's `next-asset-hub-paseo`
+//! runtime at individuality-community `24033977`
+//! (`runtimes/next-asset-hub-paseo/src/weights/indiv_pallet_scarcity.rs`, STEPS 50, REPEAT 50, on
+//! `parity-weights` hardware).
 
 #![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]
@@ -30,23 +35,23 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Storage: `Scarcity::NextCollectionId` (r:1 w:1)
 	/// Proof: `Scarcity::NextCollectionId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(301), added: 2776, mode: `MaxEncodedLen`)
 	/// Storage: `Scarcity::Collections` (r:0 w:1)
 	/// Proof: `Scarcity::Collections` (`max_values`: None, `max_size`: Some(137), added: 2612, mode: `MaxEncodedLen`)
 	fn create_collection() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `6`
-		//  Estimated: `3694`
-		// Minimum execution time: 31_000_000 picoseconds.
-		Weight::from_parts(36_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 3694))
+		//  Measured:  `1835`
+		//  Estimated: `3766`
+		// Minimum execution time: 63_407_000 picoseconds.
+		Weight::from_parts(66_440_000, 0)
+			.saturating_add(Weight::from_parts(0, 3766))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	/// Storage: `Scarcity::Collections` (r:1 w:1)
 	/// Proof: `Scarcity::Collections` (`max_values`: None, `max_size`: Some(137), added: 2612, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(301), added: 2776, mode: `MaxEncodedLen`)
 	/// Storage: `Scarcity::ItemMetadata` (r:100 w:100)
 	/// Proof: `Scarcity::ItemMetadata` (`max_values`: None, `max_size`: Some(347), added: 2822, mode: `MaxEncodedLen`)
 	/// Storage: `Scarcity::ItemDefs` (r:0 w:1)
@@ -54,13 +59,13 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// The range of component `m` is `[0, 100]`.
 	fn define_item(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `218`
-		//  Estimated: `3694 + m * (2822 ±0)`
-		// Minimum execution time: 42_000_000 picoseconds.
-		Weight::from_parts(47_411_521, 0)
-			.saturating_add(Weight::from_parts(0, 3694))
-			// Standard Error: 33_809
-			.saturating_add(Weight::from_parts(40_577_766, 0).saturating_mul(m.into()))
+		//  Measured:  `2031`
+		//  Estimated: `3766 + m * (2822 ±0)`
+		// Minimum execution time: 76_363_000 picoseconds.
+		Weight::from_parts(84_430_196, 0)
+			.saturating_add(Weight::from_parts(0, 3766))
+			// Standard Error: 19_086
+			.saturating_add(Weight::from_parts(56_319_554, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(m.into())))
 			.saturating_add(T::DbWeight::get().writes(3))
@@ -78,7 +83,7 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Storage: `Timestamp::Now` (r:1 w:0)
 	/// Proof: `Timestamp::Now` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(301), added: 2776, mode: `MaxEncodedLen`)
 	/// Storage: `Scarcity::InstanceMetadata` (r:100 w:100)
 	/// Proof: `Scarcity::InstanceMetadata` (`max_values`: None, `max_size`: Some(339), added: 2814, mode: `MaxEncodedLen`)
 	/// Storage: `Scarcity::InstanceMetadataCount` (r:0 w:1)
@@ -90,13 +95,13 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// The range of component `m` is `[0, 100]`.
 	fn mint(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `335`
-		//  Estimated: `3694 + m * (2814 ±0)`
-		// Minimum execution time: 52_000_000 picoseconds.
-		Weight::from_parts(56_201_395, 0)
-			.saturating_add(Weight::from_parts(0, 3694))
-			// Standard Error: 36_487
-			.saturating_add(Weight::from_parts(38_837_925, 0).saturating_mul(m.into()))
+		//  Measured:  `2148`
+		//  Estimated: `3766 + m * (2814 ±0)`
+		// Minimum execution time: 98_734_000 picoseconds.
+		Weight::from_parts(113_388_221, 0)
+			.saturating_add(Weight::from_parts(0, 3766))
+			// Standard Error: 16_892
+			.saturating_add(Weight::from_parts(52_807_949, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(m.into())))
 			.saturating_add(T::DbWeight::get().writes(8))
@@ -113,10 +118,10 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Proof: `Scarcity::Instances` (`max_values`: None, `max_size`: Some(48), added: 2523, mode: `MaxEncodedLen`)
 	fn transfer() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `265`
+		//  Measured:  `302`
 		//  Estimated: `3553`
-		// Minimum execution time: 10_000_000 picoseconds.
-		Weight::from_parts(12_000_000, 0)
+		// Minimum execution time: 24_264_000 picoseconds.
+		Weight::from_parts(25_896_000, 0)
 			.saturating_add(Weight::from_parts(0, 3553))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -132,19 +137,19 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Storage: `Scarcity::Collections` (r:1 w:1)
 	/// Proof: `Scarcity::Collections` (`max_values`: None, `max_size`: Some(137), added: 2612, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(301), added: 2776, mode: `MaxEncodedLen`)
 	/// Storage: `Scarcity::Instances` (r:0 w:1)
 	/// Proof: `Scarcity::Instances` (`max_values`: None, `max_size`: Some(48), added: 2523, mode: `MaxEncodedLen`)
 	/// The range of component `m` is `[0, 100]`.
 	fn burn(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `464 + m * (331 ±0)`
+		//  Measured:  `2281 + m * (331 ±0)`
 		//  Estimated: `3804 + m * (2814 ±0)`
-		// Minimum execution time: 41_000_000 picoseconds.
-		Weight::from_parts(47_275_249, 0)
+		// Minimum execution time: 84_854_000 picoseconds.
+		Weight::from_parts(96_363_711, 0)
 			.saturating_add(Weight::from_parts(0, 3804))
-			// Standard Error: 8_625
-			.saturating_add(Weight::from_parts(3_494_072, 0).saturating_mul(m.into()))
+			// Standard Error: 6_077
+			.saturating_add(Weight::from_parts(5_869_325, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(m.into())))
 			.saturating_add(T::DbWeight::get().writes(6))
@@ -155,10 +160,10 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Proof: `Scarcity::Collections` (`max_values`: None, `max_size`: Some(137), added: 2612, mode: `MaxEncodedLen`)
 	fn nominate_collection_owner() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `163`
+		//  Measured:  `200`
 		//  Estimated: `3602`
-		// Minimum execution time: 6_000_000 picoseconds.
-		Weight::from_parts(8_000_000, 0)
+		// Minimum execution time: 16_952_000 picoseconds.
+		Weight::from_parts(18_089_000, 0)
 			.saturating_add(Weight::from_parts(0, 3602))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -168,13 +173,13 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Storage: `Scarcity::CollectionMetadata` (r:1 w:1)
 	/// Proof: `Scarcity::CollectionMetadata` (`max_values`: None, `max_size`: Some(335), added: 2810, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(301), added: 2776, mode: `MaxEncodedLen`)
 	fn set_collection_metadata() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `218`
+		//  Measured:  `2031`
 		//  Estimated: `3800`
-		// Minimum execution time: 41_000_000 picoseconds.
-		Weight::from_parts(47_000_000, 0)
+		// Minimum execution time: 78_609_000 picoseconds.
+		Weight::from_parts(81_782_000, 0)
 			.saturating_add(Weight::from_parts(0, 3800))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
@@ -186,13 +191,13 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Storage: `Scarcity::ItemMetadata` (r:1 w:1)
 	/// Proof: `Scarcity::ItemMetadata` (`max_values`: None, `max_size`: Some(347), added: 2822, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(301), added: 2776, mode: `MaxEncodedLen`)
 	fn set_item_metadata() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `293`
+		//  Measured:  `2106`
 		//  Estimated: `3812`
-		// Minimum execution time: 47_000_000 picoseconds.
-		Weight::from_parts(54_000_000, 0)
+		// Minimum execution time: 88_651_000 picoseconds.
+		Weight::from_parts(92_061_000, 0)
 			.saturating_add(Weight::from_parts(0, 3812))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(4))
@@ -208,13 +213,13 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Storage: `Scarcity::InstanceMetadataCount` (r:1 w:1)
 	/// Proof: `Scarcity::InstanceMetadataCount` (`max_values`: None, `max_size`: Some(20), added: 2495, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(301), added: 2776, mode: `MaxEncodedLen`)
 	fn set_instance_metadata() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `537`
+		//  Measured:  `2350`
 		//  Estimated: `3804`
-		// Minimum execution time: 47_000_000 picoseconds.
-		Weight::from_parts(54_000_000, 0)
+		// Minimum execution time: 95_443_000 picoseconds.
+		Weight::from_parts(98_777_000, 0)
 			.saturating_add(Weight::from_parts(0, 3804))
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(4))
@@ -234,19 +239,19 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Storage: `Scarcity::ItemDefs` (r:1 w:1)
 	/// Proof: `Scarcity::ItemDefs` (`max_values`: None, `max_size`: Some(53), added: 2528, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(301), added: 2776, mode: `MaxEncodedLen`)
 	/// Storage: `Scarcity::Locked` (r:0 w:1)
 	/// Proof: `Scarcity::Locked` (`max_values`: None, `max_size`: Some(57), added: 2532, mode: `MaxEncodedLen`)
 	/// The range of component `m` is `[0, 100]`.
 	fn force_burn(m: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `635 + m * (331 ±0)`
+		//  Measured:  `2452 + m * (331 ±0)`
 		//  Estimated: `3804 + m * (2814 ±0)`
-		// Minimum execution time: 50_000_000 picoseconds.
-		Weight::from_parts(53_267_694, 0)
+		// Minimum execution time: 102_283_000 picoseconds.
+		Weight::from_parts(113_003_325, 0)
 			.saturating_add(Weight::from_parts(0, 3804))
-			// Standard Error: 19_290
-			.saturating_add(Weight::from_parts(3_564_663, 0).saturating_mul(m.into()))
+			// Standard Error: 6_021
+			.saturating_add(Weight::from_parts(5_887_390, 0).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(m.into())))
 			.saturating_add(T::DbWeight::get().writes(8))
@@ -265,10 +270,10 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Proof: `Scarcity::Locked` (`max_values`: None, `max_size`: Some(57), added: 2532, mode: `MaxEncodedLen`)
 	fn force_transfer() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `549`
+		//  Measured:  `586`
 		//  Estimated: `6116`
-		// Minimum execution time: 19_000_000 picoseconds.
-		Weight::from_parts(22_000_000, 0)
+		// Minimum execution time: 40_145_000 picoseconds.
+		Weight::from_parts(43_086_000, 0)
 			.saturating_add(Weight::from_parts(0, 6116))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
@@ -285,10 +290,10 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Proof: `Scarcity::Locked` (`max_values`: None, `max_size`: Some(57), added: 2532, mode: `MaxEncodedLen`)
 	fn transfer_by_holder() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `377`
+		//  Measured:  `414`
 		//  Estimated: `6116`
-		// Minimum execution time: 13_000_000 picoseconds.
-		Weight::from_parts(15_000_000, 0)
+		// Minimum execution time: 28_010_000 picoseconds.
+		Weight::from_parts(29_517_000, 0)
 			.saturating_add(Weight::from_parts(0, 6116))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(4))
@@ -300,13 +305,13 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Storage: `Scarcity::ItemMetadata` (r:1 w:0)
 	/// Proof: `Scarcity::ItemMetadata` (`max_values`: None, `max_size`: Some(347), added: 2822, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(301), added: 2776, mode: `MaxEncodedLen`)
 	fn delete_item() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `293`
+		//  Measured:  `2106`
 		//  Estimated: `3812`
-		// Minimum execution time: 37_000_000 picoseconds.
-		Weight::from_parts(42_000_000, 0)
+		// Minimum execution time: 75_840_000 picoseconds.
+		Weight::from_parts(79_184_000, 0)
 			.saturating_add(Weight::from_parts(0, 3812))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(3))
@@ -318,30 +323,32 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Storage: `Scarcity::CollectionMetadata` (r:1 w:0)
 	/// Proof: `Scarcity::CollectionMetadata` (`max_values`: None, `max_size`: Some(335), added: 2810, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(301), added: 2776, mode: `MaxEncodedLen`)
+	/// Storage: `NftClaims::CollectionMinters` (r:0 w:1)
+	/// Proof: `NftClaims::CollectionMinters` (`max_values`: None, `max_size`: Some(65), added: 2540, mode: `MaxEncodedLen`)
 	fn delete_collection() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `327`
+		//  Measured:  `2073`
 		//  Estimated: `3800`
-		// Minimum execution time: 35_000_000 picoseconds.
-		Weight::from_parts(40_000_000, 0)
+		// Minimum execution time: 74_027_000 picoseconds.
+		Weight::from_parts(77_652_000, 0)
 			.saturating_add(Weight::from_parts(0, 3800))
 			.saturating_add(T::DbWeight::get().reads(4))
-			.saturating_add(T::DbWeight::get().writes(2))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	/// Storage: `Scarcity::Collections` (r:1 w:1)
 	/// Proof: `Scarcity::Collections` (`max_values`: None, `max_size`: Some(137), added: 2612, mode: `MaxEncodedLen`)
 	/// Storage: `System::Account` (r:1 w:1)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:2 w:2)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(301), added: 2776, mode: `MaxEncodedLen`)
 	fn claim_collection_ownership() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `390`
-		//  Estimated: `6398`
-		// Minimum execution time: 58_000_000 picoseconds.
-		Weight::from_parts(68_000_000, 0)
-			.saturating_add(Weight::from_parts(0, 6398))
+		//  Measured:  `4477`
+		//  Estimated: `6542`
+		// Minimum execution time: 118_456_000 picoseconds.
+		Weight::from_parts(122_297_000, 0)
+			.saturating_add(Weight::from_parts(0, 6542))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -355,10 +362,10 @@ impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T
 	/// Proof: `Scarcity::ItemDefs` (`max_values`: None, `max_size`: Some(53), added: 2528, mode: `MaxEncodedLen`)
 	fn as_scarcity_pipeline() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `482`
+		//  Measured:  `519`
 		//  Estimated: `6116`
-		// Minimum execution time: 16_000_000 picoseconds.
-		Weight::from_parts(18_000_000, 0)
+		// Minimum execution time: 32_204_000 picoseconds.
+		Weight::from_parts(33_790_000, 0)
 			.saturating_add(Weight::from_parts(0, 6116))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(2))

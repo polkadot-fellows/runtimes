@@ -170,7 +170,7 @@ pub type TxExtensionV1 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 
 /// The TransactionExtension pipeline version 2. Latest.
 ///
-/// Version 1 plus the Game, Score and Scarcity origin modifiers. New pipelines are added as a new
+/// Version 1 plus the Game and Score origin modifiers. New pipelines are added as a new
 /// version rather than by amending a released one, which would invalidate live signers.
 pub type TxExtensionV2 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 	Runtime,
@@ -185,9 +185,6 @@ pub type TxExtensionV2 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 			indiv_pallet_people_lite::extension::PeopleLiteAuth<Runtime>,
 			indiv_pallet_members::extension::AsMember<Runtime>,
 			indiv_pallet_coinage::extension::AsCoinage<Runtime>,
-			// Must precede `AuthorizeCall`, the account checks and payment: a purse key holds no
-			// account, and its transfers are feeless because payment sees no signed origin.
-			indiv_pallet_scarcity::extension::AsScarcity<Runtime>,
 			indiv_pallet_resources::extension::AsResources<Runtime>,
 			frame_system::AuthorizeCall<Runtime>,
 		),
@@ -914,7 +911,6 @@ construct_runtime!(
 		Game: indiv_pallet_game = 55,
 		Score: indiv_pallet_score = 56,
 		// 57: never used.
-		Scarcity: indiv_pallet_scarcity = 58,
 		DummyDim: indiv_pallet_dummy_dim = 59,
 		PeopleLite: indiv_pallet_people_lite = 62,
 		Resources: indiv_pallet_resources = 63,
@@ -991,7 +987,6 @@ mod benches {
 		[indiv_pallet_resources, Resources]
 		[indiv_pallet_score, Score]
 		[indiv_pallet_people_airdrops, PeopleAirdrops]
-		[indiv_pallet_scarcity, Scarcity]
 	);
 
 	impl frame_system_benchmarking::Config for Runtime {
@@ -1530,14 +1525,6 @@ impl_runtime_apis! {
 			xcm_runtime_apis::authorized_aliases::Error
 		> {
 			PolkadotXcm::is_authorized_alias(origin, target)
-		}
-	}
-
-	impl indiv_pallet_scarcity::runtime_api::ScarcityApi<Block> for Runtime {
-		fn metadata_batch(
-			queries: indiv_pallet_scarcity::runtime_api::MetadataQueries,
-		) -> Vec<indiv_pallet_scarcity::runtime_api::MetadataLayers> {
-			Scarcity::metadata_batch(queries)
 		}
 	}
 
