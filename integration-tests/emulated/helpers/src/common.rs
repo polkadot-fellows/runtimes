@@ -97,22 +97,18 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 				));
 			});
 
-			let accumulated = $chain::execute_with(|| {
+			// WHEN the forward runs, in the same block the funds land: every emulated block ends
+			// with `on_idle`, which would forward the funds before this block gets to observe it.
+			let forwarded = $chain::execute_with(|| {
 				assert_eq!(
 					ChainBalances::total_issuance(),
 					chain_issuance_before + teleported,
 					"the whole teleported amount should land on this chain"
 				);
-				ChainBalances::balance(&accumulation_account)
-			});
-			let forwarded = accumulated - $chain_ed;
+				let forwarded = ChainBalances::balance(&accumulation_account) - $chain_ed;
 
-			// WHEN the forward runs.
-			$chain::execute_with(|| {
-				let period =
-					<ChainRuntime as pallet_accumulate_and_forward::Config>::TransferPeriod::get();
-				$crate::frame_system::Pallet::<ChainRuntime>::set_block_number(period);
-				pallet_accumulate_and_forward::Pallet::<ChainRuntime>::on_idle(period, Weight::MAX);
+				let block = $crate::frame_system::Pallet::<ChainRuntime>::block_number();
+				pallet_accumulate_and_forward::Pallet::<ChainRuntime>::on_idle(block, Weight::MAX);
 
 				assert_expected_events!(
 					$chain,
@@ -122,6 +118,7 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 				);
 				// Emptied down to the ED; the KSM has left this chain.
 				assert_eq!(ChainBalances::balance(&accumulation_account), $chain_ed);
+				forwarded
 			});
 
 			// THEN Asset Hub burns it.
