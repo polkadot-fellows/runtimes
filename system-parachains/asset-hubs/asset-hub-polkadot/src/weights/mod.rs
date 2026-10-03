@@ -27,6 +27,7 @@ pub mod indiv_pallet_members_subscriber;
 pub mod indiv_pallet_network_suffix;
 pub mod indiv_pallet_origin_restriction;
 pub mod indiv_pallet_pgas;
+pub mod indiv_pallet_scarcity;
 pub mod inmemorydb_weights;
 pub mod pallet_ah_ops;
 pub mod pallet_asset_conversion;

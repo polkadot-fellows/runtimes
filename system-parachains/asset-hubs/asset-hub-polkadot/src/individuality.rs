@@ -32,12 +32,14 @@
 //!   can use contracts without holding DOT.
 //! * [`indiv_pallet_dotns_gateway`] is the personhood-gated front door to the dotNS name registry:
 //!   one name per person, claimed through a ring proof.
+//! * [`indiv_pallet_scarcity`] implements NFTs held by purse keys on Coinage's model: one NFT per
+//!   key, with feeless transfers authorized through its own origin modifier.
 //! * [`indiv_pallet_origin_restriction`] rate-limits the anonymous origins the extensions above
 //!   produce, since those origins pay no fee from an account.
 
 use super::*;
 
-use frame_support::traits::{ContainsPair, EnsureOrigin, Get};
+use frame_support::traits::{ConstU16, ContainsPair, EnsureOrigin, Get};
 #[cfg(feature = "runtime-benchmarks")]
 use indiv_support::traits::{Context, Identifier, RingIndex};
 use indiv_support::{
@@ -263,6 +265,57 @@ impl indiv_pallet_dotns_gateway::Config for Runtime {
 	type AttestationSignature = Signature;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::DotnsGatewayBenchHelper;
+}
+
+parameter_types! {
+	pub const ScarcityDepositBase: Balance = system_para_deposit(1, 0);
+	pub const ScarcityDepositPerByte: Balance = system_para_deposit(0, 1);
+	pub const ScarcityHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Scarcity(indiv_pallet_scarcity::HoldReason::StorageDeposit);
+}
+
+/// Storage price shared by every Scarcity deposit converter: a per-record base plus a per-byte
+/// price over the footprint's logical encoded size.
+pub type ScarcityStoragePrice =
+	LinearStoragePrice<ScarcityDepositBase, ScarcityDepositPerByte, Balance>;
+
+impl indiv_pallet_scarcity::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = weights::indiv_pallet_scarcity::WeightInfo<Runtime>;
+	type UnixTime = Timestamp;
+	type Balance = Balance;
+	// The pallet aggregates exact deposit sums per collection; the consideration ticket receives
+	// that sum directly, hence the `Identity` conversion over `Balance`.
+	type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		ScarcityHoldReason,
+		sp_runtime::traits::Identity,
+		Balance,
+	>;
+	type CollectionDeposit = ScarcityStoragePrice;
+	type ItemDeposit = ScarcityStoragePrice;
+	type InstanceDeposit = ScarcityStoragePrice;
+	type MetadataDeposit = ScarcityStoragePrice;
+	type MaxKeyLen = ConstU32<32>;
+	type MaxValueLen = ConstU32<256>;
+	type MaxCollectionMetadata = ConstU32<100>;
+	type MaxItemMetadata = ConstU32<100>;
+	type MaxInstanceMetadata = ConstU32<100>;
+	// Purse keys follow Coinage's retry model, so a failing purse key is paced like a failing coin:
+	// one hour, matching `CoinFailureLockPeriod` on People Polkadot.
+	type LockPeriod = ConstU64<3600>;
+	type MaxTransferPriority = ConstU64<1_000_000>;
+	// The feeless moves one mint buys before a move is paid for, matching `MaximumAge` of People
+	// Polkadot's Coinage, the age a coin may reach before it must be recycled.
+	type MaximumMoves = ConstU16<16>;
+	// Nothing on this chain is keyed by a Scarcity collection or its owner.
+	type OnCollectionDeleted = ();
+	type OnCollectionOwnerChanged = ();
+	// Purse keys are not mapped to contract addresses: no ERC-721 view of Scarcity exists here.
+	type OnPurseOccupied = ();
+	// Metadata stays opaque bytes: no interface on this chain types any key.
+	type MetadataPolicy = ();
 }
 
 /// The anonymous origins this runtime rate-limits, and the key their allowance is tracked under.

@@ -14,6 +14,7 @@ use indiv_support::parameters::{
 	AtLeast, AtLeastOne, AtMost, BenchmarkMax, StatementAllowanceGetter,
 };
 use polkadot_runtime_constants::system_parachain::BULLETIN_ID;
+use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::{Location, Parachain};
 
 const SECONDS_PER_DAY: u32 = 24 * 60 * 60;
@@ -118,7 +119,33 @@ pub mod dynamic_params {
 		#[codec(index = 1)]
 		pub static InstanceCreationDeposit: Balance = 10 * UNITS;
 	}
+
+	/// The external asset that score payouts are denominated in.
+	#[dynamic_pallet_params]
+	#[codec(index = 5)]
+	pub mod external_asset {
+		/// Unset by default: no asset has id `Here`, so score payouts fail until governance
+		/// points this at a registered asset. Changing it while the score pot holds funds strands
+		/// those funds in the previous asset.
+		#[codec(index = 0)]
+		pub static AssetLocation: Location = Location::here();
+	}
+
+	/// People airdrop draw funding.
+	#[dynamic_pallet_params]
+	#[codec(index = 6)]
+	pub mod people_airdrops {
+		/// Account funding the prize allocation of scheduled draws. The airdrop pallet records
+		/// the source per draw at scheduling time, so an update only affects draws scheduled
+		/// after it; draws already scheduled refund to the account they were funded from.
+		#[codec(index = 0)]
+		pub static PrizeSource: sp_runtime::AccountId32 =
+			PalletId(*b"pop/pads").into_account_truncating();
+	}
 }
+
+/// Any account is a valid prize source, so the value is read unclamped.
+pub type PeopleAirdropsPrizeSource = dynamic_params::people_airdrops::PrizeSource;
 
 pub type LitePersonStatementLimit =
 	StatementAllowanceGetter<dynamic_params::statement_storage::LitePersonStatementLimit>;
@@ -216,8 +243,10 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use dynamic_params::{
 			bulletin_storage::ParametersKey as BulletinStorageKey,
 			coinage::ParametersKey as CoinageKey,
+			external_asset::ParametersKey as ExternalAssetKey,
 			lite_personhood::ParametersKey as LitePersonhoodKey,
 			origin_restriction::ParametersKey as OriginRestrictionKey,
+			people_airdrops::ParametersKey as PeopleAirdropsKey,
 			statement_storage::ParametersKey as StatementStorageKey,
 		};
 
@@ -251,14 +280,18 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 					origin.clone(),
 				)
 				.map(|_| ()),
-			// Where the chain sends data, and what coinage costs.
+			// Where the chain sends data, what coinage costs, what score pays out in, and which
+			// account funds airdrop prizes.
 			RuntimeParametersKey::BulletinStorage(
 				BulletinStorageKey::BulletinChainLocation(_) |
 				BulletinStorageKey::BulletinTransactionStoragePalletIndex(_),
 			) |
 			RuntimeParametersKey::Coinage(
 				CoinageKey::LoadDepositPrice(_) | CoinageKey::InstanceCreationDeposit(_),
-			) => frame_system::ensure_root(origin.clone()),
+			) |
+			RuntimeParametersKey::ExternalAsset(ExternalAssetKey::AssetLocation(_)) |
+			RuntimeParametersKey::PeopleAirdrops(PeopleAirdropsKey::PrizeSource(_)) =>
+				frame_system::ensure_root(origin.clone()),
 		}
 		.map_err(|_| origin)
 	}

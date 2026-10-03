@@ -47,6 +47,7 @@ indiv-pallet-members-subscriber = { workspace = true }
 indiv-pallet-network-suffix = { workspace = true }
 indiv-pallet-origin-restriction = { workspace = true }
 indiv-pallet-pgas = { workspace = true }
+indiv-pallet-scarcity = { workspace = true }
 indiv-precompile-personhood = { workspace = true }
 indiv-support = { workspace = true }
 # Ring-VRF primitives, only needed by the Individuality benchmark helpers, which build ring-VRF SRS
@@ -212,6 +213,7 @@ runtime-benchmarks = [
 	"indiv-pallet-network-suffix/runtime-benchmarks",
 	"indiv-pallet-origin-restriction/runtime-benchmarks",
 	"indiv-pallet-pgas/runtime-benchmarks",
+	"indiv-pallet-scarcity/runtime-benchmarks",
 	"indiv-precompile-personhood/runtime-benchmarks",
 	"indiv-support/genesis",
 	"indiv-support/runtime-benchmarks",
@@ -307,6 +309,7 @@ try-runtime = [
 	"indiv-pallet-network-suffix/try-runtime",
 	"indiv-pallet-origin-restriction/try-runtime",
 	"indiv-pallet-pgas/try-runtime",
+	"indiv-pallet-scarcity/try-runtime",
 	"indiv-precompile-personhood/try-runtime",
 	"pallet-ah-ops/try-runtime",
 	"pallet-asset-conversion-precompiles/try-runtime",
@@ -408,6 +411,7 @@ std = [
 	"indiv-pallet-network-suffix/std",
 	"indiv-pallet-origin-restriction/std",
 	"indiv-pallet-pgas/std",
+	"indiv-pallet-scarcity/std",
 	"indiv-precompile-personhood/std",
 	"indiv-support/std",
 	"kusama-runtime-constants/std",
