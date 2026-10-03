@@ -540,7 +540,7 @@ fn people_airdrops_prize_source_is_set_by_governance() {
 
 #[test]
 fn people_airdrops_context_is_an_account_context() {
-	use crate::{individuality::AccountContexts, PeopleAirdrops, Resources, RuntimeGenesisConfig};
+	use crate::{individuality::AccountContexts, PeopleAirdrops, RuntimeGenesisConfig};
 	use frame_support::traits::Contains;
 	use sp_runtime::BuildStorage;
 
@@ -565,8 +565,11 @@ fn scarcity_tx_extension(state_nonce: u64) -> crate::TxExtensionV2 {
 			indiv_pallet_people_lite::extension::PeopleLiteAuth::<Runtime>::new(None),
 			indiv_pallet_members::extension::AsMember::<Runtime>::new(None),
 			indiv_pallet_coinage::extension::AsCoinage::<Runtime>::new(None),
-			pallet_scarcity::extension::AsScarcity::<Runtime>::new(Some(
-				pallet_scarcity::extension::AsScarcityInfo::AsNft { instance: 0, state_nonce },
+			indiv_pallet_scarcity::extension::AsScarcity::<Runtime>::new(Some(
+				indiv_pallet_scarcity::extension::AsScarcityInfo::AsNft {
+					instance: 0,
+					state_nonce,
+				},
 			)),
 			indiv_pallet_resources::extension::AsResources::<Runtime>::new(None),
 			frame_system::AuthorizeCall::<Runtime>::new(),
@@ -606,7 +609,7 @@ fn with_scarcity_purse(test: impl FnOnce(AccountId)) {
 		assert_ok!(Scarcity::define_item(
 			RuntimeOrigin::signed(owner.clone()),
 			0,
-			pallet_scarcity::Transferability::Transferable,
+			indiv_pallet_scarcity::Transferability::Transferable,
 			Vec::new(),
 		));
 		assert_ok!(Scarcity::mint(
@@ -618,7 +621,7 @@ fn with_scarcity_purse(test: impl FnOnce(AccountId)) {
 		));
 
 		let held = Balances::balance_on_hold(
-			&crate::RuntimeHoldReason::Scarcity(pallet_scarcity::HoldReason::StorageDeposit),
+			&crate::RuntimeHoldReason::Scarcity(indiv_pallet_scarcity::HoldReason::StorageDeposit),
 			&owner,
 		);
 		assert!(held > 0, "the collection's storage deposit is held from its owner");
@@ -637,7 +640,7 @@ fn nft_only_purse_without_system_account_can_transfer() {
 
 	with_scarcity_purse(|purse| {
 		let to = AccountId::from([3u8; 32]);
-		let call = RuntimeCall::Scarcity(pallet_scarcity::Call::transfer { to: to.clone() });
+		let call = RuntimeCall::Scarcity(indiv_pallet_scarcity::Call::transfer { to: to.clone() });
 		let info = call.get_dispatch_info();
 
 		let result = scarcity_tx_extension(0).dispatch_transaction(
@@ -650,9 +653,9 @@ fn nft_only_purse_without_system_account_can_transfer() {
 		assert!(matches!(result, Ok(Ok(_))), "transaction failed: {result:?}");
 
 		assert!(!frame_system::Pallet::<Runtime>::account_exists(&purse));
-		assert!(!pallet_scarcity::NftsByOwner::<Runtime>::contains_key(&purse));
+		assert!(!indiv_pallet_scarcity::NftsByOwner::<Runtime>::contains_key(&purse));
 		assert_eq!(
-			pallet_scarcity::NftsByOwner::<Runtime>::get(&to).map(|nft| nft.state_nonce),
+			indiv_pallet_scarcity::NftsByOwner::<Runtime>::get(&to).map(|nft| nft.state_nonce),
 			Some(1),
 		);
 	});
@@ -667,11 +670,11 @@ fn failed_scarcity_transfer_is_feeless_and_locks_the_purse() {
 
 	with_scarcity_purse(|purse| {
 		// A state nonce at `u64::MAX` passes validation but makes the dispatch overflow.
-		pallet_scarcity::NftsByOwner::<Runtime>::mutate(&purse, |nft| {
+		indiv_pallet_scarcity::NftsByOwner::<Runtime>::mutate(&purse, |nft| {
 			nft.as_mut().expect("purse holds the minted instance").state_nonce = u64::MAX
 		});
 		let to = AccountId::from([3u8; 32]);
-		let call = RuntimeCall::Scarcity(pallet_scarcity::Call::transfer { to: to.clone() });
+		let call = RuntimeCall::Scarcity(indiv_pallet_scarcity::Call::transfer { to: to.clone() });
 		let info = call.get_dispatch_info();
 
 		let result = scarcity_tx_extension(u64::MAX).dispatch_transaction(
@@ -685,14 +688,14 @@ fn failed_scarcity_transfer_is_feeless_and_locks_the_purse() {
 
 		assert!(!frame_system::Pallet::<Runtime>::account_exists(&purse));
 		assert_eq!(
-			pallet_scarcity::NftsByOwner::<Runtime>::get(&purse).map(|nft| nft.state_nonce),
+			indiv_pallet_scarcity::NftsByOwner::<Runtime>::get(&purse).map(|nft| nft.state_nonce),
 			Some(u64::MAX),
 		);
-		assert!(!pallet_scarcity::NftsByOwner::<Runtime>::contains_key(&to));
+		assert!(!indiv_pallet_scarcity::NftsByOwner::<Runtime>::contains_key(&to));
 		let lock_period =
 			<<Runtime as indiv_pallet_coinage::Config>::CoinFailureLockPeriod as Get<u64>>::get();
 		assert_eq!(
-			pallet_scarcity::Locked::<Runtime>::get(&purse).map(|lock| lock.until),
+			indiv_pallet_scarcity::Locked::<Runtime>::get(&purse).map(|lock| lock.until),
 			Some(1_000 + lock_period),
 		);
 	});

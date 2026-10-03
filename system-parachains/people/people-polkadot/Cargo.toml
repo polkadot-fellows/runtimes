@@ -38,6 +38,7 @@ indiv-pallet-people = { workspace = true }
 indiv-pallet-people-lite = { workspace = true }
 indiv-pallet-relay-randomness = { workspace = true }
 indiv-pallet-resources = { workspace = true }
+indiv-pallet-scarcity = { workspace = true }
 indiv-pallet-people-airdrops = { workspace = true }
 indiv-pallet-score = { workspace = true }
 indiv-support = { workspace = true }
@@ -54,7 +55,6 @@ pallet-migrations = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-proxy = { workspace = true }
-pallet-scarcity = { workspace = true }
 pallet-session = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-asset-tx-payment = { workspace = true }
@@ -151,11 +151,12 @@ std = [
 	"indiv-pallet-members/std",
 	"indiv-pallet-network-suffix/std",
 	"indiv-pallet-origin-restriction/std",
+	"indiv-pallet-people-airdrops/std",
 	"indiv-pallet-people-lite/std",
 	"indiv-pallet-people/std",
-	"indiv-pallet-people-airdrops/std",
 	"indiv-pallet-relay-randomness/std",
 	"indiv-pallet-resources/std",
+	"indiv-pallet-scarcity/std",
 	"indiv-pallet-score/std",
 	"indiv-support/std",
 	"log/std",
@@ -174,7 +175,6 @@ std = [
 	"pallet-multisig/std",
 	"pallet-parameters/std",
 	"pallet-proxy/std",
-	"pallet-scarcity/std",
 	"pallet-session/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
@@ -239,11 +239,12 @@ runtime-benchmarks = [
 	"indiv-pallet-members/runtime-benchmarks",
 	"indiv-pallet-network-suffix/runtime-benchmarks",
 	"indiv-pallet-origin-restriction/runtime-benchmarks",
+	"indiv-pallet-people-airdrops/runtime-benchmarks",
 	"indiv-pallet-people-lite/runtime-benchmarks",
 	"indiv-pallet-people/runtime-benchmarks",
-	"indiv-pallet-people-airdrops/runtime-benchmarks",
 	"indiv-pallet-relay-randomness/runtime-benchmarks",
 	"indiv-pallet-resources/runtime-benchmarks",
+	"indiv-pallet-scarcity/runtime-benchmarks",
 	"indiv-pallet-score/runtime-benchmarks",
 	"indiv-support/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
@@ -259,7 +260,6 @@ runtime-benchmarks = [
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-parameters/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
-	"pallet-scarcity/runtime-benchmarks",
 	"pallet-session/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
@@ -302,11 +302,12 @@ try-runtime = [
 	"indiv-pallet-members/try-runtime",
 	"indiv-pallet-network-suffix/try-runtime",
 	"indiv-pallet-origin-restriction/try-runtime",
+	"indiv-pallet-people-airdrops/try-runtime",
 	"indiv-pallet-people-lite/try-runtime",
 	"indiv-pallet-people/try-runtime",
-	"indiv-pallet-people-airdrops/try-runtime",
 	"indiv-pallet-relay-randomness/try-runtime",
 	"indiv-pallet-resources/try-runtime",
+	"indiv-pallet-scarcity/try-runtime",
 	"indiv-pallet-score/try-runtime",
 	"pallet-asset-conversion/try-runtime",
 	"pallet-asset-rate/try-runtime",
@@ -323,7 +324,6 @@ try-runtime = [
 	"pallet-multisig/try-runtime",
 	"pallet-parameters/try-runtime",
 	"pallet-proxy/try-runtime",
-	"pallet-scarcity/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",

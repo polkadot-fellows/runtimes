@@ -187,7 +187,7 @@ pub type TxExtensionV2 = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 			indiv_pallet_coinage::extension::AsCoinage<Runtime>,
 			// Must precede `AuthorizeCall`, the account checks and payment: a purse key holds no
 			// account, and its transfers are feeless because payment sees no signed origin.
-			pallet_scarcity::extension::AsScarcity<Runtime>,
+			indiv_pallet_scarcity::extension::AsScarcity<Runtime>,
 			indiv_pallet_resources::extension::AsResources<Runtime>,
 			frame_system::AuthorizeCall<Runtime>,
 		),
@@ -914,7 +914,7 @@ construct_runtime!(
 		Game: indiv_pallet_game = 55,
 		Score: indiv_pallet_score = 56,
 		// 57: never used.
-		Scarcity: pallet_scarcity = 58,
+		Scarcity: indiv_pallet_scarcity = 58,
 		DummyDim: indiv_pallet_dummy_dim = 59,
 		PeopleLite: indiv_pallet_people_lite = 62,
 		Resources: indiv_pallet_resources = 63,
@@ -991,7 +991,7 @@ mod benches {
 		[indiv_pallet_resources, Resources]
 		[indiv_pallet_score, Score]
 		[indiv_pallet_people_airdrops, PeopleAirdrops]
-		[pallet_scarcity, Scarcity]
+		[indiv_pallet_scarcity, Scarcity]
 	);
 
 	impl frame_system_benchmarking::Config for Runtime {
@@ -1533,13 +1533,10 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_scarcity::runtime_api::ScarcityApi<Block> for Runtime {
+	impl indiv_pallet_scarcity::runtime_api::ScarcityApi<Block> for Runtime {
 		fn metadata_batch(
-			queries: Vec<pallet_scarcity::runtime_api::MetadataQuery>,
-		) -> Result<
-			Vec<pallet_scarcity::runtime_api::MetadataLayers>,
-			pallet_scarcity::runtime_api::BatchError,
-		> {
+			queries: indiv_pallet_scarcity::runtime_api::MetadataQueries,
+		) -> Vec<indiv_pallet_scarcity::runtime_api::MetadataLayers> {
 			Scarcity::metadata_batch(queries)
 		}
 	}

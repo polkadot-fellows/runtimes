@@ -46,7 +46,7 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Storage: `Airdrop::Events` (r:16 w:16)
 	/// Proof: `Airdrop::Events` (`max_values`: None, `max_size`: Some(800), added: 3275, mode: `MaxEncodedLen`)
 	/// Storage: `AssetsHolder::Holds` (r:1 w:1)
-	/// Proof: `AssetsHolder::Holds` (`max_values`: None, `max_size`: Some(847), added: 3322, mode: `MaxEncodedLen`)
+	/// Proof: `AssetsHolder::Holds` (`max_values`: None, `max_size`: Some(883), added: 3358, mode: `MaxEncodedLen`)
 	/// Storage: `Game::GameHistory` (r:0 w:1)
 	/// Proof: `Game::GameHistory` (`max_values`: None, `max_size`: Some(16), added: 2491, mode: `MaxEncodedLen`)
 	/// Storage: `Airdrop::ActionSchedule` (r:0 w:16)
@@ -56,11 +56,11 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `791`
 		//  Estimated: `7404 + n * (3275 ±0)`
-		// Minimum execution time: 14_372_000 picoseconds.
-		Weight::from_parts(44_696_565, 0)
+		// Minimum execution time: 14_417_000 picoseconds.
+		Weight::from_parts(46_225_093, 0)
 			.saturating_add(Weight::from_parts(0, 7404))
-			// Standard Error: 140_992
-			.saturating_add(Weight::from_parts(89_353_094, 0).saturating_mul(n.into()))
+			// Standard Error: 147_900
+			.saturating_add(Weight::from_parts(91_571_762, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(10))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(7))
@@ -73,8 +73,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `230`
 		//  Estimated: `1559`
-		// Minimum execution time: 5_537_000 picoseconds.
-		Weight::from_parts(6_224_000, 0)
+		// Minimum execution time: 5_781_000 picoseconds.
+		Weight::from_parts(6_407_000, 0)
 			.saturating_add(Weight::from_parts(0, 1559))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
@@ -85,11 +85,11 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `137 + n * (714 ±0)`
 		//  Estimated: `123334`
-		// Minimum execution time: 10_961_000 picoseconds.
-		Weight::from_parts(5_619_656, 0)
+		// Minimum execution time: 11_009_000 picoseconds.
+		Weight::from_parts(5_703_571, 0)
 			.saturating_add(Weight::from_parts(0, 123334))
-			// Standard Error: 7_195
-			.saturating_add(Weight::from_parts(5_965_386, 0).saturating_mul(n.into()))
+			// Standard Error: 6_986
+			.saturating_add(Weight::from_parts(6_088_186, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
 	/// Storage: `Timestamp::Now` (r:1 w:0)
@@ -98,8 +98,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `94`
 		//  Estimated: `1493`
-		// Minimum execution time: 4_131_000 picoseconds.
-		Weight::from_parts(4_519_000, 0)
+		// Minimum execution time: 4_146_000 picoseconds.
+		Weight::from_parts(4_556_000, 0)
 			.saturating_add(Weight::from_parts(0, 1493))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
@@ -109,8 +109,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 587_000 picoseconds.
-		Weight::from_parts(723_000, 0)
+		// Minimum execution time: 577_000 picoseconds.
+		Weight::from_parts(709_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -120,8 +120,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 22_080_000 picoseconds.
-		Weight::from_parts(23_711_000, 0)
+		// Minimum execution time: 22_648_000 picoseconds.
+		Weight::from_parts(24_041_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -155,10 +155,10 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Proof: `Game::Game` (`max_values`: Some(1), `max_size`: Some(74), added: 569, mode: `MaxEncodedLen`)
 	fn shuffles_base() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `391`
+		//  Measured:  `425`
 		//  Estimated: `4111`
-		// Minimum execution time: 32_130_000 picoseconds.
-		Weight::from_parts(33_877_000, 0)
+		// Minimum execution time: 32_407_000 picoseconds.
+		Weight::from_parts(34_400_000, 0)
 			.saturating_add(Weight::from_parts(0, 4111))
 			.saturating_add(T::DbWeight::get().reads(11))
 			.saturating_add(T::DbWeight::get().writes(3))
@@ -174,11 +174,11 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `672`
 		//  Estimated: `6100`
-		// Minimum execution time: 26_058_000 picoseconds.
-		Weight::from_parts(25_494_264, 0)
+		// Minimum execution time: 26_627_000 picoseconds.
+		Weight::from_parts(26_018_485, 0)
 			.saturating_add(Weight::from_parts(0, 6100))
-			// Standard Error: 4_146
-			.saturating_add(Weight::from_parts(2_191_442, 0).saturating_mul(n.into()))
+			// Standard Error: 5_552
+			.saturating_add(Weight::from_parts(2_196_975, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
@@ -193,12 +193,12 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	fn shuffle_step_retrieve(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `399 + n * (90 ±0)`
-		//  Estimated: `4891 + n * (5098 ±0)`
-		// Minimum execution time: 21_503_000 picoseconds.
-		Weight::from_parts(12_722_959, 0)
+		//  Estimated: `4891 + n * (5098 ±47)`
+		// Minimum execution time: 21_483_000 picoseconds.
+		Weight::from_parts(12_430_919, 0)
 			.saturating_add(Weight::from_parts(0, 4891))
-			// Standard Error: 33_100
-			.saturating_add(Weight::from_parts(13_936_298, 0).saturating_mul(n.into()))
+			// Standard Error: 30_723
+			.saturating_add(Weight::from_parts(13_713_955, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -214,11 +214,11 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `1151`
 		//  Estimated: `6120`
-		// Minimum execution time: 20_787_000 picoseconds.
-		Weight::from_parts(25_290_181, 0)
+		// Minimum execution time: 20_725_000 picoseconds.
+		Weight::from_parts(25_036_876, 0)
 			.saturating_add(Weight::from_parts(0, 6120))
-			// Standard Error: 1_405
-			.saturating_add(Weight::from_parts(51_237, 0).saturating_mul(p.into()))
+			// Standard Error: 1_472
+			.saturating_add(Weight::from_parts(61_807, 0).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -238,10 +238,10 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Proof: `Score::PersonhoodThreshold` (`max_values`: Some(1), `max_size`: Some(1), added: 496, mode: `MaxEncodedLen`)
 	fn shuffle_step_start_session() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `424`
+		//  Measured:  `458`
 		//  Estimated: `4111`
-		// Minimum execution time: 17_588_000 picoseconds.
-		Weight::from_parts(18_646_000, 0)
+		// Minimum execution time: 17_817_000 picoseconds.
+		Weight::from_parts(18_916_000, 0)
 			.saturating_add(Weight::from_parts(0, 4111))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -250,20 +250,22 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Proof: `Game::Game` (`max_values`: Some(1), `max_size`: Some(74), added: 569, mode: `MaxEncodedLen`)
 	/// Storage: `Timestamp::Now` (r:1 w:0)
 	/// Proof: `Timestamp::Now` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
-	/// Storage: `Game::NftClaimCreditAwards` (r:1 w:0)
-	/// Proof: `Game::NftClaimCreditAwards` (`max_values`: None, `max_size`: Some(78014), added: 80489, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::CreditBufferCursor` (r:1 w:0)
+	/// Proof: `NftCredits::CreditBufferCursor` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::CreditBuffers` (r:1 w:0)
+	/// Proof: `NftCredits::CreditBuffers` (`max_values`: None, `max_size`: Some(24), added: 2499, mode: `MaxEncodedLen`)
 	/// Storage: `Game::Players` (r:1 w:0)
 	/// Proof: `Game::Players` (`max_values`: None, `max_size`: Some(80), added: 2555, mode: `MaxEncodedLen`)
 	/// Storage: `Members::Collections` (r:1 w:0)
 	/// Proof: `Members::Collections` (`max_values`: None, `max_size`: Some(646), added: 3121, mode: `MaxEncodedLen`)
 	fn player_process_step1() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `312`
-		//  Estimated: `81479`
-		// Minimum execution time: 20_361_000 picoseconds.
-		Weight::from_parts(21_687_000, 0)
-			.saturating_add(Weight::from_parts(0, 81479))
-			.saturating_add(T::DbWeight::get().reads(5))
+		//  Measured:  `460`
+		//  Estimated: `4111`
+		// Minimum execution time: 24_020_000 picoseconds.
+		Weight::from_parts(25_581_000, 0)
+			.saturating_add(Weight::from_parts(0, 4111))
+			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	/// Storage: `Score::Participants` (r:1 w:1)
@@ -280,43 +282,45 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Proof: `Game::PlayerToIndex` (`max_values`: None, `max_size`: Some(90), added: 2565, mode: `MaxEncodedLen`)
 	/// Storage: `Game::IndexToPlayer` (r:90 w:0)
 	/// Proof: `Game::IndexToPlayer` (`max_values`: None, `max_size`: Some(46), added: 2521, mode: `MaxEncodedLen`)
-	/// Storage: `Game::AwardedNftClaimCredits` (r:1 w:1)
-	/// Proof: `Game::AwardedNftClaimCredits` (`max_values`: None, `max_size`: Some(77), added: 2552, mode: `MaxEncodedLen`)
-	/// Storage: `Game::NftClaimCreditAwards` (r:1 w:1)
-	/// Proof: `Game::NftClaimCreditAwards` (`max_values`: None, `max_size`: Some(78014), added: 80489, mode: `MaxEncodedLen`)
-	/// Storage: `Game::NftClaimCreditBlocks` (r:1 w:1)
-	/// Proof: `Game::NftClaimCreditBlocks` (`max_values`: None, `max_size`: Some(178), added: 2653, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::AwardedNftClaimCredits` (r:1 w:1)
+	/// Proof: `NftCredits::AwardedNftClaimCredits` (`max_values`: None, `max_size`: Some(77), added: 2552, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::CreditBufferCursor` (r:1 w:1)
+	/// Proof: `NftCredits::CreditBufferCursor` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::CreditBuffers` (r:1 w:1)
+	/// Proof: `NftCredits::CreditBuffers` (`max_values`: None, `max_size`: Some(24), added: 2499, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::NftClaimCreditAwards` (r:3 w:3)
+	/// Proof: `NftCredits::NftClaimCreditAwards` (`max_values`: None, `max_size`: Some(2105), added: 4580, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::NftClaimCreditBlocks` (r:1 w:1)
+	/// Proof: `NftCredits::NftClaimCreditBlocks` (`max_values`: None, `max_size`: Some(1075), added: 3550, mode: `MaxEncodedLen`)
 	/// Storage: `System::Account` (r:1 w:1)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(265), added: 2740, mode: `MaxEncodedLen`)
 	/// Storage: `Game::Players` (r:2 w:1)
 	/// Proof: `Game::Players` (`max_values`: None, `max_size`: Some(80), added: 2555, mode: `MaxEncodedLen`)
-	/// Storage: `Game::PendingNftClaimCreditRootInfo` (r:0 w:1)
-	/// Proof: `Game::PendingNftClaimCreditRootInfo` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `r` is `[1, 10]`.
 	fn player_process_step1_inner_loop(r: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1796 + r * (513 ±0)`
-		//  Estimated: `81479 + r * (22689 ±0)`
-		// Minimum execution time: 240_824_000 picoseconds.
-		Weight::from_parts(105_356_630, 0)
-			.saturating_add(Weight::from_parts(0, 81479))
-			// Standard Error: 148_362
-			.saturating_add(Weight::from_parts(145_148_992, 0).saturating_mul(r.into()))
-			.saturating_add(T::DbWeight::get().reads(13))
+		//  Measured:  `1910 + r * (513 ±0)`
+		//  Estimated: `6100 + r * (22689 ±0)`
+		// Minimum execution time: 261_654_000 picoseconds.
+		Weight::from_parts(113_398_607, 0)
+			.saturating_add(Weight::from_parts(0, 6100))
+			// Standard Error: 159_817
+			.saturating_add(Weight::from_parts(159_571_227, 0).saturating_mul(r.into()))
+			.saturating_add(T::DbWeight::get().reads(15))
 			.saturating_add(T::DbWeight::get().reads((9_u64).saturating_mul(r.into())))
-			.saturating_add(T::DbWeight::get().writes(10))
+			.saturating_add(T::DbWeight::get().writes(11))
 			.saturating_add(Weight::from_parts(0, 22689).saturating_mul(r.into()))
 	}
 	/// Storage: `Game::Game` (r:1 w:1)
 	/// Proof: `Game::Game` (`max_values`: Some(1), `max_size`: Some(74), added: 569, mode: `MaxEncodedLen`)
 	fn player_process_step2() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `165`
+		//  Measured:  `279`
 		//  Estimated: `1559`
-		// Minimum execution time: 15_302_000 picoseconds.
-		Weight::from_parts(16_406_000, 0)
+		// Minimum execution time: 16_227_000 picoseconds.
+		Weight::from_parts(17_404_000, 0)
 			.saturating_add(Weight::from_parts(0, 1559))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -325,14 +329,14 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Proof: `Game::IndexToPlayer` (`max_values`: None, `max_size`: Some(46), added: 2521, mode: `MaxEncodedLen`)
 	/// Storage: `Game::PlayerToIndex` (r:101 w:100)
 	/// Proof: `Game::PlayerToIndex` (`max_values`: None, `max_size`: Some(90), added: 2565, mode: `MaxEncodedLen`)
-	/// Storage: `Game::AwardedNftClaimCredits` (r:101 w:100)
-	/// Proof: `Game::AwardedNftClaimCredits` (`max_values`: None, `max_size`: Some(77), added: 2552, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::AwardedNftClaimCredits` (r:101 w:100)
+	/// Proof: `NftCredits::AwardedNftClaimCredits` (`max_values`: None, `max_size`: Some(77), added: 2552, mode: `MaxEncodedLen`)
 	fn player_process_step2_inner_loop() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `21038`
+		//  Measured:  `21156`
 		//  Estimated: `260055`
-		// Minimum execution time: 305_690_000 picoseconds.
-		Weight::from_parts(314_945_000, 0)
+		// Minimum execution time: 300_066_000 picoseconds.
+		Weight::from_parts(314_183_000, 0)
 			.saturating_add(Weight::from_parts(0, 260055))
 			.saturating_add(T::DbWeight::get().reads(303))
 			.saturating_add(T::DbWeight::get().writes(300))
@@ -347,8 +351,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `172`
 		//  Estimated: `3545`
-		// Minimum execution time: 8_646_000 picoseconds.
-		Weight::from_parts(9_393_000, 0)
+		// Minimum execution time: 9_132_000 picoseconds.
+		Weight::from_parts(9_847_000, 0)
 			.saturating_add(Weight::from_parts(0, 3545))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -361,8 +365,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `14190`
 		//  Estimated: `258439`
-		// Minimum execution time: 194_533_000 picoseconds.
-		Weight::from_parts(201_628_000, 0)
+		// Minimum execution time: 195_091_000 picoseconds.
+		Weight::from_parts(201_655_000, 0)
 			.saturating_add(Weight::from_parts(0, 258439))
 			.saturating_add(T::DbWeight::get().reads(202))
 			.saturating_add(T::DbWeight::get().writes(200))
@@ -371,20 +375,20 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Proof: `Game::Players` (`max_values`: None, `max_size`: Some(80), added: 2555, mode: `MaxEncodedLen`)
 	/// Storage: `Game::PlayerToIndex` (r:1 w:1)
 	/// Proof: `Game::PlayerToIndex` (`max_values`: None, `max_size`: Some(90), added: 2565, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::AwardedNftClaimCredits` (r:0 w:1)
+	/// Proof: `NftCredits::AwardedNftClaimCredits` (`max_values`: None, `max_size`: Some(77), added: 2552, mode: `MaxEncodedLen`)
 	/// Storage: `Game::IndexToPlayer` (r:0 w:10)
 	/// Proof: `Game::IndexToPlayer` (`max_values`: None, `max_size`: Some(46), added: 2521, mode: `MaxEncodedLen`)
-	/// Storage: `Game::AwardedNftClaimCredits` (r:0 w:1)
-	/// Proof: `Game::AwardedNftClaimCredits` (`max_values`: None, `max_size`: Some(77), added: 2552, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[1, 10]`.
 	fn process_cancelling_step_player(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `418 + n * (4 ±0)`
+		//  Measured:  `381 + n * (4 ±0)`
 		//  Estimated: `6100`
-		// Minimum execution time: 22_178_000 picoseconds.
-		Weight::from_parts(24_387_805, 0)
+		// Minimum execution time: 19_751_000 picoseconds.
+		Weight::from_parts(20_016_861, 0)
 			.saturating_add(Weight::from_parts(0, 6100))
-			// Standard Error: 30_822
-			.saturating_add(Weight::from_parts(1_017_067, 0).saturating_mul(n.into()))
+			// Standard Error: 28_311
+			.saturating_add(Weight::from_parts(1_376_629, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
@@ -416,11 +420,11 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `558 + n * (178 ±0)`
 		//  Estimated: `4008 + n * (3275 ±0)`
-		// Minimum execution time: 47_426_000 picoseconds.
-		Weight::from_parts(63_153_931, 0)
+		// Minimum execution time: 47_794_000 picoseconds.
+		Weight::from_parts(59_455_729, 0)
 			.saturating_add(Weight::from_parts(0, 4008))
-			// Standard Error: 81_591
-			.saturating_add(Weight::from_parts(653_141_237, 0).saturating_mul(n.into()))
+			// Standard Error: 107_302
+			.saturating_add(Weight::from_parts(654_359_942, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(6))
@@ -444,7 +448,7 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Storage: `Game::PlayDepositAmount` (r:1 w:0)
 	/// Proof: `Game::PlayDepositAmount` (`max_values`: Some(1), `max_size`: Some(16), added: 511, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(265), added: 2740, mode: `MaxEncodedLen`)
 	/// Storage: `Airdrop::Events` (r:16 w:16)
 	/// Proof: `Airdrop::Events` (`max_values`: None, `max_size`: Some(800), added: 3275, mode: `MaxEncodedLen`)
 	/// Storage: `Airdrop::Registrations` (r:16 w:16)
@@ -458,11 +462,11 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `661 + n * (178 ±0)`
 		//  Estimated: `4111 + n * (3275 ±0)`
-		// Minimum execution time: 84_503_000 picoseconds.
-		Weight::from_parts(99_267_151, 0)
+		// Minimum execution time: 86_293_000 picoseconds.
+		Weight::from_parts(101_275_549, 0)
 			.saturating_add(Weight::from_parts(0, 4111))
-			// Standard Error: 81_648
-			.saturating_add(Weight::from_parts(654_591_840, 0).saturating_mul(n.into()))
+			// Standard Error: 107_426
+			.saturating_add(Weight::from_parts(655_584_312, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(10))
 			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(7))
@@ -494,19 +498,21 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// The range of component `n` is `[0, 16]`.
 	fn sign_up_with_account_recognized(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2092 + n * (178 ±0)`
+		//  Measured:  `2126 + n * (178 ±0)`
 		//  Estimated: `4657 + n * (3275 ±0)`
-		// Minimum execution time: 41_160_000 picoseconds.
-		Weight::from_parts(153_048_373, 0)
+		// Minimum execution time: 40_790_000 picoseconds.
+		Weight::from_parts(278_683_742, 0)
 			.saturating_add(Weight::from_parts(0, 4657))
-			// Standard Error: 1_497_868
-			.saturating_add(Weight::from_parts(16_183_056_822, 0).saturating_mul(n.into()))
+			// Standard Error: 2_652_905
+			.saturating_add(Weight::from_parts(29_046_330_962, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(3))
 			.saturating_add(T::DbWeight::get().writes((2_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 3275).saturating_mul(n.into()))
 	}
+	/// Storage: `NetworkSuffix::NetworkSuffix` (r:1 w:0)
+	/// Proof: `NetworkSuffix::NetworkSuffix` (`max_values`: Some(1), `max_size`: Some(17), added: 512, mode: `MaxEncodedLen`)
 	/// Storage: `Game::Game` (r:1 w:1)
 	/// Proof: `Game::Game` (`max_values`: Some(1), `max_size`: Some(74), added: 569, mode: `MaxEncodedLen`)
 	/// Storage: `Timestamp::Now` (r:1 w:0)
@@ -540,19 +546,21 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// The range of component `n` is `[0, 16]`.
 	fn sign_up_with_alias(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `2097 + n * (178 ±0)`
+		//  Measured:  `2203 + n * (178 ±0)`
 		//  Estimated: `6100 + n * (3275 ±8)`
-		// Minimum execution time: 111_524_000 picoseconds.
-		Weight::from_parts(342_139_772, 0)
+		// Minimum execution time: 113_525_000 picoseconds.
+		Weight::from_parts(251_799_138, 0)
 			.saturating_add(Weight::from_parts(0, 6100))
-			// Standard Error: 1_416_661
-			.saturating_add(Weight::from_parts(16_207_107_100, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(14))
+			// Standard Error: 2_292_711
+			.saturating_add(Weight::from_parts(29_078_074_698, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(15))
 			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(9))
 			.saturating_add(T::DbWeight::get().writes((2_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 3275).saturating_mul(n.into()))
 	}
+	/// Storage: `NetworkSuffix::NetworkSuffix` (r:1 w:0)
+	/// Proof: `NetworkSuffix::NetworkSuffix` (`max_values`: Some(1), `max_size`: Some(17), added: 512, mode: `MaxEncodedLen`)
 	/// Storage: `Game::LiteInvites` (r:1 w:1)
 	/// Proof: `Game::LiteInvites` (`max_values`: None, `max_size`: Some(80), added: 2555, mode: `MaxEncodedLen`)
 	/// Storage: `Game::Game` (r:1 w:1)
@@ -577,40 +585,44 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Proof: UNKNOWN KEY `0x3a73746174656d656e745f616c6c6f77616e63653adef12e42f3e487e9b14095` (r:1 w:1)
 	/// Storage: `Game::CommunicationIdentifiers` (r:0 w:1)
 	/// Proof: `Game::CommunicationIdentifiers` (`max_values`: None, `max_size`: Some(113), added: 2588, mode: `MaxEncodedLen`)
-	/// Storage: `NetworkSuffix::NetworkSuffix` (r:1 w:0)
-	/// Proof: `NetworkSuffix::NetworkSuffix` (`max_values`: Some(1), `max_size`: Some(17), added: 512, mode: `MaxEncodedLen`)
 	/// The range of component `n` is `[0, 16]`.
 	fn sign_up_with_account_lite_invite(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `663 + n * (178 ±0)`
-		//  Estimated: `4625 + n * (3275 ±0)`
-		// Minimum execution time: 55_345_000 picoseconds.
-		Weight::from_parts(68_160_924, 0)
-			.saturating_add(Weight::from_parts(0, 4625))
-			// Standard Error: 89_110
-			.saturating_add(Weight::from_parts(653_742_859, 0).saturating_mul(n.into()))
+		//  Measured:  `735 + n * (178 ±0)`
+		//  Estimated: `4185 + n * (3275 ±0)`
+		// Minimum execution time: 60_106_000 picoseconds.
+		Weight::from_parts(69_775_598, 0)
+			.saturating_add(Weight::from_parts(0, 4185))
+			// Standard Error: 88_212
+			.saturating_add(Weight::from_parts(653_901_885, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(10))
 			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(7))
 			.saturating_add(T::DbWeight::get().writes((2_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 3275).saturating_mul(n.into()))
 	}
+	/// Storage: `NetworkSuffix::NetworkSuffix` (r:1 w:0)
+	/// Proof: `NetworkSuffix::NetworkSuffix` (`max_values`: Some(1), `max_size`: Some(17), added: 512, mode: `MaxEncodedLen`)
 	/// Storage: `Game::Game` (r:1 w:1)
 	/// Proof: `Game::Game` (`max_values`: Some(1), `max_size`: Some(74), added: 569, mode: `MaxEncodedLen`)
 	/// Storage: `Timestamp::Now` (r:1 w:0)
 	/// Proof: `Timestamp::Now` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::CreditBufferCursor` (r:1 w:1)
+	/// Proof: `NftCredits::CreditBufferCursor` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::CreditBuffers` (r:1 w:1)
+	/// Proof: `NftCredits::CreditBuffers` (`max_values`: None, `max_size`: Some(24), added: 2499, mode: `MaxEncodedLen`)
 	/// Storage: `Game::Players` (r:91 w:91)
 	/// Proof: `Game::Players` (`max_values`: None, `max_size`: Some(80), added: 2555, mode: `MaxEncodedLen`)
 	/// Storage: `Game::PlayerToIndex` (r:1 w:0)
 	/// Proof: `Game::PlayerToIndex` (`max_values`: None, `max_size`: Some(90), added: 2565, mode: `MaxEncodedLen`)
 	/// Storage: `Game::IndexToPlayer` (r:90 w:0)
 	/// Proof: `Game::IndexToPlayer` (`max_values`: None, `max_size`: Some(46), added: 2521, mode: `MaxEncodedLen`)
-	/// Storage: `Game::AwardedNftClaimCredits` (r:90 w:90)
-	/// Proof: `Game::AwardedNftClaimCredits` (`max_values`: None, `max_size`: Some(77), added: 2552, mode: `MaxEncodedLen`)
-	/// Storage: `Game::NftClaimCreditAwards` (r:1 w:1)
-	/// Proof: `Game::NftClaimCreditAwards` (`max_values`: None, `max_size`: Some(78014), added: 80489, mode: `MaxEncodedLen`)
-	/// Storage: `Game::NftClaimCreditBlocks` (r:90 w:90)
-	/// Proof: `Game::NftClaimCreditBlocks` (`max_values`: None, `max_size`: Some(178), added: 2653, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::AwardedNftClaimCredits` (r:90 w:90)
+	/// Proof: `NftCredits::AwardedNftClaimCredits` (`max_values`: None, `max_size`: Some(77), added: 2552, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::NftClaimCreditAwards` (r:3 w:3)
+	/// Proof: `NftCredits::NftClaimCreditAwards` (`max_values`: None, `max_size`: Some(2105), added: 4580, mode: `MaxEncodedLen`)
+	/// Storage: `NftCredits::NftClaimCreditBlocks` (r:90 w:90)
+	/// Proof: `NftCredits::NftClaimCreditBlocks` (`max_values`: None, `max_size`: Some(1075), added: 3550, mode: `MaxEncodedLen`)
 	/// Storage: `Score::Participants` (r:9 w:9)
 	/// Proof: `Score::Participants` (`max_values`: None, `max_size`: Some(86), added: 2561, mode: `MaxEncodedLen`)
 	/// Storage: `Score::PersonhoodThreshold` (r:1 w:0)
@@ -621,30 +633,30 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Proof: `Game::PlayerAttendanceHistory` (`max_values`: None, `max_size`: Some(98), added: 2573, mode: `MaxEncodedLen`)
 	/// Storage: `Game::GameParticipantCount` (r:1 w:1)
 	/// Proof: `Game::GameParticipantCount` (`max_values`: None, `max_size`: Some(16), added: 2491, mode: `MaxEncodedLen`)
-	/// Storage: `Game::PendingNftClaimCreditRootInfo` (r:0 w:1)
-	/// Proof: `Game::PendingNftClaimCreditRootInfo` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
 	/// The range of component `e` is `[9, 90]`.
 	/// The range of component `n` is `[0, 9]`.
 	fn report(e: u32, n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `6727 + e * (252 ±0) + n * (233 ±0)`
-		//  Estimated: `81479 + e * (2570 ±29) + n * (2573 ±0)`
-		// Minimum execution time: 487_190_000 picoseconds.
-		Weight::from_parts(173_050_518, 0)
-			.saturating_add(Weight::from_parts(0, 81479))
-			// Standard Error: 89_257
-			.saturating_add(Weight::from_parts(28_155_344, 0).saturating_mul(e.into()))
-			// Standard Error: 761_452
-			.saturating_add(Weight::from_parts(24_724_201, 0).saturating_mul(n.into()))
-			.saturating_add(T::DbWeight::get().reads(14))
+		//  Measured:  `6397 + e * (252 ±0) + n * (233 ±0)`
+		//  Estimated: `8337 + e * (3439 ±29) + n * (2573 ±270)`
+		// Minimum execution time: 556_458_000 picoseconds.
+		Weight::from_parts(187_981_249, 0)
+			.saturating_add(Weight::from_parts(0, 8337))
+			// Standard Error: 103_701
+			.saturating_add(Weight::from_parts(30_473_758, 0).saturating_mul(e.into()))
+			// Standard Error: 884_675
+			.saturating_add(Weight::from_parts(30_943_684, 0).saturating_mul(n.into()))
+			.saturating_add(T::DbWeight::get().reads(17))
 			.saturating_add(T::DbWeight::get().reads((4_u64).saturating_mul(e.into())))
 			.saturating_add(T::DbWeight::get().reads((4_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(10))
 			.saturating_add(T::DbWeight::get().writes((3_u64).saturating_mul(e.into())))
 			.saturating_add(T::DbWeight::get().writes((3_u64).saturating_mul(n.into())))
-			.saturating_add(Weight::from_parts(0, 2570).saturating_mul(e.into()))
+			.saturating_add(Weight::from_parts(0, 3439).saturating_mul(e.into()))
 			.saturating_add(Weight::from_parts(0, 2573).saturating_mul(n.into()))
 	}
+	/// Storage: `NetworkSuffix::NetworkSuffix` (r:1 w:0)
+	/// Proof: `NetworkSuffix::NetworkSuffix` (`max_values`: Some(1), `max_size`: Some(17), added: 512, mode: `MaxEncodedLen`)
 	/// Storage: `Game::ArchivedPlayers` (r:1 w:0)
 	/// Proof: `Game::ArchivedPlayers` (`max_values`: None, `max_size`: Some(58), added: 2533, mode: `MaxEncodedLen`)
 	/// Storage: `Game::Players` (r:1 w:1)
@@ -652,21 +664,33 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Storage: `Game::Game` (r:1 w:0)
 	/// Proof: `Game::Game` (`max_values`: Some(1), `max_size`: Some(74), added: 569, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)
-	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(229), added: 2704, mode: `MaxEncodedLen`)
+	/// Proof: `Balances::Holds` (`max_values`: None, `max_size`: Some(265), added: 2740, mode: `MaxEncodedLen`)
 	/// Storage: UNKNOWN KEY `0x3a73746174656d656e745f616c6c6f77616e63653ad861ea1ebf4800d4b89f4f` (r:1 w:1)
 	/// Proof: UNKNOWN KEY `0x3a73746174656d656e745f616c6c6f77616e63653ad861ea1ebf4800d4b89f4f` (r:1 w:1)
-	/// Storage: `Score::Participants` (r:0 w:1)
+	/// Storage: `Score::Participants` (r:1 w:1)
 	/// Proof: `Score::Participants` (`max_values`: None, `max_size`: Some(86), added: 2561, mode: `MaxEncodedLen`)
+	/// Storage: `Members::Collections` (r:1 w:0)
+	/// Proof: `Members::Collections` (`max_values`: None, `max_size`: Some(646), added: 3121, mode: `MaxEncodedLen`)
+	/// Storage: `Members::RingsState` (r:1 w:1)
+	/// Proof: `Members::RingsState` (`max_values`: None, `max_size`: Some(34), added: 2509, mode: `MaxEncodedLen`)
+	/// Storage: `People::People` (r:1 w:1)
+	/// Proof: `People::People` (`max_values`: None, `max_size`: Some(89), added: 2564, mode: `MaxEncodedLen`)
+	/// Storage: `Members::Members` (r:1 w:1)
+	/// Proof: `Members::Members` (`max_values`: None, `max_size`: Some(93), added: 2568, mode: `MaxEncodedLen`)
+	/// Storage: `Members::OnboardingQueue` (r:1 w:1)
+	/// Proof: `Members::OnboardingQueue` (`max_values`: None, `max_size`: Some(8206), added: 10681, mode: `MaxEncodedLen`)
 	fn offboard_account() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `302`
-		//  Estimated: `3767`
-		// Minimum execution time: 57_012_000 picoseconds.
-		Weight::from_parts(59_998_000, 0)
-			.saturating_add(Weight::from_parts(0, 3767))
-			.saturating_add(T::DbWeight::get().reads(5))
-			.saturating_add(T::DbWeight::get().writes(4))
+		//  Measured:  `1336`
+		//  Estimated: `11671`
+		// Minimum execution time: 119_960_000 picoseconds.
+		Weight::from_parts(126_100_000, 0)
+			.saturating_add(Weight::from_parts(0, 11671))
+			.saturating_add(T::DbWeight::get().reads(12))
+			.saturating_add(T::DbWeight::get().writes(8))
 	}
+	/// Storage: `NetworkSuffix::NetworkSuffix` (r:1 w:0)
+	/// Proof: `NetworkSuffix::NetworkSuffix` (`max_values`: Some(1), `max_size`: Some(17), added: 512, mode: `MaxEncodedLen`)
 	/// Storage: `Game::ArchivedPlayers` (r:1 w:1)
 	/// Proof: `Game::ArchivedPlayers` (`max_values`: None, `max_size`: Some(58), added: 2533, mode: `MaxEncodedLen`)
 	/// Storage: `Game::Players` (r:1 w:1)
@@ -677,35 +701,45 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Proof: `Game::AliasToStmtAccount` (`max_values`: None, `max_size`: Some(80), added: 2555, mode: `MaxEncodedLen`)
 	/// Storage: UNKNOWN KEY `0x3a73746174656d656e745f616c6c6f77616e63653acecc1507dc1ddd7295951c` (r:1 w:1)
 	/// Proof: UNKNOWN KEY `0x3a73746174656d656e745f616c6c6f77616e63653acecc1507dc1ddd7295951c` (r:1 w:1)
-	/// Storage: `Score::Participants` (r:0 w:1)
+	/// Storage: `Score::Participants` (r:1 w:1)
 	/// Proof: `Score::Participants` (`max_values`: None, `max_size`: Some(86), added: 2561, mode: `MaxEncodedLen`)
 	/// Storage: `Game::StmtAccountToAlias` (r:0 w:1)
 	/// Proof: `Game::StmtAccountToAlias` (`max_values`: None, `max_size`: Some(80), added: 2555, mode: `MaxEncodedLen`)
 	fn offboard_person() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `509`
-		//  Estimated: `3974`
-		// Minimum execution time: 33_860_000 picoseconds.
-		Weight::from_parts(35_869_000, 0)
-			.saturating_add(Weight::from_parts(0, 3974))
-			.saturating_add(T::DbWeight::get().reads(5))
+		//  Measured:  `823`
+		//  Estimated: `4288`
+		// Minimum execution time: 46_600_000 picoseconds.
+		Weight::from_parts(49_150_000, 0)
+			.saturating_add(Weight::from_parts(0, 4288))
+			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
 	/// Storage: `Game::ArchivedPlayers` (r:1 w:1)
 	/// Proof: `Game::ArchivedPlayers` (`max_values`: None, `max_size`: Some(58), added: 2533, mode: `MaxEncodedLen`)
+	/// Storage: `Score::Participants` (r:1 w:1)
+	/// Proof: `Score::Participants` (`max_values`: None, `max_size`: Some(86), added: 2561, mode: `MaxEncodedLen`)
+	/// Storage: `Members::Collections` (r:1 w:0)
+	/// Proof: `Members::Collections` (`max_values`: None, `max_size`: Some(646), added: 3121, mode: `MaxEncodedLen`)
+	/// Storage: `Members::RingsState` (r:1 w:1)
+	/// Proof: `Members::RingsState` (`max_values`: None, `max_size`: Some(34), added: 2509, mode: `MaxEncodedLen`)
+	/// Storage: `People::People` (r:1 w:1)
+	/// Proof: `People::People` (`max_values`: None, `max_size`: Some(89), added: 2564, mode: `MaxEncodedLen`)
+	/// Storage: `Members::Members` (r:1 w:1)
+	/// Proof: `Members::Members` (`max_values`: None, `max_size`: Some(93), added: 2568, mode: `MaxEncodedLen`)
+	/// Storage: `Members::OnboardingQueue` (r:1 w:1)
+	/// Proof: `Members::OnboardingQueue` (`max_values`: None, `max_size`: Some(8206), added: 10681, mode: `MaxEncodedLen`)
 	/// Storage: `System::Account` (r:1 w:1)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
-	/// Storage: `Score::Participants` (r:0 w:1)
-	/// Proof: `Score::Participants` (`max_values`: None, `max_size`: Some(86), added: 2561, mode: `MaxEncodedLen`)
 	fn kickout() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `330`
-		//  Estimated: `3593`
-		// Minimum execution time: 21_241_000 picoseconds.
-		Weight::from_parts(22_699_000, 0)
-			.saturating_add(Weight::from_parts(0, 3593))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(3))
+		//  Measured:  `1292`
+		//  Estimated: `11671`
+		// Minimum execution time: 75_424_000 picoseconds.
+		Weight::from_parts(79_337_000, 0)
+			.saturating_add(Weight::from_parts(0, 11671))
+			.saturating_add(T::DbWeight::get().reads(8))
+			.saturating_add(T::DbWeight::get().writes(7))
 	}
 	/// Storage: `Game::AvailableInvites` (r:1 w:1)
 	/// Proof: `Game::AvailableInvites` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
@@ -713,8 +747,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `109`
 		//  Estimated: `3517`
-		// Minimum execution time: 10_753_000 picoseconds.
-		Weight::from_parts(11_634_000, 0)
+		// Minimum execution time: 10_849_000 picoseconds.
+		Weight::from_parts(11_505_000, 0)
 			.saturating_add(Weight::from_parts(0, 3517))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -728,11 +762,11 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `763 + n * (52 ±0)`
 		//  Estimated: `990 + n * (2571 ±0)`
-		// Minimum execution time: 12_811_000 picoseconds.
-		Weight::from_parts(13_040_000, 0)
+		// Minimum execution time: 12_546_000 picoseconds.
+		Weight::from_parts(12_848_000, 0)
 			.saturating_add(Weight::from_parts(0, 990))
-			// Standard Error: 5_437
-			.saturating_add(Weight::from_parts(1_982_469, 0).saturating_mul(n.into()))
+			// Standard Error: 6_345
+			.saturating_add(Weight::from_parts(2_155_520, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(1))
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(n.into())))
@@ -746,8 +780,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `187`
 		//  Estimated: `3561`
-		// Minimum execution time: 17_857_000 picoseconds.
-		Weight::from_parts(18_972_000, 0)
+		// Minimum execution time: 17_673_000 picoseconds.
+		Weight::from_parts(18_648_000, 0)
 			.saturating_add(Weight::from_parts(0, 3561))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -760,8 +794,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `231`
 		//  Estimated: `3561`
-		// Minimum execution time: 16_628_000 picoseconds.
-		Weight::from_parts(17_745_000, 0)
+		// Minimum execution time: 16_571_000 picoseconds.
+		Weight::from_parts(17_561_000, 0)
 			.saturating_add(Weight::from_parts(0, 3561))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -779,11 +813,11 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `324`
 		//  Estimated: `123334`
-		// Minimum execution time: 32_166_000 picoseconds.
-		Weight::from_parts(25_437_257, 0)
+		// Minimum execution time: 32_263_000 picoseconds.
+		Weight::from_parts(25_089_705, 0)
 			.saturating_add(Weight::from_parts(0, 123334))
-			// Standard Error: 12_963
-			.saturating_add(Weight::from_parts(8_511_288, 0).saturating_mul(n.into()))
+			// Standard Error: 11_157
+			.saturating_add(Weight::from_parts(8_764_705, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -793,8 +827,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `8705`
 		//  Estimated: `123334`
-		// Minimum execution time: 181_013_000 picoseconds.
-		Weight::from_parts(185_872_000, 0)
+		// Minimum execution time: 186_351_000 picoseconds.
+		Weight::from_parts(197_578_000, 0)
 			.saturating_add(Weight::from_parts(0, 123334))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -805,8 +839,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 5_544_000 picoseconds.
-		Weight::from_parts(6_013_000, 0)
+		// Minimum execution time: 5_547_000 picoseconds.
+		Weight::from_parts(6_043_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -835,11 +869,11 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `677 + n * (178 ±0)`
 		//  Estimated: `3593 + n * (3275 ±0)`
-		// Minimum execution time: 92_930_000 picoseconds.
-		Weight::from_parts(163_166_561, 0)
+		// Minimum execution time: 94_794_000 picoseconds.
+		Weight::from_parts(162_018_579, 0)
 			.saturating_add(Weight::from_parts(0, 3593))
-			// Standard Error: 274_654
-			.saturating_add(Weight::from_parts(656_812_743, 0).saturating_mul(n.into()))
+			// Standard Error: 255_731
+			.saturating_add(Weight::from_parts(657_149_256, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -853,8 +887,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `264`
 		//  Estimated: `1559`
-		// Minimum execution time: 8_712_000 picoseconds.
-		Weight::from_parts(9_389_000, 0)
+		// Minimum execution time: 8_903_000 picoseconds.
+		Weight::from_parts(9_667_000, 0)
 			.saturating_add(Weight::from_parts(0, 1559))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -867,8 +901,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `235`
 		//  Estimated: `3563`
-		// Minimum execution time: 9_954_000 picoseconds.
-		Weight::from_parts(10_788_000, 0)
+		// Minimum execution time: 9_704_000 picoseconds.
+		Weight::from_parts(10_468_000, 0)
 			.saturating_add(Weight::from_parts(0, 3563))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -882,7 +916,7 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Storage: `Assets::Account` (r:2 w:2)
 	/// Proof: `Assets::Account` (`max_values`: None, `max_size`: Some(732), added: 3207, mode: `MaxEncodedLen`)
 	/// Storage: `AssetsHolder::Holds` (r:1 w:1)
-	/// Proof: `AssetsHolder::Holds` (`max_values`: None, `max_size`: Some(847), added: 3322, mode: `MaxEncodedLen`)
+	/// Proof: `AssetsHolder::Holds` (`max_values`: None, `max_size`: Some(883), added: 3358, mode: `MaxEncodedLen`)
 	/// Storage: `AssetsHolder::BalancesOnHold` (r:1 w:1)
 	/// Proof: `AssetsHolder::BalancesOnHold` (`max_values`: None, `max_size`: Some(682), added: 3157, mode: `MaxEncodedLen`)
 	/// Storage: `Airdrop::ActionSchedule` (r:0 w:32)
@@ -891,8 +925,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `3939`
 		//  Estimated: `53390`
-		// Minimum execution time: 1_162_103_000 picoseconds.
-		Weight::from_parts(1_211_290_000, 0)
+		// Minimum execution time: 1_178_590_000 picoseconds.
+		Weight::from_parts(1_226_069_000, 0)
 			.saturating_add(Weight::from_parts(0, 53390))
 			.saturating_add(T::DbWeight::get().reads(22))
 			.saturating_add(T::DbWeight::get().writes(54))
@@ -905,8 +939,8 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `230`
 		//  Estimated: `1559`
-		// Minimum execution time: 12_573_000 picoseconds.
-		Weight::from_parts(13_696_000, 0)
+		// Minimum execution time: 12_708_000 picoseconds.
+		Weight::from_parts(13_843_000, 0)
 			.saturating_add(Weight::from_parts(0, 1559))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -918,7 +952,7 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Storage: `Assets::Account` (r:2 w:2)
 	/// Proof: `Assets::Account` (`max_values`: None, `max_size`: Some(732), added: 3207, mode: `MaxEncodedLen`)
 	/// Storage: `AssetsHolder::Holds` (r:1 w:1)
-	/// Proof: `AssetsHolder::Holds` (`max_values`: None, `max_size`: Some(847), added: 3322, mode: `MaxEncodedLen`)
+	/// Proof: `AssetsHolder::Holds` (`max_values`: None, `max_size`: Some(883), added: 3358, mode: `MaxEncodedLen`)
 	/// Storage: `AssetsHolder::BalancesOnHold` (r:1 w:1)
 	/// Proof: `AssetsHolder::BalancesOnHold` (`max_values`: None, `max_size`: Some(682), added: 3157, mode: `MaxEncodedLen`)
 	/// Storage: `Airdrop::ActionSchedule` (r:0 w:16)
@@ -928,17 +962,19 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `851 + n * (174 ±0)`
 		//  Estimated: `7404 + n * (3275 ±0)`
-		// Minimum execution time: 3_004_000 picoseconds.
-		Weight::from_parts(23_900_724, 0)
+		// Minimum execution time: 3_088_000 picoseconds.
+		Weight::from_parts(26_380_765, 0)
 			.saturating_add(Weight::from_parts(0, 7404))
-			// Standard Error: 103_231
-			.saturating_add(Weight::from_parts(70_252_861, 0).saturating_mul(n.into()))
+			// Standard Error: 94_344
+			.saturating_add(Weight::from_parts(71_671_573, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(4))
 			.saturating_add(T::DbWeight::get().writes((2_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 3275).saturating_mul(n.into()))
 	}
+	/// Storage: `NetworkSuffix::NetworkSuffix` (r:1 w:0)
+	/// Proof: `NetworkSuffix::NetworkSuffix` (`max_values`: Some(1), `max_size`: Some(17), added: 512, mode: `MaxEncodedLen`)
 	/// Storage: `Score::Participants` (r:1 w:0)
 	/// Proof: `Score::Participants` (`max_values`: None, `max_size`: Some(86), added: 2561, mode: `MaxEncodedLen`)
 	/// Storage: `Airdrop::Events` (r:1 w:1)
@@ -954,19 +990,19 @@ impl<T: frame_system::Config> indiv_pallet_game::WeightInfo for WeightInfo<T> {
 	/// Storage: `Assets::Account` (r:2 w:2)
 	/// Proof: `Assets::Account` (`max_values`: None, `max_size`: Some(732), added: 3207, mode: `MaxEncodedLen`)
 	/// Storage: `AssetsHolder::Holds` (r:1 w:1)
-	/// Proof: `AssetsHolder::Holds` (`max_values`: None, `max_size`: Some(847), added: 3322, mode: `MaxEncodedLen`)
+	/// Proof: `AssetsHolder::Holds` (`max_values`: None, `max_size`: Some(883), added: 3358, mode: `MaxEncodedLen`)
 	/// Storage: `AssetsHolder::BalancesOnHold` (r:1 w:1)
 	/// Proof: `AssetsHolder::BalancesOnHold` (`max_values`: None, `max_size`: Some(682), added: 3157, mode: `MaxEncodedLen`)
 	/// Storage: `System::Account` (r:1 w:1)
 	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
 	fn claim_airdrop() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1504`
+		//  Measured:  `1538`
 		//  Estimated: `7404`
-		// Minimum execution time: 129_327_000 picoseconds.
-		Weight::from_parts(136_274_000, 0)
+		// Minimum execution time: 136_685_000 picoseconds.
+		Weight::from_parts(142_771_000, 0)
 			.saturating_add(Weight::from_parts(0, 7404))
-			.saturating_add(T::DbWeight::get().reads(11))
+			.saturating_add(T::DbWeight::get().reads(12))
 			.saturating_add(T::DbWeight::get().writes(8))
 	}
 }
