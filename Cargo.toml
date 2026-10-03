@@ -111,6 +111,7 @@ indiv-pallet-resources = { git = "https://github.com/paritytech/individuality-co
 indiv-precompile-personhood = { git = "https://github.com/paritytech/individuality-community", rev = "24033977b174dad1006f7f4b195acf45ce41daae", default-features = false, version = "*" }
 indiv-pallet-game = { git = "https://github.com/paritytech/individuality-community", rev = "24033977b174dad1006f7f4b195acf45ce41daae", default-features = false, version = "*" }
 indiv-pallet-score = { git = "https://github.com/paritytech/individuality-community", rev = "24033977b174dad1006f7f4b195acf45ce41daae", default-features = false, version = "*" }
+pallet-scarcity = { package = "indiv-pallet-scarcity", git = "https://github.com/paritytech/individuality-community", rev = "24033977b174dad1006f7f4b195acf45ce41daae", default-features = false, version = "*" }
 indiv-support = { git = "https://github.com/paritytech/individuality-community", rev = "24033977b174dad1006f7f4b195acf45ce41daae", default-features = false, version = "*" }
 verifiable = { version = "0.3.0", default-features = false }
 integration-tests-helpers = { path = "integration-tests/emulated/helpers" }

@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - People Polkadot: add the Individuality game pallets: `indiv-pallet-game` (index 55), `indiv-pallet-score` (index 56) and `indiv-pallet-airdrop` (index 70), which `indiv-pallet-game` needs as its airdrop backend. Score payouts are denominated in an asset set by Root through the new `external_asset::AssetLocation` dynamic parameter; it is unset by default, so payouts stay disabled until governance picks the asset. A new **transaction extension pipeline version 2** carries the `ScoreAsParticipant` and `GameAsInvited` origin modifiers.
+- People Polkadot: add `pallet-scarcity` (index 58), NFTs held one per purse key on Coinage's model. Collection owners back all storage with a balance hold; purse-key transfers and burns are feeless through the `AsScarcity` origin modifier, which transaction extension pipeline version 2 also carries. The runtime exposes `ScarcityApi` for batched metadata reads.
 
 ### Removed
 

@@ -54,6 +54,7 @@ pallet-migrations = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-parameters = { workspace = true }
 pallet-proxy = { workspace = true }
+pallet-scarcity = { workspace = true }
 pallet-session = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-asset-tx-payment = { workspace = true }
@@ -173,6 +174,7 @@ std = [
 	"pallet-multisig/std",
 	"pallet-parameters/std",
 	"pallet-proxy/std",
+	"pallet-scarcity/std",
 	"pallet-session/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
@@ -257,6 +259,7 @@ runtime-benchmarks = [
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-parameters/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
+	"pallet-scarcity/runtime-benchmarks",
 	"pallet-session/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
@@ -320,6 +323,7 @@ try-runtime = [
 	"pallet-multisig/try-runtime",
 	"pallet-parameters/try-runtime",
 	"pallet-proxy/try-runtime",
+	"pallet-scarcity/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",

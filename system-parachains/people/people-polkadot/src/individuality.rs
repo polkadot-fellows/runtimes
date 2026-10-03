@@ -31,6 +31,8 @@
 //!   long-term storage) a person may consume.
 //! * [`indiv_pallet_coinage`] implements bearer-instrument "coins" backed by a stablecoin, held by
 //!   ring aliases rather than accounts.
+//! * [`pallet_scarcity`] implements NFTs held by purse keys on Coinage's model: one NFT per key,
+//!   with feeless transfers authorized through its own origin modifier.
 //! * [`indiv_pallet_dummy_dim`] is the governance-driven DIM: it lets the root origin recognise
 //!   personhood directly.
 //! * [`indiv_pallet_origin_restriction`] rate-limits the anonymous origins the extensions above
@@ -45,7 +47,8 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::{HoldConsideration, ItemOf},
-		ConstBool, ConstU128, ConstUint, ConstantStoragePrice, ContainsPair, Get, PalletInfoAccess,
+		ConstBool, ConstU128, ConstUint, ConstantStoragePrice, ContainsPair, Get,
+		LinearStoragePrice, PalletInfoAccess,
 	},
 };
 use indiv_pallet_game::PhaseDurationValues;
@@ -680,6 +683,52 @@ impl indiv_pallet_people_airdrops::Config for Runtime {
 	type MaxRegisterBatch = ConstU32<16>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::PeopleAirdropsBenchmarkHelper;
+}
+
+parameter_types! {
+	pub const ScarcityDepositBase: Balance = system_para_deposit(1, 0);
+	pub const ScarcityDepositPerByte: Balance = system_para_deposit(0, 1);
+	pub const ScarcityHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Scarcity(pallet_scarcity::HoldReason::StorageDeposit);
+}
+
+/// Storage price shared by every Scarcity deposit converter: a per-record base plus a per-byte
+/// price over the footprint's logical encoded size.
+pub type ScarcityStoragePrice =
+	LinearStoragePrice<ScarcityDepositBase, ScarcityDepositPerByte, Balance>;
+
+impl pallet_scarcity::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = weights::pallet_scarcity::WeightInfo<Runtime>;
+	type UnixTime = RuntimeClock;
+	type Balance = Balance;
+	// The pallet aggregates exact deposit sums per collection; the consideration ticket receives
+	// that sum directly, hence the `Identity` conversion over `Balance`.
+	type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		ScarcityHoldReason,
+		sp_runtime::traits::Identity,
+		Balance,
+	>;
+	type CollectionDeposit = ScarcityStoragePrice;
+	type ItemDeposit = ScarcityStoragePrice;
+	type InstanceDeposit = ScarcityStoragePrice;
+	type MetadataDeposit = ScarcityStoragePrice;
+	type MaxKeyLen = ConstU32<32>;
+	type MaxValueLen = ConstU32<256>;
+	type MaxInstanceMetadata = ConstU32<100>;
+	// Purse keys follow Coinage's retry model, so they share its failure lock. Purse transactions
+	// must use an era shorter than this (see the pallet's replay and mortality rules), and one
+	// bound then covers every purse-key transaction on this chain.
+	type LockPeriod = <Runtime as indiv_pallet_coinage::Config>::CoinFailureLockPeriod;
+	type MaxTransferPriority = ConstU64<1_000_000>;
+	// Nothing on this chain is keyed by a Scarcity collection.
+	type OnCollectionDeleted = ();
+	// No contract environment here needs purse keys registered as addresses.
+	type OnPurseOccupied = ();
+	// Metadata stays opaque bytes: no interface on this chain types any key.
+	type MetadataPolicy = ();
 }
 
 /// Grants an account a data allowance on the Bulletin Chain, which is where long-term person data
