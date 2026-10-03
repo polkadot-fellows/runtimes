@@ -18,6 +18,7 @@ frame_benchmarking::define_benchmarks!(
 	[cumulus_pallet_parachain_system, ParachainSystem]
 	[pallet_timestamp, Timestamp]
 	[pallet_balances, Balances]
+	[pallet_accumulate_and_forward, AccumulateForward]
 	[pallet_collator_selection, CollatorSelection]
 	[pallet_session, SessionBench::<Runtime>]
 	[cumulus_pallet_xcmp_queue, XcmpQueue]

@@ -21,9 +21,9 @@
 //! - Trusts Asset Hub as the governance location (not the relay)
 
 use super::{
-	AccountId, AllPalletsWithSystem, Balance, Balances, BaseDeliveryFee, FeeAssetId, ParachainInfo,
-	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason,
-	RuntimeOrigin, TransactionByteFee, WeightToFee, XcmpQueue,
+	AccountId, AccumulateForward, AllPalletsWithSystem, Balance, Balances, BaseDeliveryFee,
+	FeeAssetId, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
+	RuntimeHoldReason, RuntimeOrigin, TransactionByteFee, WeightToFee, XcmpQueue,
 };
 use frame_support::{
 	parameter_types,
@@ -182,7 +182,11 @@ pub type Barrier = TrailingSetTopicAsId<
 >;
 
 parameter_types! {
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
+	/// The `pallet-accumulate-and-forward` account, as a local location.
+	pub AccumulateForwardLocation: Location =
+		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
 
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
@@ -191,6 +195,7 @@ pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	FellowsPlurality,
+	Equals<AccumulateForwardLocation>,
 );
 
 /// Trusted teleporters for DOT from the relay chain and system parachains.
