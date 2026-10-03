@@ -1793,7 +1793,7 @@ dependencies = [
  "indiv-pallet-origin-restriction",
  "indiv-pallet-pgas",
  "indiv-precompile-personhood",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "kusama-runtime-constants",
  "log",
  "pallet-ah-ops",
@@ -3260,7 +3260,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "indiv-pallet-resources",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "integration-tests-helpers",
  "pallet-bulletin-transaction-storage",
  "pallet-message-queue",
@@ -7916,12 +7916,12 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-alias-accounts"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -7934,12 +7934,12 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-chunks-manager"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "parity-scale-codec",
  "scale-info",
  "sp-io 48.0.0",
@@ -7950,13 +7950,13 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-coinage"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "hex-literal",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "log",
  "pallet-asset-conversion",
  "parity-scale-codec",
@@ -7972,14 +7972,14 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-dotns-gateway"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "alloy-core",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "indiv-pallet-members-subscriber",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -7993,12 +7993,12 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-dummy-dim"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "parity-scale-codec",
  "scale-info",
  "sp-core 43.0.0",
@@ -8009,13 +8009,13 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-members"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "indiv-pallet-chunks-manager",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -8029,14 +8029,14 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-members-notifier"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "cumulus-primitives-core",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "indiv-pallet-people",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -8052,12 +8052,12 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-members-subscriber"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -8071,12 +8071,12 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-network-suffix"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "parity-scale-codec",
  "scale-info",
 ]
@@ -8084,7 +8084,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-origin-restriction"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8100,12 +8100,12 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-people"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -8119,13 +8119,13 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-people-lite"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "ed25519-zebra",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -8139,12 +8139,12 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-pgas"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -8165,7 +8165,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae)",
+ "indiv-support",
  "parity-scale-codec",
  "scale-info",
  "sp-runtime 48.0.0",
@@ -8175,14 +8175,14 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-resources"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "indiv-pallet-people",
  "indiv-pallet-people-lite",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -8197,14 +8197,27 @@ dependencies = [
 [[package]]
 name = "indiv-precompile-personhood"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
 dependencies = [
  "frame-support",
  "frame-system",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-precompile-support",
+ "indiv-support",
  "log",
  "pallet-revive",
  "parity-scale-codec",
+]
+
+[[package]]
+name = "indiv-precompile-support"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/individuality-community?rev=24033977b174dad1006f7f4b195acf45ce41daae#24033977b174dad1006f7f4b195acf45ce41daae"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-revive",
+ "sp-runtime 48.0.0",
 ]
 
 [[package]]
@@ -8221,34 +8234,6 @@ dependencies = [
  "frame-system",
  "getrandom 0.2.17",
  "log",
- "pallet-asset-conversion-tx-payment",
- "pallet-asset-tx-payment",
- "pallet-transaction-payment",
- "parity-scale-codec",
- "scale-info",
- "sp-core 43.0.0",
- "sp-crypto-ec-utils",
- "sp-crypto-hashing",
- "sp-io 48.0.0",
- "sp-runtime 48.0.0",
- "sp-statement-store",
- "spin 0.9.8",
- "verifiable",
-]
-
-[[package]]
-name = "indiv-support"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb#53482baa337278c6c4c8115fb8d2b4b5def08ccb"
-dependencies = [
- "ark-bls12-381-ext 0.6.0",
- "ark-ec 0.6.0",
- "ark-ed-on-bls12-381-bandersnatch-ext 0.6.0",
- "ark-ff 0.6.0",
- "ark-scale 0.0.14",
- "frame-support",
- "frame-system",
- "getrandom 0.2.17",
  "pallet-asset-conversion-tx-payment",
  "pallet-asset-tx-payment",
  "pallet-transaction-payment",
@@ -13375,7 +13360,7 @@ dependencies = [
  "indiv-pallet-members-notifier",
  "indiv-pallet-members-subscriber",
  "indiv-pallet-people",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "integration-tests-helpers",
  "pallet-assets",
  "pallet-balances",
@@ -13436,7 +13421,7 @@ dependencies = [
  "indiv-pallet-people-lite",
  "indiv-pallet-relay-randomness",
  "indiv-pallet-resources",
- "indiv-support 0.1.0 (git+https://github.com/paritytech/individuality-community?rev=53482baa337278c6c4c8115fb8d2b4b5def08ccb)",
+ "indiv-support",
  "log",
  "pallet-asset-conversion",
  "pallet-asset-rate",
