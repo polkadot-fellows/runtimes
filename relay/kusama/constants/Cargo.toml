@@ -12,6 +12,9 @@ codec = { workspace = true }
 scale-info = { workspace = true }
 
 frame-support = { workspace = true }
+frame-system = { workspace = true }
+log = { workspace = true }
+pallet-accumulate-and-forward = { workspace = true }
 polkadot-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 sp-runtime = { workspace = true }
@@ -20,13 +23,18 @@ sp-core = { workspace = true }
 sp-trie = { workspace = true, optional = true }
 pallet-remote-proxy = { workspace = true }
 
+xcm = { workspace = true }
 xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
 
 [features]
 default = ["std"]
 std = [
 	"codec/std",
 	"frame-support/std",
+	"frame-system/std",
+	"log/std",
+	"pallet-accumulate-and-forward/std",
 	"pallet-remote-proxy/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
@@ -36,14 +44,20 @@ std = [
 	"sp-trie?/std",
 	"sp-weights/std",
 	"xcm-builder/std",
+	"xcm-executor/std",
+	"xcm/std",
 ]
 fast-runtime = []
 runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"pallet-accumulate-and-forward/runtime-benchmarks",
 	"pallet-remote-proxy/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-trie",
 	"xcm-builder/runtime-benchmarks",
+	"xcm-executor/runtime-benchmarks",
+	"xcm/runtime-benchmarks",
 ]

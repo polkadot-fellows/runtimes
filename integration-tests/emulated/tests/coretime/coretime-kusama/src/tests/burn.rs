@@ -15,68 +15,129 @@
 // limitations under the License.
 
 use crate::*;
-use frame_support::{
-	traits::fungible::{Inspect as FungibleInspect, Mutate as FungibleMutate},
-	PalletId,
+use cumulus_pallet_parachain_system::ValidationData;
+use integration_tests_helpers::{
+	frame_support::{
+		traits::{fungible::Inspect as _, Hooks, OnInitialize},
+		PalletId,
+	},
+	frame_system, pallet_accumulate_and_forward, pallet_balances, pallet_collator_selection,
+	pallet_message_queue, pallet_xcm,
 };
-use kusama_runtime_constants::{system_parachain::coretime::TIMESLICE_PERIOD, time::DAYS};
-use pallet_broker::CoretimeInterface;
-use sp_runtime::traits::AccountIdConversion;
+use kusama_runtime_constants::currency::UNITS;
+use pallet_broker::{ConfigRecordOf, SaleInfo};
+use sp_runtime::{traits::AccountIdConversion, Perbill};
 
-/// Coretime sweeps its revenue holding account and burns it on Asset Hub.
+/// A real coretime purchase pays revenue through `OnRevenue` into the accumulation account, which
+/// is forwarded to Asset Hub and burned, leaving the checking account and this chain's issuance
+/// in step.
 #[test]
 fn coretime_revenue_is_burnt_on_asset_hub() {
 	type CoretimeRuntime = <CoretimeKusama as Chain>::Runtime;
 	type CoretimeEvent = <CoretimeKusama as Chain>::RuntimeEvent;
+	type CoretimeBalances = pallet_balances::Pallet<CoretimeRuntime>;
+	type Broker = pallet_broker::Pallet<CoretimeRuntime>;
+	type CoretimeSystem = frame_system::Pallet<CoretimeRuntime>;
 	type AssetHubRuntime = <AssetHubKusama as Chain>::Runtime;
 	type AssetHubEvent = <AssetHubKusama as Chain>::RuntimeEvent;
+	type AssetHubBalances = pallet_balances::Pallet<AssetHubRuntime>;
 
-	// GIVEN a day of revenue in the holding account.
-	let amount = 1_000 * CORETIME_KUSAMA_ED;
-	let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
-	CoretimeKusama::fund_accounts(vec![(burn_account.clone(), amount)]);
-
-	// The emulated Coretime chain minted that KSM itself, so Asset Hub's checking account never saw
-	// it leave. Fund it as a real teleport out would have.
+	let buyer = CoretimeKusamaReceiver::get();
+	let accumulation_account: AccountId = CoretimeKusama::execute_with(
+		pallet_accumulate_and_forward::Pallet::<CoretimeRuntime>::accumulation_account,
+	);
 	let check_account: AccountId =
 		AssetHubKusama::execute_with(pallet_xcm::Pallet::<AssetHubRuntime>::check_account);
+	let teleported = 1_000 * UNITS;
+
+	let (asset_hub_issuance_before, check_balance_before) = AssetHubKusama::execute_with(|| {
+		(AssetHubBalances::total_issuance(), AssetHubBalances::balance(&check_account))
+	});
+	let coretime_issuance_before = CoretimeKusama::execute_with(CoretimeBalances::total_issuance);
+
+	// GIVEN a buyer funded by a real teleport from Asset Hub.
 	AssetHubKusama::execute_with(|| {
-		assert_ok!(<pallet_balances::Pallet<AssetHubRuntime> as FungibleMutate<_>>::mint_into(
-			&check_account,
-			amount + ASSET_HUB_KUSAMA_ED,
+		let dest = AssetHubKusama::sibling_location_of(CoretimeKusama::para_id());
+		let beneficiary: Location =
+			AccountId32Junction { network: None, id: buyer.clone().into() }.into();
+		let assets: Assets = (Location::parent(), teleported).into();
+		assert_ok!(pallet_xcm::Pallet::<AssetHubRuntime>::limited_teleport_assets(
+			<AssetHubKusama as Chain>::RuntimeOrigin::signed(AssetHubKusamaSender::get()),
+			bx!(dest.into()),
+			bx!(beneficiary.into()),
+			bx!(assets.into()),
+			0,
+			WeightLimit::Unlimited,
 		));
 	});
-	let (asset_hub_issuance_before, check_balance_before) = AssetHubKusama::execute_with(|| {
-		(
-			pallet_balances::Pallet::<AssetHubRuntime>::total_issuance(),
-			pallet_balances::Pallet::<AssetHubRuntime>::balance(&check_account),
-		)
-	});
 
-	// WHEN the daily sweep runs.
-	CoretimeKusama::execute_with(|| {
-		let issuance_before = pallet_balances::Pallet::<CoretimeRuntime>::total_issuance();
+	let forwarded = CoretimeKusama::execute_with(|| {
+		// Hooks don't run in emulated tests, so drive the broker and the relay clock by hand.
+		fn advance_to(block: &mut u32, target: u32) {
+			while *block < target {
+				*block += 1;
+				CoretimeSystem::set_block_number(*block);
+				let mut data =
+					ValidationData::<CoretimeRuntime>::get().expect("set by the emulator");
+				data.relay_parent_number = *block;
+				ValidationData::<CoretimeRuntime>::put(data);
+				<Broker as OnInitialize<_>>::on_initialize(*block);
+			}
+		}
+		let mut block = CoretimeSystem::block_number()
+			.max(ValidationData::<CoretimeRuntime>::get().map_or(0, |v| v.relay_parent_number));
 
-		<<CoretimeRuntime as pallet_broker::Config>::Coretime as CoretimeInterface>::on_new_timeslice(
-			DAYS / TIMESLICE_PERIOD,
+		// WHEN the buyer purchases a region in a real sale.
+		let config = ConfigRecordOf::<CoretimeRuntime> {
+			advance_notice: 1,
+			interlude_length: 1,
+			leadin_length: 2,
+			region_length: 1,
+			ideal_bulk_proportion: Perbill::from_percent(100),
+			limit_cores_offered: None,
+			renewal_bump: Perbill::from_percent(3),
+			contribution_timeout: 1,
+		};
+		let root = <CoretimeKusama as Chain>::RuntimeOrigin::root();
+		assert_ok!(Broker::configure(root.clone(), config.clone()));
+		assert_ok!(Broker::start_sales(root, 10 * UNITS, 1));
+		let sale_start = SaleInfo::<CoretimeRuntime>::get().unwrap().sale_start;
+		advance_to(&mut block, sale_start + config.interlude_length);
+
+		let accumulated_before = CoretimeBalances::balance(&accumulation_account);
+		let buyer_before = CoretimeBalances::balance(&buyer);
+		assert_ok!(Broker::purchase(
+			<CoretimeKusama as Chain>::RuntimeOrigin::signed(buyer.clone()),
+			500 * UNITS,
+		));
+		let price = buyer_before - CoretimeBalances::balance(&buyer);
+		assert!(price > 0, "the purchase pays revenue");
+		assert_eq!(
+			CoretimeBalances::balance(&accumulation_account),
+			accumulated_before + price,
+			"the revenue reaches the accumulation account"
 		);
+		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
+		assert_eq!(CoretimeBalances::total_balance(&burn_account), 0, "nothing uses py/ctbrn");
 
-		// THEN the holding account is emptied and the KSM has left this chain.
+		// AND the forward runs.
+		let accumulated = CoretimeBalances::balance(&accumulation_account);
+		let period =
+			<CoretimeRuntime as pallet_accumulate_and_forward::Config>::TransferPeriod::get();
+		let at = (block / period + 1) * period;
+		CoretimeSystem::set_block_number(at);
+		pallet_accumulate_and_forward::Pallet::<CoretimeRuntime>::on_idle(at, Weight::MAX);
 		assert_expected_events!(
 			CoretimeKusama,
-			vec![CoretimeEvent::Balances(pallet_balances::Event::Withdraw { who, amount: withdrawn }) => {
-				who: *who == burn_account,
-				withdrawn: *withdrawn == amount,
-			},]
+			vec![CoretimeEvent::AccumulateForward(
+				pallet_accumulate_and_forward::Event::ForwardSucceeded { .. }
+			) => {},]
 		);
-		assert_eq!(pallet_balances::Pallet::<CoretimeRuntime>::balance(&burn_account), 0);
-		assert_eq!(
-			pallet_balances::Pallet::<CoretimeRuntime>::total_issuance(),
-			issuance_before - amount
-		);
+		accumulated - CORETIME_KUSAMA_ED
 	});
 
-	// AND Asset Hub burns it: its issuance and its checking account drop by the same amount.
+	// THEN Asset Hub burns it, less the execution fee paid to the collator pot. Read the fee from
+	// its event, since collator payouts move the pot balance in the same block.
 	AssetHubKusama::execute_with(|| {
 		assert_expected_events!(
 			AssetHubKusama,
@@ -84,13 +145,32 @@ fn coretime_revenue_is_burnt_on_asset_hub() {
 				pallet_message_queue::Event::Processed { success: true, .. }
 			) => {},]
 		);
-		assert_eq!(
-			pallet_balances::Pallet::<AssetHubRuntime>::total_issuance(),
-			asset_hub_issuance_before - amount
-		);
-		assert_eq!(
-			pallet_balances::Pallet::<AssetHubRuntime>::balance(&check_account),
-			check_balance_before - amount
-		);
+		let staking_pot = pallet_collator_selection::Pallet::<AssetHubRuntime>::account_id();
+		let fee = frame_system::Pallet::<AssetHubRuntime>::events()
+			.iter()
+			.find_map(|record| match &record.event {
+				AssetHubEvent::Balances(pallet_balances::Event::Deposit { who, amount })
+					if *who == staking_pot =>
+					Some(*amount),
+				_ => None,
+			})
+			.expect("the execution fee is deposited to the collator pot");
+		let burned = asset_hub_issuance_before - AssetHubBalances::total_issuance();
+		assert_eq!(burned + fee, forwarded, "all of it is either burned or paid as fee");
 	});
+
+	// AND the checking account still matches what this chain holds.
+	let check_delta = AssetHubKusama::execute_with(|| AssetHubBalances::balance(&check_account)) -
+		check_balance_before;
+	let coretime_delta =
+		CoretimeKusama::execute_with(CoretimeBalances::total_issuance) - coretime_issuance_before;
+	assert_eq!(check_delta, coretime_delta, "the checking account tracks this chain's issuance");
+	assert_eq!(check_delta, teleported - forwarded);
 }
+
+integration_tests_helpers::test_accumulated_funds_are_burnt_on_asset_hub!(
+	CoretimeKusama,
+	AssetHubKusama,
+	CORETIME_KUSAMA_ED,
+	ASSET_HUB_KUSAMA_ED,
+);

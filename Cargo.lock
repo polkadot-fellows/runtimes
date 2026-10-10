@@ -1539,9 +1539,11 @@ dependencies = [
  "integration-tests-helpers",
  "kusama-runtime-constants",
  "kusama-system-emulated-network",
+ "pallet-accumulate-and-forward",
  "pallet-asset-conversion",
  "pallet-assets",
  "pallet-balances",
+ "pallet-collator-selection",
  "pallet-message-queue",
  "pallet-treasury",
  "pallet-utility",
@@ -1687,6 +1689,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -1898,6 +1901,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "tokio",
  "verifiable",
  "xcm-runtime-apis",
@@ -2888,6 +2892,7 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
+ "pallet-accumulate-and-forward",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
@@ -2938,6 +2943,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "tuplex",
  "xcm-runtime-apis",
 ]
@@ -3087,7 +3093,6 @@ dependencies = [
  "snowbridge-outbound-queue-runtime-api",
  "snowbridge-outbound-queue-v2-runtime-api",
  "snowbridge-pallet-ethereum-client",
- "snowbridge-pallet-ethereum-client-fixtures",
  "snowbridge-pallet-inbound-queue",
  "snowbridge-pallet-inbound-queue-fixtures",
  "snowbridge-pallet-inbound-queue-v2",
@@ -3121,6 +3126,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "tuplex",
  "xcm-runtime-apis",
 ]
@@ -3339,6 +3345,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -3812,6 +3819,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -4081,14 +4089,17 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
+ "pallet-accumulate-and-forward",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
  "pallet-broker",
  "pallet-collator-selection",
+ "pallet-ct-migrator",
  "pallet-message-queue",
  "pallet-multisig",
  "pallet-proxy",
+ "pallet-rc2-migrator",
  "pallet-session",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -4124,6 +4135,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -4198,9 +4210,11 @@ dependencies = [
  "pallet-balances",
  "pallet-broker",
  "pallet-collator-selection",
+ "pallet-ct-migrator",
  "pallet-message-queue",
  "pallet-multisig",
  "pallet-proxy",
+ "pallet-rc2-migrator",
  "pallet-session",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -4238,6 +4252,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -5759,6 +5774,7 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
+ "pallet-accumulate-and-forward",
  "pallet-asset-tx-payment",
  "pallet-assets",
  "pallet-aura",
@@ -5823,6 +5839,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -8251,8 +8268,12 @@ version = "1.0.0"
 dependencies = [
  "cumulus-pallet-xcmp-queue",
  "emulated-integration-tests-common",
+ "frame-support",
+ "frame-system",
  "hex-literal",
+ "pallet-accumulate-and-forward",
  "pallet-balances",
+ "pallet-collator-selection",
  "pallet-message-queue",
  "pallet-xcm",
  "paste",
@@ -8866,6 +8887,9 @@ name = "kusama-runtime-constants"
 version = "1.0.0"
 dependencies = [
  "frame-support",
+ "frame-system",
+ "log",
+ "pallet-accumulate-and-forward",
  "pallet-remote-proxy",
  "parity-scale-codec",
  "polkadot-primitives",
@@ -8876,7 +8900,9 @@ dependencies = [
  "sp-runtime 48.0.0",
  "sp-trie 46.0.0",
  "sp-weights 36.0.0",
+ "staging-xcm",
  "staging-xcm-builder",
+ "staging-xcm-executor",
 ]
 
 [[package]]
@@ -9810,6 +9836,16 @@ dependencies = [
  "keccak 0.1.5",
  "rand_core 0.6.4",
  "zeroize",
+]
+
+[[package]]
+name = "migrator-types"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "polkadot-parachain-primitives",
+ "scale-info",
+ "sp-runtime 48.0.0",
 ]
 
 [[package]]
@@ -11204,8 +11240,14 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "log",
+ "migrator-types",
+ "pallet-balances",
  "parity-scale-codec",
  "scale-info",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -12132,9 +12174,14 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "log",
+ "pallet-balances",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "scale-info",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -13221,6 +13268,7 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
+ "pallet-accumulate-and-forward",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
@@ -13265,6 +13313,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "xcm-runtime-apis",
 ]
 
@@ -13414,6 +13463,7 @@ dependencies = [
  "substrate-wasm-builder",
  "system-parachains-common",
  "system-parachains-constants",
+ "system-parachains-test-utils",
  "verifiable",
  "xcm-runtime-apis",
 ]
@@ -13636,6 +13686,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "polkadot-integration-tests-ahmv2"
+version = "0.1.0"
+dependencies = [
+ "coretime-kusama-runtime",
+ "coretime-polkadot-runtime",
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "frame-remote-externalities",
+ "frame-support",
+ "frame-system",
+ "kusama-runtime-constants",
+ "log",
+ "pallet-balances",
+ "pallet-ct-migrator",
+ "pallet-message-queue",
+ "pallet-rc2-migrator",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "polkadot-runtime",
+ "polkadot-runtime-constants",
+ "polkadot-runtime-parachains",
+ "sp-core 43.0.0",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "sp-storage 25.0.0",
+ "sp-tracing",
+ "staging-kusama-runtime",
+ "staging-xcm",
+ "tokio",
+]
+
+[[package]]
 name = "polkadot-parachain-primitives"
 version = "23.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13713,6 +13795,7 @@ dependencies = [
  "pallet-broker",
  "pallet-child-bounties",
  "pallet-conviction-voting",
+ "pallet-ct-migrator",
  "pallet-delegated-staking",
  "pallet-election-provider-multi-phase",
  "pallet-election-provider-support-benchmarking",
@@ -13731,6 +13814,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-proxy",
  "pallet-rc-migrator",
+ "pallet-rc2-migrator",
  "pallet-referenda",
  "pallet-scheduler",
  "pallet-session",
@@ -19364,6 +19448,7 @@ dependencies = [
  "hex-literal",
  "kusama-runtime-constants",
  "log",
+ "pallet-accumulate-and-forward",
  "pallet-asset-rate",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -19375,6 +19460,7 @@ dependencies = [
  "pallet-bounties",
  "pallet-child-bounties",
  "pallet-conviction-voting",
+ "pallet-ct-migrator",
  "pallet-delegated-staking",
  "pallet-election-provider-multi-phase",
  "pallet-election-provider-support-benchmarking",
@@ -19395,6 +19481,7 @@ dependencies = [
  "pallet-proxy",
  "pallet-ranked-collective",
  "pallet-rc-migrator",
+ "pallet-rc2-migrator",
  "pallet-recovery",
  "pallet-referenda",
  "pallet-scheduler",
@@ -20288,6 +20375,20 @@ dependencies = [
  "sp-dap",
  "sp-runtime 48.0.0",
  "staging-xcm",
+]
+
+[[package]]
+name = "system-parachains-test-utils"
+version = "1.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-session",
+ "parachains-runtimes-test-utils",
+ "parity-scale-codec",
+ "sp-keystore 0.49.0",
+ "sp-runtime 48.0.0",
 ]
 
 [[package]]

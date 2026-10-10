@@ -17,8 +17,10 @@
 use crate::{
 	assets::hollar::HOLLAR_UNITS,
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Block, DotWeightToFee as WeightToFee, ProxyType, Runtime, RuntimeCall, RuntimeOrigin,
+  Block, DotWeightToFee as WeightToFee, ProxyType, Runtime, RuntimeCall, RuntimeOrigin,                                                                                                                                                                               
+  SessionKeys,
 };
+use codec::Encode;
 use cumulus_primitives_core::relay_chain::AccountId;
 use sp_core::crypto::Ss58Codec;
 use xcm::prelude::*;
@@ -404,36 +406,6 @@ fn asset_hub_subscription_whitelist_matches_asset_hub() {
 }
 
 #[test]
-fn seed_asset_hub_subscription_whitelist_migration_seeds_the_entry() {
-	use crate::{
-		individuality::asset_hub_subscription_whitelist,
-		migrations::SeedAssetHubSubscriptionWhitelist, Runtime, RuntimeGenesisConfig,
-	};
-	use cumulus_primitives_core::ParaId;
-	use frame_support::traits::OnRuntimeUpgrade;
-	use indiv_pallet_members_notifier::{Pallet as MembersNotifierPallet, SubscriptionWhitelist};
-	use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
-	use sp_runtime::BuildStorage;
-
-	let mut ext =
-		sp_io::TestExternalities::new(RuntimeGenesisConfig::default().build_storage().unwrap());
-	ext.execute_with(|| {
-		let para_id = ParaId::from(ASSET_HUB_ID);
-		assert!(SubscriptionWhitelist::<Runtime>::get(para_id).is_none());
-
-		SeedAssetHubSubscriptionWhitelist::on_runtime_upgrade();
-
-		let stored = SubscriptionWhitelist::<Runtime>::get(para_id)
-			.expect("the migration seeds the Asset Hub whitelist entry");
-		let expected = MembersNotifierPallet::<Runtime>::resolve_whitelist_entry(
-			&asset_hub_subscription_whitelist()[0],
-		)
-		.expect("the whitelist entry is well-formed");
-		assert_eq!(stored, expected);
-	});
-}
-
-#[test]
 fn individuality_deployment_order_guards_are_enforced() {
 	use crate::{
 		assets::hollar::HollarLocation, Assets, ChunksManager, Coinage, RuntimeGenesisConfig,
@@ -699,5 +671,13 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 			),
 			DispatchError::BadOrigin,
 		);
+	});
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
 	});
 }

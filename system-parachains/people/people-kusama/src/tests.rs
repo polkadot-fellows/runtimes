@@ -16,8 +16,9 @@
 
 use crate::{
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Block, ProxyType, Runtime, RuntimeCall, RuntimeOrigin, WeightToFee,
+  Block, ProxyType, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys, WeightToFee,
 };
+use codec::Encode;
 use polkadot_primitives::AccountId;
 use sp_core::crypto::Ss58Codec;
 use xcm::prelude::*;
@@ -223,4 +224,56 @@ fn nontransfer_proxy_pins_every_identity_call() {
 			_ => panic!("call index {call_index} did not decode to an Identity call"),
 		}
 	}
+}
+/// Dust accumulates for the forward to Asset Hub instead of being burned here, where the burn
+/// would not show in the network total that Asset Hub tracks.
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	use crate::{AccumulateForward, Balance, Balances};
+	use frame_support::traits::{
+		fungible::{Inspect, Mutate},
+		tokens::Preservation,
+	};
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	const BOB: [u8; 32] = [2u8; 32];
+
+	let existential_deposit: Balance =
+		<Runtime as pallet_balances::Config>::ExistentialDeposit::get();
+	let accumulation_account = AccumulateForward::accumulation_account();
+
+	ExtBuilder::<Runtime>::default()
+		// Funded out of band before the upgrade; without the ED, dust is rejected and burned.
+		.with_balances(vec![(accumulation_account.clone(), existential_deposit)])
+		.build()
+		.execute_with(|| {
+			let alice = AccountId::from(ALICE);
+			let bob = AccountId::from(BOB);
+			assert_ok!(Balances::mint_into(&alice, existential_deposit));
+			assert_ok!(Balances::mint_into(&bob, existential_deposit));
+
+			let issuance_before = Balances::total_issuance();
+			let accumulated_before = Balances::balance(&accumulation_account);
+
+			// Reap Alice, leaving dust behind.
+			let dust = existential_deposit / 2;
+			assert_ok!(<Balances as Mutate<_>>::transfer(
+				&alice,
+				&bob,
+				existential_deposit - dust,
+				Preservation::Expendable,
+			));
+
+			assert_eq!(Balances::balance(&alice), 0);
+			assert_eq!(Balances::balance(&accumulation_account), accumulated_before + dust);
+			assert_eq!(Balances::total_issuance(), issuance_before);
+		});
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
 }
