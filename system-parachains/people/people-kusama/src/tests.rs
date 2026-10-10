@@ -16,7 +16,7 @@
 
 use crate::{
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-  Block, ProxyType, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys, WeightToFee,
+	Block, ProxyType, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys, WeightToFee,
 };
 use codec::Encode;
 use polkadot_primitives::AccountId;

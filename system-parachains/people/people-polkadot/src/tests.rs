@@ -17,8 +17,8 @@
 use crate::{
 	assets::hollar::HOLLAR_UNITS,
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-  Block, DotWeightToFee as WeightToFee, ProxyType, Runtime, RuntimeCall, RuntimeOrigin,                                                                                                                                                                               
-  SessionKeys,
+	Block, DotWeightToFee as WeightToFee, ProxyType, Runtime, RuntimeCall, RuntimeOrigin,
+	SessionKeys,
 };
 use codec::Encode;
 use cumulus_primitives_core::relay_chain::AccountId;
