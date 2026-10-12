@@ -798,7 +798,7 @@ pub mod pallet {
 			});
 
 			// send
-			let per_xcm = Limits::<T>::get().items_per_xcm.max(1) as usize;
+			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
 			for chunk in to_ct.chunks(per_xcm) {
 				Self::send_accounts(chunk.to_vec())?;
 			}

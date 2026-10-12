@@ -15,15 +15,12 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	mock::*, CtMigratorCall, CtRuntimeCall, Error, Event, Manager, MigrationStage, Paused,
-	RcMigrationStage,
+	mock::*, CtMigratorCall, CtRuntimeCall, Error, Event, Manager, Paused, RcMigrationStage,
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::DispatchError::BadOrigin;
 use xcm::prelude::*;
-
-type Stage = MigrationStage<AccountId, u64, u64>;
 
 fn stage() -> Stage {
 	RcMigrationStage::<Test>::get()
@@ -58,10 +55,6 @@ fn data_stages() -> Vec<Stage> {
 /// Blocks from the end of the warm-up to the opening of the cool-off: one per data stage.
 fn data_stage_blocks() -> u64 {
 	data_stages().len() as u64
-}
-
-fn assert_stage(expected: Stage) {
-	assert_eq!(stage(), expected);
 }
 
 /// The stage transitions emitted so far, oldest first.

@@ -90,20 +90,21 @@ impl<T: Config> Pallet<T> {
 	/// Park a failed account. Two relay accounts can land on the same address here (a child
 	/// sovereign and a stray sibling-format one), so a second failure merges into the first.
 	fn park(account: PortableAccountOf<T>) {
-		FailedAccounts::<T>::mutate(account.who.clone(), |parked| match parked {
-			None => *parked = Some(account),
-			Some(parked) => {
-				parked.free = parked.free.saturating_add(account.free);
-				for hold in account.holds {
-					match parked.holds.iter_mut().find(|h| h.reason == hold.reason) {
-						Some(same) => same.amount = same.amount.saturating_add(hold.amount),
-						None => {
-							// one entry per reason, so this fits
-							let _ = parked.holds.try_push(hold);
-						},
-					}
-				}
-			},
-		});
+		let who = account.who.clone();
+		let Some(mut parked) = FailedAccounts::<T>::get(&who) else {
+			FailedAccounts::<T>::insert(&who, account);
+			return;
+		};
+		parked.free = parked.free.saturating_add(account.free);
+		for hold in account.holds {
+			match parked.holds.iter_mut().find(|h| h.reason == hold.reason) {
+				Some(same) => same.amount = same.amount.saturating_add(hold.amount),
+				// one entry per reason, so this fits
+				None => {
+					let _ = parked.holds.try_push(hold);
+				},
+			}
+		}
+		FailedAccounts::<T>::insert(&who, parked);
 	}
 }

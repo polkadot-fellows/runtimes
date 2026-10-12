@@ -17,7 +17,7 @@
 use super::*;
 use crate::{
 	mock::*, BlockLimits, CtMigratorCall, CtRuntimeCall, Error, Event, ExpectedReserves, Limits,
-	MigratedBalances, MigrationStage, RcMigratedBalance, RcMigrationStage,
+	MigratedBalances, RcMigratedBalance, RcMigrationStage,
 };
 use frame_support::{assert_noop, assert_ok, traits::ReservableCurrency};
 use migrator_types::{sibling_account, PortableHoldReason};
@@ -46,19 +46,6 @@ const PROXY_DEPOSIT: u128 = PROXY_DEPOSIT_BASE + PROXY_DEPOSIT_FACTOR;
 const ANNOUNCEMENT_DEPOSIT: u128 = ANNOUNCEMENT_DEPOSIT_BASE + ANNOUNCEMENT_DEPOSIT_FACTOR;
 /// What a 2-of-2 multisig operation costs.
 const MULTISIG_DEPOSIT: u128 = MULTISIG_DEPOSIT_BASE + 2 * MULTISIG_DEPOSIT_FACTOR;
-type Stage = MigrationStage<AccountId, u64, u64>;
-
-fn assert_stage(expected: Stage) {
-	assert_eq!(RcMigrationStage::<Test>::get(), expected);
-}
-
-fn ah_dest() -> Location {
-	Location::new(0, [Parachain(AH_PARA_ID)])
-}
-
-fn ct_dest() -> Location {
-	Location::new(0, [Parachain(CT_PARA_ID)])
-}
 
 fn reserved(who: &AccountId) -> u128 {
 	pallet_balances::Pallet::<Test>::reserved_balance(who)
@@ -106,10 +93,6 @@ fn teleported_events() -> Vec<(u32, u128)> {
 			_ => None,
 		})
 		.collect()
-}
-
-fn total_issuance() -> u128 {
-	pallet_balances::TotalIssuance::<Test>::get()
 }
 
 /// The `i`th of many accounts.
@@ -161,7 +144,6 @@ fn migrate_one_account_per_case() {
 		let pure = create_pure(&IVAN); // the pure proxy, never signed
 		fund(&pure, 200);
 		assert_eq!((reserved(&IVAN), reserved(&pure)), (PROXY_DEPOSIT, 0));
-		let issuance = total_issuance();
 
 		// WHEN the stage starts and one block withdraws them all.
 		Migrator::init();
@@ -216,16 +198,13 @@ fn migrate_one_account_per_case() {
 		for (who, amount) in
 			[(HEIDI, PROXY_DEPOSIT), (JUDY, ANNOUNCEMENT_DEPOSIT), (LEO, MULTISIG_DEPOSIT)]
 		{
-			let refunded = RuntimeEvent::Rc2Migrator(Event::DepositRefunded { who, amount });
-			assert!(System::events().iter().any(|r| r.event == refunded));
+			System::assert_has_event(Event::DepositRefunded { who, amount }.into());
 		}
 		// what no record explains is parked on Coretime under its own reason
 		let bob_ct = to_ct(&out, &BOB);
 		assert_eq!(bob_ct.free, CT_FREE_BUFFER);
 		assert_eq!(holds(bob_ct), vec![(PortableHoldReason::UnattributedReserve, 40)]);
-		let unattributed =
-			RuntimeEvent::Rc2Migrator(Event::UnattributedReserve { who: BOB, amount: 40 });
-		assert!(System::events().iter().any(|r| r.event == unattributed));
+		System::assert_has_event(Event::UnattributedReserve { who: BOB, amount: 40 }.into());
 		// the pure goes to Coretime whole, where its delegate keeps control
 		let pure_ct = to_ct(&out, &pure);
 		assert_eq!((pure_ct.free, holds(pure_ct)), (200, vec![]));
@@ -234,22 +213,13 @@ fn migrate_one_account_per_case() {
 		}
 		let shell = frame_system::Account::<Test>::get(&EVE);
 		assert_eq!((shell.data.free, shell.consumers), (0, 1), "the shell stays, empty");
-		assert!(System::events().iter().any(|r| r.event ==
-			RuntimeEvent::Rc2Migrator(Event::AccountShellDrained {
-				who: EVE.clone(),
-				amount: 100
-			})));
+		System::assert_has_event(Event::AccountShellDrained { who: EVE, amount: 100 }.into());
+
+		// AND only what a later stage handles is left: the pot, Charlie and the manager.
 		assert_eq!(free(&pot), 100, "module account");
 		assert_eq!(free(&CHARLIE), ED - 1, "below the existential deposit");
 		assert_eq!(free(&DAVE), 100, "the manager");
-
-		// AND what was burned is exactly what left.
-		let left: u128 = to_ah.iter().map(|(_, amount)| amount).sum::<u128>() +
-			out.to_ct
-				.iter()
-				.map(|a| a.free + holds(a).iter().map(|(_, amount)| amount).sum::<u128>())
-				.sum::<u128>();
-		assert_eq!(total_issuance(), issuance - left);
+		assert_eq!(total_issuance(), 100 + (ED - 1) + 100);
 	});
 }
 
@@ -500,11 +470,10 @@ fn accounts_stage_sends_deposit_holders_to_coretime() {
 		assert_eq!(accounts[0].who, FRANK);
 		assert_eq!(accounts[0].free, CT_FREE_BUFFER);
 		assert_eq!(holds(&accounts[0]), vec![(PortableHoldReason::RegistrarDeposit, PARA_DEPOSIT)]);
-		assert_eq!(sent[1].0, ah_dest());
-		assert!(sent[1].1 .0.contains(&deposit(FRANK, 600)));
-		assert!(System::events()
-			.iter()
-			.any(|r| r.event == RuntimeEvent::Rc2Migrator(Event::AccountsBatchSent { count: 1 })));
+		let (dest, Xcm(message)) = &sent[1];
+		assert_eq!(*dest, ah_dest());
+		assert!(message.contains(&deposit(FRANK, 600)));
+		System::assert_has_event(Event::AccountsBatchSent { count: 1 }.into());
 		assert_eq!(
 			RcMigratedBalance::<Test>::get(),
 			MigratedBalances {
@@ -613,7 +582,7 @@ fn accounts_stage_retries_a_block_whose_send_failed() {
 		SendFails::set(true);
 		run_blocks(1);
 		assert_stage(Stage::AccountsOngoing { last_key: None });
-		assert_eq!(pallet_balances::Pallet::<Test>::free_balance(&ALICE), 100);
+		assert_eq!(free(&ALICE), 100);
 		assert_eq!(total_issuance(), 100);
 		assert_eq!(RcMigratedBalance::<Test>::get(), migrated);
 		assert!(sent().is_empty());

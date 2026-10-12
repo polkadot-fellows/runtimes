@@ -95,15 +95,11 @@ impl frame_system::Config for Test {
 /// The Relay Chain's existential deposit.
 pub const ED: u128 = 10;
 
-parameter_types! {
-	pub const ExistentialDeposit: u128 = ED;
-}
-
 #[derive_impl(pallet_balances::config_preludes::TestDefaultConfig)]
 impl pallet_balances::Config for Test {
 	type Balance = u128;
 	type AccountStore = System;
-	type ExistentialDeposit = ExistentialDeposit;
+	type ExistentialDeposit = ConstU128<ED>;
 }
 
 // `paras_registrar` is what the tests need; it requires `paras`, which requires the rest.
@@ -199,26 +195,19 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 pub const PROXY_DEPOSIT_BASE: u128 = 40;
 pub const PROXY_DEPOSIT_FACTOR: u128 = 4;
 
-parameter_types! {
-	pub const ProxyDepositBase: u128 = PROXY_DEPOSIT_BASE;
-	pub const ProxyDepositFactor: u128 = PROXY_DEPOSIT_FACTOR;
-	pub const AnnouncementDepositBase: u128 = ANNOUNCEMENT_DEPOSIT_BASE;
-	pub const AnnouncementDepositFactor: u128 = ANNOUNCEMENT_DEPOSIT_FACTOR;
-}
-
 impl pallet_proxy::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
 	type Currency = Balances;
 	type ProxyType = ProxyType;
-	type ProxyDepositBase = ProxyDepositBase;
-	type ProxyDepositFactor = ProxyDepositFactor;
+	type ProxyDepositBase = ConstU128<PROXY_DEPOSIT_BASE>;
+	type ProxyDepositFactor = ConstU128<PROXY_DEPOSIT_FACTOR>;
 	type MaxProxies = ConstU32<4>;
 	type WeightInfo = ();
 	type MaxPending = ConstU32<4>;
 	type CallHasher = BlakeTwo256;
-	type AnnouncementDepositBase = AnnouncementDepositBase;
-	type AnnouncementDepositFactor = AnnouncementDepositFactor;
+	type AnnouncementDepositBase = ConstU128<ANNOUNCEMENT_DEPOSIT_BASE>;
+	type AnnouncementDepositFactor = ConstU128<ANNOUNCEMENT_DEPOSIT_FACTOR>;
 	type BlockNumberProvider = System;
 }
 
@@ -231,17 +220,12 @@ pub const ANNOUNCEMENT_DEPOSIT_FACTOR: u128 = 6;
 pub const MULTISIG_DEPOSIT_BASE: u128 = 30;
 pub const MULTISIG_DEPOSIT_FACTOR: u128 = 5;
 
-parameter_types! {
-	pub const MultisigDepositBase: u128 = MULTISIG_DEPOSIT_BASE;
-	pub const MultisigDepositFactor: u128 = MULTISIG_DEPOSIT_FACTOR;
-}
-
 impl pallet_multisig::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
 	type Currency = Balances;
-	type DepositBase = MultisigDepositBase;
-	type DepositFactor = MultisigDepositFactor;
+	type DepositBase = ConstU128<MULTISIG_DEPOSIT_BASE>;
+	type DepositFactor = ConstU128<MULTISIG_DEPOSIT_FACTOR>;
 	type MaxSignatories = ConstU32<5>;
 	type WeightInfo = ();
 	type BlockNumberProvider = System;
@@ -272,18 +256,13 @@ pub const HRMP_RECIPIENT_DEPOSIT: u128 = 20;
 /// The registrar deposit, reserved on a para's manager.
 pub const PARA_DEPOSIT: u128 = 300;
 
-parameter_types! {
-	pub const ParaDeposit: u128 = PARA_DEPOSIT;
-	pub const DataDepositPerByte: u128 = 1;
-}
-
 impl paras_registrar::Config for Test {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type OnSwap = ();
-	type ParaDeposit = ParaDeposit;
-	type DataDepositPerByte = DataDepositPerByte;
+	type ParaDeposit = ConstU128<PARA_DEPOSIT>;
+	type DataDepositPerByte = ConstU128<1>;
 	type WeightInfo = paras_registrar::TestWeightInfo;
 }
 
@@ -421,6 +400,24 @@ pub fn now_ms() -> u64 {
 	MockTime::now()
 }
 
+pub type Stage = crate::MigrationStageOf<Test>;
+
+pub fn assert_stage(expected: Stage) {
+	assert_eq!(crate::RcMigrationStage::<Test>::get(), expected);
+}
+
+pub fn ah_dest() -> Location {
+	Location::new(0, [Parachain(AH_PARA_ID)])
+}
+
+pub fn ct_dest() -> Location {
+	Location::new(0, [Parachain(CT_PARA_ID)])
+}
+
+pub fn total_issuance() -> u128 {
+	pallet_balances::TotalIssuance::<Test>::get()
+}
+
 /// The messages sent so far, destination and all.
 pub fn sent() -> Vec<(Location, Xcm<()>)> {
 	SentXcm::get()
@@ -474,17 +471,25 @@ pub fn register_para(id: u32, manager: &AccountId) {
 	Registrar::reserve(RuntimeOrigin::signed(manager.clone())).expect("manager can reserve");
 }
 
+/// Reserve a deposit on a para's sovereign, funded first so that its existential deposit stays
+/// free.
+fn reserve_on_sov(para: u32, deposit: u128) {
+	let sov = child_sov(para);
+	fund(&sov, free(&sov) + deposit + ED);
+	reserve(&sov, deposit);
+}
+
+fn channel_id(sender: u32, recipient: u32) -> HrmpChannelId {
+	HrmpChannelId { sender: sender.into(), recipient: recipient.into() }
+}
+
 /// An open HRMP channel with its deposits reserved on the sovereigns, the state the channel-open
 /// handshake leaves behind. The handshake itself needs live paras and sessions.
 pub fn open_channel(sender: u32, recipient: u32, sender_deposit: u128, recipient_deposit: u128) {
-	for (para, deposit) in [(sender, sender_deposit), (recipient, recipient_deposit)] {
-		let sov = child_sov(para);
-		fund(&sov, free(&sov) + deposit + ED);
-		reserve(&sov, deposit);
-	}
-	let id = HrmpChannelId { sender: sender.into(), recipient: recipient.into() };
+	reserve_on_sov(sender, sender_deposit);
+	reserve_on_sov(recipient, recipient_deposit);
 	parachains_hrmp::HrmpChannels::<Test>::insert(
-		&id,
+		channel_id(sender, recipient),
 		parachains_hrmp::HrmpChannel {
 			max_capacity: 8,
 			max_total_size: 4096,
@@ -501,7 +506,7 @@ pub fn open_channel(sender: u32, recipient: u32, sender_deposit: u128, recipient
 /// A pending request to close a channel, as `hrmp_close_channel` leaves it until the next
 /// session.
 pub fn request_close(sender: u32, recipient: u32) {
-	let id = HrmpChannelId { sender: sender.into(), recipient: recipient.into() };
+	let id = channel_id(sender, recipient);
 	parachains_hrmp::HrmpCloseChannelRequests::<Test>::insert(&id, ());
 	parachains_hrmp::HrmpCloseChannelRequestsList::<Test>::mutate(|list| list.push(id));
 }
@@ -509,10 +514,8 @@ pub fn request_close(sender: u32, recipient: u32) {
 /// A pending open-channel request with the sender's deposit reserved, as `hrmp_init_open_channel`
 /// leaves it.
 pub fn open_request(sender: u32, recipient: u32, deposit: u128) {
-	let sov = child_sov(sender);
-	fund(&sov, free(&sov) + deposit + ED);
-	reserve(&sov, deposit);
-	let id = HrmpChannelId { sender: sender.into(), recipient: recipient.into() };
+	reserve_on_sov(sender, deposit);
+	let id = channel_id(sender, recipient);
 	parachains_hrmp::HrmpOpenChannelRequests::<Test>::insert(
 		&id,
 		parachains_hrmp::HrmpOpenChannelRequest {
@@ -531,13 +534,13 @@ pub fn open_request(sender: u32, recipient: u32, deposit: u128) {
 /// Accept a pending request as `hrmp_accept_open_channel` does: the recipient's deposit is
 /// reserved at the active configuration's value and recorded nowhere until the next session.
 pub fn accept_request(sender: u32, recipient: u32) {
-	let sov = child_sov(recipient);
-	fund(&sov, free(&sov) + HRMP_RECIPIENT_DEPOSIT + ED);
-	reserve(&sov, HRMP_RECIPIENT_DEPOSIT);
-	let id = HrmpChannelId { sender: sender.into(), recipient: recipient.into() };
-	parachains_hrmp::HrmpOpenChannelRequests::<Test>::mutate(&id, |request| {
-		request.as_mut().expect("request is pending").confirmed = true;
-	});
+	reserve_on_sov(recipient, HRMP_RECIPIENT_DEPOSIT);
+	parachains_hrmp::HrmpOpenChannelRequests::<Test>::mutate(
+		channel_id(sender, recipient),
+		|request| {
+			request.as_mut().expect("request is pending").confirmed = true;
+		},
+	);
 }
 
 /// Grant a proxy through the real pallet, which reserves the deposit on the delegator. The call
@@ -552,14 +555,7 @@ pub fn add_proxy(delegator: &AccountId, delegate: &AccountId, proxy_type: ProxyT
 pub fn create_pure(creator: &AccountId) -> AccountId {
 	Proxy::create_pure(RuntimeOrigin::signed(creator.clone()), ProxyType::Any, 0, 0)
 		.expect("can create a pure proxy");
-	System::events()
-		.into_iter()
-		.rev()
-		.find_map(|r| match r.event {
-			RuntimeEvent::Proxy(pallet_proxy::Event::PureCreated { pure, .. }) => Some(pure),
-			_ => None,
-		})
-		.expect("a pure was created")
+	Proxy::pure_account(creator, &ProxyType::Any, 0, None)
 }
 
 /// Announce a proxied call through the real pallet, which reserves the deposit on the announcer.

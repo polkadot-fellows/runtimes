@@ -80,14 +80,55 @@ pub struct ExpectedReserve {
 	pub refund: u128,
 }
 
-/// Where one withdrawn account's balance goes.
-#[derive(Debug, PartialEq, Eq)]
-pub struct Withdrawal {
-	/// Holds and the working buffer, minted on the Coretime chain.
-	pub to_ct: Option<PortableAccount<AccountId32, u128>>,
-	/// Free balance teleported to Asset Hub.
-	pub to_ah: Option<(AccountId32, u128)>,
+impl ExpectedReserve {
+	fn get(&self, kind: DepositKind) -> u128 {
+		match kind {
+			DepositKind::Registrar => self.registrar,
+			DepositKind::Hrmp => self.hrmp,
+			DepositKind::Proxy => self.proxy,
+			DepositKind::Refund => self.refund,
+		}
+	}
+
+	fn get_mut(&mut self, kind: DepositKind) -> &mut u128 {
+		match kind {
+			DepositKind::Registrar => &mut self.registrar,
+			DepositKind::Hrmp => &mut self.hrmp,
+			DepositKind::Proxy => &mut self.proxy,
+			DepositKind::Refund => &mut self.refund,
+		}
+	}
+
+	fn total(&self) -> u128 {
+		self.registrar
+			.saturating_add(self.hrmp)
+			.saturating_add(self.proxy)
+			.saturating_add(self.refund)
+	}
 }
+
+/// The kinds of deposit an [`ExpectedReserve`] is made of.
+#[derive(Clone, Copy)]
+enum DepositKind {
+	Registrar,
+	Hrmp,
+	Proxy,
+	Refund,
+}
+
+/// Where one withdrawn account's balance goes.
+struct Withdrawal {
+	/// Holds and the working buffer, minted on the Coretime chain.
+	to_ct: Option<PortableAccount<AccountId32, u128>>,
+	/// Free balance teleported to Asset Hub.
+	to_ah: Option<(AccountId32, u128)>,
+}
+
+type ProxyDefinitionOf<T> = pallet_proxy::ProxyDefinition<
+	<T as frame_system::Config>::AccountId,
+	<T as pallet_proxy::Config>::ProxyType,
+	pallet_proxy::BlockNumberFor<T>,
+>;
 
 /// The accounts one block withdrew.
 #[derive(Debug, PartialEq, Eq)]
@@ -118,24 +159,23 @@ impl<T: Config> AccountsMigrator<T> {
 
 		// registrar deposits, reserved on the para manager
 		for (_, info) in paras_registrar::Paras::<T>::iter() {
-			Self::add_expected(info.manager, info.deposit, |e| &mut e.registrar);
+			Self::add_expected(info.manager, DepositKind::Registrar, info.deposit);
 			records += 1;
 		}
 
 		// HRMP channel deposits, reserved on both sovereigns. A channel with a pending close
 		// request is on its way to returning them, so they are refunded instead.
 		for (id, channel) in hrmp::HrmpChannels::<T>::iter() {
-			let of: fn(&mut ExpectedReserve) -> &mut u128 =
-				if hrmp::HrmpCloseChannelRequests::<T>::contains_key(&id) {
-					|e| &mut e.refund
-				} else {
-					|e| &mut e.hrmp
-				};
-			Self::add_expected(id.sender.into_account_truncating(), channel.sender_deposit, of);
+			let kind = if hrmp::HrmpCloseChannelRequests::<T>::contains_key(&id) {
+				DepositKind::Refund
+			} else {
+				DepositKind::Hrmp
+			};
+			Self::add_expected(id.sender.into_account_truncating(), kind, channel.sender_deposit);
 			Self::add_expected(
 				id.recipient.into_account_truncating(),
+				kind,
 				channel.recipient_deposit,
-				of,
 			);
 			records += 1;
 		}
@@ -146,14 +186,16 @@ impl<T: Config> AccountsMigrator<T> {
 		// chain.
 		let recipient_deposit = configuration::ActiveConfig::<T>::get().hrmp_recipient_deposit;
 		for (id, request) in hrmp::HrmpOpenChannelRequests::<T>::iter() {
-			Self::add_expected(id.sender.into_account_truncating(), request.sender_deposit, |e| {
-				&mut e.hrmp
-			});
+			Self::add_expected(
+				id.sender.into_account_truncating(),
+				DepositKind::Hrmp,
+				request.sender_deposit,
+			);
 			if request.confirmed && !id.sender.is_system() && !id.recipient.is_system() {
 				Self::add_expected(
 					id.recipient.into_account_truncating(),
+					DepositKind::Hrmp,
 					recipient_deposit,
-					|e| &mut e.hrmp,
 				);
 			}
 			records += 1;
@@ -163,25 +205,27 @@ impl<T: Config> AccountsMigrator<T> {
 		// reserved. Definitions with a portable permission continue on the Coretime chain; the
 		// others' deposit is refunded.
 		for (delegator, (defs, deposit)) in pallet_proxy::Proxies::<T>::iter() {
-			let portable = defs.iter().any(|d| Self::portable(&d.proxy_type).is_some());
-			let of: fn(&mut ExpectedReserve) -> &mut u128 =
-				if portable { |e| &mut e.proxy } else { |e| &mut e.refund };
-			let who = Self::pure_creator(&delegator, defs.as_slice(), deposit).unwrap_or(delegator);
-			Self::add_expected(who, deposit, of);
+			let kind = if defs.iter().any(|d| Self::portable(&d.proxy_type).is_some()) {
+				DepositKind::Proxy
+			} else {
+				DepositKind::Refund
+			};
+			let who = Self::pure_creator(&delegator, &defs, deposit).unwrap_or(delegator);
+			Self::add_expected(who, kind, deposit);
 			records += 1;
 		}
 
 		// Proxy announcements are not migrated: the deposit, reserved on the announcer, is
 		// refunded.
 		for (announcer, (_, deposit)) in pallet_proxy::Announcements::<T>::iter() {
-			Self::add_expected(announcer, deposit, |e| &mut e.refund);
+			Self::add_expected(announcer, DepositKind::Refund, deposit);
 			records += 1;
 		}
 
 		// Multisig operations cannot complete on a retired chain: the deposit, reserved on the
 		// depositor, is refunded.
 		for (_, _, op) in pallet_multisig::Multisigs::<T>::iter() {
-			Self::add_expected(op.depositor, op.deposit, |e| &mut e.refund);
+			Self::add_expected(op.depositor, DepositKind::Refund, op.deposit);
 			records += 1;
 		}
 
@@ -222,37 +266,32 @@ impl<T: Config> AccountsMigrator<T> {
 	/// goes to that delegate.
 	fn pure_creator(
 		delegator: &T::AccountId,
-		defs: &[pallet_proxy::ProxyDefinition<
-			T::AccountId,
-			<T as pallet_proxy::Config>::ProxyType,
-			pallet_proxy::BlockNumberFor<T>,
-		>],
+		defs: &[ProxyDefinitionOf<T>],
 		deposit: u128,
 	) -> Option<T::AccountId> {
 		let account = frame_system::Account::<T>::get(delegator);
 		if !account.nonce.is_zero() {
 			return None;
 		}
-		let any = defs
-			.iter()
-			.find(|d| Self::portable(&d.proxy_type) == Some(PortableProxyType::Any))?;
-		let expected = ExpectedReserves::<T>::get(delegator);
-		let needed = expected
-			.registrar
-			.saturating_add(expected.hrmp)
-			.saturating_add(expected.proxy)
-			.saturating_add(expected.refund)
-			.saturating_add(deposit);
-		(account.data.reserved < needed).then(|| any.delegate.clone())
+		let any = Self::any_delegate(defs)?;
+		let needed = ExpectedReserves::<T>::get(delegator).total().saturating_add(deposit);
+		(account.data.reserved < needed).then(|| any.clone())
 	}
 
-	/// Add `amount` to `who`'s expected reserve, under the deposit kind `of` picks.
-	fn add_expected(who: T::AccountId, amount: u128, of: fn(&mut ExpectedReserve) -> &mut u128) {
+	/// The delegate of the first definition that is `Any` on the Coretime chain.
+	fn any_delegate(defs: &[ProxyDefinitionOf<T>]) -> Option<&T::AccountId> {
+		defs.iter()
+			.find(|d| Self::portable(&d.proxy_type) == Some(PortableProxyType::Any))
+			.map(|d| &d.delegate)
+	}
+
+	/// Add `amount` to `who`'s expected reserve of `kind`.
+	fn add_expected(who: T::AccountId, kind: DepositKind, amount: u128) {
 		if amount.is_zero() {
 			return;
 		}
 		ExpectedReserves::<T>::mutate(&who, |e| {
-			let v = of(e);
+			let v = e.get_mut(kind);
 			*v = v.saturating_add(amount);
 		});
 	}
@@ -277,60 +316,64 @@ impl<T: Config> AccountsMigrator<T> {
 				out.last_key = None;
 				return out;
 			};
-			match with_storage_layer(|| Self::withdraw_account(&who, &info, exceptions)) {
-				Ok(Some(Withdrawal { to_ct, to_ah })) => {
-					out.to_ct.extend(to_ct);
-					out.to_ah.extend(to_ah);
-				},
-				Ok(None) => (),
-				Err(e) => log::error!(target: LOG_TARGET, "Account {who:?} not withdrawn: {e:?}"),
+			if !Self::deferred(&who, &info, exceptions) {
+				match with_storage_layer(|| Self::withdraw_account(&who, &info)) {
+					Ok(Withdrawal { to_ct, to_ah }) => {
+						out.to_ct.extend(to_ct);
+						out.to_ah.extend(to_ah);
+					},
+					Err(e) =>
+						log::error!(target: LOG_TARGET, "Account {who:?} not withdrawn: {e:?}"),
+				}
 			}
 			out.last_key = Some(who);
 		}
 		out
 	}
 
-	/// Withdraw `who` whole and say where its balance goes, or `None` if nothing leaves. One
-	/// step per case of `accounts.md`.
+	/// Whether a later stage handles `who`: a module account (Sweep empties the pots), one below
+	/// the existential deposit (Sweep Dust reaps them), or one of the `exceptions` (the manager,
+	/// reaped at Cool Off).
+	fn deferred(who: &T::AccountId, info: &AccountInfoFor<T>, exceptions: &[T::AccountId]) -> bool {
+		Self::is_pallet_account(who) ||
+			info.data.total() < NativeCurrency::<T>::minimum_balance() ||
+			exceptions.contains(who)
+	}
+
+	/// Withdraw `who` whole and say where its balance goes. One step per case of `accounts.md`.
 	fn withdraw_account(
 		who: &T::AccountId,
 		info: &AccountInfoFor<T>,
-		exceptions: &[T::AccountId],
-	) -> Result<Option<Withdrawal>, DispatchError> {
-		let data = &info.data;
-
-		// Nothing to do here for these; a later stage handles them.
-		if Self::is_pallet_account(who) {
-			// Sweep empties the pots.
-			return Ok(None);
+	) -> Result<Withdrawal, DispatchError> {
+		// Release holds, locks and reserves first, so the whole balance can be burned. Holds
+		// count as reserved, locks and freezes as frozen.
+		let mut holds = BoundedVec::new();
+		if !info.data.reserved.is_zero() {
+			Self::release_holds(who)?;
+			holds = Self::withdraw_reserved(who)?;
 		}
-		if data.total() < NativeCurrency::<T>::minimum_balance() {
-			// Sweep Dust reaps them.
-			return Ok(None);
-		}
-		if exceptions.contains(who) {
-			// The manager, reaped at Cool Off.
-			return Ok(None);
+		if !info.data.frozen.is_zero() {
+			Self::release_locks(who)?;
 		}
 
-		// Release holds, locks and reserves first, so the whole balance can be burned.
-		Self::release_holds(who)?;
-		Self::release_locks(who)?;
-		let holds = Self::withdraw_reserved(who)?;
-
-		// Burn the whole balance here. The release above may have dropped a consumer reference,
-		// so read the account again.
-		let account = frame_system::Account::<T>::get(who);
+		// Burn the whole balance here. A release may have dropped a consumer reference, so read
+		// the account again.
+		let released = !info.data.reserved.is_zero() || !info.data.frozen.is_zero();
+		let account = if released { frame_system::Account::<T>::get(who) } else { info.clone() };
 		let total = account.data.free;
 		if account.consumers != 0 {
 			Self::drain_to_shell(who, total);
 		} else {
-			Self::burn_free(who, total)?;
+			NativeCurrency::<T>::burn_from(
+				who,
+				total,
+				Preservation::Expendable,
+				Precision::Exact,
+				Fortitude::Polite,
+			)?;
 		}
 
-		// What the holds do not take is liquid.
-		let held: u128 = holds.iter().map(|h| h.amount).sum();
-		Ok(Some(Self::route(who, info, total.saturating_sub(held), holds, held)?))
+		Ok(Self::route(who, Self::is_pure_proxy(who, info), total, holds))
 	}
 
 	/// Split what was burned by destination: the holds and a working buffer of the liquid
@@ -338,12 +381,14 @@ impl<T: Config> AccountsMigrator<T> {
 	/// goes to the Coretime chain.
 	fn route(
 		who: &T::AccountId,
-		info: &AccountInfoFor<T>,
-		liquid: u128,
+		pure: bool,
+		total: u128,
 		holds: BoundedVec<PortableHold<u128>, MaxPortableHolds>,
-		held: u128,
-	) -> Result<Withdrawal, DispatchError> {
-		let mut ct_free = if Self::is_pure_proxy(who, info) {
+	) -> Withdrawal {
+		// What the holds do not take is liquid.
+		let held: u128 = holds.iter().map(|h| h.amount).sum();
+		let liquid = total.saturating_sub(held);
+		let mut ct_free = if pure {
 			// all goes to CT
 			liquid
 		} else if held.is_zero() {
@@ -355,31 +400,23 @@ impl<T: Config> AccountsMigrator<T> {
 		};
 		let mut ah_free = liquid.saturating_sub(ct_free);
 		// A remainder below the existential deposit follows the holds instead of being teleported.
-		if !held.is_zero() && ah_free < NativeCurrency::<T>::minimum_balance() {
+		if ah_free < NativeCurrency::<T>::minimum_balance() {
 			ct_free = ct_free.saturating_add(ah_free);
 			ah_free = 0;
 		}
 
-		let dest = Self::destination(who);
-		let to_ct = (!held.is_zero() || !ct_free.is_zero()).then(|| PortableAccount {
+		// TODO(ahm-v2): Asset Hub's own sovereign (`para` + 1000) lands on `sibl` + 1000 on Asset
+		// Hub, which nothing there controls. Send it to the sweep beneficiary instead. It holds
+		// DOT here from HRMP channel deposits made before system channels became deposit-free,
+		// and from whatever was sent to it since.
+		let dest = migrator_types::translate_destination(who);
+		let to_ct = (!holds.is_empty() || !ct_free.is_zero()).then(|| PortableAccount {
 			who: dest.clone(),
 			free: ct_free,
 			holds,
 		});
 		let to_ah = (!ah_free.is_zero()).then_some((dest, ah_free));
-		Ok(Withdrawal { to_ct, to_ah })
-	}
-
-	/// Burn `who`'s free balance; the account is reaped.
-	fn burn_free(who: &T::AccountId, amount: u128) -> DispatchResult {
-		NativeCurrency::<T>::burn_from(
-			who,
-			amount,
-			Preservation::Expendable,
-			Precision::Exact,
-			Fortitude::Polite,
-		)?;
-		Ok(())
+		Withdrawal { to_ct, to_ah }
 	}
 
 	/// Release `who`'s reserve and attribute it to the deposits recorded for the account.
@@ -402,42 +439,46 @@ impl<T: Config> AccountsMigrator<T> {
 		// Attribute the reserve in priority order: registrar, HRMP, proxy, then refunds. A reserve
 		// that covers less than the records goes to the deposits that continue first.
 		let mut remainder = reserved;
-		let mut consume = |cap: u128| {
+		let mut take = |cap: u128| {
 			let taken = remainder.min(cap);
 			remainder -= taken;
 			taken
 		};
-		let registrar = consume(expected.registrar);
-		let hrmp = consume(expected.hrmp);
-		let proxy = consume(expected.proxy);
-		let refund = consume(expected.refund);
+		let mut holds = BoundedVec::new();
+		for (kind, reason) in [
+			(DepositKind::Registrar, PortableHoldReason::RegistrarDeposit),
+			(DepositKind::Hrmp, PortableHoldReason::HrmpDeposit),
+			(DepositKind::Proxy, PortableHoldReason::ProxyDeposit),
+		] {
+			let amount = take(expected.get(kind));
+			if !amount.is_zero() {
+				Self::push_hold(&mut holds, reason, amount)?;
+			}
+		}
+		let refund = take(expected.refund);
 		if !refund.is_zero() {
 			Pallet::<T>::deposit_event(Event::DepositRefunded { who: who.clone(), amount: refund });
 		}
 		// What no record explains travels too, parked on the Coretime chain under its own reason.
-		let unattributed = remainder;
-		if !unattributed.is_zero() {
+		if !remainder.is_zero() {
 			Pallet::<T>::deposit_event(Event::UnattributedReserve {
 				who: who.clone(),
-				amount: unattributed,
+				amount: remainder,
 			});
-		}
-
-		// one hold per reason, so the bound holds by construction
-		let mut holds = BoundedVec::new();
-		for (reason, amount) in [
-			(PortableHoldReason::RegistrarDeposit, registrar),
-			(PortableHoldReason::HrmpDeposit, hrmp),
-			(PortableHoldReason::ProxyDeposit, proxy),
-			(PortableHoldReason::UnattributedReserve, unattributed),
-		] {
-			if !amount.is_zero() {
-				holds
-					.try_push(PortableHold { reason, amount })
-					.map_err(|_| Error::<T>::FailedToWithdrawAccount)?;
-			}
+			Self::push_hold(&mut holds, PortableHoldReason::UnattributedReserve, remainder)?;
 		}
 		Ok(holds)
+	}
+
+	/// One hold per reason, which is what the bound allows.
+	fn push_hold(
+		holds: &mut BoundedVec<PortableHold<u128>, MaxPortableHolds>,
+		reason: PortableHoldReason,
+		amount: u128,
+	) -> DispatchResult {
+		holds
+			.try_push(PortableHold { reason, amount })
+			.map_err(|_| Error::<T>::FailedToWithdrawAccount.into())
 	}
 
 	/// Release every named hold on `who`. Preimage deposits are released through their pallet
@@ -477,20 +518,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// and an account that never signed cannot have been anything else.
 	fn is_pure_proxy(who: &T::AccountId, info: &AccountInfoFor<T>) -> bool {
 		info.nonce.is_zero() &&
-			pallet_proxy::Proxies::<T>::get(who)
-				.0
-				.iter()
-				.any(|d| Self::portable(&d.proxy_type) == Some(PortableProxyType::Any))
-	}
-
-	/// The account `who`'s balance lands on: a para's sovereign is `para…` here and `sibl…` on
-	/// Asset Hub and the Coretime chain; every other account keeps its address.
-	// TODO(ahm-v2): Asset Hub's own sovereign (`para` + 1000) lands on `sibl` + 1000 on Asset
-	// Hub, which nothing there controls. Send it to the sweep beneficiary instead. It holds DOT
-	// here from HRMP channel deposits made before system channels became deposit-free, and from
-	// whatever was sent to it since.
-	fn destination(who: &T::AccountId) -> AccountId32 {
-		migrator_types::translate_destination(who)
+			Self::any_delegate(&pallet_proxy::Proxies::<T>::get(who).0).is_some()
 	}
 
 	/// Whether `who` is a pallet (module) account, `modl` + pallet id.

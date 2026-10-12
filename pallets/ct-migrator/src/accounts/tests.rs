@@ -16,6 +16,7 @@
 
 use super::*;
 use crate::mock::*;
+use frame_support::assert_ok;
 use migrator_types::PortableHoldReason;
 
 #[test]
@@ -25,7 +26,7 @@ fn receive_mints_free_and_holds() {
 		let bob: AccountId = 3; // already exists here, receives on top
 
 		// GIVEN bob already has a balance here.
-		<Balances as Mutate<AccountId>>::mint_into(&bob, 100).unwrap();
+		assert_ok!(<Balances as Mutate<AccountId>>::mint_into(&bob, 100));
 		let issuance = total_issuance();
 
 		// WHEN a batch arrives.
@@ -88,7 +89,7 @@ fn receive_parks_a_bad_account_and_keeps_the_batch() {
 		let bob: AccountId = 3; // mint overflows the issuance
 
 		// GIVEN some issuance, so a `u128::MAX` mint overflows.
-		<Balances as Mutate<AccountId>>::mint_into(&alice, 100).unwrap();
+		assert_ok!(<Balances as Mutate<AccountId>>::mint_into(&alice, 100));
 		let bad = portable_account(&bob, u128::MAX, vec![]);
 
 		// WHEN a batch with a bad account arrives. THEN the good one is minted, the bad one is
@@ -110,9 +111,13 @@ fn receive_parks_a_bad_account_and_keeps_the_batch() {
 			1,
 			vec![(PortableHoldReason::HrmpDeposit, u128::MAX)],
 		)]);
-		let parked = FailedAccounts::<Test>::get(bob).unwrap();
-		assert_eq!(parked.free, u128::MAX);
-		assert_eq!(parked.holds.len(), 1);
-		assert_eq!(parked.holds[0].amount, u128::MAX);
+		assert_eq!(
+			FailedAccounts::<Test>::get(bob),
+			Some(portable_account(
+				&bob,
+				u128::MAX,
+				vec![(PortableHoldReason::HrmpDeposit, u128::MAX)]
+			))
+		);
 	});
 }

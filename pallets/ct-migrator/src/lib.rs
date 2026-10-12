@@ -166,8 +166,8 @@ pub mod pallet {
 		ProxyDeposit,
 		/// Relay Chain reserve that no pallet's deposit records accounted for. Parked here for
 		/// investigation. Nothing was allowed to stay behind on the Relay Chain.
-		// TODO(ahm-v2): (maybe) a root call that releases this hold, so governance can return it to the
-		// owner after looking at it.
+		// TODO(ahm-v2): (maybe) a root call that releases this hold, so governance can return it to
+		// the owner after looking at it.
 		#[codec(index = 3)]
 		UnattributedReserve,
 	}
