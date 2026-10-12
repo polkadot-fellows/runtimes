@@ -543,11 +543,13 @@ pub fn accept_request(sender: u32, recipient: u32) {
 	);
 }
 
-/// Grant a proxy through the real pallet, which reserves the deposit on the delegator. The call
-/// is dispatched directly, so the delegator's nonce stays where it is.
+/// Grant a proxy through the real pallet, which reserves the deposit on the delegator, and bump
+/// the nonce as a signed call would.
 pub fn add_proxy(delegator: &AccountId, delegate: &AccountId, proxy_type: ProxyType) {
 	Proxy::add_proxy(RuntimeOrigin::signed(delegator.clone()), delegate.clone(), proxy_type, 0)
 		.expect("can add proxy");
+	// a signed call bumps the nonce, which tells a delegator from a pure proxy
+	System::inc_account_nonce(delegator);
 }
 
 /// Create a pure proxy through the real pallet: the deposit is reserved on the creator and the
