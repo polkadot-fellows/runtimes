@@ -19,7 +19,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{Config, LOG_TARGET};
+use crate::{Config, Limits, LOG_TARGET};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use frame_support::{
@@ -30,10 +30,6 @@ use frame_support::{
 	},
 };
 use sp_runtime::{traits::Zero, DispatchError};
-
-/// Maximum number of accounts withdrawn per relay-chain block. Bounds the work of one
-/// `on_initialize` here and of the `receive_accounts` calls it produces on the Coretime chain.
-pub const MAX_ACCOUNTS_PER_BLOCK: u32 = 300;
 
 type NativeCurrency<T> = pallet_balances::Pallet<T>;
 type AccountInfoFor<T> = frame_system::AccountInfo<
@@ -53,18 +49,26 @@ pub struct BlockWithdrawals<AccountId> {
 pub struct AccountsMigrator<T>(PhantomData<T>);
 
 impl<T: Config> AccountsMigrator<T> {
-	/// Withdraw up to [`MAX_ACCOUNTS_PER_BLOCK`] accounts, continuing after `last_key`.
+	/// Withdraw accounts, continuing after `last_key`, up to the block's [`Limits`].
 	///
 	/// Each account is withdrawn in a storage transaction of its own, so one that fails is left
 	/// untouched and the block goes on.
 	pub fn migrate_many(last_key: Option<T::AccountId>) -> BlockWithdrawals<T::AccountId> {
+		let limits = Limits::<T>::get();
+		// as many accounts as the block's messages carry
+		let max_to_ah =
+			(limits.xcm_per_block as usize).saturating_mul(limits.items_per_xcm as usize);
+
 		let mut iter = match last_key {
 			Some(last_key) => frame_system::Account::<T>::iter_from_key(last_key),
 			None => frame_system::Account::<T>::iter(),
 		};
 
 		let mut out = BlockWithdrawals { to_ah: Vec::new(), last_key: None };
-		for _ in 0..MAX_ACCOUNTS_PER_BLOCK {
+		for _ in 0..limits.items_per_block {
+			if out.to_ah.len() >= max_to_ah {
+				break;
+			}
 			let Some((who, info)) = iter.next() else {
 				out.last_key = None;
 				return out;

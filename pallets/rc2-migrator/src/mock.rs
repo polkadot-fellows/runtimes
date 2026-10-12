@@ -72,6 +72,7 @@ pub const BOB: AccountId = AccountId32::new([3; 32]);
 pub const ADMIN: AccountId = AccountId32::new([2; 32]);
 
 pub const CT_PARA_ID: u32 = 1005;
+pub const AH_PARA_ID: u32 = 1000;
 pub const WARM_UP: u64 = 4;
 pub const COOL_OFF: u64 = 10;
 /// Relay-chain block time
@@ -79,6 +80,7 @@ pub const BLOCK_TIME_MS: u64 = 6_000;
 
 parameter_types! {
 	pub const CtParaId: u32 = CT_PARA_ID;
+	pub const AhParaId: u32 = AH_PARA_ID;
 
 	/// Every message the pallet successfully sent, in order.
 	pub static SentXcm: Vec<(Location, Xcm<()>)> = vec![];
@@ -135,6 +137,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = RecordingRouter;
 	type CtParaId = CtParaId;
+	type AhParaId = AhParaId;
 	type TimeProvider = MockTime;
 	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId>;
 	type AdminOrigin = EnsureSignedBy<AdminAccount, AccountId>;

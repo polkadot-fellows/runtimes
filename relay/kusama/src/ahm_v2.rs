@@ -24,14 +24,20 @@ use crate::{
 	xcm_config::{Broker, XcmRouter},
 	AccountId, BrokerId, Runtime, RuntimeEvent, Timestamp,
 };
-use frame_support::traits::Equals;
+use frame_support::{parameter_types, traits::Equals};
 use frame_system::EnsureRoot;
+use kusama_runtime_constants::system_parachain::ASSET_HUB_ID;
 use pallet_xcm::EnsureXcm;
+
+parameter_types! {
+	pub const AhParaId: u32 = ASSET_HUB_ID;
+}
 
 impl pallet_rc2_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = XcmRouter;
 	type CtParaId = BrokerId;
+	type AhParaId = AhParaId;
 	type TimeProvider = Timestamp;
 	type CtOrigin = EnsureXcm<Equals<Broker>>;
 	type AdminOrigin = EnsureRoot<AccountId>;
