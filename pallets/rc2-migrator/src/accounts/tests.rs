@@ -25,6 +25,17 @@ use sp_runtime::{AccountId32, DispatchError::BadOrigin};
 use xcm::prelude::*;
 
 type Migrator = AccountsMigrator<Test>;
+
+// Paras and their deposits. The sovereign of a para is `child_sov(id)` here and
+// `sibling_account(id)` on Asset Hub and the Coretime chain.
+const FRANKS_PARA: u32 = 2000; // registered by Frank
+const CHANNEL_SENDER: u32 = 2001; // the two ends of an open channel
+const CHANNEL_RECIPIENT: u32 = 2002;
+const SENDER_DEPOSIT: u128 = 50;
+const RECIPIENT_DEPOSIT: u128 = 40;
+const REQUEST_SENDER: u32 = 2003; // a channel request the recipient accepted
+const REQUEST_RECIPIENT: u32 = 2004;
+const REQUEST_DEPOSIT: u128 = 30;
 type Stage = MigrationStage<AccountId, u64, u64>;
 
 fn assert_stage(expected: Stage) {
@@ -46,6 +57,14 @@ fn reserved(who: &AccountId) -> u128 {
 /// `(reason, amount)` of each hold of an account sent to the Coretime chain.
 fn holds(account: &PortableAccount<AccountId, u128>) -> Vec<(PortableHoldReason, u128)> {
 	account.holds.iter().map(|h| (h.reason, h.amount)).collect()
+}
+
+/// What a block sends to the Coretime chain for `who`.
+fn to_ct<'a>(out: &'a BlockWithdrawals, who: &AccountId) -> &'a PortableAccount<AccountId, u128> {
+	out.to_ct
+		.iter()
+		.find(|a| a.who == *who)
+		.unwrap_or_else(|| panic!("{who:?} goes to Coretime"))
 }
 
 /// The instruction that credits `who` on Asset Hub, as `send_teleport` builds it.
@@ -83,10 +102,6 @@ fn total_issuance() -> u128 {
 	pallet_balances::TotalIssuance::<Test>::get()
 }
 
-fn free(who: &AccountId) -> u128 {
-	pallet_balances::Pallet::<Test>::free_balance(who)
-}
-
 /// The `i`th of many accounts.
 fn account(i: u32) -> AccountId {
 	let mut id = [0u8; 32];
@@ -107,7 +122,7 @@ fn migrate_one_account_per_case() {
 		force_below_ed(&charlie, ED - 1);
 		let dave = DAVE; // the manager
 		fund(&dave, 100);
-		let para = child_sov(2000); // para sovereign
+		let para = child_sov(FRANKS_PARA); // para sovereign
 		fund(&para, 100);
 		let sibl: AccountId = sibling_account(3000); // sibling-format account
 		fund(&sibl, 100);
@@ -116,32 +131,46 @@ fn migrate_one_account_per_case() {
 		add_consumer(&eve);
 		let frank = FRANK; // para manager with a registrar deposit
 		fund(&frank, 1_000);
-		register_para(2000, &frank);
+		register_para(FRANKS_PARA, &frank);
 		assert_eq!((free(&frank), reserved(&frank)), (700, PARA_DEPOSIT));
+		open_channel(CHANNEL_SENDER, CHANNEL_RECIPIENT, SENDER_DEPOSIT, RECIPIENT_DEPOSIT);
+		open_request(REQUEST_SENDER, REQUEST_RECIPIENT, REQUEST_DEPOSIT);
+		accept_request(REQUEST_SENDER, REQUEST_RECIPIENT);
 		let issuance = total_issuance();
 
 		// WHEN the stage starts and one block withdraws them all.
 		Migrator::init();
 		let out = Migrator::migrate_many(None, &[dave.clone()]);
 		assert_eq!(out.last_key, None);
-		let mut to_ah = out.to_ah;
+		let mut to_ah = out.to_ah.clone();
 		// sorting just to make it easier to assert
 		to_ah.sort();
 
 		// THEN each lands where its row says.
 		let mut expected = vec![
-			(alice.clone(), 100),         // free balance
-			(sibling_account(2000), 100), // para sovereign, translated
-			(sibl.clone(), 100),          // sibling-format, as is
-			(eve.clone(), 100),           // referenced, drained to a shell
-			(frank.clone(), 600),         // what is left after the deposit and the buffer
+			(alice.clone(), 100),                // free balance
+			(sibling_account(FRANKS_PARA), 100), // para sovereign, translated
+			(sibl.clone(), 100),                 // sibling-format, as is
+			(eve.clone(), 100),                  // referenced, drained to a shell
+			(frank.clone(), 600),                // what is left after the deposit and the buffer
 		];
 		expected.sort();
 		assert_eq!(to_ah, expected);
-		let [to_ct] = out.to_ct.as_slice() else { panic!("one account goes to Coretime") };
-		assert_eq!(to_ct.who, frank);
-		assert_eq!(to_ct.free, CT_FREE_BUFFER);
-		assert_eq!(holds(to_ct), vec![(PortableHoldReason::RegistrarDeposit, PARA_DEPOSIT)]);
+		// deposit holders: the deposit as a hold, the free part (here only the ED) with it
+		assert_eq!(out.to_ct.len(), 5);
+		let frank_ct = to_ct(&out, &frank);
+		assert_eq!(frank_ct.free, CT_FREE_BUFFER);
+		assert_eq!(holds(frank_ct), vec![(PortableHoldReason::RegistrarDeposit, PARA_DEPOSIT)]);
+		for (para, deposit) in [
+			(CHANNEL_SENDER, SENDER_DEPOSIT),
+			(CHANNEL_RECIPIENT, RECIPIENT_DEPOSIT),
+			(REQUEST_SENDER, REQUEST_DEPOSIT),
+			(REQUEST_RECIPIENT, HRMP_RECIPIENT_DEPOSIT),
+		] {
+			let sov = to_ct(&out, &sibling_account(para));
+			assert_eq!(sov.free, ED, "para {para}");
+			assert_eq!(holds(sov), vec![(PortableHoldReason::HrmpDeposit, deposit)], "para {para}");
+		}
 		for who in [&alice, &para, &sibl, &frank] {
 			assert!(!frame_system::Account::<Test>::contains_key(who), "{who:?} is reaped");
 		}
@@ -158,8 +187,10 @@ fn migrate_one_account_per_case() {
 
 		// AND what was burned is exactly what left.
 		let left: u128 = to_ah.iter().map(|(_, amount)| amount).sum::<u128>() +
-			to_ct.free +
-			holds(to_ct).iter().map(|(_, amount)| amount).sum::<u128>();
+			out.to_ct
+				.iter()
+				.map(|a| a.free + holds(a).iter().map(|(_, amount)| amount).sum::<u128>())
+				.sum::<u128>();
 		assert_eq!(total_issuance(), issuance - left);
 	});
 }
@@ -210,8 +241,8 @@ fn init_indexes_registrar_deposits() {
 	new_test_ext().execute_with(|| {
 		// GIVEN a manager of two paras.
 		fund(&FRANK, 1_000);
-		register_para(2000, &FRANK);
-		register_para(2001, &FRANK);
+		register_para(FRANKS_PARA, &FRANK);
+		register_para(FRANKS_PARA + 1, &FRANK);
 
 		// WHEN the index is built, twice. THEN both deposits are indexed, once.
 		assert_eq!(Migrator::init(), 2);
@@ -222,11 +253,59 @@ fn init_indexes_registrar_deposits() {
 }
 
 #[test]
+fn init_indexes_hrmp_deposits() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a channel, a request the recipient accepted, and a request not yet accepted.
+		let pending_sender = 2005;
+		let pending_recipient = 2006;
+		open_channel(CHANNEL_SENDER, CHANNEL_RECIPIENT, SENDER_DEPOSIT, RECIPIENT_DEPOSIT);
+		open_request(REQUEST_SENDER, REQUEST_RECIPIENT, REQUEST_DEPOSIT);
+		accept_request(REQUEST_SENDER, REQUEST_RECIPIENT);
+		open_request(pending_sender, pending_recipient, REQUEST_DEPOSIT);
+
+		// WHEN the index is built. THEN every deposit is under its sovereign as HRMP.
+		assert_eq!(Migrator::init(), 3);
+		let hrmp = |para: u32| ExpectedReserves::<Test>::get(child_sov(para)).hrmp;
+		assert_eq!(
+			(hrmp(CHANNEL_SENDER), hrmp(CHANNEL_RECIPIENT)),
+			(SENDER_DEPOSIT, RECIPIENT_DEPOSIT)
+		);
+		assert_eq!(
+			(hrmp(REQUEST_SENDER), hrmp(REQUEST_RECIPIENT)),
+			(REQUEST_DEPOSIT, HRMP_RECIPIENT_DEPOSIT)
+		);
+		assert_eq!((hrmp(pending_sender), hrmp(pending_recipient)), (REQUEST_DEPOSIT, 0));
+	});
+}
+
+#[test]
+fn withdraw_refunds_the_deposits_of_a_closing_channel() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a channel with a pending close request.
+		open_channel(CHANNEL_SENDER, CHANNEL_RECIPIENT, SENDER_DEPOSIT, RECIPIENT_DEPOSIT);
+		request_close(CHANNEL_SENDER, CHANNEL_RECIPIENT);
+
+		// WHEN withdrawn. THEN the deposits go to Asset Hub as free balance, no hold.
+		Migrator::init();
+		let out = Migrator::migrate_many(None, &[]);
+		assert!(out.to_ct.is_empty());
+		let mut to_ah = out.to_ah;
+		to_ah.sort();
+		let mut expected = vec![
+			(sibling_account(CHANNEL_SENDER), SENDER_DEPOSIT + ED),
+			(sibling_account(CHANNEL_RECIPIENT), RECIPIENT_DEPOSIT + ED),
+		];
+		expected.sort();
+		assert_eq!(to_ah, expected);
+	});
+}
+
+#[test]
 fn withdraw_attributes_up_to_the_reserve() {
 	new_test_ext().execute_with(|| {
 		// GIVEN a manager whose record says 300 but who has only 200 reserved.
 		fund(&FRANK, 1_000);
-		register_para(2000, &FRANK);
+		register_para(FRANKS_PARA, &FRANK);
 		<Balances as ReservableCurrency<AccountId>>::unreserve(&FRANK, 100);
 		assert_eq!((free(&FRANK), reserved(&FRANK)), (800, 200));
 
@@ -245,7 +324,7 @@ fn withdraw_rounds_dust_to_coretime() {
 	new_test_ext().execute_with(|| {
 		// GIVEN a deposit holder whose remainder after the buffer is below the ED.
 		fund(&FRANK, PARA_DEPOSIT + CT_FREE_BUFFER + ED - 1);
-		register_para(2000, &FRANK);
+		register_para(FRANKS_PARA, &FRANK);
 
 		// WHEN withdrawn. THEN the remainder follows the deposit instead of being teleported.
 		Migrator::init();
@@ -261,7 +340,7 @@ fn accounts_stage_sends_deposit_holders_to_coretime() {
 	new_test_ext().execute_with(|| {
 		// GIVEN a manager with a deposit, and the stage about to start.
 		fund(&FRANK, 1_000);
-		register_para(2000, &FRANK);
+		register_para(FRANKS_PARA, &FRANK);
 		RcMigrationStage::<Test>::put(Stage::AccountsInit);
 
 		// WHEN the stage runs to the end: a block to build the index, one to withdraw. THEN the

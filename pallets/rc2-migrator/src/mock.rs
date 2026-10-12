@@ -24,9 +24,11 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use polkadot_parachain_primitives::primitives::Id as ParaId;
+use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
-use runtime_parachains::{configuration, origin as parachains_origin, paras, shared};
+use runtime_parachains::{
+	configuration, dmp, hrmp as parachains_hrmp, origin as parachains_origin, paras, shared,
+};
 use sp_runtime::{
 	traits::{AccountIdConversion, IdentityLookup},
 	transaction_validity::TransactionPriority,
@@ -47,6 +49,8 @@ frame_support::construct_runtime! {
 		Configuration: configuration,
 		ParasShared: shared,
 		Parachains: paras,
+		Dmp: dmp,
+		Hrmp: parachains_hrmp,
 		ParachainsOrigin: parachains_origin,
 		Registrar: paras_registrar,
 		Rc2Migrator: pallet_rc2_migrator,
@@ -119,6 +123,25 @@ impl paras::Config for Test {
 	type CooldownRemovalMultiplier = ConstU128<1>;
 	type AuthorizeCurrentCodeOrigin = EnsureRoot<AccountId>;
 }
+
+impl dmp::Config for Test {}
+
+parameter_types! {
+	pub const DefaultChannelSizeAndCapacityWithSystem: (u32, u32) = (4096, 4);
+}
+
+impl parachains_hrmp::Config for Test {
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeEvent = RuntimeEvent;
+	type ChannelManager = EnsureRoot<AccountId>;
+	type Currency = Balances;
+	type DefaultChannelSizeAndCapacityWithSystem = DefaultChannelSizeAndCapacityWithSystem;
+	type VersionWrapper = ();
+	type WeightInfo = parachains_hrmp::TestWeightInfo;
+}
+
+/// What the active configuration makes a recipient reserve when it accepts a channel request.
+pub const HRMP_RECIPIENT_DEPOSIT: u128 = 20;
 
 /// The registrar deposit, reserved on a para's manager.
 pub const PARA_DEPOSIT: u128 = 300;
@@ -237,8 +260,13 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	let storage = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	let mut ext = sp_io::TestExternalities::new(storage);
-	// Block 0 does not record events.
-	ext.execute_with(|| System::set_block_number(1));
+	ext.execute_with(|| {
+		// Block 0 does not record events.
+		System::set_block_number(1);
+		configuration::ActiveConfig::<Test>::mutate(|c| {
+			c.hrmp_recipient_deposit = HRMP_RECIPIENT_DEPOSIT
+		});
+	});
 	ext
 }
 
@@ -311,6 +339,76 @@ pub fn force_below_ed(who: &AccountId, free: u128) {
 pub fn register_para(id: u32, manager: &AccountId) {
 	paras_registrar::NextFreeParaId::<Test>::put(ParaId::from(id));
 	Registrar::reserve(RuntimeOrigin::signed(manager.clone())).expect("manager can reserve");
+}
+
+/// An open HRMP channel with its deposits reserved on the sovereigns, the state the channel-open
+/// handshake leaves behind. The handshake itself needs live paras and sessions.
+pub fn open_channel(sender: u32, recipient: u32, sender_deposit: u128, recipient_deposit: u128) {
+	for (para, deposit) in [(sender, sender_deposit), (recipient, recipient_deposit)] {
+		let sov = child_sov(para);
+		fund(&sov, free(&sov) + deposit + ED);
+		reserve(&sov, deposit);
+	}
+	let id = HrmpChannelId { sender: sender.into(), recipient: recipient.into() };
+	parachains_hrmp::HrmpChannels::<Test>::insert(
+		&id,
+		parachains_hrmp::HrmpChannel {
+			max_capacity: 8,
+			max_total_size: 4096,
+			max_message_size: 1024,
+			msg_count: 0,
+			total_size: 0,
+			mqc_head: None,
+			sender_deposit,
+			recipient_deposit,
+		},
+	);
+}
+
+/// A pending request to close a channel, as `hrmp_close_channel` leaves it until the next
+/// session.
+pub fn request_close(sender: u32, recipient: u32) {
+	let id = HrmpChannelId { sender: sender.into(), recipient: recipient.into() };
+	parachains_hrmp::HrmpCloseChannelRequests::<Test>::insert(&id, ());
+	parachains_hrmp::HrmpCloseChannelRequestsList::<Test>::mutate(|list| list.push(id));
+}
+
+/// A pending open-channel request with the sender's deposit reserved, as `hrmp_init_open_channel`
+/// leaves it.
+pub fn open_request(sender: u32, recipient: u32, deposit: u128) {
+	let sov = child_sov(sender);
+	fund(&sov, free(&sov) + deposit + ED);
+	reserve(&sov, deposit);
+	let id = HrmpChannelId { sender: sender.into(), recipient: recipient.into() };
+	parachains_hrmp::HrmpOpenChannelRequests::<Test>::insert(
+		&id,
+		parachains_hrmp::HrmpOpenChannelRequest {
+			confirmed: false,
+			_age: 0,
+			sender_deposit: deposit,
+			max_message_size: 1024,
+			max_capacity: 8,
+			max_total_size: 4096,
+		},
+	);
+	parachains_hrmp::HrmpOpenChannelRequestsList::<Test>::mutate(|list| list.push(id));
+	parachains_hrmp::HrmpOpenChannelRequestCount::<Test>::mutate(ParaId::from(sender), |c| *c += 1);
+}
+
+/// Accept a pending request as `hrmp_accept_open_channel` does: the recipient's deposit is
+/// reserved at the active configuration's value and recorded nowhere until the next session.
+pub fn accept_request(sender: u32, recipient: u32) {
+	let sov = child_sov(recipient);
+	fund(&sov, free(&sov) + HRMP_RECIPIENT_DEPOSIT + ED);
+	reserve(&sov, HRMP_RECIPIENT_DEPOSIT);
+	let id = HrmpChannelId { sender: sender.into(), recipient: recipient.into() };
+	parachains_hrmp::HrmpOpenChannelRequests::<Test>::mutate(&id, |request| {
+		request.as_mut().expect("request is pending").confirmed = true;
+	});
+}
+
+pub fn free(who: &AccountId) -> u128 {
+	pallet_balances::Pallet::<Test>::free_balance(who)
 }
 
 /// Reserve part of `who`'s balance the way the registrar, HRMP, proxy and multisig pallets take

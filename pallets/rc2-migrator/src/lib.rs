@@ -276,6 +276,7 @@ pub mod pallet {
 			AccountData = pallet_balances::AccountData<u128>,
 		> + pallet_balances::Config<Balance = u128>
 		+ paras_registrar::Config<Currency = pallet_balances::Pallet<Self>>
+		+ runtime_parachains::hrmp::Config
 	{
 		/// The overarching event type.
 		#[allow(deprecated)]

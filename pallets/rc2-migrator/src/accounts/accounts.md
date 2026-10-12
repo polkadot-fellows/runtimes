@@ -16,8 +16,8 @@ Every deposit on the Relay Chain is an unnamed reserve, so an account's reserve 
 |------|------|
 | Free balance | Burned here, teleported to Asset Hub as free balance of the same account. |
 | Registrar deposit, reserved on the para manager (`paras_registrar::Paras`). A record can say more than the manager has reserved. | Re-established on the Coretime chain as a `RegistrarDeposit` hold, up to what is reserved. A working buffer of free balance (`CtFreeBuffer`) follows it, so the manager can pay fees there; a remainder below the existential deposit follows too instead of being teleported. |
-| HRMP channel deposit, reserved on the para sovereign (`hrmp::HrmpChannels`) | |
-| HRMP open-channel request deposit, reserved on the sender and, once accepted, the recipient (`hrmp::HrmpOpenChannelRequests`) | |
+| HRMP channel deposit, reserved on the para sovereign (`hrmp::HrmpChannels`) | Re-established on the Coretime chain as an `HrmpDeposit` hold, under the para's sibling account, with the same buffer and rounding as a registrar deposit. A channel with a pending close request is returning its deposits anyway: they are refunded, so they leave as free balance. |
+| HRMP open-channel request deposit, reserved on the sender and, once accepted, the recipient (`hrmp::HrmpOpenChannelRequests`) | Same as a channel deposit. The recipient's is reserved at the active configuration's value and recorded only when the next session turns the request into a channel, so it is indexed at that value. |
 | Proxy deposit, reserved on the delegator; a pure proxy's deposit is reserved on the account that created it (`pallet_proxy::Proxies`) | |
 | Proxy announcement deposit, reserved on the announcer (`pallet_proxy::Announcements`) | |
 | Multisig operation deposit, reserved on the depositor (`pallet_multisig::Multisigs`) | |
@@ -29,7 +29,7 @@ Every deposit on the Relay Chain is an unnamed reserve, so an account's reserve 
 
 | Case | Rule |
 |------|------|
-| Para sovereign accounts, `para…` | Translated to the para's sibling account, `sibl…`, its address on Asset Hub and the Coretime chain. |
+| Para sovereign accounts, `para…` | Translated to the para's sibling account, `sibl…`, its address on Asset Hub and the Coretime chain. Otherwise like any account: deposits and the buffer to the Coretime chain, free balance to Asset Hub. |
 | Sovereign accounts of system paras | Translated like any para. Asset Hub's own lands on an account nothing there controls; it is to go to the sweep beneficiary instead (`TODO(ahm-v2)` in `destination`). |
 | Sibling-format accounts, `sibl…` | Pass through: the same bytes are that para's sovereign on Asset Hub. |
 | Pure proxies: nonce 0 and at least one `Any` proxy | |

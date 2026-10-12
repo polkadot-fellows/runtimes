@@ -34,9 +34,14 @@ use frame_support::{
 	BoundedVec, PalletId,
 };
 use migrator_types::{MaxPortableHolds, PortableAccount, PortableHold, PortableHoldReason};
+use polkadot_parachain_primitives::primitives::IsSystem;
 use polkadot_runtime_common::paras_registrar;
+use runtime_parachains::{configuration, hrmp};
 use scale_info::TypeInfo;
-use sp_runtime::{traits::Zero, AccountId32, DispatchError, DispatchResult, TypeId};
+use sp_runtime::{
+	traits::{AccountIdConversion, Zero},
+	AccountId32, DispatchError, DispatchResult, TypeId,
+};
 
 type NativeCurrency<T> = pallet_balances::Pallet<T>;
 type AccountInfoFor<T> = frame_system::AccountInfo<
@@ -107,10 +112,47 @@ impl<T: Config> AccountsMigrator<T> {
 		let mut records = 0;
 
 		// registrar deposits, reserved on the para manager
-		// This is unbounded but only on RC. We don't expect many records (<150) but in any case, this can
-		// only cause a slightly slower block.
+		// This is unbounded but only on RC. We don't expect many records (<150) but in any case,
+		// this can only cause a slightly slower block.
 		for (_, info) in paras_registrar::Paras::<T>::iter() {
 			Self::add_expected(info.manager, info.deposit, |e| &mut e.registrar);
+			records += 1;
+		}
+
+		// HRMP channel deposits, reserved on both sovereigns. A channel with a pending close
+		// request is on its way to returning them, so they are refunded instead.
+		for (id, channel) in hrmp::HrmpChannels::<T>::iter() {
+			let of: fn(&mut ExpectedReserve) -> &mut u128 =
+				if hrmp::HrmpCloseChannelRequests::<T>::contains_key(&id) {
+					|e| &mut e.refund
+				} else {
+					|e| &mut e.hrmp
+				};
+			Self::add_expected(id.sender.into_account_truncating(), channel.sender_deposit, of);
+			Self::add_expected(
+				id.recipient.into_account_truncating(),
+				channel.recipient_deposit,
+				of,
+			);
+			records += 1;
+		}
+
+		// HRMP open-request deposits: the sender's as recorded, and the recipient's once it has
+		// accepted, which is reserved at the active configuration's value and recorded only when
+		// the next session turns the request into a channel. Zero when either side is a system
+		// chain.
+		let recipient_deposit = configuration::ActiveConfig::<T>::get().hrmp_recipient_deposit;
+		for (id, request) in hrmp::HrmpOpenChannelRequests::<T>::iter() {
+			Self::add_expected(id.sender.into_account_truncating(), request.sender_deposit, |e| {
+				&mut e.hrmp
+			});
+			if request.confirmed && !id.sender.is_system() && !id.recipient.is_system() {
+				Self::add_expected(
+					id.recipient.into_account_truncating(),
+					recipient_deposit,
+					|e| &mut e.hrmp,
+				);
+			}
 			records += 1;
 		}
 
