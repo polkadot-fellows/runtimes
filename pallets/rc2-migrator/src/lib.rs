@@ -282,6 +282,7 @@ pub mod pallet {
 			Currency = pallet_balances::Pallet<Self>,
 			ProxyType: TryInto<PortableProxyType>,
 		> + pallet_multisig::Config<Currency = pallet_balances::Pallet<Self>>
+		+ pallet_preimage::Config
 	{
 		/// The overarching event type.
 		#[allow(deprecated)]

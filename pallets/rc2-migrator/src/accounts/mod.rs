@@ -27,9 +27,9 @@ use frame_support::{
 	ensure,
 	storage::with_storage_layer,
 	traits::{
-		fungible::{Inspect, Mutate},
+		fungible::{Inspect, Mutate, MutateHold},
 		tokens::{Fortitude, Precision, Preservation},
-		Get, ReservableCurrency,
+		Get, ReservableCurrency, StorePreimage,
 	},
 	BoundedVec, PalletId,
 };
@@ -103,19 +103,20 @@ pub struct BlockWithdrawals {
 pub struct AccountsMigrator<T>(PhantomData<T>);
 
 impl<T: Config> AccountsMigrator<T> {
-	/// Build `ExpectedReserves` from the records of the pallets that took the deposits. Returns
-	/// the number of records read.
+	/// Release the preimage deposits and build `ExpectedReserves` from the records of the pallets
+	/// that took the deposits. Returns the number of records read.
 	///
-	/// Runs in one block, from the `AccountsInit` stage. The records are a few hundred on the
-	/// relay chain, and the worst case is one slow relay-chain block. Rebuilds from scratch, so
-	/// a rewind to `AccountsInit` does not double count.
+	/// Runs once, in the `AccountsInit` block. Every loop in it, and the clear, walks a whole map
+	/// unbounded. That is acceptable here and nowhere else: this is a one-off on the relay chain,
+	/// the maps hold a few hundred records, and the worst case is one slow relay-chain block.
+	/// Rebuilds the index from scratch, so a rewind to `AccountsInit` does not double count.
 	pub fn init() -> u32 {
+		Self::release_preimage_deposits();
+
 		let _ = ExpectedReserves::<T>::clear(u32::MAX, None);
 		let mut records = 0;
 
 		// registrar deposits, reserved on the para manager
-		// This is unbounded but only on RC. We don't expect many records (<150) but in any case,
-		// this can only cause a slightly slower block.
 		for (_, info) in paras_registrar::Paras::<T>::iter() {
 			Self::add_expected(info.manager, info.deposit, |e| &mut e.registrar);
 			records += 1;
@@ -185,6 +186,30 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 
 		records
+	}
+
+	/// Release every preimage deposit. Nothing dispatches a preimage on the Relay Chain after the
+	/// migration, so the deposit has no purpose. An unrequested blob is removed; a requested one
+	/// stays for whatever requested it, with its ticket dropped. Unbounded, see [`Self::init`].
+	fn release_preimage_deposits() {
+		let with_deposit: Vec<_> = pallet_preimage::RequestStatusFor::<T>::iter()
+			.filter(|(_, status)| match status {
+				// Normally the owner gets this deposit back by unnoting the preimage, or when a
+				// request for it has been served and the request is dropped.
+				pallet_preimage::RequestStatus::Unrequested { .. } => true,
+				pallet_preimage::RequestStatus::Requested { maybe_ticket, .. } =>
+					maybe_ticket.is_some(),
+			})
+			.map(|(hash, _)| hash)
+			.collect();
+		let count = with_deposit.len();
+		for hash in with_deposit {
+			// the pallet's own path, minus the origin and ownership checks
+			<pallet_preimage::Pallet<T> as StorePreimage>::unnote(&hash);
+		}
+		if count > 0 {
+			log::info!(target: LOG_TARGET, "Released {count} preimage deposit(s)");
+		}
 	}
 
 	/// What `proxy_type` is on the Coretime chain, if anything.
@@ -288,16 +313,16 @@ impl<T: Config> AccountsMigrator<T> {
 			return Ok(None);
 		}
 
-		// TODO(ahm-v2): named holds, locks and freezes. Until they have their rule, such an
-		// account is passed over.
-		if !data.frozen.is_zero() || !pallet_balances::Holds::<T>::get(who).is_empty() {
+		// TODO(ahm-v2): locks and freezes. Until they have their rule, such an account is passed
+		// over.
+		if !data.frozen.is_zero() {
 			return Ok(None);
 		}
 
-		// Release reserves, holds and locks first, so the whole balance can be burned.
-		let holds = Self::withdraw_reserved(who, info)?;
-		Self::release_holds(who, info)?;
+		// Release holds, locks and reserves first, so the whole balance can be burned.
+		Self::release_holds(who)?;
 		Self::release_locks(who, info)?;
+		let holds = Self::withdraw_reserved(who)?;
 
 		// Burn the whole balance here. The release above may have dropped a consumer reference,
 		// so read the account again.
@@ -368,9 +393,9 @@ impl<T: Config> AccountsMigrator<T> {
 	/// explains; refunded deposits stay free.
 	fn withdraw_reserved(
 		who: &T::AccountId,
-		info: &AccountInfoFor<T>,
 	) -> Result<BoundedVec<PortableHold<u128>, MaxPortableHolds>, DispatchError> {
-		let reserved = info.data.reserved;
+		// read again: the holds released before this were counted in it
+		let reserved = frame_system::Account::<T>::get(who).data.reserved;
 		if reserved.is_zero() {
 			return Ok(BoundedVec::new());
 		}
@@ -421,9 +446,13 @@ impl<T: Config> AccountsMigrator<T> {
 		Ok(holds)
 	}
 
-	/// Named holds: preimage deposits, and leftovers from pallets that left in AHM v1.
-	// TODO(ahm-v2): not implemented; such accounts are passed over.
-	fn release_holds(_who: &T::AccountId, _info: &AccountInfoFor<T>) -> DispatchResult {
+	/// Release every named hold on `who`. Preimage deposits are released through their pallet
+	/// before the first withdrawal; what is left here is a leftover from a pallet that left in
+	/// AHM v1, and it leaves as free balance.
+	fn release_holds(who: &T::AccountId) -> DispatchResult {
+		for hold in pallet_balances::Holds::<T>::get(who) {
+			NativeCurrency::<T>::release(&hold.id, who, hold.amount, Precision::Exact)?;
+		}
 		Ok(())
 	}
 

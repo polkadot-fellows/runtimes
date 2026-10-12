@@ -12178,6 +12178,7 @@ dependencies = [
  "migrator-types",
  "pallet-balances",
  "pallet-multisig",
+ "pallet-preimage",
  "pallet-proxy",
  "parity-scale-codec",
  "polkadot-parachain-primitives",

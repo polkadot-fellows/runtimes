@@ -22,7 +22,7 @@ Every deposit on the Relay Chain is an unnamed reserve, so an account's reserve 
 | Proxy announcement deposit, reserved on the announcer (`pallet_proxy::Announcements`) | Announcements are not migrated. Refunded: leaves as free balance, reported with `DepositRefunded`. |
 | Multisig operation deposit, reserved on the depositor (`pallet_multisig::Multisigs`) | The operation cannot complete on a retired chain. Refunded: leaves as free balance, reported with `DepositRefunded`. |
 | Reserved balance that no deposit record explains | Travels to the Coretime chain as an `UnattributedReserve` hold and stays parked there, for governance to look at. Reported with `UnattributedReserve`. On Polkadot this is about 600 DOT, nearly all on the system paras' sovereigns. |
-| Named holds: preimage deposits, and leftovers from pallets that left the Relay Chain in AHM v1 (`DelegatedStaking`) | |
+| Named holds: preimage deposits, and leftovers from pallets that left the Relay Chain in AHM v1 (`DelegatedStaking`) | Preimage deposits are released when the stage starts (`AccountsInit`), through the preimage pallet: nothing dispatches a preimage on the Relay Chain after the migration, so the deposit has no purpose. An unrequested blob is removed, a requested one stays for whatever requested it. Any other named hold is released when the account is withdrawn. Both leave as free balance. |
 | Locks and freezes | |
 
 ### Accounts with a rule of their own

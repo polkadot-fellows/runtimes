@@ -21,7 +21,11 @@ use crate::{
 };
 use frame_support::{assert_noop, assert_ok, traits::ReservableCurrency};
 use migrator_types::{sibling_account, PortableHoldReason};
-use sp_runtime::{AccountId32, DispatchError::BadOrigin};
+use sp_runtime::{
+	traits::{BlakeTwo256, Hash},
+	AccountId32,
+	DispatchError::BadOrigin,
+};
 use xcm::prelude::*;
 
 type Migrator = AccountsMigrator<Test>;
@@ -148,6 +152,11 @@ fn migrate_one_account_per_case() {
 		reserve(&BOB, 40);
 		fund(&HEIDI, 500); // delegator with no portable proxy
 		add_proxy(&HEIDI, &ALICE, ProxyType::Staking);
+		fund(&MALLORY, 500); // noted a preimage
+		note_preimage(&MALLORY, vec![1, 2, 3]);
+		fund(&NIAJ, 500); // a named hold no pallet accounts for
+		stray_hold(&NIAJ, 7);
+		assert_eq!((held(&MALLORY), held(&NIAJ)), (4, 7));
 		fund(&IVAN, 500); // created a pure proxy, holds its deposit
 		let pure = create_pure(&IVAN); // the pure proxy, never signed
 		fund(&pure, 200);
@@ -175,6 +184,8 @@ fn migrate_one_account_per_case() {
 			(JUDY.clone(), 500), // the deposit was refunded
 			(LEO.clone(), 500),  // the deposit was refunded
 			(BOB.clone(), 500 - 40 - CT_FREE_BUFFER),
+			(MALLORY.clone(), 500), // the preimage deposit was released
+			(NIAJ.clone(), 500),    // the stray hold was released
 		];
 		expected.sort();
 		assert_eq!(to_ah, expected);
@@ -368,6 +379,43 @@ fn init_indexes_refunded_deposits() {
 		assert_eq!(Migrator::init(), 3);
 		assert_eq!(ExpectedReserves::<Test>::get(&JUDY).refund, ANNOUNCEMENT_DEPOSIT);
 		assert_eq!(ExpectedReserves::<Test>::get(&LEO).refund, MULTISIG_DEPOSIT);
+	});
+}
+
+#[test]
+fn init_releases_preimage_deposits() {
+	new_test_ext().execute_with(|| {
+		// GIVEN an unrequested preimage, a requested one with its owner's deposit, and a request
+		// nobody has noted a blob for.
+		fund(&MALLORY, 500);
+		let unrequested = note_preimage(&MALLORY, vec![1]);
+		let requested = note_preimage(&MALLORY, vec![2, 2]);
+		assert_ok!(Preimage::request_preimage(RuntimeOrigin::root(), requested));
+		let unnoted = BlakeTwo256::hash(&[3]);
+		assert_ok!(Preimage::request_preimage(RuntimeOrigin::root(), unnoted));
+		assert_eq!(held(&MALLORY), 2 + 3);
+
+		// WHEN the stage starts. THEN both deposits are released; the unrequested blob is gone,
+		// the requested one stays without a ticket, the unnoted request is untouched.
+		Migrator::init();
+		assert_eq!(held(&MALLORY), 0);
+		assert!(pallet_preimage::RequestStatusFor::<Test>::get(unrequested).is_none());
+		assert!(matches!(
+			pallet_preimage::RequestStatusFor::<Test>::get(requested),
+			Some(pallet_preimage::RequestStatus::Requested {
+				maybe_ticket: None,
+				maybe_len: Some(2),
+				..
+			})
+		));
+		assert!(matches!(
+			pallet_preimage::RequestStatusFor::<Test>::get(unnoted),
+			Some(pallet_preimage::RequestStatus::Requested {
+				maybe_ticket: None,
+				maybe_len: None,
+				..
+			})
+		));
 	});
 }
 

@@ -21,7 +21,8 @@ use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
-		fungible::Mutate, ConstU128, ConstU32, InstanceFilter, LockableCurrency, OnInitialize,
+		fungible::{HoldConsideration, InspectHold, Mutate, MutateHold},
+		ConstU128, ConstU32, InstanceFilter, LinearStoragePrice, LockableCurrency, OnInitialize,
 		ReservableCurrency, Time, WithdrawReasons,
 	},
 	weights::Weight,
@@ -36,7 +37,7 @@ use runtime_parachains::{
 };
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
+	traits::{AccountIdConversion, BlakeTwo256, Hash, IdentityLookup},
 	transaction_validity::TransactionPriority,
 	AccountId32, BuildStorage,
 };
@@ -61,6 +62,7 @@ frame_support::construct_runtime! {
 		Registrar: paras_registrar,
 		Proxy: pallet_proxy,
 		Multisig: pallet_multisig,
+		Preimage: pallet_preimage,
 		Rc2Migrator: pallet_rc2_migrator,
 	}
 }
@@ -245,6 +247,25 @@ impl pallet_multisig::Config for Test {
 	type BlockNumberProvider = System;
 }
 
+parameter_types! {
+	pub const PreimageHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::Preimage(pallet_preimage::HoldReason::Preimage);
+}
+
+/// A preimage deposit is `1 + len` here.
+impl pallet_preimage::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = ();
+	type Currency = Balances;
+	type ManagerOrigin = EnsureRoot<AccountId>;
+	type Consideration = HoldConsideration<
+		AccountId,
+		Balances,
+		PreimageHoldReason,
+		LinearStoragePrice<ConstU128<1>, ConstU128<1>, u128>,
+	>;
+}
+
 /// What the active configuration makes a recipient reserve when it accepts a channel request.
 pub const HRMP_RECIPIENT_DEPOSIT: u128 = 20;
 
@@ -283,6 +304,8 @@ pub const HEIDI: AccountId = AccountId32::new([10; 32]);
 pub const IVAN: AccountId = AccountId32::new([11; 32]);
 pub const JUDY: AccountId = AccountId32::new([12; 32]);
 pub const LEO: AccountId = AccountId32::new([13; 32]);
+pub const MALLORY: AccountId = AccountId32::new([14; 32]);
+pub const NIAJ: AccountId = AccountId32::new([15; 32]);
 
 /// The account behind the admin origin.
 pub const ADMIN: AccountId = AccountId32::new([2; 32]);
@@ -558,6 +581,26 @@ pub fn start_multisig(depositor: &AccountId, other: &AccountId) {
 		Weight::zero(),
 	)
 	.expect("can start a multisig operation");
+}
+
+/// Note a preimage through the real pallet, which takes the deposit as a named hold. Returns the
+/// hash.
+pub fn note_preimage(who: &AccountId, bytes: Vec<u8>) -> <Test as frame_system::Config>::Hash {
+	Preimage::note_preimage(RuntimeOrigin::signed(who.clone()), bytes.clone())
+		.expect("can note a preimage");
+	<Test as frame_system::Config>::Hashing::hash(&bytes)
+}
+
+/// A named hold no pallet accounts for any more, as a pallet that left the Relay Chain in AHM v1
+/// left behind.
+pub fn stray_hold(who: &AccountId, amount: u128) {
+	<Balances as MutateHold<AccountId>>::hold(&PreimageHoldReason::get(), who, amount)
+		.expect("can hold");
+}
+
+/// What `who` has on hold under the preimage reason.
+pub fn held(who: &AccountId) -> u128 {
+	<Balances as InspectHold<AccountId>>::balance_on_hold(&PreimageHoldReason::get(), who)
 }
 
 pub fn free(who: &AccountId) -> u128 {
