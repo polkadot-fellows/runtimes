@@ -46,7 +46,7 @@ use sp_runtime::{
 };
 
 type NativeCurrency<T> = pallet_balances::Pallet<T>;
-type AccountInfoFor<T> = frame_system::AccountInfo<
+pub type AccountInfoFor<T> = frame_system::AccountInfo<
 	<T as frame_system::Config>::Nonce,
 	pallet_balances::AccountData<u128>,
 >;
@@ -236,16 +236,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// migration, so the deposit has no purpose. An unrequested blob is removed; a requested one
 	/// stays for whatever requested it, with its ticket dropped. Unbounded, see [`Self::init`].
 	fn release_preimage_deposits() {
-		let with_deposit: Vec<_> = pallet_preimage::RequestStatusFor::<T>::iter()
-			.filter(|(_, status)| match status {
-				// Normally the owner gets this deposit back by unnoting the preimage, or when a
-				// request for it has been served and the request is dropped.
-				pallet_preimage::RequestStatus::Unrequested { .. } => true,
-				pallet_preimage::RequestStatus::Requested { maybe_ticket, .. } =>
-					maybe_ticket.is_some(),
-			})
-			.map(|(hash, _)| hash)
-			.collect();
+		let with_deposit = Self::preimage_deposits();
 		let count = with_deposit.len();
 		for hash in with_deposit {
 			// the pallet's own path, minus the origin and ownership checks
@@ -254,6 +245,20 @@ impl<T: Config> AccountsMigrator<T> {
 		if count > 0 {
 			log::info!(target: LOG_TARGET, "Released {count} preimage deposit(s)");
 		}
+	}
+
+	/// The preimages whose request status still holds a deposit. Unbounded, see [`Self::init`].
+	pub fn preimage_deposits() -> Vec<T::Hash> {
+		pallet_preimage::RequestStatusFor::<T>::iter()
+			.filter(|(_, status)| match status {
+				// Normally the owner gets this deposit back by unnoting the preimage, or when a
+				// request for it has been served and the request is dropped.
+				pallet_preimage::RequestStatus::Unrequested { .. } => true,
+				pallet_preimage::RequestStatus::Requested { maybe_ticket, .. } =>
+					maybe_ticket.is_some(),
+			})
+			.map(|(hash, _)| hash)
+			.collect()
 	}
 
 	/// What `proxy_type` is on the Coretime chain, if anything.
@@ -334,7 +339,11 @@ impl<T: Config> AccountsMigrator<T> {
 	/// Whether a later stage handles `who`: a module account (Sweep empties the pots), one below
 	/// the existential deposit (Sweep Dust reaps them), or one of the `exceptions` (the manager,
 	/// reaped at Cool Off).
-	fn deferred(who: &T::AccountId, info: &AccountInfoFor<T>, exceptions: &[T::AccountId]) -> bool {
+	pub fn deferred(
+		who: &T::AccountId,
+		info: &AccountInfoFor<T>,
+		exceptions: &[T::AccountId],
+	) -> bool {
 		Self::is_pallet_account(who) ||
 			info.data.total() < NativeCurrency::<T>::minimum_balance() ||
 			exceptions.contains(who)
@@ -516,7 +525,7 @@ impl<T: Config> AccountsMigrator<T> {
 
 	/// A pure proxy: nonce 0 and at least one `Any` proxy. A pure is always created with `Any`,
 	/// and an account that never signed cannot have been anything else.
-	fn is_pure_proxy(who: &T::AccountId, info: &AccountInfoFor<T>) -> bool {
+	pub fn is_pure_proxy(who: &T::AccountId, info: &AccountInfoFor<T>) -> bool {
 		info.nonce.is_zero() &&
 			Self::any_delegate(&pallet_proxy::Proxies::<T>::get(who).0).is_some()
 	}

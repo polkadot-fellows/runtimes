@@ -16,11 +16,13 @@
 
 //! Integration-test harness for the AHM v2 migration.
 //!
-//! The Relay Chain and the Coretime chain are loaded from snapshots of live network state and
-//! driven by hand: blocks are produced by calling the relevant hooks and DMP/UMP messages are
-//! shuttled between the chains manually. There are no nodes and no networking involved.
+//! The Relay Chain, the Coretime chain and Asset Hub are loaded from snapshots of live network
+//! state and driven by hand: blocks are produced by calling the relevant hooks and DMP/UMP messages
+//! are shuttled between the chains manually. There are no nodes and no networking involved.
 #![cfg(test)]
 
+#[cfg(any(feature = "polkadot", feature = "kusama"))]
+pub mod checks;
 #[cfg(any(feature = "polkadot", feature = "kusama"))]
 pub mod mock;
 #[cfg(any(feature = "polkadot", feature = "kusama"))]
