@@ -20,25 +20,53 @@ use crate as pallet_rc2_migrator;
 use codec::Decode;
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
-	traits::{fungible::Mutate, OnInitialize, ReservableCurrency, Time},
+	traits::{fungible::Mutate, ConstU128, OnInitialize, ReservableCurrency, Time},
 	PalletId,
 };
-use frame_system::EnsureSignedBy;
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use polkadot_parachain_primitives::primitives::Id as ParaId;
+use polkadot_runtime_common::paras_registrar;
+use runtime_parachains::{configuration, origin as parachains_origin, paras, shared};
 use sp_runtime::{
 	traits::{AccountIdConversion, IdentityLookup},
+	transaction_validity::TransactionPriority,
 	AccountId32, BuildStorage,
 };
 use xcm::prelude::*;
 
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 pub type AccountId = AccountId32;
 
+// The pallets that take deposits are the real ones, so every expected reserve in the tests is
+// placed the way the live chain placed it.
 frame_support::construct_runtime! {
 	pub enum Test {
 		System: frame_system,
 		Balances: pallet_balances,
+		Configuration: configuration,
+		ParasShared: shared,
+		Parachains: paras,
+		ParachainsOrigin: parachains_origin,
+		Registrar: paras_registrar,
 		Rc2Migrator: pallet_rc2_migrator,
+	}
+}
+
+impl<C> frame_system::offchain::CreateTransactionBase<C> for Test
+where
+	RuntimeCall: From<C>,
+{
+	type Extrinsic = UncheckedExtrinsic;
+	type RuntimeCall = RuntimeCall;
+}
+
+impl<C> frame_system::offchain::CreateBare<C> for Test
+where
+	RuntimeCall: From<C>,
+{
+	fn create_bare(call: Self::RuntimeCall) -> Self::Extrinsic {
+		UncheckedExtrinsic::new_bare(call)
 	}
 }
 
@@ -64,6 +92,52 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ExistentialDeposit;
 }
 
+// `paras_registrar` is what the tests need; it requires `paras`, which requires the rest.
+impl shared::Config for Test {
+	type DisabledValidators = ();
+}
+
+impl parachains_origin::Config for Test {}
+
+impl configuration::Config for Test {
+	type WeightInfo = configuration::TestWeightInfo;
+}
+
+parameter_types! {
+	pub const ParasUnsignedPriority: TransactionPriority = TransactionPriority::MAX;
+}
+
+impl paras::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = paras::TestWeightInfo;
+	type UnsignedPriority = ParasUnsignedPriority;
+	type QueueFootprinter = ();
+	type NextSessionRotation = ();
+	type OnNewHead = ();
+	type AssignCoretime = ();
+	type Fungible = Balances;
+	type CooldownRemovalMultiplier = ConstU128<1>;
+	type AuthorizeCurrentCodeOrigin = EnsureRoot<AccountId>;
+}
+
+/// The registrar deposit, reserved on a para's manager.
+pub const PARA_DEPOSIT: u128 = 300;
+
+parameter_types! {
+	pub const ParaDeposit: u128 = PARA_DEPOSIT;
+	pub const DataDepositPerByte: u128 = 1;
+}
+
+impl paras_registrar::Config for Test {
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type OnSwap = ();
+	type ParaDeposit = ParaDeposit;
+	type DataDepositPerByte = DataDepositPerByte;
+	type WeightInfo = paras_registrar::TestWeightInfo;
+}
+
 /// The account the mock treats as the Coretime chain's dispatch origin.
 pub const CORETIME: AccountId = AccountId32::new([5; 32]);
 
@@ -75,12 +149,15 @@ pub const BOB: AccountId = AccountId32::new([3; 32]);
 pub const CHARLIE: AccountId = AccountId32::new([4; 32]);
 pub const DAVE: AccountId = AccountId32::new([6; 32]);
 pub const EVE: AccountId = AccountId32::new([7; 32]);
+pub const FRANK: AccountId = AccountId32::new([8; 32]);
 
 /// The account behind the admin origin.
 pub const ADMIN: AccountId = AccountId32::new([2; 32]);
 
 pub const CT_PARA_ID: u32 = 1005;
 pub const AH_PARA_ID: u32 = 1000;
+/// Free balance that follows a deposit to the Coretime chain.
+pub const CT_FREE_BUFFER: u128 = 100;
 pub const WARM_UP: u64 = 4;
 pub const COOL_OFF: u64 = 10;
 /// Relay-chain block time
@@ -89,6 +166,7 @@ pub const BLOCK_TIME_MS: u64 = 6_000;
 parameter_types! {
 	pub const CtParaId: u32 = CT_PARA_ID;
 	pub const AhParaId: u32 = AH_PARA_ID;
+	pub const CtFreeBuffer: u128 = CT_FREE_BUFFER;
 
 	/// Every message the pallet successfully sent, in order.
 	pub static SentXcm: Vec<(Location, Xcm<()>)> = vec![];
@@ -146,6 +224,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type SendXcm = RecordingRouter;
 	type CtParaId = CtParaId;
 	type AhParaId = AhParaId;
+	type CtFreeBuffer = CtFreeBuffer;
 	type TimeProvider = MockTime;
 	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId>;
 	type AdminOrigin = EnsureSignedBy<AdminAccount, AccountId>;
@@ -225,6 +304,13 @@ pub fn force_below_ed(who: &AccountId, free: u128) {
 	frame_system::Pallet::<Test>::inc_providers(who);
 	frame_system::Account::<Test>::mutate(who, |a| a.data.free = free);
 	pallet_balances::TotalIssuance::<Test>::mutate(|ti| *ti += free);
+}
+
+/// Register a para through the actual registrar path, which records `PARA_DEPOSIT` against the
+/// manager and reserves it.
+pub fn register_para(id: u32, manager: &AccountId) {
+	paras_registrar::NextFreeParaId::<Test>::put(ParaId::from(id));
+	Registrar::reserve(RuntimeOrigin::signed(manager.clone())).expect("manager can reserve");
 }
 
 /// Reserve part of `who`'s balance the way the registrar, HRMP, proxy and multisig pallets take

@@ -16,11 +16,11 @@
 
 use super::*;
 use crate::{
-	mock::*, BlockLimits, Error, Event, Limits, MigratedBalances, MigrationStage,
-	RcMigratedBalance, RcMigrationStage,
+	mock::*, BlockLimits, CtMigratorCall, CtRuntimeCall, Error, Event, ExpectedReserves, Limits,
+	MigratedBalances, MigrationStage, RcMigratedBalance, RcMigrationStage,
 };
-use frame_support::{assert_noop, assert_ok};
-use migrator_types::sibling_account;
+use frame_support::{assert_noop, assert_ok, traits::ReservableCurrency};
+use migrator_types::{sibling_account, PortableHoldReason};
 use sp_runtime::{AccountId32, DispatchError::BadOrigin};
 use xcm::prelude::*;
 
@@ -33,6 +33,19 @@ fn assert_stage(expected: Stage) {
 
 fn ah_dest() -> Location {
 	Location::new(0, [Parachain(AH_PARA_ID)])
+}
+
+fn ct_dest() -> Location {
+	Location::new(0, [Parachain(CT_PARA_ID)])
+}
+
+fn reserved(who: &AccountId) -> u128 {
+	pallet_balances::Pallet::<Test>::reserved_balance(who)
+}
+
+/// `(reason, amount)` of each hold of an account sent to the Coretime chain.
+fn holds(account: &PortableAccount<AccountId, u128>) -> Vec<(PortableHoldReason, u128)> {
+	account.holds.iter().map(|h| (h.reason, h.amount)).collect()
 }
 
 /// The instruction that credits `who` on Asset Hub, as `send_teleport` builds it.
@@ -101,9 +114,14 @@ fn migrate_one_account_per_case() {
 		let eve = EVE; // referenced by another pallet
 		fund(&eve, 100);
 		add_consumer(&eve);
+		let frank = FRANK; // para manager with a registrar deposit
+		fund(&frank, 1_000);
+		register_para(2000, &frank);
+		assert_eq!((free(&frank), reserved(&frank)), (700, PARA_DEPOSIT));
 		let issuance = total_issuance();
 
-		// WHEN one block withdraws them all.
+		// WHEN the stage starts and one block withdraws them all.
+		Migrator::init();
 		let out = Migrator::migrate_many(None, &[dave.clone()]);
 		assert_eq!(out.last_key, None);
 		let mut to_ah = out.to_ah;
@@ -116,10 +134,15 @@ fn migrate_one_account_per_case() {
 			(sibling_account(2000), 100), // para sovereign, translated
 			(sibl.clone(), 100),          // sibling-format, as is
 			(eve.clone(), 100),           // referenced, drained to a shell
+			(frank.clone(), 600),         // what is left after the deposit and the buffer
 		];
 		expected.sort();
 		assert_eq!(to_ah, expected);
-		for who in [&alice, &para, &sibl] {
+		let [to_ct] = out.to_ct.as_slice() else { panic!("one account goes to Coretime") };
+		assert_eq!(to_ct.who, frank);
+		assert_eq!(to_ct.free, CT_FREE_BUFFER);
+		assert_eq!(holds(to_ct), vec![(PortableHoldReason::RegistrarDeposit, PARA_DEPOSIT)]);
+		for who in [&alice, &para, &sibl, &frank] {
 			assert!(!frame_system::Account::<Test>::contains_key(who), "{who:?} is reaped");
 		}
 		let shell = frame_system::Account::<Test>::get(&eve);
@@ -134,7 +157,9 @@ fn migrate_one_account_per_case() {
 		assert_eq!(free(&dave), 100, "the manager");
 
 		// AND what was burned is exactly what left.
-		let left: u128 = to_ah.iter().map(|(_, amount)| amount).sum();
+		let left: u128 = to_ah.iter().map(|(_, amount)| amount).sum::<u128>() +
+			to_ct.free +
+			holds(to_ct).iter().map(|(_, amount)| amount).sum::<u128>();
 		assert_eq!(total_issuance(), issuance - left);
 	});
 }
@@ -166,7 +191,7 @@ fn migrate_many_resumes_from_cursor() {
 #[test]
 fn migrate_many_skips_unhandled_accounts() {
 	new_test_ext().execute_with(|| {
-		// GIVEN a plain account and one with a reserve.
+		// GIVEN a plain account and one with a reserve no record explains.
 		fund(&ALICE, 100);
 		fund(&BOB, 100);
 		reserve(&BOB, 40);
@@ -174,9 +199,103 @@ fn migrate_many_skips_unhandled_accounts() {
 		// WHEN a block runs. THEN only the plain account is withdrawn; the other is untouched.
 		let out = Migrator::migrate_many(None, &[]);
 		assert_eq!(out.to_ah, vec![(ALICE, 100)]);
-		assert_eq!(pallet_balances::Pallet::<Test>::free_balance(&BOB), 60);
-		assert_eq!(pallet_balances::Pallet::<Test>::reserved_balance(&BOB), 40);
+		assert!(out.to_ct.is_empty());
+		assert_eq!((free(&BOB), reserved(&BOB)), (60, 40));
 		assert_eq!(total_issuance(), 100);
+	});
+}
+
+#[test]
+fn init_indexes_registrar_deposits() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a manager of two paras.
+		fund(&FRANK, 1_000);
+		register_para(2000, &FRANK);
+		register_para(2001, &FRANK);
+
+		// WHEN the index is built, twice. THEN both deposits are indexed, once.
+		assert_eq!(Migrator::init(), 2);
+		assert_eq!(Migrator::init(), 2);
+		assert_eq!(ExpectedReserves::<Test>::get(&FRANK).registrar, 2 * PARA_DEPOSIT);
+		assert_eq!(ExpectedReserves::<Test>::iter().count(), 1);
+	});
+}
+
+#[test]
+fn withdraw_attributes_up_to_the_reserve() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a manager whose record says 300 but who has only 200 reserved.
+		fund(&FRANK, 1_000);
+		register_para(2000, &FRANK);
+		<Balances as ReservableCurrency<AccountId>>::unreserve(&FRANK, 100);
+		assert_eq!((free(&FRANK), reserved(&FRANK)), (800, 200));
+
+		// WHEN withdrawn. THEN the hold is what was reserved, and the rest is free.
+		Migrator::init();
+		let out = Migrator::migrate_many(None, &[]);
+		assert_eq!(holds(&out.to_ct[0]), vec![(PortableHoldReason::RegistrarDeposit, 200)]);
+		assert_eq!(out.to_ct[0].free, CT_FREE_BUFFER);
+		assert_eq!(out.to_ah, vec![(FRANK, 700)]);
+		assert_eq!(total_issuance(), 0);
+	});
+}
+
+#[test]
+fn withdraw_rounds_dust_to_coretime() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a deposit holder whose remainder after the buffer is below the ED.
+		fund(&FRANK, PARA_DEPOSIT + CT_FREE_BUFFER + ED - 1);
+		register_para(2000, &FRANK);
+
+		// WHEN withdrawn. THEN the remainder follows the deposit instead of being teleported.
+		Migrator::init();
+		let out = Migrator::migrate_many(None, &[]);
+		assert_eq!(out.to_ct[0].free, CT_FREE_BUFFER + ED - 1);
+		assert!(out.to_ah.is_empty());
+		assert_eq!(total_issuance(), 0);
+	});
+}
+
+#[test]
+fn accounts_stage_sends_deposit_holders_to_coretime() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a manager with a deposit, and the stage about to start.
+		fund(&FRANK, 1_000);
+		register_para(2000, &FRANK);
+		RcMigrationStage::<Test>::put(Stage::AccountsInit);
+
+		// WHEN the stage runs to the end: a block to build the index, one to withdraw. THEN the
+		// Coretime chain gets the account with its hold and buffer, Asset Hub the rest, and the
+		// ledger says the same.
+		run_blocks(2);
+		assert_stage(Stage::AccountsDone);
+		let sent = sent();
+		assert_eq!(sent.len(), 2);
+		assert_eq!(sent[0].0, ct_dest());
+		let CtRuntimeCall::CtMigrator(CtMigratorCall::ReceiveAccounts { accounts }) = sent_call(0)
+		else {
+			panic!("the first message carries accounts for Coretime");
+		};
+		assert_eq!(accounts.len(), 1);
+		assert_eq!(accounts[0].who, FRANK);
+		assert_eq!(accounts[0].free, CT_FREE_BUFFER);
+		assert_eq!(holds(&accounts[0]), vec![(PortableHoldReason::RegistrarDeposit, PARA_DEPOSIT)]);
+		assert_eq!(sent[1].0, ah_dest());
+		assert!(sent[1].1 .0.contains(&deposit(FRANK, 600)));
+		assert!(System::events()
+			.iter()
+			.any(|r| r.event == RuntimeEvent::Rc2Migrator(Event::AccountsBatchSent { count: 1 })));
+		assert_eq!(
+			RcMigratedBalance::<Test>::get(),
+			MigratedBalances {
+				kept: 0,
+				ct_reserved: PARA_DEPOSIT,
+				ct_free: CT_FREE_BUFFER,
+				ah_free: 600,
+				ti_corrected: 0
+			}
+		);
+		assert_eq!(ExpectedReserves::<Test>::iter().count(), 0);
 	});
 }
 

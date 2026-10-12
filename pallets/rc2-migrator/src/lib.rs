@@ -51,7 +51,9 @@ use frame_support::{
 	traits::{EnsureOrigin, Time},
 };
 use frame_system::pallet_prelude::*;
+use migrator_types::PortableAccount;
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
+use polkadot_runtime_common::paras_registrar;
 use sp_runtime::AccountId32;
 use xcm::prelude::*;
 
@@ -254,6 +256,9 @@ pub enum CtMigratorCall {
 	StartMigration,
 	#[codec(index = 1)]
 	EndLockdown,
+	// 2 and 3 are `force_set_stage` and `set_manager`, which the relay chain never sends.
+	#[codec(index = 4)]
+	ReceiveAccounts { accounts: Vec<PortableAccount<AccountId32, u128>> },
 }
 
 #[frame_support::pallet]
@@ -270,6 +275,7 @@ pub mod pallet {
 			AccountId = AccountId32,
 			AccountData = pallet_balances::AccountData<u128>,
 		> + pallet_balances::Config<Balance = u128>
+		+ paras_registrar::Config<Currency = pallet_balances::Pallet<Self>>
 	{
 		/// The overarching event type.
 		#[allow(deprecated)]
@@ -283,6 +289,11 @@ pub mod pallet {
 
 		/// Para id of Asset Hub, where free balance is teleported to.
 		type AhParaId: Get<u32>;
+
+		/// Free balance that follows a migrated deposit to the Coretime chain, so the owner can
+		/// pay fees there without a teleport first.
+		#[pallet::constant]
+		type CtFreeBuffer: Get<u128>;
 
 		/// Wall clock that [`MigrationStage::Scheduled`] is compared against, so a schedule set
 		/// weeks ahead does not drift with block times.
@@ -310,6 +321,12 @@ pub mod pallet {
 	/// Per-block limits of the data stages.
 	#[pallet::storage]
 	pub type Limits<T: Config> = StorageValue<_, BlockLimits, ValueQuery>;
+
+	/// What each account's reserved balance is made of, from the records of the pallets that took
+	/// the deposits. Built when the accounts stage starts, consumed as accounts are withdrawn.
+	#[pallet::storage]
+	pub type ExpectedReserves<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, accounts::ExpectedReserve, ValueQuery>;
 
 	/// The duration of the pre migration warm-up period.
 	///
@@ -369,6 +386,8 @@ pub mod pallet {
 		NotPaused,
 		/// A limit must be at least one.
 		ZeroLimit,
+		/// The account's balance could not be withdrawn whole.
+		FailedToWithdrawAccount,
 	}
 
 	#[pallet::event]
@@ -404,6 +423,8 @@ pub mod pallet {
 		/// validator's account, which its session keys reference. Its record stays; the balance
 		/// leaves like any other account's.
 		AccountShellDrained { who: T::AccountId, amount: u128 },
+		/// A batch of withdrawn accounts was sent to the Coretime chain.
+		AccountsBatchSent { count: u32 },
 	}
 
 	#[pallet::hooks]
@@ -633,8 +654,11 @@ pub mod pallet {
 							..Default::default()
 						});
 					}
+					let records = accounts::AccountsMigrator::<T>::init();
 					Self::transition(MigrationStage::AccountsOngoing { last_key: None });
-					T::DbWeight::get().reads_writes(2, 2)
+					T::DbWeight::get().reads_writes(2, 2).saturating_add(
+						T::DbWeight::get().reads_writes(records.into(), records.into()),
+					)
 				},
 				MigrationStage::AccountsOngoing { last_key } => {
 					// The block's withdrawals and sends commit or roll back together, so a failed
@@ -655,6 +679,8 @@ pub mod pallet {
 				// transitions: each boundary is a visible `StageTransition` event the migration
 				// monitor keys on, and a clean force-set target for rewinding a single stage.
 				MigrationStage::AccountsDone => {
+					// Records with nothing reserved behind them are all that is left.
+					let _ = ExpectedReserves::<T>::clear(u32::MAX, None);
 					Self::transition(MigrationStage::ProxyInit);
 					T::DbWeight::get().reads_writes(1, 1)
 				},
@@ -742,23 +768,41 @@ pub mod pallet {
 		) -> Result<Option<T::AccountId>, DispatchError> {
 			// withdraw
 			let manager = Manager::<T>::get();
-			let accounts::BlockWithdrawals { to_ah, last_key } =
+			let accounts::BlockWithdrawals { to_ct, to_ah, last_key } =
 				accounts::AccountsMigrator::<T>::migrate_many(last_key, manager.as_slice());
 
 			// book what left
+			let ct_reserved: u128 = to_ct.iter().flat_map(|a| &a.holds).map(|h| h.amount).sum();
+			let ct_free: u128 = to_ct.iter().map(|a| a.free).sum();
 			let ah_free: u128 = to_ah.iter().map(|(_, amount)| amount).sum();
+			let burned = ct_reserved.saturating_add(ct_free).saturating_add(ah_free);
 			RcMigratedBalance::<T>::mutate(|migrated| {
-				defensive_assert!(migrated.kept >= ah_free, "burned more than is kept");
-				migrated.kept = migrated.kept.saturating_sub(ah_free);
+				defensive_assert!(migrated.kept >= burned, "burned more than is kept");
+				migrated.kept = migrated.kept.saturating_sub(burned);
+				migrated.ct_reserved = migrated.ct_reserved.saturating_add(ct_reserved);
+				migrated.ct_free = migrated.ct_free.saturating_add(ct_free);
 				migrated.ah_free = migrated.ah_free.saturating_add(ah_free);
 			});
 
 			// send
 			let per_xcm = Limits::<T>::get().items_per_xcm.max(1) as usize;
+			for chunk in to_ct.chunks(per_xcm) {
+				Self::send_accounts(chunk.to_vec())?;
+			}
 			for chunk in to_ah.chunks(per_xcm) {
 				Self::send_teleport(chunk.to_vec())?;
 			}
 			Ok(last_key)
+		}
+
+		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.
+		fn send_accounts(
+			accounts: Vec<PortableAccount<AccountId32, u128>>,
+		) -> Result<(), Error<T>> {
+			let count = accounts.len() as u32;
+			Self::send_to_ct(CtMigratorCall::ReceiveAccounts { accounts })?;
+			Self::deposit_event(Event::AccountsBatchSent { count });
+			Ok(())
 		}
 
 		/// Teleport free balances to their owners on Asset Hub.

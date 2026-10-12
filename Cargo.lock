@@ -12179,6 +12179,8 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
+ "polkadot-runtime-common",
+ "polkadot-runtime-parachains",
  "scale-info",
  "sp-io 48.0.0",
  "sp-runtime 48.0.0",

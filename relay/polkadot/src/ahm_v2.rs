@@ -27,10 +27,11 @@ use crate::{
 use frame_support::{parameter_types, traits::Equals};
 use frame_system::EnsureRoot;
 use pallet_xcm::EnsureXcm;
-use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
+use polkadot_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
 
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
+	pub const CtFreeBuffer: u128 = UNITS;
 }
 
 impl pallet_rc2_migrator::Config for Runtime {
@@ -38,6 +39,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type SendXcm = XcmRouter;
 	type CtParaId = BrokerId;
 	type AhParaId = AhParaId;
+	type CtFreeBuffer = CtFreeBuffer;
 	type TimeProvider = Timestamp;
 	type CtOrigin = EnsureXcm<Equals<CoretimeLocation>>;
 	type AdminOrigin = EnsureRoot<AccountId>;

@@ -10,10 +10,12 @@ Each row is one case this stage handles; the rule is filled in as the case is im
 
 ### Balances
 
+Every deposit on the Relay Chain is an unnamed reserve, so an account's reserve does not say which deposits it is made of. When the stage starts, the deposits the pallets record are indexed per account (`ExpectedReserves`), and each account's reserve is attributed in the order of the rows below. A reserve that covers less than the records goes to the deposits that continue first.
+
 | Case | Rule |
 |------|------|
 | Free balance | Burned here, teleported to Asset Hub as free balance of the same account. |
-| Registrar deposit, reserved on the para manager (`paras_registrar::Paras`). A record can say more than the manager has reserved. | |
+| Registrar deposit, reserved on the para manager (`paras_registrar::Paras`). A record can say more than the manager has reserved. | Re-established on the Coretime chain as a `RegistrarDeposit` hold, up to what is reserved. A working buffer of free balance (`CtFreeBuffer`) follows it, so the manager can pay fees there; a remainder below the existential deposit follows too instead of being teleported. |
 | HRMP channel deposit, reserved on the para sovereign (`hrmp::HrmpChannels`) | |
 | HRMP open-channel request deposit, reserved on the sender and, once accepted, the recipient (`hrmp::HrmpOpenChannelRequests`) | |
 | Proxy deposit, reserved on the delegator; a pure proxy's deposit is reserved on the account that created it (`pallet_proxy::Proxies`) | |
