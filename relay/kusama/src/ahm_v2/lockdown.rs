@@ -199,7 +199,7 @@ mod tests {
 		test_utils::{every_call, CallName},
 		MigrationStageOf, RcMigrationStage,
 	};
-	use sp_runtime::traits::Dispatchable;
+	use sp_runtime::{traits::Dispatchable, DispatchError};
 	use xcm::latest::prelude::*;
 	use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
