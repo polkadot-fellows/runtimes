@@ -105,21 +105,21 @@ pub fn call_allowed_status(call: &RuntimeCall) -> (bool, bool) {
 		// Only the `enter` inherent.
 		ParaInherent(..) => (ON, ON),
 		Paras(
-			parachains_paras::Call::include_pvf_check_statement { .. }
-			| parachains_paras::Call::apply_authorized_force_set_current_code { .. },
+			parachains_paras::Call::include_pvf_check_statement { .. } |
+			parachains_paras::Call::apply_authorized_force_set_current_code { .. },
 		) => (ON, ON),
 		ParasSlashing(parachains_slashing::Call::report_dispute_lost_unsigned { .. }) => (ON, ON),
 		// The Coretime chain only. `request_revenue_at` lets it claim the on-demand revenue earned
 		// before the start.
 		Coretime(
-			runtime_parachains::coretime::Call::request_core_count { .. }
-			| runtime_parachains::coretime::Call::request_revenue_at { .. }
-			| runtime_parachains::coretime::Call::assign_core { .. },
+			runtime_parachains::coretime::Call::request_core_count { .. } |
+			runtime_parachains::coretime::Call::request_revenue_at { .. } |
+			runtime_parachains::coretime::Call::assign_core { .. },
 		) => (ON, ON),
 		Beefy(
-			pallet_beefy::Call::report_double_voting_unsigned { .. }
-			| pallet_beefy::Call::report_fork_voting_unsigned { .. }
-			| pallet_beefy::Call::report_future_block_voting_unsigned { .. },
+			pallet_beefy::Call::report_double_voting_unsigned { .. } |
+			pallet_beefy::Call::report_fork_voting_unsigned { .. } |
+			pallet_beefy::Call::report_future_block_voting_unsigned { .. },
 		) => (ON, ON),
 		// Checks its own origins; drives the migration.
 		Rc2Migrator(..) => (ON, ON),
