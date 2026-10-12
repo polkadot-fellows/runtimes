@@ -22,11 +22,20 @@
 
 use crate::{
 	xcm_config::{Broker, XcmRouter},
-	AccountId, BrokerId, Runtime, RuntimeEvent, Timestamp,
+	AccountId, BrokerId, Runtime, RuntimeCall, RuntimeEvent, Timestamp,
 };
-use frame_support::traits::Equals;
+use alloc::{vec, vec::Vec};
+use frame_support::{
+	parameter_types,
+	traits::{ConstU32, Equals},
+};
 use frame_system::EnsureRoot;
 use pallet_xcm::EnsureXcm;
+
+parameter_types! {
+	// TODO(ahm-v2): the members, once governance names them.
+	pub MultisigMembers: Vec<AccountId> = vec![];
+}
 
 impl pallet_rc2_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -35,6 +44,11 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type TimeProvider = Timestamp;
 	type CtOrigin = EnsureXcm<Equals<Broker>>;
 	type AdminOrigin = EnsureRoot<AccountId>;
+	type RuntimeCall = RuntimeCall;
+	type MultisigMembers = MultisigMembers;
+	type MultisigThreshold = ConstU32<3>;
+	type MultisigMaxVotesPerRound = ConstU32<10>;
+	type MultisigStartRound = ConstU32<200>;
 }
 
 #[cfg(test)]
