@@ -35,8 +35,9 @@ pub fn genesis() -> Storage {
 		balances: bulletin_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances()
 				.into_iter()
-				.chain([AccumulateForwardAccount::get()])
 				.map(|k| (k, ENDOWMENT))
+				// Only the ED, as on chain: endowing it would forward on the first idle block.
+				.chain([(AccumulateForwardAccount::get(), ED)])
 				.collect(),
 			dev_accounts: None,
 		},

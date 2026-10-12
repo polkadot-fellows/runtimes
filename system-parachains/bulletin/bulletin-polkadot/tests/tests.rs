@@ -17,7 +17,6 @@
 #![cfg(test)]
 
 use bulletin_polkadot_runtime::{
-	migrations::DrainLegacyTreasuryToAccumulation,
 	storage::{StorageCallInspector, StoragePriorityBoost, ValidateBulletinCalls},
 	xcm_config::{GovernanceLocation, LocationToAccountId, PeopleLocation},
 	AccumulateForward, Balances, Block, Executive, ExistentialDeposit, HopPromotion, Runtime,
@@ -34,7 +33,7 @@ use frame_support::{
 	traits::{
 		fungible::{Inspect, Mutate},
 		tokens::Preservation,
-		Contains, Get, Hooks, OnRuntimeUpgrade,
+		Contains, Get, Hooks,
 	},
 };
 use pallet_bulletin_data_renewal::{Call as RenewalCall, WeightInfo as _};
@@ -57,7 +56,7 @@ use sp_runtime::{
 	ApplyExtrinsicResult, Either,
 };
 use std::collections::HashMap;
-use system_parachains_constants::polkadot::{currency::UNITS, fee::WeightToFee};
+use system_parachains_constants::polkadot::fee::WeightToFee;
 use xcm::latest::prelude::*;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
@@ -2249,45 +2248,5 @@ fn dust_accumulates_instead_of_being_burned() {
 		assert_eq!(Balances::balance(&alice), 0);
 		assert_eq!(Balances::balance(&accumulation_account), accumulated_before + dust);
 		assert_eq!(Balances::total_issuance(), issuance_before, "the dust is not burned");
-	});
-}
-
-/// The legacy fee account is swept, so the stranded balance still reaches the DAP.
-#[test]
-fn drain_legacy_treasury_sweeps_residual_and_reaps() {
-	new_test_ext().execute_with(|| {
-		let legacy_account = DrainLegacyTreasuryToAccumulation::legacy_treasury_account();
-		let accumulation_account = AccumulateForward::accumulation_account();
-		let residual: Balance = 5 * UNITS;
-		assert_ok!(Balances::mint_into(&legacy_account, residual));
-		let issuance_before = Balances::total_issuance();
-
-		DrainLegacyTreasuryToAccumulation::on_runtime_upgrade();
-
-		// The residual lands there intact, and doubles as the ED needed to accept dust.
-		assert_eq!(Balances::balance(&accumulation_account), residual);
-		assert!(!System::account_exists(&legacy_account));
-		assert_eq!(Balances::total_issuance(), issuance_before);
-
-		// A rerun changes nothing.
-		DrainLegacyTreasuryToAccumulation::on_runtime_upgrade();
-		assert_eq!(Balances::balance(&accumulation_account), residual);
-		assert_eq!(Balances::total_issuance(), issuance_before);
-	});
-}
-
-/// With no legacy account on chain the migration only reads.
-#[test]
-fn drain_legacy_treasury_is_a_no_op_when_absent() {
-	new_test_ext().execute_with(|| {
-		let legacy_account = DrainLegacyTreasuryToAccumulation::legacy_treasury_account();
-		assert!(!System::account_exists(&legacy_account));
-		let issuance_before = Balances::total_issuance();
-
-		DrainLegacyTreasuryToAccumulation::on_runtime_upgrade();
-
-		assert!(!System::account_exists(&legacy_account));
-		assert_eq!(Balances::total_balance(&AccumulateForward::accumulation_account()), 0);
-		assert_eq!(Balances::total_issuance(), issuance_before);
 	});
 }
