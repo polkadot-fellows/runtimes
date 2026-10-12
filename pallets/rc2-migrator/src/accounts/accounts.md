@@ -19,8 +19,8 @@ Every deposit on the Relay Chain is an unnamed reserve, so an account's reserve 
 | HRMP channel deposit, reserved on the para sovereign (`hrmp::HrmpChannels`) | Re-established on the Coretime chain as an `HrmpDeposit` hold, under the para's sibling account, with the same buffer and rounding as a registrar deposit. A channel with a pending close request is returning its deposits anyway: they are refunded, so they leave as free balance. |
 | HRMP open-channel request deposit, reserved on the sender and, once accepted, the recipient (`hrmp::HrmpOpenChannelRequests`) | Same as a channel deposit. The recipient's is reserved at the active configuration's value and recorded only when the next session turns the request into a channel, so it is indexed at that value. |
 | Proxy deposit, reserved on the delegator; a pure proxy's deposit is reserved on the account that created it (`pallet_proxy::Proxies`) | A set with at least one permission that has a meaning on the Coretime chain (the runtime decides which, with `TryFrom<ProxyType> for PortableProxyType`) continues there as a `ProxyDeposit` hold, buffer and rounding as above. A set with none is refunded: it leaves as free balance, reported with `DepositRefunded`. A pure proxy's deposit is indexed under its creator: the delegator never signed, has an `Any` delegate, and its own reserve does not cover it. |
-| Proxy announcement deposit, reserved on the announcer (`pallet_proxy::Announcements`) | |
-| Multisig operation deposit, reserved on the depositor (`pallet_multisig::Multisigs`) | |
+| Proxy announcement deposit, reserved on the announcer (`pallet_proxy::Announcements`) | Announcements are not migrated. Refunded: leaves as free balance, reported with `DepositRefunded`. |
+| Multisig operation deposit, reserved on the depositor (`pallet_multisig::Multisigs`) | The operation cannot complete on a retired chain. Refunded: leaves as free balance, reported with `DepositRefunded`. |
 | Reserved balance that no deposit record explains | |
 | Named holds: preimage deposits, and leftovers from pallets that left the Relay Chain in AHM v1 (`DelegatedStaking`) | |
 | Locks and freezes | |

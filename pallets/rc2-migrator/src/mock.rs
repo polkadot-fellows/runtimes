@@ -24,6 +24,7 @@ use frame_support::{
 		fungible::Mutate, ConstU128, ConstU32, InstanceFilter, OnInitialize, ReservableCurrency,
 		Time,
 	},
+	weights::Weight,
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
@@ -59,6 +60,7 @@ frame_support::construct_runtime! {
 		ParachainsOrigin: parachains_origin,
 		Registrar: paras_registrar,
 		Proxy: pallet_proxy,
+		Multisig: pallet_multisig,
 		Rc2Migrator: pallet_rc2_migrator,
 	}
 }
@@ -198,8 +200,8 @@ pub const PROXY_DEPOSIT_FACTOR: u128 = 4;
 parameter_types! {
 	pub const ProxyDepositBase: u128 = PROXY_DEPOSIT_BASE;
 	pub const ProxyDepositFactor: u128 = PROXY_DEPOSIT_FACTOR;
-	pub const AnnouncementDepositBase: u128 = 25;
-	pub const AnnouncementDepositFactor: u128 = 6;
+	pub const AnnouncementDepositBase: u128 = ANNOUNCEMENT_DEPOSIT_BASE;
+	pub const AnnouncementDepositFactor: u128 = ANNOUNCEMENT_DEPOSIT_FACTOR;
 }
 
 impl pallet_proxy::Config for Test {
@@ -215,6 +217,31 @@ impl pallet_proxy::Config for Test {
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = AnnouncementDepositBase;
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
+	type BlockNumberProvider = System;
+}
+
+/// What an announcement costs: `ANNOUNCEMENT_DEPOSIT_BASE + ANNOUNCEMENT_DEPOSIT_FACTOR` for the
+/// first.
+pub const ANNOUNCEMENT_DEPOSIT_BASE: u128 = 25;
+pub const ANNOUNCEMENT_DEPOSIT_FACTOR: u128 = 6;
+
+/// What a multisig operation costs: `MULTISIG_DEPOSIT_BASE + threshold * MULTISIG_DEPOSIT_FACTOR`.
+pub const MULTISIG_DEPOSIT_BASE: u128 = 30;
+pub const MULTISIG_DEPOSIT_FACTOR: u128 = 5;
+
+parameter_types! {
+	pub const MultisigDepositBase: u128 = MULTISIG_DEPOSIT_BASE;
+	pub const MultisigDepositFactor: u128 = MULTISIG_DEPOSIT_FACTOR;
+}
+
+impl pallet_multisig::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type Currency = Balances;
+	type DepositBase = MultisigDepositBase;
+	type DepositFactor = MultisigDepositFactor;
+	type MaxSignatories = ConstU32<5>;
+	type WeightInfo = ();
 	type BlockNumberProvider = System;
 }
 
@@ -254,6 +281,8 @@ pub const FRANK: AccountId = AccountId32::new([8; 32]);
 pub const GRACE: AccountId = AccountId32::new([9; 32]);
 pub const HEIDI: AccountId = AccountId32::new([10; 32]);
 pub const IVAN: AccountId = AccountId32::new([11; 32]);
+pub const JUDY: AccountId = AccountId32::new([12; 32]);
+pub const LEO: AccountId = AccountId32::new([13; 32]);
 
 /// The account behind the admin origin.
 pub const ADMIN: AccountId = AccountId32::new([2; 32]);
@@ -508,6 +537,27 @@ pub fn create_pure(creator: &AccountId) -> AccountId {
 			_ => None,
 		})
 		.expect("a pure was created")
+}
+
+/// Announce a proxied call through the real pallet, which reserves the deposit on the announcer.
+/// `announcer` must already be a proxy of `real`.
+pub fn announce(announcer: &AccountId, real: &AccountId) {
+	Proxy::announce(RuntimeOrigin::signed(announcer.clone()), real.clone(), Default::default())
+		.expect("can announce");
+}
+
+/// Start a 2-of-2 multisig operation through the real pallet, which reserves the deposit on the
+/// depositor.
+pub fn start_multisig(depositor: &AccountId, other: &AccountId) {
+	Multisig::approve_as_multi(
+		RuntimeOrigin::signed(depositor.clone()),
+		2,
+		vec![other.clone()],
+		None,
+		[1; 32],
+		Weight::zero(),
+	)
+	.expect("can start a multisig operation");
 }
 
 pub fn free(who: &AccountId) -> u128 {

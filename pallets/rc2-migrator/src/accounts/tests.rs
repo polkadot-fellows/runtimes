@@ -38,6 +38,10 @@ const REQUEST_RECIPIENT: u32 = 2004;
 const REQUEST_DEPOSIT: u128 = 30;
 /// What one proxy definition costs on the relay chain.
 const PROXY_DEPOSIT: u128 = PROXY_DEPOSIT_BASE + PROXY_DEPOSIT_FACTOR;
+/// What one announcement costs.
+const ANNOUNCEMENT_DEPOSIT: u128 = ANNOUNCEMENT_DEPOSIT_BASE + ANNOUNCEMENT_DEPOSIT_FACTOR;
+/// What a 2-of-2 multisig operation costs.
+const MULTISIG_DEPOSIT: u128 = MULTISIG_DEPOSIT_BASE + 2 * MULTISIG_DEPOSIT_FACTOR;
 type Stage = MigrationStage<AccountId, u64, u64>;
 
 fn assert_stage(expected: Stage) {
@@ -134,7 +138,12 @@ fn migrate_one_account_per_case() {
 		open_request(REQUEST_SENDER, REQUEST_RECIPIENT, REQUEST_DEPOSIT);
 		accept_request(REQUEST_SENDER, REQUEST_RECIPIENT);
 		fund(&GRACE, 500); // delegator with a portable proxy
-		add_proxy(&GRACE, &ALICE, ProxyType::NonTransfer);
+		add_proxy(&GRACE, &JUDY, ProxyType::NonTransfer);
+		fund(&JUDY, 500); // her delegate, with an announcement pending
+		announce(&JUDY, &GRACE);
+		fund(&LEO, 500); // depositor of a multisig operation
+		start_multisig(&LEO, &ALICE);
+		assert_eq!((reserved(&JUDY), reserved(&LEO)), (ANNOUNCEMENT_DEPOSIT, MULTISIG_DEPOSIT));
 		fund(&HEIDI, 500); // delegator with no portable proxy
 		add_proxy(&HEIDI, &ALICE, ProxyType::Staking);
 		fund(&IVAN, 500); // created a pure proxy, holds its deposit
@@ -161,6 +170,8 @@ fn migrate_one_account_per_case() {
 			(GRACE.clone(), 500 - PROXY_DEPOSIT - CT_FREE_BUFFER),
 			(HEIDI.clone(), 500), // the deposit was refunded
 			(IVAN.clone(), 500 - PROXY_DEPOSIT - CT_FREE_BUFFER),
+			(JUDY.clone(), 500), // the deposit was refunded
+			(LEO.clone(), 500),  // the deposit was refunded
 		];
 		expected.sort();
 		assert_eq!(to_ah, expected);
@@ -188,11 +199,12 @@ fn migrate_one_account_per_case() {
 				"{who:?}"
 			);
 		}
-		assert!(System::events().iter().any(|r| r.event ==
-			RuntimeEvent::Rc2Migrator(Event::DepositRefunded {
-				who: HEIDI.clone(),
-				amount: PROXY_DEPOSIT
-			})));
+		for (who, amount) in
+			[(HEIDI, PROXY_DEPOSIT), (JUDY, ANNOUNCEMENT_DEPOSIT), (LEO, MULTISIG_DEPOSIT)]
+		{
+			let refunded = RuntimeEvent::Rc2Migrator(Event::DepositRefunded { who, amount });
+			assert!(System::events().iter().any(|r| r.event == refunded));
+		}
 		// the pure goes to Coretime whole, where its delegate keeps control
 		let pure_ct = to_ct(&out, &pure);
 		assert_eq!((pure_ct.free, holds(pure_ct)), (200, vec![]));
@@ -328,6 +340,24 @@ fn init_indexes_proxy_deposits() {
 		assert_eq!(expected(&BOB), (PROXY_DEPOSIT + PROXY_DEPOSIT_FACTOR, 0));
 		assert_eq!(expected(&IVAN), (PROXY_DEPOSIT, 0));
 		assert_eq!(expected(&pure), (0, 0));
+	});
+}
+
+#[test]
+fn init_indexes_refunded_deposits() {
+	new_test_ext().execute_with(|| {
+		// GIVEN an announcement and a multisig operation.
+		for who in [&GRACE, &JUDY, &LEO] {
+			fund(who, 500);
+		}
+		add_proxy(&GRACE, &JUDY, ProxyType::NonTransfer);
+		announce(&JUDY, &GRACE);
+		start_multisig(&LEO, &ALICE);
+
+		// WHEN the index is built. THEN both deposits are refunds, under who reserved them.
+		assert_eq!(Migrator::init(), 3);
+		assert_eq!(ExpectedReserves::<Test>::get(&JUDY).refund, ANNOUNCEMENT_DEPOSIT);
+		assert_eq!(ExpectedReserves::<Test>::get(&LEO).refund, MULTISIG_DEPOSIT);
 	});
 }
 

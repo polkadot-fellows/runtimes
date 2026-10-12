@@ -170,6 +170,20 @@ impl<T: Config> AccountsMigrator<T> {
 			records += 1;
 		}
 
+		// Proxy announcements are not migrated: the deposit, reserved on the announcer, is
+		// refunded.
+		for (announcer, (_, deposit)) in pallet_proxy::Announcements::<T>::iter() {
+			Self::add_expected(announcer, deposit, |e| &mut e.refund);
+			records += 1;
+		}
+
+		// Multisig operations cannot complete on a retired chain: the deposit, reserved on the
+		// depositor, is refunded.
+		for (_, _, op) in pallet_multisig::Multisigs::<T>::iter() {
+			Self::add_expected(op.depositor, op.deposit, |e| &mut e.refund);
+			records += 1;
+		}
+
 		records
 	}
 
