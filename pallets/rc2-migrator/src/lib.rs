@@ -400,6 +400,10 @@ pub mod pallet {
 		},
 		/// A batch of free balances was teleported to Asset Hub.
 		AccountsTeleported { count: u32, amount: u128 },
+		/// An account another pallet references was drained to a zero-balance shell: a
+		/// validator's account, which its session keys reference. Its record stays; the balance
+		/// leaves like any other account's.
+		AccountShellDrained { who: T::AccountId, amount: u128 },
 	}
 
 	#[pallet::hooks]

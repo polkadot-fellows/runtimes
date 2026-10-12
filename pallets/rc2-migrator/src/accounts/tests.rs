@@ -98,6 +98,9 @@ fn migrate_one_account_per_case() {
 		fund(&para, 100);
 		let sibl: AccountId = sibling_account(3000); // sibling-format account
 		fund(&sibl, 100);
+		let eve = EVE; // referenced by another pallet
+		fund(&eve, 100);
+		add_consumer(&eve);
 		let issuance = total_issuance();
 
 		// WHEN one block withdraws them all.
@@ -112,12 +115,20 @@ fn migrate_one_account_per_case() {
 			(alice.clone(), 100),         // free balance
 			(sibling_account(2000), 100), // para sovereign, translated
 			(sibl.clone(), 100),          // sibling-format, as is
+			(eve.clone(), 100),           // referenced, drained to a shell
 		];
 		expected.sort();
 		assert_eq!(to_ah, expected);
 		for who in [&alice, &para, &sibl] {
 			assert!(!frame_system::Account::<Test>::contains_key(who), "{who:?} is reaped");
 		}
+		let shell = frame_system::Account::<Test>::get(&eve);
+		assert_eq!((shell.data.free, shell.consumers), (0, 1), "the shell stays, empty");
+		assert!(System::events().iter().any(|r| r.event ==
+			RuntimeEvent::Rc2Migrator(Event::AccountShellDrained {
+				who: eve.clone(),
+				amount: 100
+			})));
 		assert_eq!(free(&pot), 100, "module account");
 		assert_eq!(free(&charlie), ED - 1, "below the existential deposit");
 		assert_eq!(free(&dave), 100, "the manager");

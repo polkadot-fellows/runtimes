@@ -19,7 +19,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{Config, Limits, LOG_TARGET};
+use crate::{Config, Event, Limits, Pallet, LOG_TARGET};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use frame_support::{
@@ -163,12 +163,18 @@ impl<T: Config> AccountsMigrator<T> {
 
 	/// An account another pallet references (validators' session keys): the record stays as a
 	/// zero-balance shell, the balance leaves like any other.
-	// TODO(ahm-v2): not implemented; such accounts are passed over.
+	///
+	/// The fungible API keeps the existential deposit of an account it cannot reap, so the
+	/// balance is written directly and the issuance adjusted to match.
 	fn drain_to_shell(
-		_who: &T::AccountId,
-		_info: &AccountInfoFor<T>,
+		who: &T::AccountId,
+		info: &AccountInfoFor<T>,
 	) -> Result<Option<u128>, DispatchError> {
-		Ok(None)
+		let free = info.data.free;
+		frame_system::Account::<T>::mutate(who, |a| a.data.free = 0);
+		pallet_balances::TotalIssuance::<T>::mutate(|ti| *ti = ti.saturating_sub(free));
+		Pallet::<T>::deposit_event(Event::AccountShellDrained { who: who.clone(), amount: free });
+		Ok(Some(free))
 	}
 
 	/// A pure proxy: nonce 0 and at least one `Any` proxy.

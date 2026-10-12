@@ -31,7 +31,7 @@ Each row is one case this stage handles; the rule is filled in as the case is im
 | Sovereign accounts of system paras | Translated like any para. Asset Hub's own lands on an account nothing there controls; it is to go to the sweep beneficiary instead (`TODO(ahm-v2)` in `destination`). |
 | Sibling-format accounts, `sibl…` | Pass through: the same bytes are that para's sovereign on Asset Hub. |
 | Pure proxies: nonce 0 and at least one `Any` proxy | |
-| Accounts another pallet references through a consumer reference (validators' session keys) | |
+| Accounts another pallet references through a consumer reference (validators' session keys) | Drained to a zero-balance shell: the record stays, the balance leaves like any other account's. Reported with `AccountShellDrained`. |
 | Module accounts, `modl…` | Not withdrawn here. Sweep empties the pots. |
 | Accounts below the existential deposit | Not withdrawn here. Sweep Dust reaps them. |
 | The migration manager | Not withdrawn here. It pays for the calls that drive the migration and is reaped at Cool Off. |

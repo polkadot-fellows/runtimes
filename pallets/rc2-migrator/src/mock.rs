@@ -74,6 +74,7 @@ pub const ALICE: AccountId = AccountId32::new([1; 32]);
 pub const BOB: AccountId = AccountId32::new([3; 32]);
 pub const CHARLIE: AccountId = AccountId32::new([4; 32]);
 pub const DAVE: AccountId = AccountId32::new([6; 32]);
+pub const EVE: AccountId = AccountId32::new([7; 32]);
 
 /// The account behind the admin origin.
 pub const ADMIN: AccountId = AccountId32::new([2; 32]);
@@ -200,6 +201,11 @@ pub fn sent_call(n: usize) -> crate::CtRuntimeCall {
 /// Give `who` exactly `amount` of free balance.
 pub fn fund(who: &AccountId, amount: u128) {
 	<Balances as Mutate<AccountId>>::set_balance(who, amount);
+}
+
+/// Reference `who` from another pallet, as session keys do for a validator.
+pub fn add_consumer(who: &AccountId) {
+	frame_system::Pallet::<Test>::inc_consumers(who).unwrap();
 }
 
 /// A para's sovereign account on the Relay Chain, `para` + id.
