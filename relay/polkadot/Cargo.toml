@@ -142,8 +142,8 @@ polkadot-ahm = [
 
 ahm-v2 = []
 std = [
-	"pallet-rc-migrator/std",
 	"migrator-types/std",
+	"pallet-rc-migrator/std",
 	"pallet-rc2-migrator/std",
 
 	"authority-discovery-primitives/std",

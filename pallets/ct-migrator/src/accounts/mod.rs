@@ -58,10 +58,8 @@ impl<T: Config> Pallet<T> {
 		Self::deposit_event(Event::AccountsReceived { count_good, count_bad });
 	}
 
-	/// Mint one account and place its holds. Returns the amount minted.
-	///
-	/// Holds are best effort: the existential deposit stays free, and what the balance cannot
-	/// cover stays free with it.
+	/// Mint one account and place its holds. Returns the amount minted. The existential deposit
+	/// stays free; a hold takes what is left up to its amount.
 	fn do_receive_account(account: &PortableAccountOf<T>) -> Result<BalanceOf<T>, DispatchError> {
 		let who = &account.who;
 		let held = account
@@ -87,8 +85,8 @@ impl<T: Config> Pallet<T> {
 		Ok(minted)
 	}
 
-	/// Park a failed account. Two relay accounts can land on the same address here (a child
-	/// sovereign and a stray sibling-format one), so a second failure merges into the first.
+	/// Park a failed account. A child sovereign and a sibling-format account of the same para
+	/// land on one address, so a second failure merges into the first.
 	fn park(account: PortableAccountOf<T>) {
 		let who = account.who.clone();
 		let Some(mut parked) = FailedAccounts::<T>::get(&who) else {

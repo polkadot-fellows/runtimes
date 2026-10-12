@@ -75,8 +75,7 @@ const LOG_TARGET: &str = "runtime::rc2-migrator";
 	MaxEncodedLen,
 )]
 pub struct BlockLimits {
-	/// Items per message. A teleport to Asset Hub carries one `DepositAsset` instruction per
-	/// item, and an XCM message decodes at most 100 instructions, two of which are the header.
+	/// Items per message, at most [`Self::MAX_ITEMS_PER_XCM`].
 	pub items_per_xcm: u32,
 	/// Messages sent per block.
 	pub xcm_per_block: u32,
@@ -91,6 +90,10 @@ impl Default for BlockLimits {
 }
 
 impl BlockLimits {
+	/// An XCM decodes at most 100 instructions, and a teleport to Asset Hub spends two on its
+	/// header and one per item.
+	pub const MAX_ITEMS_PER_XCM: u32 = 98;
+
 	/// Items moved per block: as many as its messages carry.
 	pub fn items_per_block(&self) -> u32 {
 		self.items_per_xcm.saturating_mul(self.xcm_per_block)
@@ -391,8 +394,8 @@ pub mod pallet {
 		AlreadyPaused,
 		/// The migration is not paused.
 		NotPaused,
-		/// A limit must be at least one.
-		ZeroLimit,
+		/// A limit is zero, or `items_per_xcm` is above [`BlockLimits::MAX_ITEMS_PER_XCM`].
+		BadLimits,
 		/// The account's balance could not be withdrawn whole.
 		FailedToWithdrawAccount,
 	}
@@ -426,17 +429,17 @@ pub mod pallet {
 		},
 		/// A batch of free balances was teleported to Asset Hub.
 		AccountsTeleported { count: u32, amount: u128 },
-		/// An account another pallet references was drained to a zero-balance shell: a
-		/// validator's account, which its session keys reference. Its record stays; the balance
-		/// leaves like any other account's.
+		/// An account another pallet references (a validator's session keys) was drained to a
+		/// zero-balance shell.
 		AccountShellDrained { who: T::AccountId, amount: u128 },
+		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
+		/// retry it.
+		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
 		/// A batch of withdrawn accounts was sent to the Coretime chain.
 		AccountsBatchSent { count: u32 },
-		/// A deposit whose purpose ends with the Relay Chain was released; it leaves as free
-		/// balance.
+		/// A deposit with no purpose after the migration was released; it leaves as free balance.
 		DepositRefunded { who: T::AccountId, amount: u128 },
-		/// An account had reserve that no deposit record explains. It goes to the Coretime chain
-		/// under its own hold reason and stays parked there.
+		/// Reserve that no deposit record explains; it is parked on the Coretime chain.
 		UnattributedReserve { who: T::AccountId, amount: u128 },
 	}
 
@@ -607,7 +610,11 @@ pub mod pallet {
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn set_limits(origin: OriginFor<T>, limits: BlockLimits) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
-			ensure!(limits.items_per_xcm > 0 && limits.xcm_per_block > 0, Error::<T>::ZeroLimit);
+			ensure!(
+				(1..=BlockLimits::MAX_ITEMS_PER_XCM).contains(&limits.items_per_xcm) &&
+					limits.xcm_per_block > 0,
+				Error::<T>::BadLimits
+			);
 			Limits::<T>::put(limits);
 			Ok(())
 		}
@@ -659,8 +666,7 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::AccountsInit => {
-					// `RcMigratedBalance` starts with the whole issuance kept here. Set once; a
-					// rewind to this stage keeps it.
+					// Set once: a rewind to this stage keeps what was booked so far.
 					if !RcMigratedBalance::<T>::exists() {
 						RcMigratedBalance::<T>::put(MigratedBalances {
 							kept: pallet_balances::TotalIssuance::<T>::get(),
@@ -674,8 +680,7 @@ pub mod pallet {
 					)
 				},
 				MigrationStage::AccountsOngoing { last_key } => {
-					// The block's withdrawals and sends commit or roll back together, so a failed
-					// send never leaves balance burned but unsent.
+					// Withdrawals and sends commit or roll back together.
 					match with_storage_layer(|| Self::migrate_accounts_block(last_key)) {
 						Ok(None) => Self::transition(MigrationStage::AccountsDone),
 						Ok(last_key) =>
@@ -692,7 +697,7 @@ pub mod pallet {
 				// transitions: each boundary is a visible `StageTransition` event the migration
 				// monitor keys on, and a clean force-set target for rewinding a single stage.
 				MigrationStage::AccountsDone => {
-					// Records with nothing reserved behind them are all that is left.
+					// What is left are records with nothing reserved behind them.
 					let _ = ExpectedReserves::<T>::clear(u32::MAX, None);
 					Self::transition(MigrationStage::ProxyInit);
 					T::DbWeight::get().reads_writes(1, 1)
@@ -818,10 +823,11 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Teleport free balances to their owners on Asset Hub.
-		// TODO(ahm-v2): get this reviewed by xcm experts
+		/// Teleport free balances to their owners on Asset Hub. Every amount is at least the
+		/// existential deposit here, which is above Asset Hub's, so each deposit endows its
+		/// account.
 		fn send_teleport(beneficiaries: Vec<(T::AccountId, u128)>) -> Result<(), Error<T>> {
-			// From Asset Hub's perspective the native token is the parent's asset.
+			// the native token, as Asset Hub names it
 			let native = |amount: u128| Asset {
 				id: AssetId(Location::parent()),
 				fun: Fungibility::Fungible(amount),
@@ -842,7 +848,7 @@ pub mod pallet {
 				});
 			}
 
-			// the total is teleported in, then split by the deposits
+			// teleport the total in, then split it
 			let mut message = vec![
 				UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 				ReceiveTeleportedAsset(native(total).into()),

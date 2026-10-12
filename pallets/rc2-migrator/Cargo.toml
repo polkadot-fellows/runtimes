@@ -19,7 +19,6 @@ pallet-multisig = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
-# Is it okay for a pallet to depend on runtime parachains? Seems weird or?ß
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 sp-runtime = { workspace = true }

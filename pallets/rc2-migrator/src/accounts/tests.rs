@@ -147,7 +147,7 @@ fn migrate_one_account_per_case() {
 
 		// WHEN the stage starts and one block withdraws them all.
 		Migrator::init();
-		let out = Migrator::migrate_many(None, &[DAVE.clone()]);
+		let out = Migrator::migrate_many(None, core::slice::from_ref(&DAVE));
 		assert_eq!(out.last_key, None);
 		let mut to_ah = out.to_ah.clone();
 		// sorting just to make it easier to assert
@@ -597,17 +597,20 @@ fn accounts_stage_retries_a_block_whose_send_failed() {
 }
 
 #[test]
-fn set_limits_checks_origin_and_zero() {
+fn set_limits_checks_origin_and_range() {
 	new_test_ext().execute_with(|| {
 		let limits = BlockLimits { items_per_xcm: 2, xcm_per_block: 2 };
 		assert_noop!(Rc2Migrator::set_limits(RuntimeOrigin::signed(ALICE), limits), BadOrigin);
-		assert_noop!(
-			Rc2Migrator::set_limits(
-				RuntimeOrigin::signed(ADMIN),
-				BlockLimits { items_per_xcm: 0, ..limits }
-			),
-			Error::<Test>::ZeroLimit
-		);
+		for bad in [
+			BlockLimits { items_per_xcm: 0, ..limits },
+			BlockLimits { xcm_per_block: 0, ..limits },
+			BlockLimits { items_per_xcm: BlockLimits::MAX_ITEMS_PER_XCM + 1, ..limits },
+		] {
+			assert_noop!(
+				Rc2Migrator::set_limits(RuntimeOrigin::signed(ADMIN), bad),
+				Error::<Test>::BadLimits
+			);
+		}
 		assert_ok!(Rc2Migrator::set_limits(RuntimeOrigin::signed(ADMIN), limits));
 		assert_eq!(Limits::<Test>::get(), limits);
 	});

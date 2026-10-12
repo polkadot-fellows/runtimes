@@ -166,8 +166,7 @@ pub mod pallet {
 		ProxyDeposit,
 		/// Relay Chain reserve that no pallet's deposit records accounted for. Parked here for
 		/// investigation. Nothing was allowed to stay behind on the Relay Chain.
-		// TODO(ahm-v2): (maybe) a root call that releases this hold, so governance can return it to
-		// the owner after looking at it.
+		// TODO(ahm-v2): a root call that releases this hold, for governance to return it.
 		#[codec(index = 3)]
 		UnattributedReserve,
 	}
@@ -186,8 +185,8 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
-	/// Accounts that could not be minted, parked as received for recovery after the migration.
-	/// Each is balance the relay chain burned and this chain did not mint.
+	/// Accounts that could not be minted, parked as received. Each is balance the relay chain
+	/// burned and this chain did not mint.
 	#[pallet::storage]
 	pub type FailedAccounts<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, accounts::PortableAccountOf<T>, OptionQuery>;
