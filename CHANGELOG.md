@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Bulletin Polkadot: dust from reaped accounts and XCM delivery fees now accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub instead of being burnt or left in a locally derived `py/trsry` account this chain has no Treasury pallet to spend from, so the reduction is accounted where DOT issuance is tracked ([#1319](https://github.com/polkadot-fellows/runtimes/pull/1319)).
+- Bulletin Polkadot: dust and XCM delivery fees now accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub, instead of being burnt or stranded locally ([#1319](https://github.com/polkadot-fellows/runtimes/pull/1319)).
 - Asset Hub, Bridge Hub, Coretime and People Polkadot & Kusama, Collectives Polkadot, Bulletin Polkadot and Encointer: `pallet_session::set_keys` now holds a deposit priced with `system_para_deposit` so a first registration needs free balance of at least ED plus the deposit. Keys registered before this change stay deposit-free ([#1310](https://github.com/polkadot-fellows/runtimes/pull/1310)).
 - Coretime Kusama: bulk revenue now accumulates with dust and is burnt on Asset Hub through `pallet-accumulate-and-forward`, and a migration retires the `py/ctbrn` holding account ([#1301](https://github.com/polkadot-fellows/runtimes/pull/1301)).
 - Kusama relay: dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1289](https://github.com/polkadot-fellows/runtimes/pull/1289)).

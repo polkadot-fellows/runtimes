@@ -25,6 +25,7 @@ pub type Unreleased = (
 	// xcmp-queue storage v6 -> v7 (SDK stable2606-1).
 	cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 	cumulus_pallet_parachain_system::migration::Migration<Runtime>,
+	EnsureAccumulationAccountFunded,
 );
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
@@ -34,11 +35,11 @@ pub type Permanent = (
 		Runtime,
 		pallet_bulletin_transaction_storage::DefaultRetentionPeriod,
 	>,
-	EnsureAccumulationAccountFunded,
 );
 
 /// Fails `try-runtime` while the accumulation account lacks the ED, without which dust and XCM
-/// fees resolve into nothing and burn. It is funded out of band, so a miss has to be loud.
+/// fees resolve into nothing and burn. One-off: it is keyless and the pallet preserves the ED on
+/// every forward, so once funded out of band it cannot drop back below.
 pub struct EnsureAccumulationAccountFunded;
 
 impl OnRuntimeUpgrade for EnsureAccumulationAccountFunded {
