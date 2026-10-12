@@ -434,6 +434,9 @@ pub mod pallet {
 		/// A deposit whose purpose ends with the Relay Chain was released; it leaves as free
 		/// balance.
 		DepositRefunded { who: T::AccountId, amount: u128 },
+		/// An account had reserve that no deposit record explains. It goes to the Coretime chain
+		/// under its own hold reason and stays parked there.
+		UnattributedReserve { who: T::AccountId, amount: u128 },
 	}
 
 	#[pallet::hooks]

@@ -21,7 +21,7 @@ Every deposit on the Relay Chain is an unnamed reserve, so an account's reserve 
 | Proxy deposit, reserved on the delegator; a pure proxy's deposit is reserved on the account that created it (`pallet_proxy::Proxies`) | A set with at least one permission that has a meaning on the Coretime chain (the runtime decides which, with `TryFrom<ProxyType> for PortableProxyType`) continues there as a `ProxyDeposit` hold, buffer and rounding as above. A set with none is refunded: it leaves as free balance, reported with `DepositRefunded`. A pure proxy's deposit is indexed under its creator: the delegator never signed, has an `Any` delegate, and its own reserve does not cover it. |
 | Proxy announcement deposit, reserved on the announcer (`pallet_proxy::Announcements`) | Announcements are not migrated. Refunded: leaves as free balance, reported with `DepositRefunded`. |
 | Multisig operation deposit, reserved on the depositor (`pallet_multisig::Multisigs`) | The operation cannot complete on a retired chain. Refunded: leaves as free balance, reported with `DepositRefunded`. |
-| Reserved balance that no deposit record explains | |
+| Reserved balance that no deposit record explains | Travels to the Coretime chain as an `UnattributedReserve` hold and stays parked there, for governance to look at. Reported with `UnattributedReserve`. On Polkadot this is about 600 DOT, nearly all on the system paras' sovereigns. |
 | Named holds: preimage deposits, and leftovers from pallets that left the Relay Chain in AHM v1 (`DelegatedStaking`) | |
 | Locks and freezes | |
 

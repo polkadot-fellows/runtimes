@@ -364,7 +364,8 @@ impl<T: Config> AccountsMigrator<T> {
 	}
 
 	/// Release `who`'s reserve and attribute it to the deposits recorded for the account.
-	/// Returns the holds that continue on the Coretime chain; refunded deposits stay free.
+	/// Returns the holds that continue on the Coretime chain, including what no record
+	/// explains; refunded deposits stay free.
 	fn withdraw_reserved(
 		who: &T::AccountId,
 		info: &AccountInfoFor<T>,
@@ -394,9 +395,14 @@ impl<T: Config> AccountsMigrator<T> {
 		if !refund.is_zero() {
 			Pallet::<T>::deposit_event(Event::DepositRefunded { who: who.clone(), amount: refund });
 		}
-		// TODO(ahm-v2): reserve that no record explains becomes an `UnattributedReserve` hold.
-		// Until then the account is passed over.
-		ensure!(remainder.is_zero(), Error::<T>::FailedToWithdrawAccount);
+		// What no record explains travels too, parked on the Coretime chain under its own reason.
+		let unattributed = remainder;
+		if !unattributed.is_zero() {
+			Pallet::<T>::deposit_event(Event::UnattributedReserve {
+				who: who.clone(),
+				amount: unattributed,
+			});
+		}
 
 		// one hold per reason, so the bound holds by construction
 		let mut holds = BoundedVec::new();
@@ -404,6 +410,7 @@ impl<T: Config> AccountsMigrator<T> {
 			(PortableHoldReason::RegistrarDeposit, registrar),
 			(PortableHoldReason::HrmpDeposit, hrmp),
 			(PortableHoldReason::ProxyDeposit, proxy),
+			(PortableHoldReason::UnattributedReserve, unattributed),
 		] {
 			if !amount.is_zero() {
 				holds

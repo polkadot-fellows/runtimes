@@ -144,6 +144,8 @@ fn migrate_one_account_per_case() {
 		fund(&LEO, 500); // depositor of a multisig operation
 		start_multisig(&LEO, &ALICE);
 		assert_eq!((reserved(&JUDY), reserved(&LEO)), (ANNOUNCEMENT_DEPOSIT, MULTISIG_DEPOSIT));
+		fund(&BOB, 500); // reserve that no record explains
+		reserve(&BOB, 40);
 		fund(&HEIDI, 500); // delegator with no portable proxy
 		add_proxy(&HEIDI, &ALICE, ProxyType::Staking);
 		fund(&IVAN, 500); // created a pure proxy, holds its deposit
@@ -172,11 +174,12 @@ fn migrate_one_account_per_case() {
 			(IVAN.clone(), 500 - PROXY_DEPOSIT - CT_FREE_BUFFER),
 			(JUDY.clone(), 500), // the deposit was refunded
 			(LEO.clone(), 500),  // the deposit was refunded
+			(BOB.clone(), 500 - 40 - CT_FREE_BUFFER),
 		];
 		expected.sort();
 		assert_eq!(to_ah, expected);
 		// deposit holders: the deposit as a hold, the free part (here only the ED) with it
-		assert_eq!(out.to_ct.len(), 8);
+		assert_eq!(out.to_ct.len(), 9);
 		let frank_ct = to_ct(&out, &FRANK);
 		assert_eq!(frank_ct.free, CT_FREE_BUFFER);
 		assert_eq!(holds(frank_ct), vec![(PortableHoldReason::RegistrarDeposit, PARA_DEPOSIT)]);
@@ -205,6 +208,13 @@ fn migrate_one_account_per_case() {
 			let refunded = RuntimeEvent::Rc2Migrator(Event::DepositRefunded { who, amount });
 			assert!(System::events().iter().any(|r| r.event == refunded));
 		}
+		// what no record explains is parked on Coretime under its own reason
+		let bob_ct = to_ct(&out, &BOB);
+		assert_eq!(bob_ct.free, CT_FREE_BUFFER);
+		assert_eq!(holds(bob_ct), vec![(PortableHoldReason::UnattributedReserve, 40)]);
+		let unattributed =
+			RuntimeEvent::Rc2Migrator(Event::UnattributedReserve { who: BOB, amount: 40 });
+		assert!(System::events().iter().any(|r| r.event == unattributed));
 		// the pure goes to Coretime whole, where its delegate keeps control
 		let pure_ct = to_ct(&out, &pure);
 		assert_eq!((pure_ct.free, holds(pure_ct)), (200, vec![]));
@@ -259,16 +269,16 @@ fn migrate_many_resumes_from_cursor() {
 #[test]
 fn migrate_many_skips_unhandled_accounts() {
 	new_test_ext().execute_with(|| {
-		// GIVEN a plain account and one with a reserve no record explains.
+		// GIVEN a plain account and one with a lock.
 		fund(&ALICE, 100);
 		fund(&BOB, 100);
-		reserve(&BOB, 40);
+		lock(&BOB, 40);
 
 		// WHEN a block runs. THEN only the plain account is withdrawn; the other is untouched.
 		let out = Migrator::migrate_many(None, &[]);
 		assert_eq!(out.to_ah, vec![(ALICE, 100)]);
 		assert!(out.to_ct.is_empty());
-		assert_eq!((free(&BOB), reserved(&BOB)), (60, 40));
+		assert_eq!(free(&BOB), 100);
 		assert_eq!(total_issuance(), 100);
 	});
 }

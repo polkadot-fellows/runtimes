@@ -21,8 +21,8 @@ use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
-		fungible::Mutate, ConstU128, ConstU32, InstanceFilter, OnInitialize, ReservableCurrency,
-		Time,
+		fungible::Mutate, ConstU128, ConstU32, InstanceFilter, LockableCurrency, OnInitialize,
+		ReservableCurrency, Time, WithdrawReasons,
 	},
 	weights::Weight,
 	PalletId,
@@ -562,6 +562,16 @@ pub fn start_multisig(depositor: &AccountId, other: &AccountId) {
 
 pub fn free(who: &AccountId) -> u128 {
 	pallet_balances::Pallet::<Test>::free_balance(who)
+}
+
+/// Lock part of `who`'s balance, as staking and vesting did before they left the Relay Chain.
+pub fn lock(who: &AccountId, amount: u128) {
+	<Balances as LockableCurrency<AccountId>>::set_lock(
+		*b"testlock",
+		who,
+		amount,
+		WithdrawReasons::all(),
+	);
 }
 
 /// Reserve part of `who`'s balance the way the registrar, HRMP, proxy and multisig pallets take
