@@ -27,9 +27,9 @@ Each row is one case this stage handles; the rule is filled in as the case is im
 
 | Case | Rule |
 |------|------|
-| Para sovereign accounts, `para…` | |
-| Sovereign accounts of system paras | |
-| Sibling-format accounts, `sibl…` | |
+| Para sovereign accounts, `para…` | Translated to the para's sibling account, `sibl…`, its address on Asset Hub and the Coretime chain. |
+| Sovereign accounts of system paras | Translated like any para. Asset Hub's own lands on an account nothing there controls; it is to go to the sweep beneficiary instead (`TODO(ahm-v2)` in `destination`). |
+| Sibling-format accounts, `sibl…` | Pass through: the same bytes are that para's sovereign on Asset Hub. |
 | Pure proxies: nonce 0 and at least one `Any` proxy | |
 | Accounts another pallet references through a consumer reference (validators' session keys) | |
 | Module accounts, `modl…` | Not withdrawn here. Sweep empties the pots. |

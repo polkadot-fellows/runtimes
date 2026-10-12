@@ -24,6 +24,7 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::EnsureSignedBy;
+use polkadot_parachain_primitives::primitives::Id as ParaId;
 use sp_runtime::{
 	traits::{AccountIdConversion, IdentityLookup},
 	AccountId32, BuildStorage,
@@ -199,6 +200,11 @@ pub fn sent_call(n: usize) -> crate::CtRuntimeCall {
 /// Give `who` exactly `amount` of free balance.
 pub fn fund(who: &AccountId, amount: u128) {
 	<Balances as Mutate<AccountId>>::set_balance(who, amount);
+}
+
+/// A para's sovereign account on the Relay Chain, `para` + id.
+pub fn child_sov(para: u32) -> AccountId {
+	ParaId::from(para).into_account_truncating()
 }
 
 /// A pallet (module) account, `modl` + pallet id.

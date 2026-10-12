@@ -12175,6 +12175,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "migrator-types",
  "pallet-balances",
  "parity-scale-codec",
  "polkadot-parachain-primitives",

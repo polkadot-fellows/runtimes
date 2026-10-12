@@ -186,11 +186,14 @@ impl<T: Config> AccountsMigrator<T> {
 		Ok(None)
 	}
 
-	/// The account `who`'s balance lands on: `para…` sovereigns become `sibl…`, `sibl…` passes
-	/// through, and system paras' own sovereigns go to the sweep beneficiary.
-	// TODO(ahm-v2): not implemented; every account keeps its address.
+	/// The account `who`'s balance lands on: a para's sovereign is `para…` here and `sibl…` on
+	/// Asset Hub and the Coretime chain; every other account keeps its address.
+	// TODO(ahm-v2): Asset Hub's own sovereign (`para` + 1000) lands on `sibl` + 1000 on Asset
+	// Hub, which nothing there controls. Send it to the sweep beneficiary instead. It holds DOT
+	// here from HRMP channel deposits made before system channels became deposit-free, and from
+	// whatever was sent to it since.
 	fn destination(who: &T::AccountId) -> T::AccountId {
-		who.clone()
+		migrator_types::translate_destination(who)
 	}
 
 	/// Whether `who` is a pallet (module) account, `modl` + pallet id.
