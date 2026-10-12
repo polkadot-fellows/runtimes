@@ -21,9 +21,13 @@ use codec::Decode;
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{fungible::Mutate, OnInitialize, ReservableCurrency, Time},
+	PalletId,
 };
 use frame_system::EnsureSignedBy;
-use sp_runtime::{traits::IdentityLookup, AccountId32, BuildStorage};
+use sp_runtime::{
+	traits::{AccountIdConversion, IdentityLookup},
+	AccountId32, BuildStorage,
+};
 use xcm::prelude::*;
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -67,6 +71,8 @@ pub const ALICE: AccountId = AccountId32::new([1; 32]);
 
 /// Somebody else
 pub const BOB: AccountId = AccountId32::new([3; 32]);
+pub const CHARLIE: AccountId = AccountId32::new([4; 32]);
+pub const DAVE: AccountId = AccountId32::new([6; 32]);
 
 /// The account behind the admin origin.
 pub const ADMIN: AccountId = AccountId32::new([2; 32]);
@@ -193,6 +199,20 @@ pub fn sent_call(n: usize) -> crate::CtRuntimeCall {
 /// Give `who` exactly `amount` of free balance.
 pub fn fund(who: &AccountId, amount: u128) {
 	<Balances as Mutate<AccountId>>::set_balance(who, amount);
+}
+
+/// A pallet (module) account, `modl` + pallet id.
+pub fn pallet_account() -> AccountId {
+	PalletId(*b"mock/pot").into_account_truncating()
+}
+
+/// Replicates an account below the existential deposit: the balances pallet refuses to create
+/// one, but they exist on chain, kept alive by another pallet's provider reference.
+pub fn force_below_ed(who: &AccountId, free: u128) {
+	assert!(free < ED);
+	frame_system::Pallet::<Test>::inc_providers(who);
+	frame_system::Account::<Test>::mutate(who, |a| a.data.free = free);
+	pallet_balances::TotalIssuance::<Test>::mutate(|ti| *ti += free);
 }
 
 /// Reserve part of `who`'s balance the way the registrar, HRMP, proxy and multisig pallets take

@@ -73,8 +73,6 @@ const LOG_TARGET: &str = "runtime::rc2-migrator";
 	MaxEncodedLen,
 )]
 pub struct BlockLimits {
-	/// Items moved per block.
-	pub items_per_block: u32,
 	/// Items per message. A teleport to Asset Hub carries one `DepositAsset` instruction per
 	/// item, and an XCM message decodes at most 100 instructions, two of which are the header.
 	pub items_per_xcm: u32,
@@ -86,7 +84,14 @@ impl Default for BlockLimits {
 	// TODO(ahm-v2): take the values from the benchmarks. These are guesses; v1 moved 1,600 items
 	// and sent 10 messages a block.
 	fn default() -> Self {
-		Self { items_per_block: 300, items_per_xcm: 40, xcm_per_block: 10 }
+		Self { items_per_xcm: 40, xcm_per_block: 10 }
+	}
+}
+
+impl BlockLimits {
+	/// Items moved per block: as many as its messages carry.
+	pub fn items_per_block(&self) -> u32 {
+		self.items_per_xcm.saturating_mul(self.xcm_per_block)
 	}
 }
 
@@ -564,10 +569,7 @@ pub mod pallet {
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn set_limits(origin: OriginFor<T>, limits: BlockLimits) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
-			ensure!(
-				limits.items_per_block > 0 && limits.items_per_xcm > 0 && limits.xcm_per_block > 0,
-				Error::<T>::ZeroLimit
-			);
+			ensure!(limits.items_per_xcm > 0 && limits.xcm_per_block > 0, Error::<T>::ZeroLimit);
 			Limits::<T>::put(limits);
 			Ok(())
 		}
@@ -643,7 +645,7 @@ pub mod pallet {
 					}
 					T::DbWeight::get()
 						.reads_writes(4, 4)
-						.saturating_mul(Limits::<T>::get().items_per_block.into())
+						.saturating_mul(Limits::<T>::get().items_per_block().into())
 				},
 				// The `*Done` stages are one-block checkpoints rather than direct `*Init`
 				// transitions: each boundary is a visible `StageTransition` event the migration
@@ -735,8 +737,9 @@ pub mod pallet {
 			last_key: Option<T::AccountId>,
 		) -> Result<Option<T::AccountId>, DispatchError> {
 			// withdraw
+			let manager = Manager::<T>::get();
 			let accounts::BlockWithdrawals { to_ah, last_key } =
-				accounts::AccountsMigrator::<T>::migrate_many(last_key);
+				accounts::AccountsMigrator::<T>::migrate_many(last_key, manager.as_slice());
 
 			// book what left
 			let ah_free: u128 = to_ah.iter().map(|(_, amount)| amount).sum();

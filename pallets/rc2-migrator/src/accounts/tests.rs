@@ -69,6 +69,10 @@ fn total_issuance() -> u128 {
 	pallet_balances::TotalIssuance::<Test>::get()
 }
 
+fn free(who: &AccountId) -> u128 {
+	pallet_balances::Pallet::<Test>::free_balance(who)
+}
+
 /// The `i`th of many accounts.
 fn account(i: u32) -> AccountId {
 	let mut id = [0u8; 32];
@@ -81,20 +85,29 @@ fn account(i: u32) -> AccountId {
 fn migrate_one_account_per_case() {
 	new_test_ext().execute_with(|| {
 		// GIVEN one account per case.
-		let alice = ALICE; // 1: free balance
+		let alice = ALICE; // free balance
 		fund(&alice, 100);
+		let pot = pallet_account(); // module account
+		fund(&pot, 100);
+		let charlie = CHARLIE; // below the existential deposit
+		force_below_ed(&charlie, ED - 1);
+		let dave = DAVE; // the manager
+		fund(&dave, 100);
 		let issuance = total_issuance();
 
 		// WHEN one block withdraws them all.
-		let out = Migrator::migrate_many(None);
+		let out = Migrator::migrate_many(None, &[dave.clone()]);
 		assert_eq!(out.last_key, None);
 		let mut to_ah = out.to_ah;
 		// sorting just to make it easier to assert
 		to_ah.sort();
 
 		// THEN each lands where its row says.
-		assert_eq!(to_ah, vec![(alice.clone(), 100)], "case 1");
-		assert!(!frame_system::Account::<Test>::contains_key(&alice), "case 1");
+		assert_eq!(to_ah, vec![(alice.clone(), 100)], "free balance");
+		assert!(!frame_system::Account::<Test>::contains_key(&alice), "free balance");
+		assert_eq!(free(&pot), 100, "module account");
+		assert_eq!(free(&charlie), ED - 1, "below the existential deposit");
+		assert_eq!(free(&dave), 100, "the manager");
 
 		// AND what was burned is exactly what left.
 		let left: u128 = to_ah.iter().map(|(_, amount)| amount).sum();
@@ -106,20 +119,20 @@ fn migrate_one_account_per_case() {
 fn migrate_many_resumes_from_cursor() {
 	new_test_ext().execute_with(|| {
 		// GIVEN a limit of 3 accounts a block, and 4 accounts.
-		Limits::<Test>::put(BlockLimits { items_per_block: 3, ..Default::default() });
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 3, xcm_per_block: 1 });
 		for i in 0..4 {
 			fund(&account(i), 100);
 		}
 		assert_eq!(total_issuance(), 400);
 
 		// WHEN the first block runs. THEN it withdraws 3 and leaves a cursor.
-		let first = Migrator::migrate_many(None);
+		let first = Migrator::migrate_many(None, &[]);
 		assert_eq!(first.to_ah.len(), 3);
 		assert_eq!(total_issuance(), 100);
 		let last_key = first.last_key.expect("one account is left");
 
 		// WHEN the next block continues after the cursor. THEN it withdraws the rest.
-		let second = Migrator::migrate_many(Some(last_key));
+		let second = Migrator::migrate_many(Some(last_key), &[]);
 		assert_eq!(second.to_ah.len(), 1);
 		assert_eq!(second.last_key, None);
 		assert_eq!(total_issuance(), 0);
@@ -135,7 +148,7 @@ fn migrate_many_skips_unhandled_accounts() {
 		reserve(&BOB, 40);
 
 		// WHEN a block runs. THEN only the plain account is withdrawn; the other is untouched.
-		let out = Migrator::migrate_many(None);
+		let out = Migrator::migrate_many(None, &[]);
 		assert_eq!(out.to_ah, vec![(ALICE, 100)]);
 		assert_eq!(pallet_balances::Pallet::<Test>::free_balance(&BOB), 60);
 		assert_eq!(pallet_balances::Pallet::<Test>::reserved_balance(&BOB), 40);
@@ -191,9 +204,9 @@ fn accounts_stage_teleports_to_asset_hub() {
 #[test]
 fn accounts_stage_sends_in_chunks_and_resumes() {
 	new_test_ext().execute_with(|| {
-		// GIVEN 7 accounts of 100, limits of 5 accounts a block, 2 per message and 2 messages a
-		// block, and the stage initialised.
-		Limits::<Test>::put(BlockLimits { items_per_block: 5, items_per_xcm: 2, xcm_per_block: 2 });
+		// GIVEN 7 accounts of 100, limits of 2 accounts a message and 2 messages a block, and the
+		// stage initialised.
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 2, xcm_per_block: 2 });
 		for i in 0..7 {
 			fund(&account(i), 100);
 		}
@@ -201,8 +214,8 @@ fn accounts_stage_sends_in_chunks_and_resumes() {
 		RcMigrationStage::<Test>::put(Stage::AccountsInit);
 		run_blocks(1);
 
-		// WHEN the first block runs. THEN the 2 messages carry 4 accounts, one short of the
-		// account limit, and the stage carries a cursor.
+		// WHEN the first block runs. THEN the 2 messages carry 4 accounts and the stage carries a
+		// cursor.
 		run_blocks(1);
 		assert!(matches!(
 			RcMigrationStage::<Test>::get(),
@@ -254,12 +267,12 @@ fn accounts_stage_retries_a_block_whose_send_failed() {
 #[test]
 fn set_limits_checks_origin_and_zero() {
 	new_test_ext().execute_with(|| {
-		let limits = BlockLimits { items_per_block: 5, items_per_xcm: 2, xcm_per_block: 2 };
+		let limits = BlockLimits { items_per_xcm: 2, xcm_per_block: 2 };
 		assert_noop!(Rc2Migrator::set_limits(RuntimeOrigin::signed(ALICE), limits), BadOrigin);
 		assert_noop!(
 			Rc2Migrator::set_limits(
 				RuntimeOrigin::signed(ADMIN),
-				BlockLimits { items_per_block: 0, ..limits }
+				BlockLimits { items_per_xcm: 0, ..limits }
 			),
 			Error::<Test>::ZeroLimit
 		);
