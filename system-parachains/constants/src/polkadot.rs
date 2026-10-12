@@ -39,7 +39,7 @@ pub mod account {
 	/// Ambassador treasury pallet ID
 	pub const AMBASSADOR_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/ambtr");
 	/// Accumulate-and-forward pallet ID. Derives the account on a system chain that gathers sinks
-	/// (coretime revenue, dust) before they are forwarded to the DAP on Asset Hub.
+	/// (coretime revenue, dust, XCM fees) before they are forwarded to the DAP on Asset Hub.
 	pub const ACCUMULATE_FORWARD_PALLET_ID: PalletId = PalletId(*b"acf/dott");
 }
 
