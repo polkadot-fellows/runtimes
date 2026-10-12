@@ -278,19 +278,19 @@ fn migrate_many_resumes_from_cursor() {
 }
 
 #[test]
-fn migrate_many_skips_unhandled_accounts() {
+fn withdraw_releases_a_lock() {
 	new_test_ext().execute_with(|| {
-		// GIVEN a plain account and one with a lock.
-		fund(&ALICE, 100);
+		// GIVEN an account with a lock.
 		fund(&BOB, 100);
 		lock(&BOB, 40);
 
-		// WHEN a block runs. THEN only the plain account is withdrawn; the other is untouched.
+		// WHEN withdrawn. THEN the lock is gone and the whole balance leaves as free.
 		let out = Migrator::migrate_many(None, &[]);
-		assert_eq!(out.to_ah, vec![(ALICE, 100)]);
+		assert_eq!(out.to_ah, vec![(BOB.clone(), 100)]);
 		assert!(out.to_ct.is_empty());
-		assert_eq!(free(&BOB), 100);
-		assert_eq!(total_issuance(), 100);
+		assert!(pallet_balances::Locks::<Test>::get(&BOB).is_empty());
+		assert!(!frame_system::Account::<Test>::contains_key(&BOB));
+		assert_eq!(total_issuance(), 0);
 	});
 }
 

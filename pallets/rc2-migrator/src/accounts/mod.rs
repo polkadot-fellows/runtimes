@@ -27,9 +27,9 @@ use frame_support::{
 	ensure,
 	storage::with_storage_layer,
 	traits::{
-		fungible::{Inspect, Mutate, MutateHold},
+		fungible::{Inspect, Mutate, MutateFreeze, MutateHold},
 		tokens::{Fortitude, Precision, Preservation},
-		Get, ReservableCurrency, StorePreimage,
+		Get, LockableCurrency, ReservableCurrency, StorePreimage,
 	},
 	BoundedVec, PalletId,
 };
@@ -313,15 +313,9 @@ impl<T: Config> AccountsMigrator<T> {
 			return Ok(None);
 		}
 
-		// TODO(ahm-v2): locks and freezes. Until they have their rule, such an account is passed
-		// over.
-		if !data.frozen.is_zero() {
-			return Ok(None);
-		}
-
 		// Release holds, locks and reserves first, so the whole balance can be burned.
 		Self::release_holds(who)?;
-		Self::release_locks(who, info)?;
+		Self::release_locks(who)?;
 		let holds = Self::withdraw_reserved(who)?;
 
 		// Burn the whole balance here. The release above may have dropped a consumer reference,
@@ -456,9 +450,15 @@ impl<T: Config> AccountsMigrator<T> {
 		Ok(())
 	}
 
-	/// Locks and freezes.
-	// TODO(ahm-v2): not implemented; such accounts are passed over.
-	fn release_locks(_who: &T::AccountId, _info: &AccountInfoFor<T>) -> DispatchResult {
+	/// Release every lock and freeze on `who`. The pallets that set them left the Relay Chain in
+	/// AHM v1, so what is left is a leftover, and its balance leaves as free.
+	fn release_locks(who: &T::AccountId) -> DispatchResult {
+		for lock in pallet_balances::Locks::<T>::get(who) {
+			NativeCurrency::<T>::remove_lock(lock.id, who);
+		}
+		for freeze in pallet_balances::Freezes::<T>::get(who) {
+			NativeCurrency::<T>::thaw(&freeze.id, who)?;
+		}
 		Ok(())
 	}
 
