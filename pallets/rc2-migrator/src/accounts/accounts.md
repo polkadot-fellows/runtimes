@@ -39,3 +39,7 @@ Every deposit on the Relay Chain is an unnamed reserve, so an account's reserve 
 | The migration manager | Not withdrawn here. It pays for the calls that drive the migration and is reaped at Cool Off. |
 
 Issuance that no account holds is not an account; TI Correction burns it.
+
+## On the Coretime chain
+
+`receive_accounts` mints each account and places its holds through the fungible APIs, each account in a transaction of its own. An account that fails is rolled back and parked in `FailedAccounts`; the rest of the batch continues. `CtMintedTotal` counts what was minted, to reconcile against what the Relay Chain burned.
