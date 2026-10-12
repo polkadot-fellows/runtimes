@@ -105,21 +105,21 @@ pub fn call_allowed_status(call: &RuntimeCall) -> (bool, bool) {
 		// Only the `enter` inherent.
 		ParaInherent(..) => (ON, ON),
 		Paras(
-			parachains_paras::Call::include_pvf_check_statement { .. } |
-			parachains_paras::Call::apply_authorized_force_set_current_code { .. },
+			parachains_paras::Call::include_pvf_check_statement { .. }
+			| parachains_paras::Call::apply_authorized_force_set_current_code { .. },
 		) => (ON, ON),
 		ParasSlashing(parachains_slashing::Call::report_dispute_lost_unsigned { .. }) => (ON, ON),
 		// The Coretime chain only. `request_revenue_at` lets it claim the on-demand revenue earned
 		// before the start.
 		Coretime(
-			runtime_parachains::coretime::Call::request_core_count { .. } |
-			runtime_parachains::coretime::Call::request_revenue_at { .. } |
-			runtime_parachains::coretime::Call::assign_core { .. },
+			runtime_parachains::coretime::Call::request_core_count { .. }
+			| runtime_parachains::coretime::Call::request_revenue_at { .. }
+			| runtime_parachains::coretime::Call::assign_core { .. },
 		) => (ON, ON),
 		Beefy(
-			pallet_beefy::Call::report_double_voting_unsigned { .. } |
-			pallet_beefy::Call::report_fork_voting_unsigned { .. } |
-			pallet_beefy::Call::report_future_block_voting_unsigned { .. },
+			pallet_beefy::Call::report_double_voting_unsigned { .. }
+			| pallet_beefy::Call::report_fork_voting_unsigned { .. }
+			| pallet_beefy::Call::report_future_block_voting_unsigned { .. },
 		) => (ON, ON),
 		// Checks its own origins; drives the migration.
 		Rc2Migrator(..) => (ON, ON),
@@ -186,6 +186,7 @@ mod tests {
 		xcm_config::SovereignAccountOf, AccountId, Balances, PostAhmFilter, Runtime, RuntimeCall,
 		RuntimeOrigin,
 	};
+	use codec::Encode;
 	use frame_support::{
 		assert_err, assert_noop, assert_ok,
 		traits::{fungible::Mutate, Contains},
@@ -343,8 +344,38 @@ mod tests {
 	}
 
 	#[test]
+	fn a_transact_goes_through_the_call_filter_unless_it_is_root() {
+		let filtered: MaybeErrorCode =
+			DispatchError::from(frame_system::Error::<Runtime>::CallFiltered)
+				.encode()
+				.into();
+		// The sender, how its call dispatches, and what the dispatch returns once the migration has
+		// started. The Coretime chain dispatches as `parachains_origin`, which the filter applies
+		// to. Asset Hub as `Superuser` is Root (`LocationAsSuperuser`), which skips it.
+		let senders = [
+			(BROKER_ID, OriginKind::Native, filtered),
+			(ASSET_HUB_ID, OriginKind::Superuser, MaybeErrorCode::Success),
+		];
+
+		// GIVEN the migration has not started. THEN both remarks run.
+		for stage in stages_before_start() {
+			for (id, kind, _) in &senders {
+				assert_ok!(execute_from(&stage, para(*id), remark(*kind, MaybeErrorCode::Success)));
+			}
+		}
+
+		// GIVEN the migration has started. THEN the barrier still admits both, the call filter
+		// refuses the Coretime chain's remark and Root's still runs.
+		for stage in stages_from_start() {
+			for (id, kind, status) in &senders {
+				assert_ok!(execute_from(&stage, para(*id), remark(*kind, status.clone())));
+			}
+		}
+	}
+
+	#[test]
 	fn inbound_teleports_are_refused_once_the_migration_starts() {
-		let asset_hub = Location::new(0, [Parachain(ASSET_HUB_ID)]);
+		let asset_hub = para(ASSET_HUB_ID);
 
 		// GIVEN the migration has not started. THEN a teleport from Asset Hub lands.
 		for stage in stages_before_start() {
@@ -409,10 +440,28 @@ mod tests {
 		])
 	}
 
+	fn para(id: u32) -> Location {
+		Location::new(0, [Parachain(id)])
+	}
+
+	/// A `System::remark` dispatched as `origin_kind`, followed by a check that its dispatch
+	/// returned `status`, so a refused call fails the message instead of vanishing.
+	fn remark(origin_kind: OriginKind, status: MaybeErrorCode) -> Xcm<RuntimeCall> {
+		Xcm(vec![
+			UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+			Transact {
+				origin_kind,
+				fallback_max_weight: None,
+				call: RuntimeCall::System(frame_system::Call::remark { remark: vec![1] })
+					.encode()
+					.into(),
+			},
+			ExpectTransactStatus(status),
+		])
+	}
+
 	#[test]
 	fn only_coretime_and_asset_hub_reach_this_chain_once_the_migration_starts() {
-		let para = |id| Location::new(0, [Parachain(id)]);
-
 		// GIVEN the migration has not started. THEN a para and any system chain get through.
 		for stage in stages_before_start() {
 			for (origin, message) in [
