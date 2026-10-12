@@ -38,17 +38,21 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod multisig;
+
 pub use pallet::*;
 
-use alloc::vec;
+use alloc::{boxed::Box, vec, vec::Vec};
 use frame_support::{
+	dispatch::GetDispatchInfo,
 	pallet_prelude::*,
 	sp_runtime::traits::Saturating,
 	traits::{EnsureOrigin, Time},
 };
 use frame_system::pallet_prelude::*;
+use multisig::ManagerMultisigVoteOf;
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
-use sp_runtime::AccountId32;
+use sp_runtime::{traits::Dispatchable, AccountId32, MultiSignature};
 use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::rc2-migrator";
@@ -248,6 +252,23 @@ pub mod pallet {
 
 		/// The origin that can perform permissioned operations like setting the migration stage.
 		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
+
+		/// What the manager multisig dispatches: the runtime's call.
+		type RuntimeCall: Parameter
+			+ Dispatchable<RuntimeOrigin = <Self as frame_system::Config>::RuntimeOrigin>
+			+ GetDispatchInfo;
+
+		/// Members of the manager multisig.
+		type MultisigMembers: Get<Vec<AccountId32>>;
+
+		/// Votes for one call that dispatch it.
+		type MultisigThreshold: Get<u32>;
+
+		/// Votes a member may cast per round.
+		type MultisigMaxVotesPerRound: Get<u32>;
+
+		/// The round the counter starts at; one per network.
+		type MultisigStartRound: Get<u32>;
 	}
 
 	#[pallet::pallet]
@@ -298,6 +319,22 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Paused<T: Config> = StorageValue<_, bool, ValueQuery>;
 
+	/// The members that voted for each call in the current round.
+	#[pallet::storage]
+	#[pallet::unbounded]
+	pub type ManagerMultisigs<T: Config> =
+		StorageMap<_, Twox64Concat, <T as Config>::RuntimeCall, Vec<AccountId32>, ValueQuery>;
+
+	/// The current voting round. A vote is only valid for the current round.
+	#[pallet::storage]
+	pub type ManagerMultisigRound<T: Config> =
+		StorageValue<_, u32, ValueQuery, T::MultisigStartRound>;
+
+	/// Votes each member cast in the current round.
+	#[pallet::storage]
+	pub type ManagerVotesInCurrentRound<T: Config> =
+		StorageMap<_, Blake2_128Concat, AccountId32, u32, ValueQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The migration can only be scheduled while it is pending.
@@ -318,6 +355,16 @@ pub mod pallet {
 		AlreadyPaused,
 		/// The migration is not paused.
 		NotPaused,
+		/// The vote is not from a multisig member.
+		NotMultisigMember,
+		/// The vote is not signed by the member it names.
+		BadVoteSignature,
+		/// The vote is for a round that is over.
+		RoundStale,
+		/// The member has cast every vote it has this round.
+		MaxVotesPerRound,
+		/// The member already voted for this call this round.
+		DuplicateVote,
 	}
 
 	#[pallet::event]
@@ -347,6 +394,10 @@ pub mod pallet {
 			/// The stage from which the migration continues.
 			stage: MigrationStageOf<T>,
 		},
+		/// The manager multisig dispatched a call.
+		ManagerMultisigDispatched { res: DispatchResult },
+		/// The manager multisig received a vote.
+		ManagerMultisigVoted { votes: u32 },
 	}
 
 	#[pallet::hooks]
@@ -510,6 +561,38 @@ pub mod pallet {
 			Self::deposit_event(Event::MigrationResumed { stage: RcMigrationStage::<T>::get() });
 			Ok(())
 		}
+
+		// 7 is `set_limits`, from the accounts stage.
+
+		/// Vote for `payload.call` as the multisig member `payload.who`. Unsigned; `sig` is the
+		/// member's signature over the payload. See [`multisig`].
+		// TODO(ahm-v2): proper benchmark
+		#[pallet::call_index(8)]
+		#[pallet::weight(
+			payload.call.get_dispatch_info().call_weight
+				.saturating_add(T::DbWeight::get().reads_writes(5, 4))
+		)]
+		pub fn vote_manager_multisig(
+			origin: OriginFor<T>,
+			payload: Box<ManagerMultisigVoteOf<T>>,
+			sig: MultiSignature,
+		) -> DispatchResult {
+			ensure_none(origin)?;
+			Self::do_vote_manager_multisig(*payload, &sig)
+		}
+	}
+
+	#[pallet::validate_unsigned]
+	#[allow(deprecated)]
+	impl<T: Config> ValidateUnsigned for Pallet<T> {
+		type Call = Call<T>;
+
+		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
+			match call {
+				Call::vote_manager_multisig { payload, sig } => Self::validate_vote(payload, sig),
+				_ => InvalidTransaction::Call.into(),
+			}
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -521,12 +604,13 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Ensure that the origin is one accepted by [`Self::ensure_root_or_admin`] or signed by
-		/// the [`Manager`] account id.
+		/// Ensure that the origin is one accepted by [`Self::ensure_root_or_admin`], or signed by
+		/// the [`Manager`] account or the manager multisig.
 		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
-			// TODO(ahm-v2): allow hardcoded local multisig to act as manager as well.
 			if let Ok(who) = ensure_signed(origin.clone()) {
-				if Manager::<T>::get().is_some_and(|manager| manager == who) {
+				if Manager::<T>::get().is_some_and(|manager| manager == who) ||
+					who == Self::manager_multisig_id()
+				{
 					return Ok(());
 				}
 			}

@@ -23,7 +23,11 @@ use frame_support::{
 	traits::{OnInitialize, Time},
 };
 use frame_system::EnsureSignedBy;
-use sp_runtime::{traits::IdentityLookup, AccountId32, BuildStorage};
+use sp_core::{sr25519, Pair};
+use sp_runtime::{
+	traits::{IdentifyAccount, IdentityLookup},
+	AccountId32, BuildStorage, MultiSigner,
+};
 use xcm::prelude::*;
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -76,6 +80,12 @@ parameter_types! {
 
 	/// The mock wall clock, in milliseconds. Advanced by [`run_blocks`].
 	pub static MockNow: u64 = BLOCK_TIME_MS;
+
+	/// Members of the manager multisig: `member(1)` to `member(3)`.
+	pub MultisigMembers: Vec<AccountId> = (1..=3).map(|n| member(n).1).collect();
+	pub const MultisigThreshold: u32 = 2;
+	pub const MultisigMaxVotesPerRound: u32 = 3;
+	pub const MultisigStartRound: u32 = 7;
 }
 
 /// Stands in for `pallet_timestamp`.
@@ -127,6 +137,11 @@ impl pallet_rc2_migrator::Config for Test {
 	type TimeProvider = MockTime;
 	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId>;
 	type AdminOrigin = EnsureSignedBy<AdminAccount, AccountId>;
+	type RuntimeCall = RuntimeCall;
+	type MultisigMembers = MultisigMembers;
+	type MultisigThreshold = MultisigThreshold;
+	type MultisigMaxVotesPerRound = MultisigMaxVotesPerRound;
+	type MultisigStartRound = MultisigStartRound;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
@@ -152,6 +167,13 @@ pub fn run_blocks(n: u64) {
 		<Rc2Migrator as OnInitialize<u64>>::on_initialize(now);
 		MockNow::set(now.saturating_mul(BLOCK_TIME_MS));
 	}
+}
+
+/// A multisig member, or with `n` above 3 somebody else: its signing key and its account.
+pub fn member(n: u8) -> (sr25519::Pair, AccountId) {
+	let pair = sr25519::Pair::from_seed(&[n; 32]);
+	let who = MultiSigner::Sr25519(pair.public()).into_account();
+	(pair, who)
 }
 
 /// The mock clock's current value.
