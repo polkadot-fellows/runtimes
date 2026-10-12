@@ -36,6 +36,8 @@ const RECIPIENT_DEPOSIT: u128 = 40;
 const REQUEST_SENDER: u32 = 2003; // a channel request the recipient accepted
 const REQUEST_RECIPIENT: u32 = 2004;
 const REQUEST_DEPOSIT: u128 = 30;
+/// What one proxy definition costs on the relay chain.
+const PROXY_DEPOSIT: u128 = PROXY_DEPOSIT_BASE + PROXY_DEPOSIT_FACTOR;
 type Stage = MigrationStage<AccountId, u64, u64>;
 
 fn assert_stage(expected: Stage) {
@@ -114,33 +116,36 @@ fn account(i: u32) -> AccountId {
 fn migrate_one_account_per_case() {
 	new_test_ext().execute_with(|| {
 		// GIVEN one account per case.
-		let alice = ALICE; // free balance
-		fund(&alice, 100);
+		fund(&ALICE, 100); // free balance
 		let pot = pallet_account(); // module account
 		fund(&pot, 100);
-		let charlie = CHARLIE; // below the existential deposit
-		force_below_ed(&charlie, ED - 1);
-		let dave = DAVE; // the manager
-		fund(&dave, 100);
+		force_below_ed(&CHARLIE, ED - 1); // below the existential deposit
+		fund(&DAVE, 100); // the manager
 		let para = child_sov(FRANKS_PARA); // para sovereign
 		fund(&para, 100);
 		let sibl: AccountId = sibling_account(3000); // sibling-format account
 		fund(&sibl, 100);
-		let eve = EVE; // referenced by another pallet
-		fund(&eve, 100);
-		add_consumer(&eve);
-		let frank = FRANK; // para manager with a registrar deposit
-		fund(&frank, 1_000);
-		register_para(FRANKS_PARA, &frank);
-		assert_eq!((free(&frank), reserved(&frank)), (700, PARA_DEPOSIT));
+		fund(&EVE, 100); // referenced by another pallet
+		add_consumer(&EVE);
+		fund(&FRANK, 1_000); // para manager with a registrar deposit
+		register_para(FRANKS_PARA, &FRANK);
+		assert_eq!((free(&FRANK), reserved(&FRANK)), (700, PARA_DEPOSIT));
 		open_channel(CHANNEL_SENDER, CHANNEL_RECIPIENT, SENDER_DEPOSIT, RECIPIENT_DEPOSIT);
 		open_request(REQUEST_SENDER, REQUEST_RECIPIENT, REQUEST_DEPOSIT);
 		accept_request(REQUEST_SENDER, REQUEST_RECIPIENT);
+		fund(&GRACE, 500); // delegator with a portable proxy
+		add_proxy(&GRACE, &ALICE, ProxyType::NonTransfer);
+		fund(&HEIDI, 500); // delegator with no portable proxy
+		add_proxy(&HEIDI, &ALICE, ProxyType::Staking);
+		fund(&IVAN, 500); // created a pure proxy, holds its deposit
+		let pure = create_pure(&IVAN); // the pure proxy, never signed
+		fund(&pure, 200);
+		assert_eq!((reserved(&IVAN), reserved(&pure)), (PROXY_DEPOSIT, 0));
 		let issuance = total_issuance();
 
 		// WHEN the stage starts and one block withdraws them all.
 		Migrator::init();
-		let out = Migrator::migrate_many(None, &[dave.clone()]);
+		let out = Migrator::migrate_many(None, &[DAVE.clone()]);
 		assert_eq!(out.last_key, None);
 		let mut to_ah = out.to_ah.clone();
 		// sorting just to make it easier to assert
@@ -148,17 +153,20 @@ fn migrate_one_account_per_case() {
 
 		// THEN each lands where its row says.
 		let mut expected = vec![
-			(alice.clone(), 100),                // free balance
+			(ALICE.clone(), 100),                // free balance
 			(sibling_account(FRANKS_PARA), 100), // para sovereign, translated
 			(sibl.clone(), 100),                 // sibling-format, as is
-			(eve.clone(), 100),                  // referenced, drained to a shell
-			(frank.clone(), 600),                // what is left after the deposit and the buffer
+			(EVE.clone(), 100),                  // referenced, drained to a shell
+			(FRANK.clone(), 600),                // what is left after the deposit and the buffer
+			(GRACE.clone(), 500 - PROXY_DEPOSIT - CT_FREE_BUFFER),
+			(HEIDI.clone(), 500), // the deposit was refunded
+			(IVAN.clone(), 500 - PROXY_DEPOSIT - CT_FREE_BUFFER),
 		];
 		expected.sort();
 		assert_eq!(to_ah, expected);
 		// deposit holders: the deposit as a hold, the free part (here only the ED) with it
-		assert_eq!(out.to_ct.len(), 5);
-		let frank_ct = to_ct(&out, &frank);
+		assert_eq!(out.to_ct.len(), 8);
+		let frank_ct = to_ct(&out, &FRANK);
 		assert_eq!(frank_ct.free, CT_FREE_BUFFER);
 		assert_eq!(holds(frank_ct), vec![(PortableHoldReason::RegistrarDeposit, PARA_DEPOSIT)]);
 		for (para, deposit) in [
@@ -171,19 +179,36 @@ fn migrate_one_account_per_case() {
 			assert_eq!(sov.free, ED, "para {para}");
 			assert_eq!(holds(sov), vec![(PortableHoldReason::HrmpDeposit, deposit)], "para {para}");
 		}
-		for who in [&alice, &para, &sibl, &frank] {
+		for who in [&GRACE, &IVAN] {
+			let delegator = to_ct(&out, who);
+			assert_eq!(delegator.free, CT_FREE_BUFFER, "{who:?}");
+			assert_eq!(
+				holds(delegator),
+				vec![(PortableHoldReason::ProxyDeposit, PROXY_DEPOSIT)],
+				"{who:?}"
+			);
+		}
+		assert!(System::events().iter().any(|r| r.event ==
+			RuntimeEvent::Rc2Migrator(Event::DepositRefunded {
+				who: HEIDI.clone(),
+				amount: PROXY_DEPOSIT
+			})));
+		// the pure goes to Coretime whole, where its delegate keeps control
+		let pure_ct = to_ct(&out, &pure);
+		assert_eq!((pure_ct.free, holds(pure_ct)), (200, vec![]));
+		for who in [&ALICE, &para, &sibl, &FRANK] {
 			assert!(!frame_system::Account::<Test>::contains_key(who), "{who:?} is reaped");
 		}
-		let shell = frame_system::Account::<Test>::get(&eve);
+		let shell = frame_system::Account::<Test>::get(&EVE);
 		assert_eq!((shell.data.free, shell.consumers), (0, 1), "the shell stays, empty");
 		assert!(System::events().iter().any(|r| r.event ==
 			RuntimeEvent::Rc2Migrator(Event::AccountShellDrained {
-				who: eve.clone(),
+				who: EVE.clone(),
 				amount: 100
 			})));
 		assert_eq!(free(&pot), 100, "module account");
-		assert_eq!(free(&charlie), ED - 1, "below the existential deposit");
-		assert_eq!(free(&dave), 100, "the manager");
+		assert_eq!(free(&CHARLIE), ED - 1, "below the existential deposit");
+		assert_eq!(free(&DAVE), 100, "the manager");
 
 		// AND what was burned is exactly what left.
 		let left: u128 = to_ah.iter().map(|(_, amount)| amount).sum::<u128>() +
@@ -275,6 +300,34 @@ fn init_indexes_hrmp_deposits() {
 			(REQUEST_DEPOSIT, HRMP_RECIPIENT_DEPOSIT)
 		);
 		assert_eq!((hrmp(pending_sender), hrmp(pending_recipient)), (REQUEST_DEPOSIT, 0));
+	});
+}
+
+#[test]
+fn init_indexes_proxy_deposits() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a portable delegation, a non-portable one, a mixed one, and a pure proxy.
+		for who in [&GRACE, &HEIDI, &IVAN, &BOB] {
+			fund(who, 500);
+		}
+		add_proxy(&GRACE, &ALICE, ProxyType::NonTransfer);
+		add_proxy(&HEIDI, &ALICE, ProxyType::Staking);
+		add_proxy(&BOB, &ALICE, ProxyType::Staking);
+		add_proxy(&BOB, &ALICE, ProxyType::Any);
+		let pure = create_pure(&IVAN);
+
+		// WHEN the index is built. THEN a portable or mixed set is a proxy deposit, a
+		// non-portable one a refund, and the pure's is under its creator.
+		assert_eq!(Migrator::init(), 4);
+		let expected = |who: &AccountId| {
+			let e = ExpectedReserves::<Test>::get(who);
+			(e.proxy, e.refund)
+		};
+		assert_eq!(expected(&GRACE), (PROXY_DEPOSIT, 0));
+		assert_eq!(expected(&HEIDI), (0, PROXY_DEPOSIT));
+		assert_eq!(expected(&BOB), (PROXY_DEPOSIT + PROXY_DEPOSIT_FACTOR, 0));
+		assert_eq!(expected(&IVAN), (PROXY_DEPOSIT, 0));
+		assert_eq!(expected(&pure), (0, 0));
 	});
 }
 

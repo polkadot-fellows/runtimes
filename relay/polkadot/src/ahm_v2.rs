@@ -22,10 +22,11 @@
 
 use crate::{
 	xcm_config::{CoretimeLocation, XcmRouter},
-	AccountId, BrokerId, Runtime, RuntimeEvent, Timestamp,
+	AccountId, BrokerId, ProxyType, Runtime, RuntimeEvent, Timestamp, TransparentProxyType,
 };
 use frame_support::{parameter_types, traits::Equals};
 use frame_system::EnsureRoot;
+use migrator_types::PortableProxyType;
 use pallet_xcm::EnsureXcm;
 use polkadot_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
 
@@ -45,11 +46,53 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 }
 
+/// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so
+/// their definitions stay here.
+impl TryFrom<TransparentProxyType<ProxyType>> for PortableProxyType {
+	type Error = ();
+
+	fn try_from(t: TransparentProxyType<ProxyType>) -> Result<Self, ()> {
+		match t.0 {
+			ProxyType::Any => Ok(PortableProxyType::Any),
+			ProxyType::NonTransfer => Ok(PortableProxyType::NonTransfer),
+			ProxyType::CancelProxy => Ok(PortableProxyType::CancelProxy),
+			ProxyType::ParaRegistration => Ok(PortableProxyType::ParaRegistration),
+			ProxyType::Governance |
+			ProxyType::Staking |
+			ProxyType::Auction |
+			ProxyType::NominationPools => Err(()),
+		}
+	}
+}
+
 #[cfg(test)]
 mod tests {
-	use crate::{Runtime, RuntimeCall};
+	use crate::{ProxyType, Runtime, RuntimeCall, TransparentProxyType};
 	use codec::Encode;
+	use migrator_types::PortableProxyType;
 	use pallet_ct_migrator::{Rc2MigratorCall, Rc2RuntimeCall};
+
+	/// Which proxy permissions travel to the Coretime chain, one assertion per variant so a new
+	/// variant has to be classified here.
+	#[test]
+	fn proxy_permissions_that_travel() {
+		for (proxy_type, portable) in [
+			(ProxyType::Any, Some(PortableProxyType::Any)),
+			(ProxyType::NonTransfer, Some(PortableProxyType::NonTransfer)),
+			(ProxyType::CancelProxy, Some(PortableProxyType::CancelProxy)),
+			(ProxyType::ParaRegistration, Some(PortableProxyType::ParaRegistration)),
+			(ProxyType::Governance, None),
+			(ProxyType::Staking, None),
+			(ProxyType::Auction, None),
+			(ProxyType::NominationPools, None),
+		] {
+			assert_eq!(
+				PortableProxyType::try_from(TransparentProxyType(proxy_type)).ok(),
+				portable,
+				"{proxy_type:?}"
+			);
+		}
+	}
 
 	/// Ensure the pallet + call index aligns.
 	#[test]

@@ -17,20 +17,25 @@
 //! Test runtime for `pallet-rc2-migrator`.
 
 use crate as pallet_rc2_migrator;
-use codec::Decode;
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
-	traits::{fungible::Mutate, ConstU128, OnInitialize, ReservableCurrency, Time},
+	traits::{
+		fungible::Mutate, ConstU128, ConstU32, InstanceFilter, OnInitialize, ReservableCurrency,
+		Time,
+	},
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
+use migrator_types::PortableProxyType;
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::{
 	configuration, dmp, hrmp as parachains_hrmp, origin as parachains_origin, paras, shared,
 };
+use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AccountIdConversion, IdentityLookup},
+	traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
 	transaction_validity::TransactionPriority,
 	AccountId32, BuildStorage,
 };
@@ -53,6 +58,7 @@ frame_support::construct_runtime! {
 		Hrmp: parachains_hrmp,
 		ParachainsOrigin: parachains_origin,
 		Registrar: paras_registrar,
+		Proxy: pallet_proxy,
 		Rc2Migrator: pallet_rc2_migrator,
 	}
 }
@@ -140,6 +146,78 @@ impl parachains_hrmp::Config for Test {
 	type WeightInfo = parachains_hrmp::TestWeightInfo;
 }
 
+/// Relay-side proxy permissions, one of each kind: two with a meaning on the Coretime chain and
+/// one without. The full set and its mapping are the runtime's, tested in its `ahm_v2` module.
+#[derive(
+	Copy,
+	Clone,
+	Eq,
+	PartialEq,
+	Ord,
+	PartialOrd,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Debug,
+	MaxEncodedLen,
+	TypeInfo,
+	Default,
+)]
+pub enum ProxyType {
+	#[default]
+	Any,
+	NonTransfer,
+	Staking,
+}
+
+impl TryFrom<ProxyType> for PortableProxyType {
+	type Error = ();
+
+	fn try_from(t: ProxyType) -> Result<Self, ()> {
+		match t {
+			ProxyType::Any => Ok(PortableProxyType::Any),
+			ProxyType::NonTransfer => Ok(PortableProxyType::NonTransfer),
+			ProxyType::Staking => Err(()),
+		}
+	}
+}
+
+impl InstanceFilter<RuntimeCall> for ProxyType {
+	fn filter(&self, _c: &RuntimeCall) -> bool {
+		matches!(self, ProxyType::Any)
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		self == o || matches!(self, ProxyType::Any)
+	}
+}
+
+/// What one proxy definition costs: `PROXY_DEPOSIT_BASE + PROXY_DEPOSIT_FACTOR` for the first.
+pub const PROXY_DEPOSIT_BASE: u128 = 40;
+pub const PROXY_DEPOSIT_FACTOR: u128 = 4;
+
+parameter_types! {
+	pub const ProxyDepositBase: u128 = PROXY_DEPOSIT_BASE;
+	pub const ProxyDepositFactor: u128 = PROXY_DEPOSIT_FACTOR;
+	pub const AnnouncementDepositBase: u128 = 25;
+	pub const AnnouncementDepositFactor: u128 = 6;
+}
+
+impl pallet_proxy::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type Currency = Balances;
+	type ProxyType = ProxyType;
+	type ProxyDepositBase = ProxyDepositBase;
+	type ProxyDepositFactor = ProxyDepositFactor;
+	type MaxProxies = ConstU32<4>;
+	type WeightInfo = ();
+	type MaxPending = ConstU32<4>;
+	type CallHasher = BlakeTwo256;
+	type AnnouncementDepositBase = AnnouncementDepositBase;
+	type AnnouncementDepositFactor = AnnouncementDepositFactor;
+	type BlockNumberProvider = System;
+}
+
 /// What the active configuration makes a recipient reserve when it accepts a channel request.
 pub const HRMP_RECIPIENT_DEPOSIT: u128 = 20;
 
@@ -173,6 +251,9 @@ pub const CHARLIE: AccountId = AccountId32::new([4; 32]);
 pub const DAVE: AccountId = AccountId32::new([6; 32]);
 pub const EVE: AccountId = AccountId32::new([7; 32]);
 pub const FRANK: AccountId = AccountId32::new([8; 32]);
+pub const GRACE: AccountId = AccountId32::new([9; 32]);
+pub const HEIDI: AccountId = AccountId32::new([10; 32]);
+pub const IVAN: AccountId = AccountId32::new([11; 32]);
 
 /// The account behind the admin origin.
 pub const ADMIN: AccountId = AccountId32::new([2; 32]);
@@ -405,6 +486,28 @@ pub fn accept_request(sender: u32, recipient: u32) {
 	parachains_hrmp::HrmpOpenChannelRequests::<Test>::mutate(&id, |request| {
 		request.as_mut().expect("request is pending").confirmed = true;
 	});
+}
+
+/// Grant a proxy through the real pallet, which reserves the deposit on the delegator. The call
+/// is dispatched directly, so the delegator's nonce stays where it is.
+pub fn add_proxy(delegator: &AccountId, delegate: &AccountId, proxy_type: ProxyType) {
+	Proxy::add_proxy(RuntimeOrigin::signed(delegator.clone()), delegate.clone(), proxy_type, 0)
+		.expect("can add proxy");
+}
+
+/// Create a pure proxy through the real pallet: the deposit is reserved on the creator and the
+/// definition recorded under the pure. Returns the pure's account.
+pub fn create_pure(creator: &AccountId) -> AccountId {
+	Proxy::create_pure(RuntimeOrigin::signed(creator.clone()), ProxyType::Any, 0, 0)
+		.expect("can create a pure proxy");
+	System::events()
+		.into_iter()
+		.rev()
+		.find_map(|r| match r.event {
+			RuntimeEvent::Proxy(pallet_proxy::Event::PureCreated { pure, .. }) => Some(pure),
+			_ => None,
+		})
+		.expect("a pure was created")
 }
 
 pub fn free(who: &AccountId) -> u128 {

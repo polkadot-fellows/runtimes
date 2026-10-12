@@ -33,7 +33,9 @@ use frame_support::{
 	},
 	BoundedVec, PalletId,
 };
-use migrator_types::{MaxPortableHolds, PortableAccount, PortableHold, PortableHoldReason};
+use migrator_types::{
+	MaxPortableHolds, PortableAccount, PortableHold, PortableHoldReason, PortableProxyType,
+};
 use polkadot_parachain_primitives::primitives::IsSystem;
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::{configuration, hrmp};
@@ -156,7 +158,53 @@ impl<T: Config> AccountsMigrator<T> {
 			records += 1;
 		}
 
+		// Proxy deposits, reserved on the delegator, except a pure proxy's, which its creator
+		// reserved. Definitions with a portable permission continue on the Coretime chain; the
+		// others' deposit is refunded.
+		for (delegator, (defs, deposit)) in pallet_proxy::Proxies::<T>::iter() {
+			let portable = defs.iter().any(|d| Self::portable(&d.proxy_type).is_some());
+			let of: fn(&mut ExpectedReserve) -> &mut u128 =
+				if portable { |e| &mut e.proxy } else { |e| &mut e.refund };
+			let who = Self::pure_creator(&delegator, defs.as_slice(), deposit).unwrap_or(delegator);
+			Self::add_expected(who, deposit, of);
+			records += 1;
+		}
+
 		records
+	}
+
+	/// What `proxy_type` is on the Coretime chain, if anything.
+	fn portable(proxy_type: &<T as pallet_proxy::Config>::ProxyType) -> Option<PortableProxyType> {
+		proxy_type.clone().try_into().ok()
+	}
+
+	/// The creator of a pure proxy, who holds its deposit: a delegator that never signed, has an
+	/// `Any` delegate, and whose own reserve does not cover what is expected of it. The deposit
+	/// goes to that delegate.
+	fn pure_creator(
+		delegator: &T::AccountId,
+		defs: &[pallet_proxy::ProxyDefinition<
+			T::AccountId,
+			<T as pallet_proxy::Config>::ProxyType,
+			pallet_proxy::BlockNumberFor<T>,
+		>],
+		deposit: u128,
+	) -> Option<T::AccountId> {
+		let account = frame_system::Account::<T>::get(delegator);
+		if !account.nonce.is_zero() {
+			return None;
+		}
+		let any = defs
+			.iter()
+			.find(|d| Self::portable(&d.proxy_type) == Some(PortableProxyType::Any))?;
+		let expected = ExpectedReserves::<T>::get(delegator);
+		let needed = expected
+			.registrar
+			.saturating_add(expected.hrmp)
+			.saturating_add(expected.proxy)
+			.saturating_add(expected.refund)
+			.saturating_add(deposit);
+		(account.data.reserved < needed).then(|| any.delegate.clone())
 	}
 
 	/// Add `amount` to `who`'s expected reserve, under the deposit kind `of` picks.
@@ -328,7 +376,10 @@ impl<T: Config> AccountsMigrator<T> {
 		let registrar = consume(expected.registrar);
 		let hrmp = consume(expected.hrmp);
 		let proxy = consume(expected.proxy);
-		let _refund = consume(expected.refund);
+		let refund = consume(expected.refund);
+		if !refund.is_zero() {
+			Pallet::<T>::deposit_event(Event::DepositRefunded { who: who.clone(), amount: refund });
+		}
 		// TODO(ahm-v2): reserve that no record explains becomes an `UnattributedReserve` hold.
 		// Until then the account is passed over.
 		ensure!(remainder.is_zero(), Error::<T>::FailedToWithdrawAccount);
@@ -372,10 +423,14 @@ impl<T: Config> AccountsMigrator<T> {
 		Pallet::<T>::deposit_event(Event::AccountShellDrained { who: who.clone(), amount });
 	}
 
-	/// A pure proxy: nonce 0 and at least one `Any` proxy.
-	// TODO(ahm-v2): not implemented.
-	fn is_pure_proxy(_who: &T::AccountId, _info: &AccountInfoFor<T>) -> bool {
-		false
+	/// A pure proxy: nonce 0 and at least one `Any` proxy. A pure is always created with `Any`,
+	/// and an account that never signed cannot have been anything else.
+	fn is_pure_proxy(who: &T::AccountId, info: &AccountInfoFor<T>) -> bool {
+		info.nonce.is_zero() &&
+			pallet_proxy::Proxies::<T>::get(who)
+				.0
+				.iter()
+				.any(|d| Self::portable(&d.proxy_type) == Some(PortableProxyType::Any))
 	}
 
 	/// The account `who`'s balance lands on: a para's sovereign is `para…` here and `sibl…` on

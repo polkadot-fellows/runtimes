@@ -18,7 +18,7 @@ Every deposit on the Relay Chain is an unnamed reserve, so an account's reserve 
 | Registrar deposit, reserved on the para manager (`paras_registrar::Paras`). A record can say more than the manager has reserved. | Re-established on the Coretime chain as a `RegistrarDeposit` hold, up to what is reserved. A working buffer of free balance (`CtFreeBuffer`) follows it, so the manager can pay fees there; a remainder below the existential deposit follows too instead of being teleported. |
 | HRMP channel deposit, reserved on the para sovereign (`hrmp::HrmpChannels`) | Re-established on the Coretime chain as an `HrmpDeposit` hold, under the para's sibling account, with the same buffer and rounding as a registrar deposit. A channel with a pending close request is returning its deposits anyway: they are refunded, so they leave as free balance. |
 | HRMP open-channel request deposit, reserved on the sender and, once accepted, the recipient (`hrmp::HrmpOpenChannelRequests`) | Same as a channel deposit. The recipient's is reserved at the active configuration's value and recorded only when the next session turns the request into a channel, so it is indexed at that value. |
-| Proxy deposit, reserved on the delegator; a pure proxy's deposit is reserved on the account that created it (`pallet_proxy::Proxies`) | |
+| Proxy deposit, reserved on the delegator; a pure proxy's deposit is reserved on the account that created it (`pallet_proxy::Proxies`) | A set with at least one permission that has a meaning on the Coretime chain (the runtime decides which, with `TryFrom<ProxyType> for PortableProxyType`) continues there as a `ProxyDeposit` hold, buffer and rounding as above. A set with none is refunded: it leaves as free balance, reported with `DepositRefunded`. A pure proxy's deposit is indexed under its creator: the delegator never signed, has an `Any` delegate, and its own reserve does not cover it. |
 | Proxy announcement deposit, reserved on the announcer (`pallet_proxy::Announcements`) | |
 | Multisig operation deposit, reserved on the depositor (`pallet_multisig::Multisigs`) | |
 | Reserved balance that no deposit record explains | |
@@ -32,7 +32,7 @@ Every deposit on the Relay Chain is an unnamed reserve, so an account's reserve 
 | Para sovereign accounts, `para…` | Translated to the para's sibling account, `sibl…`, its address on Asset Hub and the Coretime chain. Otherwise like any account: deposits and the buffer to the Coretime chain, free balance to Asset Hub. |
 | Sovereign accounts of system paras | Translated like any para. Asset Hub's own lands on an account nothing there controls; it is to go to the sweep beneficiary instead (`TODO(ahm-v2)` in `destination`). |
 | Sibling-format accounts, `sibl…` | Pass through: the same bytes are that para's sovereign on Asset Hub. |
-| Pure proxies: nonce 0 and at least one `Any` proxy | |
+| Pure proxies: nonce 0 and at least one `Any` proxy | The whole balance goes to the Coretime chain as free balance, since the delegate keeps control only where the definitions are recreated. |
 | Accounts another pallet references through a consumer reference (validators' session keys) | Drained to a zero-balance shell: the record stays, the balance leaves like any other account's. Reported with `AccountShellDrained`. |
 | Module accounts, `modl…` | Not withdrawn here. Sweep empties the pots. |
 | Accounts below the existential deposit | Not withdrawn here. Sweep Dust reaps them. |

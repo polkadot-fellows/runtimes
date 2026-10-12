@@ -51,7 +51,7 @@ use frame_support::{
 	traits::{EnsureOrigin, Time},
 };
 use frame_system::pallet_prelude::*;
-use migrator_types::PortableAccount;
+use migrator_types::{PortableAccount, PortableProxyType};
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
 use sp_runtime::AccountId32;
@@ -277,6 +277,11 @@ pub mod pallet {
 		> + pallet_balances::Config<Balance = u128>
 		+ paras_registrar::Config<Currency = pallet_balances::Pallet<Self>>
 		+ runtime_parachains::hrmp::Config
+		// The runtime says which proxy permissions have a meaning on the Coretime chain.
+		+ pallet_proxy::Config<
+			Currency = pallet_balances::Pallet<Self>,
+			ProxyType: TryInto<PortableProxyType>,
+		>
 	{
 		/// The overarching event type.
 		#[allow(deprecated)]
@@ -426,6 +431,9 @@ pub mod pallet {
 		AccountShellDrained { who: T::AccountId, amount: u128 },
 		/// A batch of withdrawn accounts was sent to the Coretime chain.
 		AccountsBatchSent { count: u32 },
+		/// A deposit whose purpose ends with the Relay Chain was released; it leaves as free
+		/// balance.
+		DepositRefunded { who: T::AccountId, amount: u128 },
 	}
 
 	#[pallet::hooks]

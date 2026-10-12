@@ -14,6 +14,7 @@ version.workspace = true
 pallet-rc-migrator = { workspace = true }
 # Behind the `ahm-v2` feature; see `src/ahm_v2.rs`.
 pallet-rc2-migrator = { workspace = true }
+migrator-types = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -185,6 +186,7 @@ std = [
 	"pallet-proxy/std",
 	"pallet-ranked-collective/std",
 	"pallet-rc-migrator/std",
+	"migrator-types/std",
 	"pallet-rc2-migrator/std",
 	"pallet-recovery/std",
 	"pallet-referenda/std",
