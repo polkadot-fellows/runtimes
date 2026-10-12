@@ -432,15 +432,15 @@ pub mod pallet {
 		/// An account another pallet references (a validator's session keys) was drained to a
 		/// zero-balance shell.
 		AccountShellDrained { who: T::AccountId, amount: u128 },
-		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
-		/// retry it.
-		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
 		/// A batch of withdrawn accounts was sent to the Coretime chain.
 		AccountsBatchSent { count: u32 },
 		/// A deposit with no purpose after the migration was released; it leaves as free balance.
 		DepositRefunded { who: T::AccountId, amount: u128 },
 		/// Reserve that no deposit record explains; it is parked on the Coretime chain.
 		UnattributedReserve { who: T::AccountId, amount: u128 },
+		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
+		/// retry it.
+		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
 	}
 
 	#[pallet::hooks]
