@@ -309,9 +309,8 @@ impl pallet_accumulate_and_forward::Config for Runtime {
 	type TransferPeriod = ForwardPeriod;
 	type MinTransferAmount = MinForwardAmount;
 	// Local clock: relay parent numbers can skip the exact multiples the forward fires on.
-	// TODO: switch to `RelaychainDataProvider` once the workspace carries
-	// `pallet-accumulate-and-forward` 0.4.1 (polkadot-sdk#13153) and
-	// `emulated-integration-tests-common` 38, whose shared forward test matches it.
+	// TODO: switch to `RelaychainDataProvider`, tracked in
+	// https://github.com/polkadot-fellows/runtimes/issues/1327.
 	type BlockNumberProvider = System;
 	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
