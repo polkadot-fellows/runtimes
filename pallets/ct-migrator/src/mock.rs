@@ -18,7 +18,7 @@
 
 use crate as pallet_ct_migrator;
 use codec::Decode;
-use frame_support::{derive_impl, ord_parameter_types, parameter_types};
+use frame_support::{derive_impl, ord_parameter_types, parameter_types, traits::Contains};
 use frame_system::EnsureSignedBy;
 use sp_runtime::BuildStorage;
 use xcm::prelude::*;
@@ -36,6 +36,7 @@ frame_support::construct_runtime! {
 
 #[derive_impl(frame_system::config_preludes::TestDefaultConfig)]
 impl frame_system::Config for Test {
+	type BaseCallFilter = CtMigrator;
 	type Block = Block;
 	type AccountData = pallet_balances::AccountData<u128>;
 }
@@ -95,6 +96,28 @@ impl pallet_ct_migrator::Config for Test {
 	type AdminOrigin = EnsureSignedBy<AdminAccount, AccountId>;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
+	type PreMigrationCalls = TaggedRemark<PRE_MIGRATION>;
+	type IntraMigrationCalls = TaggedRemark<INTRA_MIGRATION>;
+	type PostMigrationCalls = TaggedRemark<POST_MIGRATION>;
+}
+
+/// Tags for [`TaggedRemark`], one per call set.
+pub const PRE_MIGRATION: u8 = 0;
+pub const INTRA_MIGRATION: u8 = 1;
+pub const POST_MIGRATION: u8 = 2;
+
+/// Allows only a remark of the single byte `TAG`, so a test can tell which call set was consulted.
+pub struct TaggedRemark<const TAG: u8>;
+
+impl<const TAG: u8> Contains<RuntimeCall> for TaggedRemark<TAG> {
+	fn contains(call: &RuntimeCall) -> bool {
+		*call == tagged_remark(TAG)
+	}
+}
+
+/// The remark that only the call set tagged `tag` allows.
+pub fn tagged_remark(tag: u8) -> RuntimeCall {
+	RuntimeCall::System(frame_system::Call::remark { remark: vec![tag] })
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

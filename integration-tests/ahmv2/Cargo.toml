@@ -17,6 +17,8 @@ log = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-ct-migrator = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
+pallet-proxy = { workspace = true, default-features = true }
+pallet-xcm = { workspace = true, default-features = true }
 pallet-rc2-migrator = { workspace = true, default-features = true }
 pallet-timestamp = { workspace = true, default-features = true }
 remote-externalities = { workspace = true }

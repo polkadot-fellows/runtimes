@@ -20,6 +20,8 @@
 //! Compiled only with the `ahm-v2` feature, which released runtimes do not enable. The
 //! integration tests turn it on to drive the real runtime.
 
+pub mod lockdown;
+
 use crate::{xcm_config::XcmRouter, AccountId, Balances, Runtime, RuntimeEvent, RuntimeHoldReason};
 use frame_system::EnsureRoot;
 
@@ -29,6 +31,9 @@ impl pallet_ct_migrator::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
+	type PreMigrationCalls = lockdown::CallsEnabledBeforeMigration;
+	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
+	type PostMigrationCalls = frame_support::traits::Everything;
 }
 
 #[cfg(test)]
