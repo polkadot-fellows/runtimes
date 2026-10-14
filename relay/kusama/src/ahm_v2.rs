@@ -20,6 +20,8 @@
 //! Compiled only with the `ahm-v2` feature, which released runtimes do not enable. The
 //! integration tests turn it on to drive the real runtime.
 
+pub mod lockdown;
+
 use crate::{
 	xcm_config::{Broker, XcmRouter},
 	AccountId, BrokerId, ProxyType, Runtime, RuntimeEvent, Timestamp, TransparentProxyType,
@@ -44,6 +46,9 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type TimeProvider = Timestamp;
 	type CtOrigin = EnsureXcm<Equals<Broker>>;
 	type AdminOrigin = EnsureRoot<AccountId>;
+	type PreMigrationCalls = frame_support::traits::Everything;
+	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
+	type PostMigrationCalls = lockdown::CallsEnabledAfterMigration;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so

@@ -55,7 +55,7 @@ use frame_support::{
 	storage::with_storage_layer,
 	traits::{
 		fungible::{Inspect, Mutate, MutateHold},
-		EnsureOrigin,
+		Contains, EnsureOrigin, GetCallMetadata,
 	},
 };
 use frame_system::pallet_prelude::*;
@@ -148,6 +148,15 @@ pub mod pallet {
 
 		/// The overarching hold reason type.
 		type RuntimeHoldReason: From<HoldReason>;
+
+		/// Calls that are allowed before the migration starts.
+		type PreMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Calls that are allowed during the migration.
+		type IntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Calls that are allowed after the migration finished.
+		type PostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 	}
 
 	#[pallet::composite_enum]
@@ -239,9 +248,6 @@ pub mod pallet {
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 
-			// TODO(ahm-v2): lock this chain down before answering, until the migration ends:
-			// filter the calls whose state is about to move, and refuse inbound XCM from anyone
-			// but the relay chain.
 			// TODO(ahm-v2): give the relay chain's queue priority while the migration runs.
 			match CtMigrationStage::<T>::get() {
 				// try send xcm before updating stage.
@@ -373,6 +379,34 @@ pub mod pallet {
 			})?;
 			Ok(())
 		}
+	}
+}
+
+/// The call filter for the current migration stage. Meant to be part of the runtime's
+/// `BaseCallFilter`.
+impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
+where
+	<T as frame_system::Config>::RuntimeCall: GetCallMetadata,
+{
+	fn contains(call: &<T as frame_system::Config>::RuntimeCall) -> bool {
+		let stage = CtMigrationStage::<T>::get();
+		let allowed = if stage.is_finished() {
+			T::PostMigrationCalls::contains(call)
+		} else if stage.is_ongoing() {
+			T::IntraMigrationCalls::contains(call)
+		} else {
+			T::PreMigrationCalls::contains(call)
+		};
+		if !allowed {
+			let call = call.get_call_metadata();
+			log::debug!(
+				target: LOG_TARGET,
+				"Call filtered at {stage:?}: {}::{}",
+				call.pallet_name,
+				call.function_name,
+			);
+		}
+		allowed
 	}
 }
 

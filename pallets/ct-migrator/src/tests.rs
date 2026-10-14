@@ -20,7 +20,7 @@ use crate::{
 };
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok};
-use sp_runtime::DispatchError::BadOrigin;
+use sp_runtime::{traits::Dispatchable, DispatchError::BadOrigin};
 use xcm::prelude::*;
 
 fn stage() -> MigrationStage {
@@ -280,4 +280,31 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 		assert_eq!(stage.is_ongoing(), ongoing, "is_ongoing for {stage:?}");
 		assert_eq!(stage.is_finished(), finished, "is_finished for {stage:?}");
 	}
+}
+
+#[test]
+fn each_stage_allows_only_its_own_call_set() {
+	new_test_ext().execute_with(|| {
+		for (stage, allowed) in [
+			(MigrationStage::Pending, PRE_MIGRATION),
+			(MigrationStage::DataMigrationOngoing, INTRA_MIGRATION),
+			(MigrationStage::MigrationDone, POST_MIGRATION),
+		] {
+			// GIVEN the chain at `stage`.
+			CtMigrationStage::<Test>::put(stage.clone());
+
+			// THEN only the remark of that stage's call set passes.
+			for tag in [PRE_MIGRATION, INTRA_MIGRATION, POST_MIGRATION] {
+				let origin = RuntimeOrigin::signed(ALICE);
+				if tag == allowed {
+					assert_ok!(tagged_remark(tag).dispatch(origin));
+				} else {
+					assert_noop!(
+						tagged_remark(tag).dispatch(origin).map_err(|e| e.error),
+						frame_system::Error::<Test>::CallFiltered
+					);
+				}
+			}
+		}
+	});
 }
