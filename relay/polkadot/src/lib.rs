@@ -2001,6 +2001,8 @@ pub type TxExtension = (
 pub mod migrations {
 	use super::*;
 
+	pub mod stale_dmp_queues;
+
 	frame_support::parameter_types! {
 		pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
 	}
@@ -2020,6 +2022,7 @@ pub mod migrations {
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
 		RemoveStateTrieMigrationPallet,
+		stale_dmp_queues::RemoveStaleDmpQueues,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
