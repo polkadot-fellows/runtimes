@@ -300,6 +300,14 @@ jobs:
           fail-on-cache-miss: true
       - run: mv snapshot.raw snap_ct.snap
 
+      - name: Restore asset-hub-${{ matrix.network }} snapshot
+        uses: actions/cache/restore@v4
+        with:
+          path: snapshot.raw
+          key: try-runtime-snapshot-asset-hub-${{ matrix.network }}-
+          fail-on-cache-miss: true
+      - run: mv snapshot.raw snap_ah.snap
+
       - name: Test AHM v2 against ${{ matrix.network }} snapshots
         run: |
           cargo test --release --locked -q -p polkadot-integration-tests-ahmv2 --features "$NETWORK"
@@ -310,6 +318,7 @@ jobs:
           # absolute.
           SNAP_RC: ${{ github.workspace }}/snap_rc.snap
           SNAP_CT: ${{ github.workspace }}/snap_ct.snap
+          SNAP_AH: ${{ github.workspace }}/snap_ah.snap
           NETWORK: ${{ matrix.network }}
 
   # Job required by "confirmTestPassed"

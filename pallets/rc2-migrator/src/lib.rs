@@ -41,20 +41,67 @@ pub mod test_utils;
 mod tests;
 pub mod xcm_config;
 
+pub mod accounts;
+
 pub use pallet::*;
 
-use alloc::vec;
+use alloc::{vec, vec::Vec};
 use frame_support::{
+	defensive_assert,
 	pallet_prelude::*,
 	sp_runtime::traits::Saturating,
+	storage::with_storage_layer,
 	traits::{Contains, EnsureOrigin, GetCallMetadata, Time},
 };
 use frame_system::pallet_prelude::*;
+use migrator_types::{PortableAccount, PortableProxyType};
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
+use polkadot_runtime_common::paras_registrar;
 use sp_runtime::AccountId32;
 use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::rc2-migrator";
+
+/// Per-block limits of the data stages. Set by [`Pallet::set_limits`].
+///
+/// An item is whatever the stage moves: an account, a proxy entry, a registrar or HRMP record.
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Clone,
+	Copy,
+	PartialEq,
+	Eq,
+	Debug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct BlockLimits {
+	/// Items per message, at most [`Self::MAX_ITEMS_PER_XCM`].
+	pub items_per_xcm: u32,
+	/// Messages sent per block.
+	pub xcm_per_block: u32,
+}
+
+impl Default for BlockLimits {
+	// TODO(ahm-v2): take the values from the benchmarks. These are guesses; v1 moved 1,600 items
+	// and sent 10 messages a block.
+	fn default() -> Self {
+		Self { items_per_xcm: 40, xcm_per_block: 10 }
+	}
+}
+
+impl BlockLimits {
+	/// An XCM decodes at most 100 instructions, and a teleport to Asset Hub spends two on its
+	/// header and one per item.
+	pub const MAX_ITEMS_PER_XCM: u32 = 98;
+
+	/// Items moved per block: as many as its messages carry.
+	pub fn items_per_block(&self) -> u32 {
+		self.items_per_xcm.saturating_mul(self.xcm_per_block)
+	}
+}
 
 /// Total balance kept on the Relay Chain and total migrated, by destination.
 #[derive(
@@ -215,6 +262,9 @@ pub enum CtMigratorCall {
 	StartMigration,
 	#[codec(index = 1)]
 	EndLockdown,
+	// 2 and 3 are `force_set_stage` and `set_manager`, which the relay chain never sends.
+	#[codec(index = 4)]
+	ReceiveAccounts { accounts: Vec<PortableAccount<AccountId32, u128>> },
 }
 
 #[frame_support::pallet]
@@ -231,6 +281,14 @@ pub mod pallet {
 			AccountId = AccountId32,
 			AccountData = pallet_balances::AccountData<u128>,
 		> + pallet_balances::Config<Balance = u128>
+		+ paras_registrar::Config<Currency = pallet_balances::Pallet<Self>>
+		+ runtime_parachains::hrmp::Config
+		// The runtime says which proxy permissions have a meaning on the Coretime chain.
+		+ pallet_proxy::Config<
+			Currency = pallet_balances::Pallet<Self>,
+			ProxyType: TryInto<PortableProxyType>,
+		> + pallet_multisig::Config<Currency = pallet_balances::Pallet<Self>>
+		+ pallet_preimage::Config
 	{
 		/// The overarching event type.
 		#[allow(deprecated)]
@@ -241,6 +299,14 @@ pub mod pallet {
 
 		/// Para id of the Coretime chain.
 		type CtParaId: Get<u32>;
+
+		/// Para id of Asset Hub, where free balance is teleported to.
+		type AhParaId: Get<u32>;
+
+		/// Free balance that follows a migrated deposit to the Coretime chain, so the owner can
+		/// pay fees there without a teleport first.
+		#[pallet::constant]
+		type CtFreeBuffer: Get<u128>;
 
 		/// Wall clock that [`MigrationStage::Scheduled`] is compared against, so a schedule set
 		/// weeks ahead does not drift with block times.
@@ -273,6 +339,16 @@ pub mod pallet {
 	/// Balance kept on the Relay Chain versus migrated away. Set up by the accounts stage.
 	#[pallet::storage]
 	pub type RcMigratedBalance<T: Config> = StorageValue<_, MigratedBalances, ValueQuery>;
+
+	/// Per-block limits of the data stages.
+	#[pallet::storage]
+	pub type Limits<T: Config> = StorageValue<_, BlockLimits, ValueQuery>;
+
+	/// What each account's reserved balance is made of, from the records of the pallets that took
+	/// the deposits. Built when the accounts stage starts, consumed as accounts are withdrawn.
+	#[pallet::storage]
+	pub type ExpectedReserves<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, accounts::ExpectedReserve, ValueQuery>;
 
 	/// The duration of the pre migration warm-up period.
 	///
@@ -330,6 +406,10 @@ pub mod pallet {
 		AlreadyPaused,
 		/// The migration is not paused.
 		NotPaused,
+		/// A limit is zero, or `items_per_xcm` is above [`BlockLimits::MAX_ITEMS_PER_XCM`].
+		BadLimits,
+		/// The account's balance could not be withdrawn whole.
+		FailedToWithdrawAccount,
 	}
 
 	#[pallet::event]
@@ -359,6 +439,20 @@ pub mod pallet {
 			/// The stage from which the migration continues.
 			stage: MigrationStageOf<T>,
 		},
+		/// A batch of free balances was teleported to Asset Hub.
+		AccountsTeleported { count: u32, amount: u128 },
+		/// An account another pallet references (a validator's session keys) was drained to a
+		/// zero-balance shell.
+		AccountShellDrained { who: T::AccountId, amount: u128 },
+		/// A batch of withdrawn accounts was sent to the Coretime chain.
+		AccountsBatchSent { count: u32 },
+		/// A deposit with no purpose after the migration was released; it leaves as free balance.
+		DepositRefunded { who: T::AccountId, amount: u128 },
+		/// Reserve that no deposit record explains; it is parked on the Coretime chain.
+		UnattributedReserve { who: T::AccountId, amount: u128 },
+		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
+		/// retry it.
+		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
 	}
 
 	#[pallet::hooks]
@@ -524,6 +618,20 @@ pub mod pallet {
 			Self::deposit_event(Event::MigrationResumed { stage: RcMigrationStage::<T>::get() });
 			Ok(())
 		}
+
+		/// Set the per-block limits of the data stages.
+		#[pallet::call_index(7)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		pub fn set_limits(origin: OriginFor<T>, limits: BlockLimits) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+			ensure!(
+				(1..=BlockLimits::MAX_ITEMS_PER_XCM).contains(&limits.items_per_xcm) &&
+					limits.xcm_per_block > 0,
+				Error::<T>::BadLimits
+			);
+			Limits::<T>::put(limits);
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -569,17 +677,39 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::AccountsInit => {
+					// Set once: a rewind to this stage keeps what was booked so far.
+					if !RcMigratedBalance::<T>::exists() {
+						RcMigratedBalance::<T>::put(MigratedBalances {
+							kept: pallet_balances::TotalIssuance::<T>::get(),
+							..Default::default()
+						});
+					}
+					let records = accounts::AccountsMigrator::<T>::init();
 					Self::transition(MigrationStage::AccountsOngoing { last_key: None });
-					T::DbWeight::get().reads_writes(1, 1)
+					T::DbWeight::get().reads_writes(2, 2).saturating_add(
+						T::DbWeight::get().reads_writes(records.into(), records.into()),
+					)
 				},
-				MigrationStage::AccountsOngoing { .. } => {
-					Self::transition(MigrationStage::AccountsDone);
-					T::DbWeight::get().reads_writes(1, 1)
+				MigrationStage::AccountsOngoing { last_key } => {
+					// Withdrawals and sends commit or roll back together.
+					match with_storage_layer(|| Self::migrate_accounts_block(last_key)) {
+						Ok(None) => Self::transition(MigrationStage::AccountsDone),
+						Ok(last_key) =>
+							Self::transition(MigrationStage::AccountsOngoing { last_key }),
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "Accounts block failed, retrying: {e:?}");
+						},
+					}
+					T::DbWeight::get()
+						.reads_writes(4, 4)
+						.saturating_mul(Limits::<T>::get().items_per_block().into())
 				},
 				// The `*Done` stages are one-block checkpoints rather than direct `*Init`
 				// transitions: each boundary is a visible `StageTransition` event the migration
 				// monitor keys on, and a clean force-set target for rewinding a single stage.
 				MigrationStage::AccountsDone => {
+					// What is left are records with nothing reserved behind them.
+					let _ = ExpectedReserves::<T>::clear(u32::MAX, None);
 					Self::transition(MigrationStage::ProxyInit);
 					T::DbWeight::get().reads_writes(1, 1)
 				},
@@ -659,6 +789,94 @@ pub mod pallet {
 			let old = RcMigrationStage::<T>::mutate(|stage| core::mem::replace(stage, new.clone()));
 			log::info!(target: LOG_TARGET, "Stage transition: {old:?} -> {new:?}");
 			Self::deposit_event(Event::StageTransition { old, new });
+		}
+
+		/// One block of the accounts stage. Returns the cursor to continue from, or `None` once
+		/// every account has been visited.
+		///
+		/// The caller runs it in a storage transaction, so an `Err` rolls the whole block back.
+		fn migrate_accounts_block(
+			last_key: Option<T::AccountId>,
+		) -> Result<Option<T::AccountId>, DispatchError> {
+			// withdraw
+			let manager = Manager::<T>::get();
+			let accounts::BlockWithdrawals { to_ct, to_ah, last_key } =
+				accounts::AccountsMigrator::<T>::migrate_many(last_key, manager.as_slice());
+
+			// book what left
+			let ct_reserved: u128 = to_ct.iter().flat_map(|a| &a.holds).map(|h| h.amount).sum();
+			let ct_free: u128 = to_ct.iter().map(|a| a.free).sum();
+			let ah_free: u128 = to_ah.iter().map(|(_, amount)| amount).sum();
+			let burned = ct_reserved.saturating_add(ct_free).saturating_add(ah_free);
+			RcMigratedBalance::<T>::mutate(|migrated| {
+				defensive_assert!(migrated.kept >= burned, "burned more than is kept");
+				migrated.kept = migrated.kept.saturating_sub(burned);
+				migrated.ct_reserved = migrated.ct_reserved.saturating_add(ct_reserved);
+				migrated.ct_free = migrated.ct_free.saturating_add(ct_free);
+				migrated.ah_free = migrated.ah_free.saturating_add(ah_free);
+			});
+
+			// send
+			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
+			for chunk in to_ct.chunks(per_xcm) {
+				Self::send_accounts(chunk.to_vec())?;
+			}
+			for chunk in to_ah.chunks(per_xcm) {
+				Self::send_teleport(chunk.to_vec())?;
+			}
+			Ok(last_key)
+		}
+
+		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.
+		fn send_accounts(
+			accounts: Vec<PortableAccount<AccountId32, u128>>,
+		) -> Result<(), Error<T>> {
+			let count = accounts.len() as u32;
+			Self::send_to_ct(CtMigratorCall::ReceiveAccounts { accounts })?;
+			Self::deposit_event(Event::AccountsBatchSent { count });
+			Ok(())
+		}
+
+		/// Teleport free balances to their owners on Asset Hub. Every amount is at least the
+		/// existential deposit here, which is above Asset Hub's, so each deposit endows its
+		/// account.
+		fn send_teleport(beneficiaries: Vec<(T::AccountId, u128)>) -> Result<(), Error<T>> {
+			// the native token, as Asset Hub names it
+			let native = |amount: u128| Asset {
+				id: AssetId(Location::parent()),
+				fun: Fungibility::Fungible(amount),
+			};
+
+			// one deposit per account, and the total they add up to
+			let count = beneficiaries.len() as u32;
+			let mut total = 0u128;
+			let mut deposits = Vec::with_capacity(beneficiaries.len());
+			for (who, amount) in beneficiaries {
+				total = total.saturating_add(amount);
+				deposits.push(DepositAsset {
+					assets: AssetFilter::Definite(native(amount).into()),
+					beneficiary: Location::new(
+						0,
+						[Junction::AccountId32 { network: None, id: who.into() }],
+					),
+				});
+			}
+
+			// teleport the total in, then split it
+			let mut message = vec![
+				UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+				ReceiveTeleportedAsset(native(total).into()),
+			];
+			message.extend(deposits);
+
+			let dest = Location::new(0, [Parachain(T::AhParaId::get())]);
+			send_xcm::<T::SendXcm>(dest, Xcm(message)).map_err(|e| {
+				log::error!(target: LOG_TARGET, "Teleport to AH failed: {e:?}");
+				Error::<T>::XcmSendFailed
+			})?;
+
+			Self::deposit_event(Event::AccountsTeleported { count, amount: total });
+			Ok(())
 		}
 
 		/// Send a `pallet-ct-migrator` call to the Coretime chain as a single XCM `Transact`.
