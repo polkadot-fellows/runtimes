@@ -23,8 +23,10 @@ use cumulus_primitives_core::{
 	UpwardMessage, UpwardMessageSender,
 };
 use frame_support::{
+	assert_ok,
 	dispatch::GetDispatchInfo,
-	traits::{EnqueueMessage, Get, OnFinalize, OnInitialize, ProcessMessage},
+	hypothetically,
+	traits::{EnqueueMessage, Get, OnFinalize, OnInitialize, ProcessMessage, QueueFootprintQuery},
 	weights::Weight,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
@@ -32,6 +34,8 @@ use network::{
 	constants::system_parachain,
 	relay::{Block as RelayBlock, Runtime as RelayRuntime},
 };
+use pallet_ct_migrator::MigrationStage as CtStage;
+use pallet_rc2_migrator::MigrationStage as RcStage;
 use remote_externalities::{Builder, Mode, OfflineConfig};
 pub use runtime_parachains::inclusion::{
 	AggregateMessageOrigin as UmpOrigin, UmpQueueId as UmpQueue,
@@ -292,10 +296,10 @@ fn next_block<T>(
 	frame_system::Pallet::<T>::reset_events();
 	let weight = hooks(now);
 
-	// A message the executor refused outright, such as one the barrier turned away, is discarded
-	// as `ProcessingFailed`; one whose XCM errored mid-execution is `Processed` with
-	// `success: false`. A `Transact` whose call fails is neither on its own -- the migrators
-	// follow every `Transact` with `ExpectTransactStatus` so that it becomes the latter.
+	// A message that does not decode is discarded as `ProcessingFailed`. One the barrier turned
+	// away, or whose XCM errored mid-execution, is `Processed` with `success: false`. A `Transact`
+	// whose call fails is neither on its own -- the migrators follow every `Transact` with
+	// `ExpectTransactStatus` so that it becomes the latter.
 	let rejected: Vec<_> = frame_system::Pallet::<T>::events()
 		.into_iter()
 		.filter_map(|record| match record.event.try_into() {
@@ -397,4 +401,163 @@ fn sanity_check_xcm<Call: Decode + GetDispatchInfo>(msg: &[u8]) {
 				.expect("Receiving runtime must decode the Transact call");
 		}
 	}
+}
+
+// ---------------------------------------------------------------------------
+// The migration, end to end
+// ---------------------------------------------------------------------------
+
+/// The windows the walk schedules with.
+pub const WARM_UP: u32 = 10;
+pub const COOL_OFF: u32 = 10;
+
+pub fn rc_stage() -> pallet_rc2_migrator::MigrationStageOf<RelayRuntime> {
+	pallet_rc2_migrator::RcMigrationStage::<RelayRuntime>::get()
+}
+
+pub fn ct_stage() -> CtStage {
+	pallet_ct_migrator::CtMigrationStage::<network::ct::Runtime>::get()
+}
+
+/// A para besides the Coretime chain that the relay chain sends to during the data stages, with
+/// what delivers a block's messages to it.
+pub type Destination<'a> = (ParaId, &'a mut dyn FnMut(Vec<InboundDownwardMessage>));
+
+/// Walk both chains from `Pending` to `MigrationDone` over their real queues.
+///
+/// The data stages get at most `max_blocks` relay-chain blocks. After each of them, what the relay
+/// chain sent to the Coretime chain is delivered there, and what it sent to each of `others` is
+/// handed to that para's delivery.
+///
+/// `probe_rc` runs inside the relay chain at every stage the walk passes, `probe_ct` inside the
+/// Coretime chain at each of its stages. Each probe runs in a storage layer that is rolled back,
+/// so it can change state without moving the walk.
+pub fn walk_migration(
+	rc: &mut TestExternalities,
+	ct: &mut TestExternalities,
+	max_blocks: u32,
+	others: &mut [Destination],
+	probe_rc: impl Fn(),
+	probe_ct: impl Fn(),
+) {
+	let probe_rc = || hypothetically!(probe_rc());
+	let probe_ct = || hypothetically!(probe_ct());
+	let ct_para: ParaId = CoretimePara::PARA_ID.into();
+
+	// The relay chain schedules the start and sends its start signal.
+	let dmp = rc.execute_with(|| {
+		assert_eq!(rc_stage(), RcStage::Pending);
+		probe_rc();
+
+		// The block whose hooks first see a clock at or past `start` is the third from here,
+		// since hooks run before the timestamp inherent.
+		let start = now_ms_rc() + 2 * RC_BLOCK_TIME_MS;
+		assert_ok!(pallet_rc2_migrator::Pallet::<RelayRuntime>::schedule_migration(
+			network::relay::RuntimeOrigin::root(),
+			start,
+			WARM_UP,
+			COOL_OFF,
+		));
+		next_block_rc();
+		next_block_rc();
+		assert_eq!(rc_stage(), RcStage::Scheduled { start });
+		probe_rc();
+
+		next_block_rc();
+		assert_eq!(rc_stage(), RcStage::WaitingForCt);
+		probe_rc();
+		take_dmp(ct_para)
+	});
+
+	// The Coretime chain opens and answers.
+	let ump = ct.execute_with(|| {
+		assert_eq!(ct_stage(), CtStage::Pending);
+		probe_ct();
+		enqueue_dmp::<CoretimePara>(dmp);
+		next_block_para::<CoretimePara>();
+		assert_eq!(ct_stage(), CtStage::DataMigrationOngoing);
+		probe_ct();
+		take_ump::<CoretimePara>()
+	});
+
+	// The relay chain warms up and opens the data stages.
+	rc.execute_with(|| {
+		enqueue_ump(ct_para, ump);
+		next_block_rc();
+		let RcStage::WarmUp { end_at } = rc_stage() else {
+			panic!("readiness did not admit the machine to the warm-up: {:?}", rc_stage())
+		};
+		probe_rc();
+
+		set_block_number_rc(end_at - 1);
+		next_block_rc();
+		assert_eq!(rc_stage(), RcStage::AccountsInit);
+	});
+
+	// The data stages run until the cool-off opens, each block's messages delivered as they are
+	// sent.
+	let other_paras: Vec<ParaId> = others.iter().map(|(para, _)| *para).collect();
+	let mut blocks = 0;
+	let cool_off_end = loop {
+		let (cool_off_end, to_ct, to_others) = rc.execute_with(|| {
+			probe_rc();
+			if let RcStage::CoolOff { end_at } = rc_stage() {
+				return (Some(end_at), vec![], vec![]);
+			}
+			assert!(
+				blocks < max_blocks,
+				"the data stages did not reach the cool-off: {:?}",
+				rc_stage()
+			);
+			next_block_rc();
+			let to_others = other_paras.iter().map(|para| take_dmp(*para)).collect();
+			(None, take_dmp(ct_para), to_others)
+		});
+		if let Some(end_at) = cool_off_end {
+			break end_at;
+		}
+		blocks += 1;
+
+		if !to_ct.is_empty() {
+			let ump = ct.execute_with(|| {
+				enqueue_dmp::<CoretimePara>(to_ct);
+				next_block_para::<CoretimePara>();
+				take_ump::<CoretimePara>()
+			});
+			rc.execute_with(|| enqueue_ump(ct_para, ump));
+		}
+		for ((_, deliver), dmp) in others.iter_mut().zip(to_others) {
+			if !dmp.is_empty() {
+				deliver(dmp);
+			}
+		}
+	};
+	ct.execute_with(drain_dmp::<CoretimePara>);
+
+	// The cool-off elapses and the finish signal reaches the Coretime chain.
+	let dmp = rc.execute_with(|| {
+		set_block_number_rc(cool_off_end - 1);
+		next_block_rc();
+		assert_eq!(rc_stage(), RcStage::MigrationDone);
+		probe_rc();
+		take_dmp(ct_para)
+	});
+	ct.execute_with(|| {
+		enqueue_dmp::<CoretimePara>(dmp);
+		next_block_para::<CoretimePara>();
+		assert_eq!(ct_stage(), CtStage::MigrationDone);
+		probe_ct();
+	});
+}
+
+/// Run blocks on parachain `P` until its downward queue has nothing left to process. Pages that
+/// only hold overweight messages stay, but are not processed again.
+pub fn drain_dmp<P: Para>() {
+	for _ in 0..100 {
+		if MqPallet::<P>::footprint(ParachainMessageOrigin::Parent).ready_pages == 0 {
+			return;
+		}
+		next_block_para::<P>();
+	}
+	panic!("{}'s downward queue did not drain", P::CHAIN.name());
 }
