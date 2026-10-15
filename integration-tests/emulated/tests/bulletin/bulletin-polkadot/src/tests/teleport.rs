@@ -109,3 +109,16 @@ fn teleport_via_limited_teleport_assets_from_and_to_other_system_parachains_work
 		limited_teleport_assets
 	);
 }
+
+#[test]
+fn accumulate_forward_bulletin_transfers_native_to_asset_hub() {
+	use bulletin_polkadot_runtime::System;
+	emulated_integration_tests_common::dap_helpers::test_accumulate_forward_transfers_to_asset_hub::<
+		BulletinPolkadot,
+		AssetHubPolkadot,
+	>(
+		|acct, amount| BulletinPolkadot::fund_accounts(vec![(acct, amount)]),
+		System::block_number,
+		System::set_block_number,
+	);
+}
