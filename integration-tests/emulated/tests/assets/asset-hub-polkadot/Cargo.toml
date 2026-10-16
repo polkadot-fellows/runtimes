@@ -43,7 +43,6 @@ asset-hub-polkadot-runtime = { workspace = true }
 bridge-hub-polkadot-runtime = { workspace = true }
 collectives-polkadot-runtime = { workspace = true }
 collectives-polkadot-runtime-constants = { workspace = true }
-integration-tests-helpers = { workspace = true }
 polkadot-runtime = { workspace = true }
 polkadot-runtime-constants = { workspace = true }
 polkadot-system-emulated-network = { workspace = true }
@@ -58,7 +57,6 @@ runtime-benchmarks = [
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"integration-tests-helpers/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
