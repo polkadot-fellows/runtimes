@@ -22,6 +22,8 @@
 #![cfg(test)]
 
 #[cfg(any(feature = "polkadot", feature = "kusama"))]
+pub mod lockdown;
+#[cfg(any(feature = "polkadot", feature = "kusama"))]
 pub mod mock;
 #[cfg(any(feature = "polkadot", feature = "kusama"))]
 pub mod tests;

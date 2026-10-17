@@ -35,8 +35,11 @@ extern crate alloc;
 
 #[cfg(test)]
 mod mock;
+#[cfg(feature = "std")]
+pub mod test_utils;
 #[cfg(test)]
 mod tests;
+pub mod xcm_config;
 
 pub use pallet::*;
 
@@ -44,7 +47,7 @@ use alloc::vec;
 use frame_support::{
 	pallet_prelude::*,
 	sp_runtime::traits::Saturating,
-	traits::{EnsureOrigin, Time},
+	traits::{Contains, EnsureOrigin, GetCallMetadata, Time},
 };
 use frame_system::pallet_prelude::*;
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
@@ -248,6 +251,15 @@ pub mod pallet {
 
 		/// The origin that can perform permissioned operations like setting the migration stage.
 		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
+
+		/// Calls that are allowed before the migration starts.
+		type PreMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Calls that are allowed during the migration.
+		type IntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Calls that are allowed after the migration finished.
+		type PostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 	}
 
 	#[pallet::pallet]
@@ -364,7 +376,9 @@ pub mod pallet {
 		/// - `start`: The wall-clock time at which the migration will start.
 		/// - `warm_up`: Duration in blocks used to prepare for the migration. Calls are filtered
 		///   during this period. It is intended to give enough time for UMP and DMP queues to
-		///   empty. Counted from the transition to the warm-up stage.
+		///   empty. Counted from the transition to the warm-up stage. Must be longer than one
+		///   Coretime timeslice: on-demand orders close at the start, and the Coretime chain claims
+		///   the revenue earned before it at its next timeslice boundary.
 		/// - `cool_off`: Duration in blocks of the post migration cool-off period. Counted from the
 		///   transition to the cool-off stage.
 		///
@@ -543,9 +557,6 @@ pub mod pallet {
 				// The scheduled start is compared against the clock, which at `on_initialize` still
 				// holds the previous block's timestamp -- so the migration begins on the first
 				// block after the one whose timestamp passed `start`.
-				// TODO(ahm-v2): lock down here, which is two things. Filter the calls whose
-				// state is about to move, and refuse inbound XCM from anyone but the Coretime
-				// chain.
 				// TODO(ahm-v2): give the Coretime chain's queue priority.
 				MigrationStage::Scheduled { start } if T::TimeProvider::now() >= start => {
 					if Self::send_to_ct(CtMigratorCall::StartMigration).is_ok() {
@@ -609,6 +620,9 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::Sweep => {
+					// TODO(ahm-v2): sweep the on-demand pot to the Asset Hub beneficiary with the
+					// other pots, and emit an event for it, so governance can move it later. It
+					// holds revenue only if the Coretime chain has not claimed it yet.
 					Self::transition(MigrationStage::SweepDust { last_key: None });
 					T::DbWeight::get().reads_writes(1, 1)
 				},
@@ -671,5 +685,33 @@ pub mod pallet {
 			})?;
 			Ok(())
 		}
+	}
+}
+
+/// The call filter for the current migration stage. Meant to be part of the runtime's
+/// `BaseCallFilter`.
+impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
+where
+	<T as frame_system::Config>::RuntimeCall: GetCallMetadata,
+{
+	fn contains(call: &<T as frame_system::Config>::RuntimeCall) -> bool {
+		let stage = RcMigrationStage::<T>::get();
+		let allowed = if stage.is_finished() {
+			T::PostMigrationCalls::contains(call)
+		} else if stage.is_ongoing() {
+			T::IntraMigrationCalls::contains(call)
+		} else {
+			T::PreMigrationCalls::contains(call)
+		};
+		if !allowed {
+			let call = call.get_call_metadata();
+			log::debug!(
+				target: LOG_TARGET,
+				"Call filtered at {stage:?}: {}::{}",
+				call.pallet_name,
+				call.function_name,
+			);
+		}
+		allowed
 	}
 }
