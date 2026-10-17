@@ -851,14 +851,8 @@ pub mod benchmark_utils {
 		}
 
 		fn fund_account(who: &AccountId, amount: Balance) {
-			let fee_reserve =
-				Coinage::get_paid_unload_token_fee_quote_in_asset(0, 1).unwrap_or_default();
-			<AssetsWithHolder as Mutate<_>>::mint_into(
-				HollarLocation::get(),
-				who,
-				amount.saturating_add(fee_reserve),
-			)
-			.expect("benchmark: account must be fundable");
+			<AssetsWithHolder as Mutate<_>>::mint_into(HollarLocation::get(), who, amount)
+				.expect("benchmark: account must be fundable");
 		}
 
 		fn create_extra_asset(seed: u32, who: &AccountId) -> Location {
@@ -903,8 +897,10 @@ pub mod benchmark_utils {
 				return;
 			}
 
+			// Price HOLLAR so that a paid unload token fee stays below the ten minimum coins
+			// (0.1 HOLLAR) that the non-anonymous unload benchmarks fund their caller with.
 			let native_liquidity = 1_000 * UNITS;
-			let asset_liquidity = 1_000 * HOLLAR_UNITS;
+			let asset_liquidity = 10 * HOLLAR_UNITS;
 			let provider: AccountId = [42u8; 32].into();
 
 			Balances::mint_into(&provider, native_liquidity.saturating_mul(2))
