@@ -15,12 +15,15 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	mock::*, CtMigratorCall, CtRuntimeCall, Error, Event, Manager, MigrationStage, Paused,
-	RcMigrationStage,
+	mock::*, xcm_config::NothingOnceStarted, CtMigratorCall, CtRuntimeCall, Error, Event, Manager,
+	MigrationStage, Paused, RcMigrationStage,
 };
 use codec::Encode;
-use frame_support::{assert_noop, assert_ok};
-use sp_runtime::DispatchError::BadOrigin;
+use frame_support::{
+	assert_noop, assert_ok,
+	traits::{ContainsPair, Everything},
+};
+use sp_runtime::{traits::Dispatchable, DispatchError::BadOrigin};
 use xcm::prelude::*;
 
 type Stage = MigrationStage<AccountId, u64, u64>;
@@ -53,6 +56,20 @@ fn data_stages() -> Vec<Stage> {
 		Stage::SweepDust { last_key: None },
 		Stage::TiCorrection,
 	]
+}
+
+/// Every stage, in the order the machine walks them.
+fn all_stages() -> Vec<Stage> {
+	[
+		Stage::Pending,
+		Stage::Scheduled { start: 10 },
+		Stage::WaitingForCt,
+		Stage::WarmUp { end_at: 10 },
+	]
+	.into_iter()
+	.chain(data_stages())
+	.chain([Stage::CoolOff { end_at: 10 }, Stage::MigrationDone])
+	.collect()
 }
 
 /// Blocks from the end of the warm-up to the opening of the cool-off: one per data stage.
@@ -821,4 +838,69 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 		assert_eq!(stage.has_started(), started, "has_started for {stage:?}");
 		assert_eq!(stage.is_finished(), finished, "is_finished for {stage:?}");
 	}
+}
+
+#[test]
+fn each_stage_allows_only_its_own_call_set() {
+	new_test_ext().execute_with(|| {
+		for stage in all_stages() {
+			let allowed = match stage {
+				Stage::Pending | Stage::Scheduled { .. } => PRE_MIGRATION,
+				Stage::WaitingForCt |
+				Stage::WarmUp { .. } |
+				Stage::AccountsInit |
+				Stage::AccountsOngoing { .. } |
+				Stage::AccountsDone |
+				Stage::ProxyInit |
+				Stage::ProxyOngoing { .. } |
+				Stage::ProxyDone |
+				Stage::RegistrarInit |
+				Stage::RegistrarOngoing { .. } |
+				Stage::RegistrarDone |
+				Stage::HrmpInit |
+				Stage::HrmpOngoing { .. } |
+				Stage::HrmpDone |
+				Stage::Sweep |
+				Stage::SweepDust { .. } |
+				Stage::TiCorrection |
+				Stage::CoolOff { .. } => INTRA_MIGRATION,
+				Stage::MigrationDone => POST_MIGRATION,
+			};
+
+			// GIVEN the machine at `stage`.
+			set_stage(stage.clone());
+
+			// THEN only the remark of that stage's call set passes.
+			for tag in [PRE_MIGRATION, INTRA_MIGRATION, POST_MIGRATION] {
+				let origin = RuntimeOrigin::signed(ALICE);
+				if tag == allowed {
+					assert_ok!(tagged_remark(tag).dispatch(origin));
+				} else {
+					assert_noop!(
+						tagged_remark(tag).dispatch(origin).map_err(|e| e.error),
+						frame_system::Error::<Test>::CallFiltered
+					);
+				}
+			}
+		}
+	});
+}
+
+#[test]
+fn teleport_trust_ends_when_the_migration_starts() {
+	new_test_ext().execute_with(|| {
+		let asset: Asset = (Here, 1u128).into();
+		let origin = Location::new(0, [Parachain(CT_PARA_ID)]);
+		for stage in all_stages() {
+			// GIVEN the machine at `stage`.
+			set_stage(stage.clone());
+
+			// THEN the inner filter's answer stands until the start, and nothing is trusted after.
+			assert_eq!(
+				NothingOnceStarted::<Test, Everything>::contains(&asset, &origin),
+				!stage.has_started(),
+				"at {stage:?}"
+			);
+		}
+	});
 }

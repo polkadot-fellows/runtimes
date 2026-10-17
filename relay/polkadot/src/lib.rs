@@ -259,6 +259,9 @@ parameter_types! {
 }
 
 impl frame_system::Config for Runtime {
+	#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+	type BaseCallFilter = frame_support::traits::InsideBoth<PostAhmFilter, Rc2Migrator>;
+	#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
 	type BaseCallFilter = PostAhmFilter;
 	type BlockWeights = BlockWeights;
 	type BlockLength = RuntimeBlockLength;

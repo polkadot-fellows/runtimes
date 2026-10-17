@@ -18,7 +18,7 @@
 use sp_core::storage::Storage;
 
 // Cumulus
-use bulletin_polkadot_runtime::xcm_config::TreasuryAccount;
+use bulletin_polkadot_runtime::xcm_config::AccumulateForwardAccount;
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
@@ -35,8 +35,9 @@ pub fn genesis() -> Storage {
 		balances: bulletin_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances()
 				.into_iter()
-				.chain([TreasuryAccount::get()])
 				.map(|k| (k, ENDOWMENT))
+				// Only the ED, as on chain: endowing it would forward on the first idle block.
+				.chain([(AccumulateForwardAccount::get(), ED)])
 				.collect(),
 			dev_accounts: None,
 		},
