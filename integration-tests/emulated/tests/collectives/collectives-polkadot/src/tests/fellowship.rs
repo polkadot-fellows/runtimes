@@ -273,6 +273,6 @@ fn signed_account_cannot_schedule() {
 		let schedule_call = schedule_on_next_block(noop_call);
 
 		let signed_origin: RuntimeOrigin = RuntimeOrigin::signed([1u8; 32].into());
-		assert_err!(schedule_call.dispatch(signed_origin), frame_support::error::BadOrigin,);
+		assert_err!(schedule_call.dispatch(signed_origin), sp_runtime::traits::BadOrigin,);
 	});
 }

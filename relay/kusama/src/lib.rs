@@ -144,6 +144,10 @@ pub const LOG_TARGET: &str = "runtime::kusama";
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 
+// AHM v2 migration wiring. Kept out of the on-chain build.
+#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+mod ahm_v2;
+
 // Weights used in the runtime.
 mod weights;
 
@@ -178,7 +182,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kusama"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 2_003_002,
+	spec_version: 2_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -271,6 +275,9 @@ parameter_types! {
 
 impl frame_system::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+	type BaseCallFilter = frame_support::traits::InsideBoth<PostAhmFilter, Rc2Migrator>;
+	#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
 	type BaseCallFilter = PostAhmFilter;
 	type BlockWeights = BlockWeights;
 	type BlockLength = RuntimeBlockLength;
@@ -416,7 +423,8 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type DustRemoval = ();
+	// A burn here would not show in the network total, which Asset Hub tracks.
+	type DustRemoval = AccumulateForward;
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -429,6 +437,28 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type DoneSlashHandler = ();
+}
+
+parameter_types! {
+	pub const AccumulateForwardPalletId: PalletId =
+		kusama_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
+	/// Hourly at most, once 1 KSM has gathered; funds waiting still count towards issuance.
+	pub const ForwardPeriod: BlockNumber = HOURS;
+	pub const MinForwardAmount: Balance = UNITS;
+}
+
+impl pallet_accumulate_and_forward::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = AccumulateForwardPalletId;
+	type Forwarder = kusama_runtime_constants::accumulate_and_forward::TeleportAndBurnForwarder<
+		xcm_config::XcmConfig,
+		xcm_config::AssetHubLocation,
+		xcm_config::TokenLocation,
+	>;
+	type TransferPeriod = ForwardPeriod;
+	type MinTransferAmount = MinForwardAmount;
+	type BlockNumberProvider = System;
+	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1468,6 +1498,8 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
+			// `Auction` admits `Registrar::swap`; `NonTransfer` omits it on purpose.
+			(ProxyType::NonTransfer, ProxyType::Auction) => false,
 			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
@@ -2045,6 +2077,9 @@ construct_runtime! {
 		// staking client to communicate with AH.
 		StakingAhClient: pallet_staking_async_ah_client = 48,
 
+		// Gathers what would otherwise be burned here, for Asset Hub to burn.
+		AccumulateForward: pallet_accumulate_and_forward = 49,
+
 		// Parachains pallets. Start indices at 50 to leave room.
 		ParachainsOrigin: parachains_origin = 50,
 		Configuration: parachains_configuration = 51,
@@ -2088,6 +2123,10 @@ construct_runtime! {
 		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
 		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
 		RcMigrator: pallet_rc_migrator = 255,
+		// AHM v2 migrator. Below `MessageQueue` for the same reason as `RcMigrator`: its
+		// `on_initialize` has to see the block's inbound messages.
+		#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+		Rc2Migrator: pallet_rc2_migrator = 254,
 	}
 }
 
@@ -2147,11 +2186,8 @@ pub mod migrations {
 		RemoveRecoveryPallet,
 	);
 
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
 	/// All migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
+	pub type SingleBlockMigrations = Unreleased;
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2191,6 +2227,7 @@ mod benches {
 		[runtime_parachains::on_demand, OnDemandAssignmentProvider]
 		[runtime_parachains::coretime, Coretime]
 		// Substrate
+		[pallet_accumulate_and_forward, AccumulateForward]
 		[pallet_balances, Native]
 		[pallet_bags_list, VoterList]
 		[pallet_beefy_mmr, BeefyMmrLeaf]
@@ -2204,7 +2241,6 @@ mod benches {
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
-		[pallet_nomination_pools, NominationPoolsBench::<Runtime>]
 		[pallet_offences, OffencesBench::<Runtime>]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
@@ -2241,7 +2277,6 @@ mod benches {
 	impl pallet_election_provider_support_benchmarking::Config for Runtime {}
 	impl frame_system_benchmarking::Config for Runtime {}
 	impl frame_benchmarking::baseline::Config for Runtime {}
-	impl pallet_nomination_pools_benchmarking::Config for Runtime {}
 	impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
 
 	parameter_types! {
@@ -2302,6 +2337,11 @@ mod benches {
 
 		fn get_asset() -> Asset {
 			Asset { id: AssetId(Location::here()), fun: Fungible(ExistentialDeposit::get()) }
+		}
+
+		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
+		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
 		}
 	}
 
@@ -2429,7 +2469,6 @@ mod benches {
 		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
 	};
 	pub use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
-	pub use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 	pub use pallet_offences_benchmarking::Pallet as OffencesBench;
 	pub use pallet_session_benchmarking::Pallet as SessionBench;
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;

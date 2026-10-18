@@ -45,8 +45,9 @@ impl pallet_assets::Config for Runtime {
 	type Holder = AssetsHolder;
 	type Freezer = ();
 	type Extra = ();
-	type WeightInfo = weights::pallet_assets::WeightInfo<Runtime>;
+	type WeightInfo = weights::pallet_assets_assets::WeightInfo<Runtime>;
 	type CallbackHandle = ();
+	type AssetIdAllocator = ();
 	type AssetAccountDeposit = AssetAccountDeposit;
 	type ReserveData = ();
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;

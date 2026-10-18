@@ -36,6 +36,7 @@ frame-system = { workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
+pallet-accumulate-and-forward = { workspace = true }
 pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
@@ -83,6 +84,7 @@ cumulus-primitives-utility = { workspace = true }
 pallet-collator-selection = { workspace = true }
 parachain-info = { workspace = true }
 parachains-common = { workspace = true }
+system-parachains-common = { workspace = true }
 system-parachains-constants = { workspace = true }
 
 # Bridges
@@ -112,6 +114,7 @@ bridge-runtime-common = { features = [
 pallet-bridge-relayers = { workspace = true, features = ["integrity-test"] }
 sp-keyring = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
+system-parachains-test-utils = { workspace = true }
 
 [features]
 default = ["std"]
@@ -151,6 +154,7 @@ std = [
 	"frame-try-runtime?/std",
 	"kusama-runtime-constants/std",
 	"log/std",
+	"pallet-accumulate-and-forward/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
 	"pallet-balances/std",
@@ -193,6 +197,7 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
+	"system-parachains-common/std",
 	"system-parachains-constants/std",
 	"tuplex/std",
 	"xcm-builder/std",
@@ -220,6 +225,7 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
+	"pallet-accumulate-and-forward/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-bridge-grandpa/runtime-benchmarks",
 	"pallet-bridge-messages/runtime-benchmarks",
@@ -241,6 +247,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"system-parachains-common/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
@@ -259,6 +266,7 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
+	"pallet-accumulate-and-forward/try-runtime",
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
 	"pallet-balances/try-runtime",
@@ -280,6 +288,7 @@ try-runtime = [
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
+	"system-parachains-common/try-runtime",
 	"system-parachains-constants/try-runtime",
 ]
 

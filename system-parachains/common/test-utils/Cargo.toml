@@ -1,0 +1,20 @@
+[package]
+authors.workspace = true
+description = "Test helpers shared between system-parachains runtimes"
+edition.workspace = true
+license.workspace = true
+name = "system-parachains-test-utils"
+repository.workspace = true
+version.workspace = true
+publish = false
+
+[dependencies]
+codec = { workspace = true, default-features = true }
+
+frame-support = { workspace = true, default-features = true }
+frame-system = { workspace = true, default-features = true }
+pallet-balances = { workspace = true, default-features = true }
+pallet-session = { workspace = true, default-features = true }
+parachains-runtimes-test-utils = { workspace = true }
+sp-keystore = { workspace = true }
+sp-runtime = { workspace = true, default-features = true }

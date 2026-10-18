@@ -150,14 +150,12 @@ pub mod migrations {
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 	);
 
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
 	/// All migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
+	pub type SingleBlockMigrations = Unreleased;
 
 	/// MBM migrations to apply on runtime upgrade.
 	pub type MbmMigrations = ();
@@ -173,6 +171,7 @@ pub type Executive = frame_executive::Executive<
 >;
 
 impl_opaque_keys! {
+	#[derive(MaxEncodedLen)]
 	pub struct SessionKeys {
 		pub aura: Aura,
 	}
@@ -183,7 +182,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("bridge-hub-kusama"),
 	impl_name: Cow::Borrowed("bridge-hub-kusama"),
 	authoring_version: 1,
-	spec_version: 2_003_002,
+	spec_version: 2_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 5,
@@ -304,7 +303,7 @@ parameter_types! {
 impl pallet_balances::Config for Runtime {
 	/// The type for recording an account's balance.
 	type Balance = Balance;
-	type DustRemoval = ();
+	type DustRemoval = AccumulateForward;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
@@ -318,6 +317,30 @@ impl pallet_balances::Config for Runtime {
 	type FreezeIdentifier = ();
 	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
+}
+
+parameter_types! {
+	pub const AccumulateForwardPalletId: PalletId =
+		kusama_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
+	pub const ForwardPeriod: BlockNumber = HOURS;
+	pub const MinForwardAmount: Balance = UNITS;
+}
+
+impl pallet_accumulate_and_forward::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = AccumulateForwardPalletId;
+	type Forwarder = kusama_runtime_constants::accumulate_and_forward::TeleportAndBurnForwarder<
+		xcm_config::XcmConfig,
+		AssetHubLocation,
+		RelayChainLocation,
+	>;
+	type TransferPeriod = ForwardPeriod;
+	type MinTransferAmount = MinForwardAmount;
+	// Local clock: the relay one would fire on one parity only, as forwards happen on exact
+	// multiples of the period. TODO: use `RelaychainDataProvider` once
+	// https://github.com/paritytech/polkadot-sdk/issues/13149 lands.
+	type BlockNumberProvider = System;
+	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -346,6 +369,7 @@ parameter_types! {
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
+	type SchedulingSignatureVerifier = ();
 	type RuntimeEvent = RuntimeEvent;
 	type OnSystemEvent = ();
 	type SelfParaId = parachain_info::Pallet<Runtime>;
@@ -460,6 +484,15 @@ impl cumulus_pallet_xcmp_queue::migration::v5::V5Config for Runtime {
 pub const PERIOD: u32 = 6 * HOURS;
 pub const OFFSET: u32 = 0;
 
+parameter_types! {
+	/// One `NextKeys` entry plus one `KeyOwner` entry per session key.
+	pub SessionKeyDeposit: Balance = system_para_deposit(1, SessionKeys::max_encoded_len() as u32)
+		.saturating_add(system_para_deposit(
+			<SessionKeys as sp_runtime::traits::OpaqueKeys>::key_ids().len() as u32,
+			<Runtime as pallet_session::Config>::ValidatorId::max_encoded_len() as u32,
+		));
+}
+
 impl pallet_session::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
@@ -474,7 +507,7 @@ impl pallet_session::Config for Runtime {
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = ();
 	type Currency = Balances;
-	type KeyDeposit = ();
+	type KeyDeposit = SessionKeyDeposit;
 }
 
 impl pallet_aura::Config for Runtime {
@@ -659,6 +692,7 @@ construct_runtime!(
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
 		TransactionPayment: pallet_transaction_payment = 11,
+		AccumulateForward: pallet_accumulate_and_forward = 12,
 
 		// Collator support. The order of these 4 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -705,6 +739,7 @@ mod benches {
 	frame_benchmarking::define_benchmarks!(
 		[frame_system, SystemBench::<Runtime>]
 		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
+		[pallet_accumulate_and_forward, AccumulateForward]
 		[pallet_balances, Balances]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
@@ -745,6 +780,11 @@ mod benches {
 
 	impl cumulus_pallet_session_benchmarking::Config for Runtime {
 		fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Self::Keys, Vec<u8>) {
+			use frame_support::traits::fungible::Mutate;
+			// Mint the key deposit on top of the balance the benchmark already funded.
+			// TODO: Remove after https://github.com/paritytech/polkadot-sdk/issues/13336 is fixed.
+			Balances::mint_into(&owner, SessionKeyDeposit::get())
+				.expect("mint session key deposit");
 			let keys = SessionKeys::generate(&owner.encode(), None);
 			(keys.keys, keys.proof.encode())
 		}
@@ -795,6 +835,11 @@ mod benches {
 
 		fn get_asset() -> Asset {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(ExistentialDeposit::get()) }
+		}
+
+		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
+		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
 		}
 	}
 
@@ -934,10 +979,10 @@ mod benches {
 		}
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-			Ok((
-				Location::new(1, [Parachain(1000)]),
-				Location::new(1, [Parachain(1000), AccountId32 { id: [111u8; 32], network: None }]),
-			))
+			use system_parachains_common::benchmarking::set_up_worst_case_authorized_alias;
+
+			// Worst case: `AuthorizedAliasers`, the last and priciest `Aliasers` entry.
+			Ok(set_up_worst_case_authorized_alias::<Runtime>())
 		}
 	}
 
@@ -1142,6 +1187,9 @@ impl_runtime_apis! {
 	impl cumulus_primitives_core::RelayParentOffsetApi<Block> for Runtime {
 		fn relay_parent_offset() -> u32 {
 			0
+		}
+		fn max_claim_queue_offset() -> u8 {
+			cumulus_pallet_parachain_system::Pallet::<Runtime>::max_claim_queue_offset()
 		}
 	}
 
@@ -1498,5 +1546,57 @@ mod tests {
 		let relay_tbf = kusama_runtime_constants::fee::TRANSACTION_BYTE_FEE;
 		let parachain_tbf = TransactionByteFee::get();
 		assert_eq!(relay_tbf / 10, parachain_tbf);
+	}
+}
+
+#[cfg(test)]
+mod accumulate_and_forward_tests {
+	use super::*;
+	use frame_support::{
+		assert_ok,
+		traits::{
+			fungible::{Inspect, Mutate},
+			tokens::Preservation,
+		},
+	};
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	const ALICE: [u8; 32] = [1u8; 32];
+	const BOB: [u8; 32] = [2u8; 32];
+
+	/// Dust accumulates for the forward to Asset Hub instead of being burned here, where the burn
+	/// would not show in the network total that Asset Hub tracks.
+	#[test]
+	fn dust_accumulates_instead_of_being_burned() {
+		let existential_deposit: Balance =
+			<Runtime as pallet_balances::Config>::ExistentialDeposit::get();
+		let accumulation_account = AccumulateForward::accumulation_account();
+
+		ExtBuilder::<Runtime>::default()
+			// Funded out of band before the upgrade; without the ED, dust is rejected.
+			.with_balances(vec![(accumulation_account.clone(), existential_deposit)])
+			.build()
+			.execute_with(|| {
+				let alice = AccountId::from(ALICE);
+				let bob = AccountId::from(BOB);
+				assert_ok!(Balances::mint_into(&alice, existential_deposit));
+				assert_ok!(Balances::mint_into(&bob, existential_deposit));
+
+				let issuance_before = Balances::total_issuance();
+				let accumulated_before = Balances::balance(&accumulation_account);
+
+				// Reap Alice, leaving dust behind.
+				let dust = existential_deposit / 2;
+				assert_ok!(<Balances as Mutate<_>>::transfer(
+					&alice,
+					&bob,
+					existential_deposit - dust,
+					Preservation::Expendable,
+				));
+
+				assert_eq!(Balances::balance(&alice), 0);
+				assert_eq!(Balances::balance(&accumulation_account), accumulated_before + dust);
+				assert_eq!(Balances::total_issuance(), issuance_before);
+			});
 	}
 }

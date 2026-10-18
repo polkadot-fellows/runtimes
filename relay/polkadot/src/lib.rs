@@ -135,6 +135,10 @@ use polkadot_runtime_constants::{
 	currency::*, fee::*, proxy::ProxyType, system_parachain, time::*, TREASURY_PALLET_ID,
 };
 
+// AHM v2 migration wiring. Kept out of the on-chain build.
+#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+mod ahm_v2;
+
 // Weights used in the runtime.
 mod weights;
 
@@ -168,7 +172,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 2_003_002,
+	spec_version: 2_005_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -215,7 +219,6 @@ impl Contains<RuntimeCall> for PostAhmFilter {
 			FastUnstake(..) |
 			Slots(..) |
 			Auctions(..) |
-			StateTrieMigration(..) |
 			AssetRate(..) => false,
 
 			// Session keys are managed via Asset Hub post-AHM (forwarded to the relay through
@@ -256,6 +259,9 @@ parameter_types! {
 }
 
 impl frame_system::Config for Runtime {
+	#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+	type BaseCallFilter = frame_support::traits::InsideBoth<PostAhmFilter, Rc2Migrator>;
+	#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
 	type BaseCallFilter = PostAhmFilter;
 	type BlockWeights = BlockWeights;
 	type BlockLength = RuntimeBlockLength;
@@ -1271,6 +1277,8 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
+			// `Auction` admits `Registrar::swap`; `NonTransfer` omits it on purpose.
+			(ProxyType::NonTransfer, ProxyType::Auction) => false,
 			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
@@ -1799,27 +1807,6 @@ impl ah_client::SendToAssetHub for StakingXcmToAssetHub {
 	}
 }
 
-parameter_types! {
-	// The deposit configuration for the singed migration. Specially if you want to allow any signed account to do the migration (see `SignedFilter`, these deposits should be high)
-	pub const MigrationSignedDepositPerItem: Balance = CENTS;
-	pub const MigrationSignedDepositBase: Balance = 20 * CENTS * 100;
-	pub const MigrationMaxKeyLen: u32 = 512;
-}
-
-impl pallet_state_trie_migration::Config for Runtime {
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type SignedDepositPerItem = MigrationSignedDepositPerItem;
-	type SignedDepositBase = MigrationSignedDepositBase;
-	type ControlOrigin = EnsureRoot<AccountId>;
-	type SignedFilter = frame_support::traits::NeverEnsureOrigin<AccountId>;
-
-	// Use same weights as substrate ones.
-	type WeightInfo = pallet_state_trie_migration::weights::SubstrateWeight<Runtime>;
-	type MaxKeyLen = MigrationMaxKeyLen;
-}
-
 /// The [frame_support::traits::tokens::ConversionFromAssetBalance] implementation provided by the
 /// `AssetRate` pallet instance.
 ///
@@ -1948,9 +1935,6 @@ construct_runtime! {
 		Crowdloan: crowdloan = 73,
 		Coretime: coretime = 74,
 
-		// State trie migration pallet, only temporary.
-		StateTrieMigration: pallet_state_trie_migration = 98,
-
 		// Pallet for sending XCM.
 		XcmPallet: pallet_xcm = 99,
 
@@ -1971,6 +1955,10 @@ construct_runtime! {
 		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
 		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
 		RcMigrator: pallet_rc_migrator = 255,
+		// AHM v2 migrator. Below `MessageQueue` for the same reason as `RcMigrator`: its
+		// `on_initialize` has to see the block's inbound messages.
+		#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+		Rc2Migrator: pallet_rc2_migrator = 254,
 	}
 }
 
@@ -2013,19 +2001,29 @@ pub type TxExtension = (
 pub mod migrations {
 	use super::*;
 
+	frame_support::parameter_types! {
+		pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
+	}
+
+	/// Remove the `StateTrieMigration` pallet's storage. The state trie migration on Polkadot is
+	/// complete and the pallet has been removed from the runtime, see
+	/// <https://github.com/polkadot-fellows/runtimes/issues/905>.
+	pub type RemoveStateTrieMigrationPallet = frame_support::migrations::RemovePallet<
+		StateTrieMigrationName,
+		<Runtime as frame_system::Config>::DbWeight,
+	>;
+
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
 		parachains_on_demand::migration::MigrateV1ToV2<Runtime>,
 		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
 		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
 		parachains_shared::migration::MigrateToV2<Runtime>,
+		RemoveStateTrieMigrationPallet,
 	);
 
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
 	/// All migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
+	pub type SingleBlockMigrations = Unreleased;
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2077,7 +2075,6 @@ mod benches {
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
-		[pallet_nomination_pools, NominationPoolsBench::<Runtime>]
 		[pallet_offences, OffencesBench::<Runtime>]
 		[pallet_parameters, Parameters]
 		[pallet_preimage, Preimage]
@@ -2111,7 +2108,6 @@ mod benches {
 		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
 	};
 	pub use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
-	pub use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 	pub use pallet_offences_benchmarking::Pallet as OffencesBench;
 	pub use pallet_session_benchmarking::Pallet as SessionBench;
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
@@ -2128,7 +2124,6 @@ mod benches {
 	impl pallet_election_provider_support_benchmarking::Config for Runtime {}
 	impl frame_system_benchmarking::Config for Runtime {}
 	impl frame_benchmarking::baseline::Config for Runtime {}
-	impl pallet_nomination_pools_benchmarking::Config for Runtime {}
 	impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
 
 	parameter_types! {
@@ -2189,6 +2184,11 @@ mod benches {
 
 		fn get_asset() -> Asset {
 			Asset { id: AssetId(Location::here()), fun: Fungible(ExistentialDeposit::get()) }
+		}
+
+		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
+		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
 		}
 	}
 

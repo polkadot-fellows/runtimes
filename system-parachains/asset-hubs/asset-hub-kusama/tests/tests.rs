@@ -1311,3 +1311,11 @@ fn session_keys_are_compatible_between_ah_and_rc() {
 		"Session key type IDs must match between AssetHub and Kusama"
 	);
 }
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
+}

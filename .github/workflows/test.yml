@@ -17,6 +17,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   check-release-pr:
     # Produces two outputs:
@@ -120,12 +124,6 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-runtime-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
       - name: Download frame-omni-bencher
         run: |
           curl --max-time 10 --retry 5 --retry-delay 10 --retry-max-time 120 -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
@@ -135,47 +133,60 @@ jobs:
 
       - name: Test ${{ matrix.runtime.name }}
         run: |
-          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
-            cargo test -p ${{ matrix.runtime.package }} --release --locked -q --features ${{ matrix.runtime.build_extra_features }}
+          if [ -n "$EXTRA_FEATURES" ]; then
+            cargo test -p "$PACKAGE" --release --locked -q --features "$EXTRA_FEATURES"
           else
-            cargo test -p ${{ matrix.runtime.package }} --release --locked -q
+            cargo test -p "$PACKAGE" --release --locked -q
           fi
         env:
           RUSTFLAGS: "-C debug-assertions"
+          PACKAGE: ${{ matrix.runtime.package }}
+          EXTRA_FEATURES: ${{ matrix.runtime.build_extra_features }}
 
       - name: Test all features ${{ matrix.runtime.name }}
-        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --all-features
+        run: cargo test -p "$PACKAGE" --release --locked -q --all-features
         env:
           RUSTFLAGS: "-C debug-assertions"
           SKIP_WASM_BUILD: 1
           WS: ${{ matrix.runtime.uris[0] }}
           RUST_LOG: "remote-ext=info"
+          PACKAGE: ${{ matrix.runtime.package }}
 
       - name: Test benchmarks ${{ matrix.runtime.name }}
         run: |
-          PACKAGE_NAME=${{ matrix.runtime.package }}
-          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          PACKAGE_NAME="$PACKAGE"
+          RUNTIME_BLOB_NAME=$(echo "$PACKAGE_NAME" | sed 's/-/_/g').compact.compressed.wasm
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
           # build wasm
           echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
-          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
-            cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks,${{ matrix.runtime.build_extra_features }} -q --locked
+          if [ -n "$EXTRA_FEATURES" ]; then
+            cargo build --profile production -p "$PACKAGE" --features=runtime-benchmarks,"$EXTRA_FEATURES" -q --locked
           else
-            cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
+            cargo build --profile production -p "$PACKAGE" --features=runtime-benchmarks -q --locked
           fi
           # run benchmarking
-          if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
+          # TODO: https://github.com/paritytech/polkadot-sdk/issues/12968
+          if [ "$EXCLUDE_PALLETS_JSON" = "null" ] || [ -z "$EXCLUDE_PALLETS_JSON" ]; then
+            EXCLUDE_PALLETS=""
+          else
+            EXCLUDE_PALLETS_LIST=$(echo "$EXCLUDE_PALLETS_JSON" | jq -r 'join(",")')
+            EXCLUDE_PALLETS=" --exclude-pallets ${EXCLUDE_PALLETS_LIST}"
+          fi
+          if [ "$EXCLUDE_EXTRINSICS_JSON" = "null" ] || [ -z "$EXCLUDE_EXTRINSICS_JSON" ]; then
             EXCLUDE_EXTRINSICS=""
           else
-            EXCLUDE_EXTRINSICS_JSON='${{ toJson(matrix.runtime.benchmarks_exclude_extrinsics) }}'
             EXCLUDE_EXTRINSICS_LIST=$(echo "$EXCLUDE_EXTRINSICS_JSON" | jq -r 'to_entries | map("\(.key)::\(.value[])") | join(" ")')
             EXCLUDE_EXTRINSICS=" --exclude-extrinsics ${EXCLUDE_EXTRINSICS_LIST}"
           fi
-          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
-          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096 --min-duration 0 --quiet
+          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_PALLETS $EXCLUDE_EXTRINSICS"
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_PALLETS $EXCLUDE_EXTRINSICS --heap-pages 4096 --min-duration 0 --quiet
         env:
           RUSTFLAGS: "-C debug-assertions"
           RUNTIME_LOG: "error"
+          PACKAGE: ${{ matrix.runtime.package }}
+          EXTRA_FEATURES: ${{ matrix.runtime.build_extra_features }}
+          EXCLUDE_PALLETS_JSON: ${{ toJson(matrix.runtime.benchmarks_exclude_pallets) }}
+          EXCLUDE_EXTRINSICS_JSON: ${{ toJson(matrix.runtime.benchmarks_exclude_extrinsics) }}
 
   # Job required by "confirmTestPassed"
   integration-test:
@@ -212,16 +223,94 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-integration-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
       - name: Test ${{ matrix.itest.name }}
-        run: cargo test -p ${{ matrix.itest.package }} --release --locked -q
+        run: cargo test -p "$PACKAGE" --release --locked -q
         env:
           RUSTFLAGS: "-C debug-assertions"
+          PACKAGE: ${{ matrix.itest.package }}
+
+  # Not required by "confirmTestPassed": AHM v2 is behind a feature flag that no released runtime
+  # enables, so a failure here should not gate a release.
+  ahm-v2-test:
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - network: polkadot
+            relay_package: polkadot-runtime
+          - network: kusama
+            relay_package: staging-kusama-runtime
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32v1-none"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
+
+      # The runtimes are tested with `--features ahm-v2` rather than `--all-features`: the latter
+      # also turns on `on-chain-release-build`, which drops the migrator pallets from the runtime.
+      - name: Test AHM v2 pallets and ${{ matrix.network }} wiring
+        run: |
+          cargo test --release --locked -q -p pallet-rc2-migrator -p pallet-ct-migrator
+          cargo test --release --locked -q -p "$RELAY_PACKAGE" --features ahm-v2
+          cargo test --release --locked -q -p coretime-"$NETWORK"-runtime --features ahm-v2
+        env:
+          RUSTFLAGS: "-C debug-assertions"
+          SKIP_WASM_BUILD: 1
+          NETWORK: ${{ matrix.network }}
+          RELAY_PACKAGE: ${{ matrix.relay_package }}
+
+      # The snapshot suite runs against the cached try-runtime snapshots.
+      - name: Restore ${{ matrix.network }} relay snapshot
+        uses: actions/cache/restore@v4
+        with:
+          path: snapshot.raw
+          key: try-runtime-snapshot-${{ matrix.network }}-
+          fail-on-cache-miss: true
+      - run: mv snapshot.raw snap_rc.snap
+
+      - name: Restore coretime-${{ matrix.network }} snapshot
+        uses: actions/cache/restore@v4
+        with:
+          path: snapshot.raw
+          key: try-runtime-snapshot-coretime-${{ matrix.network }}-
+          fail-on-cache-miss: true
+      - run: mv snapshot.raw snap_ct.snap
+
+      - name: Test AHM v2 against ${{ matrix.network }} snapshots
+        run: |
+          cargo test --release --locked -q -p polkadot-integration-tests-ahmv2 --features "$NETWORK"
+        env:
+          RUSTFLAGS: "-C debug-assertions"
+          SKIP_WASM_BUILD: 1
+          # The test binary runs with its package as the working directory, so these must be
+          # absolute.
+          SNAP_RC: ${{ github.workspace }}/snap_rc.snap
+          SNAP_CT: ${{ github.workspace }}/snap_ct.snap
+          NETWORK: ${{ matrix.network }}
 
   # Job required by "confirmTestPassed"
   build-chain-spec-generator:
@@ -254,12 +343,6 @@ jobs:
           targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-chain-spec-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Check
         run: cargo check -p chain-spec-generator --release --locked -q --features=all-runtimes
@@ -299,12 +382,6 @@ jobs:
           targets: "wasm32v1-none"
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-zombienet-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build
         run: |
@@ -353,32 +430,29 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-build-runtimes-test"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
       - name: Build runtime ${{ matrix.runtime.name }}
+        env:
+          PACKAGE: ${{ matrix.runtime.package }}
+          EXTRA_FEATURES: ${{ matrix.runtime.build_extra_features }}
         run: |
-          PACKAGE_NAME=${{ matrix.runtime.package }}
-          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          PACKAGE_NAME="$PACKAGE"
+          RUNTIME_BLOB_NAME=$(echo "$PACKAGE_NAME" | sed 's/-/_/g').compact.compressed.wasm
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
           # Build wasm
           echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
 
           FEATURES=""
           # Find out if the `metadata-hash` feature exists for the given package.
-          if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
+          if cargo metadata --format-version=1 | jq --arg pkg "$PACKAGE" '.packages[] | select(.name==$pkg) | .features' | grep metadata-hash; then
             FEATURES="metadata-hash"
           fi
 
           # Add extra features
-          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+          if [ -n "$EXTRA_FEATURES" ]; then
             if [ -z "$FEATURES" ]; then
-              FEATURES="${{ matrix.runtime.build_extra_features }}"
+              FEATURES="$EXTRA_FEATURES"
             else
-              FEATURES="$FEATURES,${{ matrix.runtime.build_extra_features }}"
+              FEATURES="$FEATURES,$EXTRA_FEATURES"
             fi
           fi
 
@@ -388,7 +462,7 @@ jobs:
 
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
           echo "Setting features: ${FEATURES}"
-          cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
+          cargo build --profile production -p "$PACKAGE" $FEATURES -q --locked
           echo "RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH" >> $GITHUB_ENV
 
       - name: Upload  ${{ matrix.runtime.name }}
@@ -432,20 +506,64 @@ jobs:
           WASM=$(find . -name '*.compact.compressed.wasm' -print -quit)
           echo "WASM: $WASM"
 
-          # Try each RPC with a timeout to handle unreachable endpoints
-          # (check-runtime hangs indefinitely on unreachable RPCs).
+          # Probe each endpoint before starting check-runtime. The checker boots a Chopsticks
+          # fork and executes an upgrade block, so its timeout must also accommodate migrations.
           readarray -t URIS < <(echo "$URIS_JSON" | jq -r '.[]')
           for URI in "${URIS[@]}"; do
             echo "Trying $URI..."
+
+            if ! RPC_URI="$URI" timeout 15 node <<'NODE'
+          const socket = new WebSocket(process.env.RPC_URI);
+          let settled = false;
+          const finish = (code, message) => {
+            if (settled) return;
+            settled = true;
+            if (message) console.error(message);
+            try { socket.close(); } catch {}
+            process.exit(code);
+          };
+          const timer = setTimeout(
+            () => finish(1, "Timed out waiting for an RPC response"),
+            10_000,
+          );
+
+          socket.addEventListener("open", () => {
+            socket.send(JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "chain_getFinalizedHead",
+              params: [],
+            }));
+          });
+          socket.addEventListener("message", ({ data }) => {
+            const response = JSON.parse(data.toString());
+            if (response.id !== 1) return;
+            clearTimeout(timer);
+            if (response.result) finish(0);
+            else finish(1, `RPC returned an error: ${JSON.stringify(response.error)}`);
+          });
+          socket.addEventListener("error", () =>
+            finish(1, "WebSocket connection failed"),
+          );
+          socket.addEventListener("close", () =>
+            finish(1, "WebSocket closed before returning an RPC response"),
+          );
+          NODE
+            then
+              echo "RPC probe failed for $URI, trying next..."
+              continue
+            fi
+            echo "RPC probe succeeded for $URI"
+
             set +e
-            timeout 360 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
+            timeout 900 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
             EXIT_CODE=$?
             set -e
             if [ $EXIT_CODE -eq 0 ]; then
               exit 0
             # When the time limit is reached, timeout returns exit code 124
             elif [ $EXIT_CODE -eq 124 ]; then
-              echo "Timed out on $URI, trying next..."
+              echo "Runtime check timed out on $URI, trying next..."
               continue
             else
               # Otherwise, it returns the exit status of the managed command
@@ -524,6 +642,7 @@ jobs:
               - { chain: "collectives-polkadot", pet_key: "collectivesPolkadot",  port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
               - { chain: "coretime-polkadot",    pet_key: "coretimePolkadot",     port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
               - { chain: "people-polkadot",      pet_key: "peoplePolkadot",       port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
+              - { chain: "bulletin-polkadot",    pet_key: "bulletinPolkadot",     port: 9006, endpoint_var: "BULLETINPOLKADOT_ENDPOINT" }
           - name: "kusama"
             test_dir: "packages/kusama"
             chains:
@@ -732,6 +851,8 @@ jobs:
       # These jobs only run on release PRs/branches, so they are not required for the gate.
       #- zombienet-smoke
       #- ecosystem-tests
+      # Tests a feature flag no released runtime enables; informational until AHM v2 ships.
+      #- ahm-v2-test
     steps:
       # Branch protection treats `skipped` as passing, so fail explicitly.
       - name: Fail if any dependency did not succeed

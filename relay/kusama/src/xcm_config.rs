@@ -17,9 +17,9 @@
 //! XCM configurations for the Kusama runtime.
 
 use super::{
-	parachains_origin, AccountId, AllPalletsWithSystem, Balances, Dmp, Fellows, GeneralAdmin,
-	ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin, TransactionByteFee,
-	Treasury, WeightToFee, XcmPallet,
+	parachains_origin, AccountId, AccumulateForward, AllPalletsWithSystem, Balances, Dmp, Fellows,
+	GeneralAdmin, ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin,
+	TransactionByteFee, Treasury, WeightToFee, XcmPallet,
 };
 use frame_support::{
 	parameter_types,
@@ -62,6 +62,9 @@ parameter_types! {
 	pub NoTeleportTracking: Option<(AccountId, MintLocation)> = None;
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
+	/// The `pallet-accumulate-and-forward` account, as a local location.
+	pub AccumulateForwardLocation: Location =
+		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
 
 /// The canonical means of converting a `Location` into an `AccountId`, used when we want to
@@ -199,7 +202,13 @@ pub type Barrier = TrailingSetTopicAsId<(
 
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations = (SystemParachains, Equals<TokenLocation>, LocalPlurality);
+pub type WaivedLocations = (
+	SystemParachains,
+	Equals<TokenLocation>,
+	LocalPlurality,
+	// Forwards of accumulated funds to Asset Hub.
+	Equals<AccumulateForwardLocation>,
+);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -209,8 +218,18 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = LocalOriginConverter;
 	type IsReserve = ();
+	// Teleports to and from this chain are refused once the AHM v2 migration starts.
+	#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+	type IsTeleporter =
+		pallet_rc2_migrator::xcm_config::NothingOnceStarted<Runtime, TrustedTeleporters>;
+	#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
 	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
+	// Once the AHM v2 migration starts, only the Coretime chain and Asset Hub get through.
+	#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+	type Barrier =
+		xcm_builder::DenyThenTry<crate::ahm_v2::lockdown::DenyOnceMigrationStarts, Barrier>;
+	#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
 		crate::weights::xcm::KusamaXcmWeight<RuntimeCall>,
