@@ -19,6 +19,7 @@
 pub type Unreleased = (
 	RemoveAhMigratorPallet,
 	RemoveStateTrieMigrationPallet,
+	RemoveChildBountyCount,
 	cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<crate::Runtime>,
 	cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<crate::Runtime>,
 	MigrateBountyAccountAssets,
@@ -58,6 +59,19 @@ pub type RemoveAhMigratorPallet = frame_support::migrations::RemovePallet<
 /// <https://github.com/polkadot-fellows/runtimes/issues/905>.
 pub type RemoveStateTrieMigrationPallet = frame_support::migrations::RemovePallet<
 	StateTrieMigrationName,
+	<crate::Runtime as frame_system::Config>::DbWeight,
+>;
+
+frame_support::parameter_types! {
+	pub const ChildBountiesPalletName: &'static str = "ChildBounties";
+	pub const ChildBountyCountStorageName: &'static str = "ChildBountyCount";
+}
+
+/// Remove the unused `ChildBountyCount` value, replaced by per-parent counters. See
+/// <https://github.com/paritytech/polkadot-sdk/pull/13333>.
+pub type RemoveChildBountyCount = frame_support::migrations::RemoveStorage<
+	ChildBountiesPalletName,
+	ChildBountyCountStorageName,
 	<crate::Runtime as frame_system::Config>::DbWeight,
 >;
 /// Moves the funds of every `pallet-multi-asset-bounties` bounty and child-bounty
