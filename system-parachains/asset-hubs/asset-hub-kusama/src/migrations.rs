@@ -21,6 +21,7 @@ pub type Unreleased = (
 	// EPMB signed: store the base deposit per submission, fixed at registration
 	// (polkadot-sdk#13722).
 	pallet_election_provider_multi_block::signed::migrations::v1::MigrateV0ToV1<crate::Runtime>,
+	RemoveChildBountyCount,
 );
 
 /// All single block migrations that will run on the next runtime upgrade.
@@ -28,3 +29,16 @@ pub type SingleBlockMigrations = Unreleased;
 
 /// MBM migrations to apply on runtime upgrade.
 pub type MbmMigrations = ();
+
+frame_support::parameter_types! {
+	pub const ChildBountiesPalletName: &'static str = "ChildBounties";
+	pub const ChildBountyCountStorageName: &'static str = "ChildBountyCount";
+}
+
+/// Remove the unused `ChildBountyCount` value, replaced by per-parent counters. See
+/// <https://github.com/paritytech/polkadot-sdk/pull/13333>.
+pub type RemoveChildBountyCount = frame_support::migrations::RemoveStorage<
+	ChildBountiesPalletName,
+	ChildBountyCountStorageName,
+	<crate::Runtime as frame_system::Config>::DbWeight,
+>;
