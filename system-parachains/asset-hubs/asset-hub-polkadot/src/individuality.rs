@@ -276,8 +276,8 @@ parameter_types! {
 		RuntimeHoldReason::Scarcity(indiv_pallet_scarcity::HoldReason::StorageDeposit);
 }
 
-/// Storage price shared by every Scarcity deposit converter: a per-record base plus a per-byte
-/// price over the footprint's logical encoded size.
+/// Storage price shared by every Scarcity deposit converter: a flat base per deposit plus a
+/// per-byte price.
 pub type ScarcityStoragePrice =
 	LinearStoragePrice<ScarcityDepositBase, ScarcityDepositPerByte, Balance>;
 
