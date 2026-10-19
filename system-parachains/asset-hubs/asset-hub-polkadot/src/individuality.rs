@@ -303,7 +303,7 @@ impl indiv_pallet_scarcity::Config for Runtime {
 	type MaxValueLen = ConstU32<256>;
 	type MaxCollectionMetadata = ConstU32<100>;
 	type MaxItemMetadata = ConstU32<100>;
-	type MaxInstanceMetadata = ConstU32<100>;
+	type MaxInstanceMetadata = ConstU32<16>;
 	// Purse keys follow Coinage's retry model, so a failing purse key is paced like a failing coin:
 	// one hour, matching `CoinFailureLockPeriod` on People Polkadot.
 	type LockPeriod = ConstU64<3600>;
