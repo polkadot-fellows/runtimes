@@ -1893,10 +1893,10 @@ construct_runtime!(
 		AssetConversion: pallet_asset_conversion = 55,
 		Psm: pallet_psm = 56,
 		AssetsFreezer: pallet_assets_freezer::<Instance1> = 57,
-    ForeignAssetsFreezer: pallet_assets_freezer::<Instance2> = 70,
+		ForeignAssetsFreezer: pallet_assets_freezer::<Instance2> = 70,
 		PoolAssetsFreezer: pallet_assets_freezer::<Instance3> = 71,
-		AssetRewards: pallet_asset_rewards = 58,
-		AssetsHolder: pallet_assets_holder::<Instance1> = 59,
+		AssetRewards: pallet_asset_rewards = 59,
+		AssetsHolder: pallet_assets_holder::<Instance1> = 58,
 
 		// OpenGov stuff
 		Treasury: pallet_treasury = 60,

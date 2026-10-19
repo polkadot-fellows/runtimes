@@ -10719,20 +10719,20 @@ dependencies = [
 
 [[package]]
 name = "pallet-asset-rewards"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1ee7b1c7479990298cafbb5b0c781f034aa1faeabdfe88b4e77439512026084"
+checksum = "9458d9a51fc3c78307c3510fb13a735d890bb5a2698b708eaa3c0a8c5a9cb51a"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
- "sp-api 42.0.0",
+ "sp-api 43.0.0",
  "sp-arithmetic",
- "sp-core 41.0.0",
- "sp-io 46.0.0",
- "sp-runtime 47.0.0",
+ "sp-core 43.0.0",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
  "sp-std",
 ]
 
@@ -10775,19 +10775,6 @@ name = "pallet-assets-freezer"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41d7c73dd5a4b1a1aab8c4bc7ad78df995c62333270eb75a88b9c86498514202"
-dependencies = [
- "log",
- "pallet-assets",
- "parity-scale-codec",
- "polkadot-sdk-frame",
- "scale-info",
-]
-
-[[package]]
-name = "pallet-assets-freezer"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15621de603c5545907267e6363a2d5f0be9fc4e3fcc1e37b4c4da0d94380659a"
 dependencies = [
  "log",
  "pallet-assets",
