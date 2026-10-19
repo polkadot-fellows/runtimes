@@ -606,6 +606,12 @@ impl indiv_pallet_game::Config for Runtime {
 	type PlayerStatementLimit = PlayerStatementLimit;
 	type PeopleVoteWeight = ConstUint<2>;
 	type CandidateVoteWeight = ConstUint<1>;
+	// Groups have at least three players, so a game's `max_group_size` is 4 to `MaxGroupSize`.
+	// Some game benchmarks schedule games with `max_group_size = 2`, so the benchmarking build
+	// keeps the pallet minimum of 2. The weights do not depend on this value.
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type MinGroupSize = ConstUint<3>;
+	#[cfg(feature = "runtime-benchmarks")]
 	type MinGroupSize = ConstUint<2>;
 	type AirdropAssetId = <Runtime as pallet_assets::Config>::AssetId;
 	type AirdropAssetBalance = Balance;
