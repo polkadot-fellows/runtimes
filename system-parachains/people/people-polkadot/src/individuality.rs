@@ -561,7 +561,6 @@ parameter_types! {
 	pub const PlayDepositReason: RuntimeHoldReason =
 		RuntimeHoldReason::Game(indiv_pallet_game::HoldReason::PlayDeposit);
 	pub const PlayDepositDefault: Balance = 2 * UNITS;
-	// TODO(paritytech/individuality#1124): find a reasonable value.
 	pub PlayerStatementLimit: StatementAllowance = StatementAllowance {
 		max_size: 1_000_000,
 		max_count: 1_000_000,
@@ -607,7 +606,7 @@ impl indiv_pallet_game::Config for Runtime {
 	type PlayerStatementLimit = PlayerStatementLimit;
 	type PeopleVoteWeight = ConstUint<2>;
 	type CandidateVoteWeight = ConstUint<1>;
-	type MinGroupSize = ConstUint<2>; //TODO: Find a sensible value
+	type MinGroupSize = ConstUint<2>;
 	type AirdropAssetId = <Runtime as pallet_assets::Config>::AssetId;
 	type AirdropAssetBalance = Balance;
 	type Airdrop = Airdrop;
