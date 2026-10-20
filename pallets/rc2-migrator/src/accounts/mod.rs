@@ -29,9 +29,9 @@ use frame_support::{
 	traits::{
 		fungible::{Inspect, Mutate, MutateFreeze, MutateHold},
 		tokens::{Fortitude, Precision, Preservation},
-		Get, LockableCurrency, ReservableCurrency, StorePreimage,
+		Contains, Get, LockableCurrency, ReservableCurrency, StorePreimage,
 	},
-	BoundedVec, PalletId,
+	BoundedVec,
 };
 use migrator_types::{
 	MaxPortableHolds, PortableAccount, PortableHold, PortableHoldReason, PortableProxyType,
@@ -42,7 +42,7 @@ use runtime_parachains::{configuration, hrmp};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, Zero},
-	AccountId32, DispatchError, DispatchResult, TypeId,
+	AccountId32, DispatchError, DispatchResult,
 };
 
 type NativeCurrency<T> = pallet_balances::Pallet<T>;
@@ -326,7 +326,7 @@ impl<T: Config> AccountsMigrator<T> {
 		info: &AccountInfoFor<T>,
 		exceptions: &[T::AccountId],
 	) -> bool {
-		Self::is_pallet_account(who) ||
+		Self::is_swept(who) ||
 			info.data.total() < NativeCurrency::<T>::minimum_balance() ||
 			exceptions.contains(who)
 	}
@@ -503,9 +503,8 @@ impl<T: Config> AccountsMigrator<T> {
 			Self::any_delegate(&pallet_proxy::Proxies::<T>::get(who).0).is_some()
 	}
 
-	/// Whether `who` is a pallet (module) account, `modl` + pallet id.
-	pub fn is_pallet_account(who: &T::AccountId) -> bool {
-		let bytes: &[u8] = who.as_ref();
-		bytes.starts_with(&<PalletId as TypeId>::TYPE_ID)
+	/// Whether Sweep empties `who`, [`Config::SweptAccounts`].
+	pub fn is_swept(who: &T::AccountId) -> bool {
+		T::SweptAccounts::contains(who)
 	}
 }

@@ -32,7 +32,7 @@ Every deposit on the Relay Chain is an unnamed reserve. When the stage starts, t
 | Sibling-format accounts, `sibl…` | Pass through: the same bytes are that para's sovereign on Asset Hub. |
 | Pure proxies: never signed, and have an `Any` delegate | The whole balance goes to the Coretime chain as free balance: the delegate keeps control only where the definitions are recreated. |
 | Accounts another pallet references (validators' session keys) | Drained to a zero-balance shell: the record stays, the balance leaves like any other. Reported with `AccountShellDrained`. |
-| Module accounts, `modl…` | Not withdrawn here. Sweep empties the pots. |
+| The runtime's `SweptAccounts`: its pots | Not withdrawn here. Sweep empties them. |
 | Accounts below the existential deposit | Not withdrawn here. Sweep Dust reaps them. |
 | The migration manager | Not withdrawn here. It pays for the calls that drive the migration and is reaped at Cool Off. |
 

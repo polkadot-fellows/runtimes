@@ -24,17 +24,40 @@ pub mod lockdown;
 
 use crate::{
 	xcm_config::{CoretimeLocation, XcmRouter},
-	AccountId, BrokerId, ProxyType, Runtime, RuntimeEvent, Timestamp, TransparentProxyType,
+	AccountId, BrokerId, BrokerPalletId, CrowdloanId, DelegatedStakingPalletId, OnDemandPalletId,
+	PoolsPalletId, ProxyType, Runtime, RuntimeEvent, Timestamp, TransparentProxyType,
+	TreasuryPalletId,
 };
-use frame_support::{parameter_types, traits::Equals};
+use frame_support::{
+	parameter_types,
+	traits::{Contains, Equals},
+};
 use frame_system::EnsureRoot;
 use migrator_types::PortableProxyType;
 use pallet_xcm::EnsureXcm;
 use polkadot_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
+use sp_runtime::traits::AccountIdConversion;
 
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
 	pub const CtFreeBuffer: u128 = UNITS;
+}
+
+/// The pots of this chain, left for Sweep.
+pub struct SweptAccounts;
+impl Contains<AccountId> for SweptAccounts {
+	fn contains(who: &AccountId) -> bool {
+		[
+			TreasuryPalletId::get(),
+			BrokerPalletId::get(),
+			OnDemandPalletId::get(),
+			CrowdloanId::get(),
+			PoolsPalletId::get(),
+			DelegatedStakingPalletId::get(),
+		]
+		.into_iter()
+		.any(|id| AccountIdConversion::<AccountId>::into_account_truncating(&id) == *who)
+	}
 }
 
 impl pallet_rc2_migrator::Config for Runtime {
@@ -49,6 +72,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type PreMigrationCalls = frame_support::traits::Everything;
 	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
 	type PostMigrationCalls = lockdown::CallsEnabledAfterMigration;
+	type SweptAccounts = SweptAccounts;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so

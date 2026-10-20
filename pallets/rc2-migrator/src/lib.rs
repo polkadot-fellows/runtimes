@@ -326,6 +326,9 @@ pub mod pallet {
 
 		/// Calls that are allowed after the migration finished.
 		type PostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Accounts the accounts stage leaves alone for Sweep to empty: the chain's pots.
+		type SweptAccounts: Contains<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -750,9 +753,9 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::Sweep => {
-					// TODO(ahm-v2): sweep the on-demand pot to the Asset Hub beneficiary with the
-					// other pots, and emit an event for it, so governance can move it later. It
-					// holds revenue only if the Coretime chain has not claimed it yet.
+					// TODO(ahm-v2): sweep the pots, `T::SweptAccounts`, to the Asset Hub
+					// beneficiary. The on-demand pot holds revenue only if the Coretime
+					// chain has not claimed it yet.
 					Self::transition(MigrationStage::SweepDust { last_key: None });
 					T::DbWeight::get().reads_writes(1, 1)
 				},

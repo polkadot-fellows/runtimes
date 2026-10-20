@@ -1,5 +1,4 @@
 // Copyright (C) Polkadot Fellows.
-// CLAUDE: fellowship license please.
 // This file is part of Polkadot.
 
 // Polkadot is free software: you can redistribute it and/or modify

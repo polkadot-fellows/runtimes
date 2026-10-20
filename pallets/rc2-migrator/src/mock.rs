@@ -22,8 +22,8 @@ use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
 		fungible::{HoldConsideration, InspectHold, Mutate, MutateHold},
-		ConstU128, ConstU32, Contains, InstanceFilter, LinearStoragePrice, LockableCurrency,
-		OnInitialize, ReservableCurrency, Time, WithdrawReasons,
+		ConstU128, ConstU32, Contains, Equals, InstanceFilter, LinearStoragePrice,
+		LockableCurrency, OnInitialize, ReservableCurrency, Time, WithdrawReasons,
 	},
 	weights::Weight,
 	PalletId,
@@ -355,6 +355,10 @@ ord_parameter_types! {
 	pub const AdminAccount: AccountId = ADMIN;
 }
 
+parameter_types! {
+	pub MockPot: AccountId = pallet_account();
+}
+
 impl pallet_rc2_migrator::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = RecordingRouter;
@@ -367,6 +371,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type PreMigrationCalls = TaggedRemark<PRE_MIGRATION>;
 	type IntraMigrationCalls = TaggedRemark<INTRA_MIGRATION>;
 	type PostMigrationCalls = TaggedRemark<POST_MIGRATION>;
+	type SweptAccounts = Equals<MockPot>;
 }
 
 /// Tags for [`TaggedRemark`], one per call set.
