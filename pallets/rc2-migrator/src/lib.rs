@@ -804,7 +804,7 @@ pub mod pallet {
 			// withdraw
 			let manager = Manager::<T>::get();
 			let accounts::BlockWithdrawals { to_ct, to_ah, last_key } =
-				accounts::AccountsMigrator::<T>::migrate_many(last_key, manager.as_slice());
+				accounts::AccountsMigrator::<T>::migrate_many(last_key, manager.as_ref());
 
 			// book what left
 			let ct_reserved: u128 = to_ct.iter().flat_map(|a| &a.holds).map(|h| h.amount).sum();

@@ -147,7 +147,7 @@ fn migrate_one_account_per_case() {
 
 		// WHEN the stage starts and one block withdraws them all.
 		Migrator::init();
-		let out = Migrator::migrate_many(None, core::slice::from_ref(&DAVE));
+		let out = Migrator::migrate_many(None, Some(&DAVE));
 		assert_eq!(out.last_key, None);
 		let mut to_ah = out.to_ah.clone();
 		// sorting just to make it easier to assert
@@ -234,13 +234,13 @@ fn migrate_many_resumes_from_cursor() {
 		assert_eq!(total_issuance(), 400);
 
 		// WHEN the first block runs. THEN it withdraws 3 and leaves a cursor.
-		let first = Migrator::migrate_many(None, &[]);
+		let first = Migrator::migrate_many(None, None);
 		assert_eq!(first.to_ah.len(), 3);
 		assert_eq!(total_issuance(), 100);
 		let last_key = first.last_key.expect("one account is left");
 
 		// WHEN the next block continues after the cursor. THEN it withdraws the rest.
-		let second = Migrator::migrate_many(Some(last_key), &[]);
+		let second = Migrator::migrate_many(Some(last_key), None);
 		assert_eq!(second.to_ah.len(), 1);
 		assert_eq!(second.last_key, None);
 		assert_eq!(total_issuance(), 0);
@@ -255,7 +255,7 @@ fn withdraw_releases_a_lock() {
 		lock(&BOB, 40);
 
 		// WHEN withdrawn. THEN the lock is gone and the whole balance leaves as free.
-		let out = Migrator::migrate_many(None, &[]);
+		let out = Migrator::migrate_many(None, None);
 		assert_eq!(out.to_ah, vec![(BOB.clone(), 100)]);
 		assert!(out.to_ct.is_empty());
 		assert!(pallet_balances::Locks::<Test>::get(&BOB).is_empty());
@@ -398,7 +398,7 @@ fn withdraw_refunds_the_deposits_of_a_closing_channel() {
 
 		// WHEN withdrawn. THEN the deposits go to Asset Hub as free balance, no hold.
 		Migrator::init();
-		let out = Migrator::migrate_many(None, &[]);
+		let out = Migrator::migrate_many(None, None);
 		assert!(out.to_ct.is_empty());
 		let mut to_ah = out.to_ah;
 		to_ah.sort();
@@ -422,7 +422,7 @@ fn withdraw_attributes_up_to_the_reserve() {
 
 		// WHEN withdrawn. THEN the hold is what was reserved, and the rest is free.
 		Migrator::init();
-		let out = Migrator::migrate_many(None, &[]);
+		let out = Migrator::migrate_many(None, None);
 		assert_eq!(holds(&out.to_ct[0]), vec![(PortableHoldReason::RegistrarDeposit, 200)]);
 		assert_eq!(out.to_ct[0].free, CT_FREE_BUFFER);
 		assert_eq!(out.to_ah, vec![(FRANK, 700)]);
@@ -439,7 +439,7 @@ fn withdraw_rounds_dust_to_coretime() {
 
 		// WHEN withdrawn. THEN the remainder follows the deposit instead of being teleported.
 		Migrator::init();
-		let out = Migrator::migrate_many(None, &[]);
+		let out = Migrator::migrate_many(None, None);
 		assert_eq!(out.to_ct[0].free, CT_FREE_BUFFER + ED - 1);
 		assert!(out.to_ah.is_empty());
 		assert_eq!(total_issuance(), 0);

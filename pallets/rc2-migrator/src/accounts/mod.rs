@@ -279,14 +279,14 @@ impl<T: Config> AccountsMigrator<T> {
 		});
 	}
 
-	/// Withdraw accounts, continuing after `last_key`, up to the block's [`Limits`]. `exceptions`
-	/// are left alone: the manager, which pays for the calls that drive the migration.
+	/// Withdraw accounts, continuing after `last_key`, up to the block's [`Limits`]. The
+	/// `manager` is left alone: it pays for the calls that drive the migration.
 	///
 	/// Each account is withdrawn in a storage transaction of its own, so one that fails is left
 	/// as it was and the block goes on.
 	pub fn migrate_many(
 		last_key: Option<T::AccountId>,
-		exceptions: &[T::AccountId],
+		manager: Option<&T::AccountId>,
 	) -> BlockWithdrawals {
 		let mut iter = match last_key {
 			Some(last_key) => frame_system::Account::<T>::iter_from_key(last_key),
@@ -299,7 +299,7 @@ impl<T: Config> AccountsMigrator<T> {
 				out.last_key = None;
 				return out;
 			};
-			if !Self::deferred(&who, &info, exceptions) {
+			if !Self::deferred(&who, &info, manager) {
 				match with_storage_layer(|| Self::withdraw_account(&who, &info)) {
 					Ok(Withdrawal { to_ct, to_ah }) => {
 						out.to_ct.extend(to_ct);
@@ -320,15 +320,15 @@ impl<T: Config> AccountsMigrator<T> {
 	}
 
 	/// Whether a later stage handles `who`: a module account (Sweep), one below the existential
-	/// deposit (Sweep Dust), or one of the `exceptions` (the manager, Cool Off).
+	/// deposit (Sweep Dust), or the `manager` (Cool Off).
 	pub fn deferred(
 		who: &T::AccountId,
 		info: &AccountInfoFor<T>,
-		exceptions: &[T::AccountId],
+		manager: Option<&T::AccountId>,
 	) -> bool {
 		Self::is_swept(who) ||
 			info.data.total() < NativeCurrency::<T>::minimum_balance() ||
-			exceptions.contains(who)
+			manager == Some(who)
 	}
 
 	/// Withdraw `who` whole and say where its balance goes. One step per case of `accounts.md`.
