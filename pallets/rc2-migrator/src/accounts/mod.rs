@@ -353,6 +353,8 @@ impl<T: Config> AccountsMigrator<T> {
 			"everything was released"
 		);
 		let total = account.data.free;
+		// A consumer left after the releases are from the session keys of a
+		// validator: the account should not be reaped, only emptied.
 		if account.consumers != 0 {
 			Self::drain_to_shell(who, total);
 		} else {
