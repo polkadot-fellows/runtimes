@@ -605,6 +605,8 @@ fn set_limits_checks_origin_and_range() {
 			BlockLimits { items_per_xcm: 0, ..limits },
 			BlockLimits { xcm_per_block: 0, ..limits },
 			BlockLimits { items_per_xcm: BlockLimits::MAX_ITEMS_PER_XCM + 1, ..limits },
+			// 98 * 17 = 1666 items, above the block limit
+			BlockLimits { items_per_xcm: BlockLimits::MAX_ITEMS_PER_XCM, xcm_per_block: 17 },
 		] {
 			assert_noop!(
 				Rc2Migrator::set_limits(RuntimeOrigin::signed(ADMIN), bad),

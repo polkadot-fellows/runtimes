@@ -80,7 +80,7 @@ const LOG_TARGET: &str = "runtime::rc2-migrator";
 pub struct BlockLimits {
 	/// Items per message, at most [`Self::MAX_ITEMS_PER_XCM`].
 	pub items_per_xcm: u32,
-	/// Messages sent per block.
+	/// Messages sent per block; together at most [`Self::MAX_ITEMS_PER_BLOCK`] items.
 	pub xcm_per_block: u32,
 }
 
@@ -96,6 +96,15 @@ impl BlockLimits {
 	/// An XCM decodes at most 100 instructions, and a teleport to Asset Hub spends two on its
 	/// header and one per item.
 	pub const MAX_ITEMS_PER_XCM: u32 = 98;
+
+	/// The most items a block may be told to move.
+	pub const MAX_ITEMS_PER_BLOCK: u32 = 1600;
+
+	/// Whether the limits are within their bounds, and neither is zero.
+	pub fn validate(&self) -> bool {
+		(1..=Self::MAX_ITEMS_PER_XCM).contains(&self.items_per_xcm) &&
+			(1..=Self::MAX_ITEMS_PER_BLOCK).contains(&self.items_per_block())
+	}
 
 	/// Items moved per block: as many as its messages carry.
 	pub fn items_per_block(&self) -> u32 {
@@ -627,11 +636,7 @@ pub mod pallet {
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
 		pub fn set_limits(origin: OriginFor<T>, limits: BlockLimits) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
-			ensure!(
-				(1..=BlockLimits::MAX_ITEMS_PER_XCM).contains(&limits.items_per_xcm) &&
-					limits.xcm_per_block > 0,
-				Error::<T>::BadLimits
-			);
+			ensure!(limits.validate(), Error::<T>::BadLimits);
 			Limits::<T>::put(limits);
 			Ok(())
 		}
