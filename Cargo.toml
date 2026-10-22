@@ -70,7 +70,7 @@ cumulus-pallet-xcm = { version = "0.27.0", default-features = false }
 cumulus-pallet-xcmp-queue = { version = "0.31.0", default-features = false }
 cumulus-primitives-aura = { version = "0.24.0", default-features = false }
 cumulus-primitives-core = { version = "0.26.0", default-features = false }
-cumulus-primitives-utility = { version = "0.31.0", default-features = false }
+cumulus-primitives-utility = { version = "0.34.1", default-features = false }
 emulated-integration-tests-common = { version = "37.0.0" }
 encointer-balances-tx-payment = { version = "~24.0.0", default-features = false }
 encointer-balances-tx-payment-rpc-runtime-api = { version = "~24.0.0", default-features = false }
