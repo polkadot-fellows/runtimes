@@ -347,8 +347,7 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 
 		// burn; a release may have dropped a consumer ref, so read the account again
-		let released = !info.data.reserved.is_zero() || !info.data.frozen.is_zero();
-		let account = if released { frame_system::Account::<T>::get(who) } else { info.clone() };
+		let account = frame_system::Account::<T>::get(who);
 		defensive_assert!(
 			account.data.reserved.is_zero() && account.data.frozen.is_zero(),
 			"everything was released"
