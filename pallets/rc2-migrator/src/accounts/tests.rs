@@ -569,6 +569,59 @@ fn accounts_stage_sends_in_chunks_and_resumes() {
 	});
 }
 
+/// A rewind to `AccountsInit` runs the init and the whole withdraw loop again over state that
+/// is already half migrated. Nothing may leave twice, and the books must still add up.
+#[test]
+fn accounts_stage_rewound_to_init_moves_nothing_twice() {
+	new_test_ext().execute_with(|| {
+		// GIVEN 8 accounts, 4 of which leave per block: 7 plain ones, and a para manager with a
+		// registrar deposit, so both destinations and the deposit index are involved.
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 2, xcm_per_block: 2 });
+		for i in 0..7 {
+			fund(&account(i), 100);
+		}
+		fund(&FRANK, 1_000);
+		register_para(FRANKS_PARA, &FRANK);
+		let total = 7 * 100 + 1_000;
+		let ah_free = total - PARA_DEPOSIT - CT_FREE_BUFFER;
+		assert_eq!(total_issuance(), total);
+		assert_eq!(frame_system::Account::<Test>::iter().count(), 8);
+
+		// WHEN the stage initialises and runs one block. THEN 4 accounts are gone.
+		RcMigrationStage::<Test>::put(Stage::AccountsInit);
+		run_blocks(2);
+		assert_eq!(frame_system::Account::<Test>::iter().count(), 4);
+		assert_eq!(RcMigratedBalance::<Test>::get().kept, total_issuance());
+
+		// WHEN the stage is set back to its init, as `force_set_stage` does, and runs to the
+		// end. THEN the other 4 leave and the chain is empty.
+		RcMigrationStage::<Test>::put(Stage::AccountsInit);
+		run_blocks(3);
+		assert_stage(Stage::AccountsDone);
+		assert_eq!(frame_system::Account::<Test>::iter().count(), 0);
+		assert_eq!(total_issuance(), 0);
+
+		// AND each of the 8 accounts was teleported once, for the free balance of one pass.
+		let (teleported, amount) = teleported_events()
+			.iter()
+			.fold((0, 0), |(n, a), (count, amount)| (n + count, a + amount));
+		assert_eq!((teleported, amount), (8, ah_free));
+
+		// AND the books hold one pass over every account, and the index is cleared.
+		assert_eq!(
+			RcMigratedBalance::<Test>::get(),
+			MigratedBalances {
+				kept: 0,
+				ct_reserved: PARA_DEPOSIT,
+				ct_free: CT_FREE_BUFFER,
+				ah_free,
+				..Default::default()
+			}
+		);
+		assert_eq!(ExpectedReserves::<Test>::iter().count(), 0);
+	});
+}
+
 #[test]
 fn accounts_stage_retries_a_block_whose_send_failed() {
 	new_test_ext().execute_with(|| {
