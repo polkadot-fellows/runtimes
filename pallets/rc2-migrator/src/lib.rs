@@ -93,8 +93,11 @@ impl Default for BlockLimits {
 }
 
 impl BlockLimits {
-	/// An XCM decodes at most 100 instructions, and a teleport to Asset Hub spends two on its
-	/// header and one per item.
+	/// Maximum number of items in a single XCM.
+	///
+	/// A teleport to Asset Hub uses one instruction per item and an XCM can have at most 100
+	/// instructions, two of which are the header. This also keeps the Coretime batches well
+	/// below the 50 KiB DMP message size limit.
 	pub const MAX_ITEMS_PER_XCM: u32 = 98;
 
 	/// The most items a block may be told to move.
