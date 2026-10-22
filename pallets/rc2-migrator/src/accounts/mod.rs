@@ -24,7 +24,7 @@ use alloc::vec::Vec;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::marker::PhantomData;
 use frame_support::{
-	ensure,
+	defensive_assert, ensure,
 	storage::with_storage_layer,
 	traits::{
 		fungible::{Inspect, Mutate, MutateFreeze, MutateHold},
@@ -349,6 +349,10 @@ impl<T: Config> AccountsMigrator<T> {
 		// burn; a release may have dropped a consumer ref, so read the account again
 		let released = !info.data.reserved.is_zero() || !info.data.frozen.is_zero();
 		let account = if released { frame_system::Account::<T>::get(who) } else { info.clone() };
+		defensive_assert!(
+			account.data.reserved.is_zero() && account.data.frozen.is_zero(),
+			"everything was released"
+		);
 		let total = account.data.free;
 		if account.consumers != 0 {
 			Self::drain_to_shell(who, total);
@@ -491,7 +495,10 @@ impl<T: Config> AccountsMigrator<T> {
 	/// zero-balance shell, the balance leaves like any other. The fungible API would keep the
 	/// existential deposit of an account it cannot reap, so the balance is written directly.
 	fn drain_to_shell(who: &T::AccountId, amount: u128) {
-		frame_system::Account::<T>::mutate(who, |a| a.data.free = 0);
+		frame_system::Account::<T>::mutate(who, |a| {
+			defensive_assert!(a.data.free == amount, "drained what the caller read");
+			a.data.free = 0;
+		});
 		pallet_balances::TotalIssuance::<T>::mutate(|ti| *ti = ti.saturating_sub(amount));
 		Pallet::<T>::deposit_event(Event::AccountShellDrained { who: who.clone(), amount });
 	}

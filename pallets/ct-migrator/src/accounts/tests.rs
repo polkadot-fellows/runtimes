@@ -98,20 +98,5 @@ fn receive_parks_a_bad_account_and_keeps_the_batch() {
 			migrator_events(),
 			vec![Event::AccountsReceived { count_good: 1, count_bad: 1 }]
 		);
-
-		// WHEN a second bad account lands on the same address. THEN the parked entry is merged.
-		CtMigrator::do_receive_accounts(vec![portable_account(
-			&bob,
-			1,
-			vec![(PortableHoldReason::HrmpDeposit, u128::MAX)],
-		)]);
-		assert_eq!(
-			FailedAccounts::<Test>::get(bob),
-			Some(portable_account(
-				&bob,
-				u128::MAX,
-				vec![(PortableHoldReason::HrmpDeposit, u128::MAX)]
-			))
-		);
 	});
 }

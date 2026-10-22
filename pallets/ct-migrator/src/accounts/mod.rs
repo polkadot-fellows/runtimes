@@ -26,7 +26,7 @@ use crate::{
 };
 use alloc::vec::Vec;
 use frame_support::{
-	defensive_assert,
+	defensive, defensive_assert,
 	traits::{
 		fungible::{Inspect, Mutate, MutateHold},
 		tokens::{Fortitude, Preservation},
@@ -94,6 +94,7 @@ impl<T: Config> Pallet<T> {
 			FailedAccounts::<T>::insert(&who, account);
 			return;
 		};
+		defensive!("the same account parked twice", who);
 		parked.free = parked.free.saturating_add(account.free);
 		for hold in account.holds {
 			match parked.holds.iter_mut().find(|h| h.reason == hold.reason) {
