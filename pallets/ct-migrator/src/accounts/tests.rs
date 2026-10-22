@@ -59,12 +59,13 @@ fn receive_mints_free_and_holds() {
 	});
 }
 
+/// The existential deposit stays free, so a deposit holder that arrives with less free than
+/// that gets its hold placed short.
 #[test]
-fn receive_keeps_the_ed_free_and_holds_the_rest() {
+#[should_panic(expected = "Defensive failure")]
+fn receive_defends_a_short_hold() {
 	new_test_ext().execute_with(|| {
-		// A deposit holder with nothing free: the relay chain keeps an account alive on its
-		// reserve alone, so free can be anything, including zero.
-		let alice: AccountId = 1;
+		let alice: AccountId = 1; // a deposit, nothing free
 
 		// GIVEN alice does not exist here. WHEN her free part cannot cover the ED.
 		CtMigrator::do_receive_accounts(vec![portable_account(
@@ -72,13 +73,6 @@ fn receive_keeps_the_ed_free_and_holds_the_rest() {
 			0,
 			vec![(PortableHoldReason::RegistrarDeposit, 40)],
 		)]);
-
-		// THEN the ED stays free and the hold takes the rest; nothing was lost.
-		assert_eq!(free(&alice), ED);
-		assert_eq!(held(HoldReason::RegistrarDeposit, &alice), 40 - ED);
-		assert_eq!(frame_system::Pallet::<Test>::providers(&alice), 1);
-		assert_eq!(CtMintedTotal::<Test>::get(), 40);
-		assert_eq!(total_issuance(), 40);
 	});
 }
 

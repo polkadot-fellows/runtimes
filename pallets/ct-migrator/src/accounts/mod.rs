@@ -75,6 +75,7 @@ impl<T: Config> Pallet<T> {
 			let holdable =
 				T::Currency::reducible_balance(who, Preservation::Preserve, Fortitude::Force);
 			let amount = hold.amount.min(holdable);
+			defensive_assert!(amount == hold.amount, "the hold is placed whole");
 			if amount.is_zero() {
 				continue;
 			}
