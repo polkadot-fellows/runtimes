@@ -353,8 +353,8 @@ impl<T: Config> AccountsMigrator<T> {
 			"everything was released"
 		);
 		let total = account.data.free;
-		// A consumer left after the releases are from the session keys of a
-		// validator: the account should not be reaped, only emptied.
+		// A consumer left after the releases are from the session keys of a validator: the
+		// account should not be reaped, only emptied.
 		if account.consumers != 0 {
 			Self::drain_to_shell(who, total);
 		} else {
@@ -392,7 +392,8 @@ impl<T: Config> AccountsMigrator<T> {
 			liquid.min(T::CtFreeBuffer::get())
 		};
 		let mut ah_free = liquid.saturating_sub(ct_free);
-		// a remainder below the existential deposit follows the holds
+		// a remainder below this chain's existential deposit follows the holds, so what is
+		// teleported endows its account on Asset Hub, whose ED is lower.
 		if ah_free < NativeCurrency::<T>::minimum_balance() {
 			ct_free = ct_free.saturating_add(ah_free);
 			ah_free = 0;
