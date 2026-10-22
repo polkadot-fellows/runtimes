@@ -306,6 +306,8 @@ jobs:
           path: snapshot.raw
           key: try-runtime-snapshot-asset-hub-${{ matrix.network }}-
           fail-on-cache-miss: true
+          # Several GB;
+          segment-download-timeout-mins: 60
       - run: mv snapshot.raw snap_ah.snap
 
       - name: Test AHM v2 against ${{ matrix.network }} snapshots
