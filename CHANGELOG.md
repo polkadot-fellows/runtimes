@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Update Individuality pallets from [`53482baa`](https://github.com/paritytech/individuality-community/commit/53482baa337278c6c4c8115fb8d2b4b5def08ccb) to [`7137a05e`](https://github.com/paritytech/individuality-community/commit/7137a05ee8de969fdf57714ea4aadb9525b28d93) ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
+- Asset Hub Polkadot: move missing membership-root detection to offchain-submitted scans with a 60-second cooldown after incoming updates. Migrate Members Subscriber timestamps from global to per-collection storage ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
 - Bulletin Polkadot: dust and XCM delivery fees now accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub, instead of being burnt or stranded locally ([#1319](https://github.com/polkadot-fellows/runtimes/pull/1319)).
 - Asset Hub, Bridge Hub, Coretime and People Polkadot & Kusama, Collectives Polkadot, Bulletin Polkadot and Encointer: `pallet_session::set_keys` now holds a deposit priced with `system_para_deposit` so a first registration needs free balance of at least ED plus the deposit. Keys registered before this change stay deposit-free ([#1310](https://github.com/polkadot-fellows/runtimes/pull/1310)).
 - Coretime Kusama: bulk revenue now accumulates with dust and is burnt on Asset Hub through `pallet-accumulate-and-forward`, and a migration retires the `py/ctbrn` holding account ([#1301](https://github.com/polkadot-fellows/runtimes/pull/1301)).
@@ -19,6 +21,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Bridge Hub, Coretime, People and Encointer Kusama:  dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1287](https://github.com/polkadot-fellows/runtimes/pull/1287)).
 - Asset Hub Polkadot: `DustRemoval` resolves into the DAP staging account instead of burning, so dust is deactivated like every other sink ([#1288](https://github.com/polkadot-fellows/runtimes/pull/1288)).
 - Coretime Polkadot & Kusama, Asset Hub Polkadot: coretime bulk revenue is no longer teleported to the relay chain to be burnt. Polkadot forwards revenue, and now also dust from reaped accounts, to the DAP staging account on Asset Hub through `pallet-accumulate-and-forward`, and Asset Hub grants system-chain accumulation accounts free execution. Asset Hub Polkadot must be upgraded before Coretime Polkadot, otherwise the forwards are rejected and the teleported DOT is lost. Kusama teleports it to Asset Hub and burns it there, since KSM issuance is tracked on Asset Hub. A migration retires the `py/ctbrn` holding account on Coretime Polkadot. ([#1282](https://github.com/polkadot-fellows/runtimes/pull/1282)).
+
+### Fixed
+
+- Apply Snowbridge/XCM fixes ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
 
 ## [2.5.0] 01.09.2026
 
