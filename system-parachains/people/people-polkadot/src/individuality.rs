@@ -561,9 +561,25 @@ parameter_types! {
 	pub const PlayDepositReason: RuntimeHoldReason =
 		RuntimeHoldReason::Game(indiv_pallet_game::HoldReason::PlayDeposit);
 	pub const PlayDepositDefault: Balance = 2 * UNITS;
+	// The game clients signal WebRTC over one session per peer, with a request and a response
+	// channel. Android caps a statement at 1 KiB. iOS uses the 500 KiB chat cap, but sends a
+	// compact SDP without candidates and at most 12 candidates per batch, which fit in 1 KiB. A
+	// player connects to up to 10 peers at once (its group and the next round's), so 20
+	// statements and 20 KiB, plus a margin of 4.
+	//
+	// Android:
+	// * Statement size: https://github.com/paritytech/polkadot-android-community/blob/31990f50c9a8abad8cc8fc57f9eb3dcdd8bb0de7/feature/videogame/impl/src/main/java/io/paritytech/polkadotapp/feature_videogame_impl/service/VideoGamePeerChannel.kt#L43
+	// * Connected peers: https://github.com/paritytech/polkadot-android-community/blob/31990f50c9a8abad8cc8fc57f9eb3dcdd8bb0de7/feature/videogame/impl/src/main/java/io/paritytech/polkadotapp/feature_videogame_impl/service/VideoGameSessionManager.kt#L152
+	// * Channels: https://github.com/paritytech/polkadot-android-community/blob/31990f50c9a8abad8cc8fc57f9eb3dcdd8bb0de7/feature/statement-store/impl/src/main/kotlin/io/paritytech/polkadotapp/feature_statement_store_impl/domain/sessions/codec/StatementChannels.kt#L12-L14
+	//
+	// iOS:
+	// * Statement size: https://github.com/paritytech/polkadot-ios-community/blob/78e12f8af0b2cc3a41d683014b00847d78104fc4/polkadot-app/Modules/DIMs/DIM2/Game/GameVideo/GameVideoViewFactory.swift#L117
+	// * Signal batches: https://github.com/paritytech/polkadot-ios-community/blob/78e12f8af0b2cc3a41d683014b00847d78104fc4/polkadot-app/Modules/ChatCall/Connection/PeerConnectionSignalBatcher.swift#L13-L39
+	// * Connected peers: https://github.com/paritytech/polkadot-ios-community/blob/78e12f8af0b2cc3a41d683014b00847d78104fc4/polkadot-app/Modules/DIMs/DIM2/Game/Services/GameVideo/GameVideoService.swift#L244
+	// * Channels: https://github.com/paritytech/polkadot-ios-community/blob/78e12f8af0b2cc3a41d683014b00847d78104fc4/Packages/MessageExchangeKit/Sources/Models/StatementChannelFactory.swift#L15-L23
 	pub PlayerStatementLimit: StatementAllowance = StatementAllowance {
-		max_size: 1_000_000,
-		max_count: 1_000_000,
+		max_size: 24 * 1024,
+		max_count: 24,
 	};
 	pub GameAirdropSource: AccountId = PalletId(*b"pop/gads").into_account_truncating();
 }
