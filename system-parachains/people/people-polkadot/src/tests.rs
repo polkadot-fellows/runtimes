@@ -253,12 +253,14 @@ fn governance_authorize_upgrade_works() {
 }
 
 /// The transaction extension pipeline is versioned: version 0 is the pipeline that predates the
-/// Individuality deployment and must stay frozen so already-built signers keep working, while
-/// version 1 carries the Individuality origin modifiers.
+/// Individuality deployment and must stay frozen so already-built signers keep working, version 1
+/// carries the Individuality origin modifiers shipped in 2.5.0, and version 2 adds the Game and
+/// Score origin modifiers on top of version 1.
 ///
-/// This pins both: the identifiers of version 0 in order, and the fact that version 1 exists and is
-/// version 0 plus the Individuality extensions. Any reordering of version 0 breaks live signers, so
-/// it should only ever change together with `transaction_version`.
+/// This pins the identifiers of version 0 in order, that version 1 is version 0 plus the
+/// Individuality extensions, and that version 2 is version 1 plus the Game and Score extensions.
+/// Any reordering of a released version breaks live signers, so a new pipeline must be added as a
+/// new version rather than by amending an existing one.
 #[test]
 fn transaction_extension_versions_are_stable() {
 	use sp_runtime::traits::{Pipeline, PipelineMetadataBuilder, TransactionExtension};
@@ -284,13 +286,21 @@ fn transaction_extension_versions_are_stable() {
 		],
 	);
 
-	// Version 1 must be advertised in the metadata, otherwise no wallet can construct it.
+	// Versions 1 and 2 must be advertised in the metadata, otherwise no wallet can construct them.
 	let mut builder = PipelineMetadataBuilder::new();
 	<crate::TxExtensionOtherVersions as Pipeline<RuntimeCall>>::build_metadata(&mut builder);
-	let v1_indices = builder.by_version.get(&1).expect("extension version 1 must be advertised");
-	let v1: Vec<&str> =
-		v1_indices.iter().map(|i| builder.in_versions[*i as usize].identifier).collect();
-	assert_eq!(builder.by_version.len(), 1, "only version 1 lives outside version 0");
+	let identifiers = |version: u8| -> Vec<&str> {
+		builder
+			.by_version
+			.get(&version)
+			.unwrap_or_else(|| panic!("extension version {version} must be advertised"))
+			.iter()
+			.map(|i| builder.in_versions[*i as usize].identifier)
+			.collect()
+	};
+	let v1 = identifiers(1);
+	let v2 = identifiers(2);
+	assert_eq!(builder.by_version.len(), 2, "only versions 1 and 2 live outside version 0");
 
 	// Version 1 is version 0 plus the Individuality pipeline: same non-Individuality identifiers,
 	// in the same relative order.
@@ -308,6 +318,15 @@ fn transaction_extension_versions_are_stable() {
 	assert_eq!(v1_without_indiv, v0, "version 1 must extend version 0, not reshuffle it");
 	for id in indiv {
 		assert!(v1.contains(&id), "version 1 must carry `{id}`");
+	}
+
+	// Version 2 is version 1 plus the Game and Score origin modifiers
+	let v2_additions = ["ScoreAsParticipant", "GameAsInvited"];
+	let v2_without_new: Vec<&str> =
+		v2.iter().copied().filter(|id| !v2_additions.contains(id)).collect();
+	assert_eq!(v2_without_new, v1, "version 2 must extend version 1, not reshuffle it");
+	for id in v2_additions {
+		assert!(v2.contains(&id), "version 2 must carry `{id}`");
 	}
 }
 
@@ -442,6 +461,125 @@ fn bulletin_destination_is_governable_but_must_remain_a_sibling_parachain() {
 	});
 }
 
+/// Score payouts carry no hardcoded asset: governance picks it, and until then there is none.
+#[test]
+fn score_payout_asset_is_set_by_governance() {
+	use crate::{
+		parameters::{dynamic_params::external_asset, RuntimeParameters},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use frame_support::traits::Get;
+	use sp_runtime::BuildStorage;
+
+	type PayoutAsset = <Runtime as indiv_pallet_score::Config>::CurrencyLocationInfo;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// GIVEN no asset has been chosen yet.
+		assert_eq!(PayoutAsset::get(), Location::here());
+
+		// WHEN Root points it at an Asset Hub asset.
+		let asset = Location::new(1, [Parachain(1000), PalletInstance(50), GeneralIndex(4242)]);
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::ExternalAsset(external_asset::Parameters::AssetLocation(
+				external_asset::AssetLocation,
+				Some(asset.clone()),
+			)),
+		));
+
+		// THEN score pays out in that asset.
+		assert_eq!(PayoutAsset::get(), asset);
+	});
+}
+
+/// The people-airdrops pallet reads its prize source from the governance parameter.
+#[test]
+fn people_airdrops_prize_source_is_set_by_governance() {
+	use crate::{
+		parameters::{dynamic_params::people_airdrops, RuntimeParameters},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use frame_support::{traits::Get, PalletId};
+	use sp_runtime::{traits::AccountIdConversion, BuildStorage};
+
+	type PrizeSource = <Runtime as indiv_pallet_people_airdrops::Config>::PrizeSource;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// GIVEN the default prize source is the dedicated pallet account.
+		let default: AccountId = PalletId(*b"pop/pads").into_account_truncating();
+		assert_eq!(PrizeSource::get(), default);
+
+		// WHEN Root points it at another account.
+		let updated = AccountId::from(ALICE);
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::PeopleAirdrops(people_airdrops::Parameters::PrizeSource(
+				people_airdrops::PrizeSource,
+				Some(updated.clone()),
+			)),
+		));
+
+		// THEN the pallet funds draws from that account.
+		assert_eq!(PrizeSource::get(), updated);
+	});
+}
+
+/// The game pallet reads its airdrop source from the governance parameter.
+#[test]
+fn game_airdrop_source_is_set_by_governance() {
+	use crate::{
+		parameters::{dynamic_params::game, RuntimeParameters},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use frame_support::{traits::Get, PalletId};
+	use sp_runtime::{traits::AccountIdConversion, BuildStorage};
+
+	type AirdropSource = <Runtime as indiv_pallet_game::Config>::AirdropSource;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// GIVEN the default airdrop source is the dedicated pallet account.
+		let default: AccountId = PalletId(*b"pop/gads").into_account_truncating();
+		assert_eq!(AirdropSource::get(), default);
+
+		// WHEN Root points it at another account.
+		let updated = AccountId::from(ALICE);
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::Game(game::Parameters::AirdropSource(
+				game::AirdropSource,
+				Some(updated.clone()),
+			)),
+		));
+
+		// THEN the pallet funds airdrops from that account.
+		assert_eq!(AirdropSource::get(), updated);
+	});
+}
+
+#[test]
+fn people_airdrops_context_is_an_account_context() {
+	use crate::{individuality::AccountContexts, PeopleAirdrops, RuntimeGenesisConfig};
+	use frame_support::traits::Contains;
+	use sp_runtime::BuildStorage;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		let airdrops = PeopleAirdrops::people_airdrops_context();
+		assert!(AccountContexts::contains(&airdrops));
+	});
+}
+
 /// Only assets Asset Hub itself issues may be reserve transferred here from Asset Hub.
 ///
 /// Accepting an asset from a chain that is not its real reserve gives it two reserves, and
@@ -532,7 +670,8 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 	use crate::{
 		parameters::{
 			dynamic_params::{
-				bulletin_storage, coinage, lite_personhood, origin_restriction, statement_storage,
+				bulletin_storage, coinage, external_asset, game, lite_personhood,
+				origin_restriction, people_airdrops, statement_storage,
 			},
 			DynamicParameterOrigin, RuntimeParameters, RuntimeParametersKey,
 		},
@@ -571,6 +710,7 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		OriginRestriction(origin_restriction::PeopleIdentityAndAliasAllowanceRecovery.into()),
 		OriginRestriction(origin_restriction::LitePeopleAllowanceMax.into()),
 		OriginRestriction(origin_restriction::LitePeopleAllowanceRecovery.into()),
+		OriginRestriction(origin_restriction::AccountParticipantAllowanceRecovery.into()),
 		LitePersonhood(lite_personhood::RegistrationFee.into()),
 	];
 	let root_only = [
@@ -578,6 +718,9 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		BulletinStorage(bulletin_storage::BulletinTransactionStoragePalletIndex.into()),
 		Coinage(coinage::LoadDepositPrice.into()),
 		Coinage(coinage::InstanceCreationDeposit.into()),
+		ExternalAsset(external_asset::AssetLocation.into()),
+		PeopleAirdrops(people_airdrops::PrizeSource.into()),
+		Game(game::AirdropSource.into()),
 	];
 
 	// THEN Root passes all, the voice only the operational keys.
@@ -625,5 +768,35 @@ fn session_key_deposit_works() {
 	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
 		let generated = SessionKeys::generate(&owner.encode(), None);
 		(generated.keys, generated.proof.encode())
+	});
+}
+
+// The benchmarking build replaces `OperationAllowedOneTimeExcess` with its own pair.
+#[cfg(not(feature = "runtime-benchmarks"))]
+#[test]
+fn score_participant_origin_is_restricted() {
+	use crate::{
+		individuality::{OperationAllowedOneTimeExcess, RestrictedEntity},
+		OriginCaller,
+	};
+	use frame_support::traits::ContainsPair;
+	use indiv_pallet_origin_restriction::RestrictedEntity as _;
+
+	sp_io::TestExternalities::default().execute_with(|| {
+		// GIVEN the origin `ScoreAsParticipant` dispatches with, which pays no fee.
+		let account = AccountId::from(ALICE);
+		let origin =
+			OriginCaller::Score(indiv_pallet_score::Origin::AccountParticipant(account.clone()));
+
+		// THEN it is rate limited with no allowance of its own.
+		let entity = RestrictedEntity::restricted_entity(&origin).expect("origin is restricted");
+		assert_eq!(entity, RestrictedEntity::AccountParticipant(account));
+		assert_eq!(entity.allowance().max, 0);
+
+		// AND only the calls taking this origin may go into debt.
+		let remark = RuntimeCall::System(frame_system::Call::remark { remark: vec![0; 1024] });
+		assert!(!OperationAllowedOneTimeExcess::contains(&entity, &remark));
+		let cash_out = RuntimeCall::Score(indiv_pallet_score::Call::cash_out {});
+		assert!(OperationAllowedOneTimeExcess::contains(&entity, &cash_out));
 	});
 }
