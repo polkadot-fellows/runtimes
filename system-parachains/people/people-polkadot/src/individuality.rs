@@ -448,6 +448,7 @@ pub enum RestrictedEntity {
 	PersonalIdentity(u64),
 	LitePerson(AccountId),
 	LiteAlias(Alias),
+	AccountParticipant(AccountId),
 }
 
 impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> for RestrictedEntity {
@@ -463,12 +464,18 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 				max: crate::parameters::LitePeopleAllowanceMax::get(),
 				recovery_per_block: crate::parameters::LitePeopleAllowanceRecovery::get(),
 			},
+			// `ScoreAsParticipant` drops the signed origin, so no fee is paid; restrict instead.
+			RestrictedEntity::AccountParticipant(_) => Allowance {
+				max: 0,
+				recovery_per_block: crate::parameters::AccountParticipantAllowanceRecovery::get(),
+			},
 		}
 	}
 
 	fn restricted_entity(origin_caller: &OriginCaller) -> Option<Self> {
 		use indiv_pallet_people::Origin::*;
 		use indiv_pallet_people_lite::Origin::*;
+		use indiv_pallet_score::Origin::*;
 		match origin_caller {
 			OriginCaller::People(PersonalIdentity(id)) =>
 				Some(RestrictedEntity::PersonalIdentity(*id)),
@@ -478,6 +485,8 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 				Some(RestrictedEntity::LitePerson(account_id.clone())),
 			OriginCaller::PeopleLite(LiteAlias(rev_ca)) =>
 				Some(RestrictedEntity::LiteAlias(rev_ca.ca.alias)),
+			OriginCaller::Score(AccountParticipant(account_id)) =>
+				Some(RestrictedEntity::AccountParticipant(account_id.clone())),
 			_ => None,
 		}
 	}
@@ -487,8 +496,27 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 pub struct OperationAllowedOneTimeExcess;
 impl ContainsPair<RestrictedEntity, RuntimeCall> for OperationAllowedOneTimeExcess {
 	#[cfg(not(feature = "runtime-benchmarks"))]
-	fn contains(_entity: &RestrictedEntity, _call: &RuntimeCall) -> bool {
-		false
+	fn contains(entity: &RestrictedEntity, call: &RuntimeCall) -> bool {
+		use indiv_pallet_game::Call::*;
+		use indiv_pallet_score::Call::*;
+		match entity {
+			// The calls that accept the `AccountParticipant` origin. Any other call fails
+			// with `BadOrigin`, but still takes block space without paying, so reject it here.
+			RestrictedEntity::AccountParticipant(_) => matches!(
+				call,
+				RuntimeCall::Score(cash_out { .. }) |
+					RuntimeCall::Score(redeem_credit { .. }) |
+					RuntimeCall::Score(register { .. }) |
+					RuntimeCall::Game(sign_up_with_account { .. }) |
+					RuntimeCall::Game(report { .. }) |
+					RuntimeCall::Game(offboard { .. }) |
+					RuntimeCall::Game(claim_airdrop { .. })
+			),
+			RestrictedEntity::PersonalAlias(_) |
+			RestrictedEntity::PersonalIdentity(_) |
+			RestrictedEntity::LitePerson(_) |
+			RestrictedEntity::LiteAlias(_) => false,
+		}
 	}
 
 	// We need to have one for benchmarks.

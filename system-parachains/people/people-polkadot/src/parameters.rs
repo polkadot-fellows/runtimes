@@ -100,6 +100,8 @@ pub mod dynamic_params {
 		pub static LitePeopleAllowanceMax: Balance = UNITS;
 		#[codec(index = 3)]
 		pub static LitePeopleAllowanceRecovery: Balance = 3 * MILLICENTS;
+		#[codec(index = 4)]
+		pub static AccountParticipantAllowanceRecovery: Balance = 3 * MILLICENTS;
 	}
 
 	/// Lite-person registration pricing.
@@ -220,6 +222,10 @@ pub type LitePeopleAllowanceRecovery = AtLeast<
 	dynamic_params::origin_restriction::LitePeopleAllowanceRecovery,
 	frame_support::traits::ConstU128<1>,
 >;
+pub type AccountParticipantAllowanceRecovery = AtLeast<
+	dynamic_params::origin_restriction::AccountParticipantAllowanceRecovery,
+	frame_support::traits::ConstU128<1>,
+>;
 
 pub type LitePersonRegistrationFee =
 	AtLeast<dynamic_params::lite_personhood::RegistrationFee, ExistentialDeposit>;
@@ -273,7 +279,8 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				OriginRestrictionKey::PeopleIdentityAndAliasAllowanceMax(_) |
 				OriginRestrictionKey::PeopleIdentityAndAliasAllowanceRecovery(_) |
 				OriginRestrictionKey::LitePeopleAllowanceMax(_) |
-				OriginRestrictionKey::LitePeopleAllowanceRecovery(_),
+				OriginRestrictionKey::LitePeopleAllowanceRecovery(_) |
+				OriginRestrictionKey::AccountParticipantAllowanceRecovery(_),
 			) |
 			RuntimeParametersKey::LitePersonhood(LitePersonhoodKey::RegistrationFee(_)) =>
 				<RootOrTechnicalMaintenance as EnsureOrigin<RuntimeOrigin>>::ensure_origin(

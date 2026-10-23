@@ -675,6 +675,7 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		OriginRestriction(origin_restriction::PeopleIdentityAndAliasAllowanceRecovery.into()),
 		OriginRestriction(origin_restriction::LitePeopleAllowanceMax.into()),
 		OriginRestriction(origin_restriction::LitePeopleAllowanceRecovery.into()),
+		OriginRestriction(origin_restriction::AccountParticipantAllowanceRecovery.into()),
 		LitePersonhood(lite_personhood::RegistrationFee.into()),
 	];
 	let root_only = [
@@ -731,5 +732,35 @@ fn session_key_deposit_works() {
 	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
 		let generated = SessionKeys::generate(&owner.encode(), None);
 		(generated.keys, generated.proof.encode())
+	});
+}
+
+// The benchmarking build replaces `OperationAllowedOneTimeExcess` with its own pair.
+#[cfg(not(feature = "runtime-benchmarks"))]
+#[test]
+fn score_participant_origin_is_restricted() {
+	use crate::{
+		individuality::{OperationAllowedOneTimeExcess, RestrictedEntity},
+		OriginCaller,
+	};
+	use frame_support::traits::ContainsPair;
+	use indiv_pallet_origin_restriction::RestrictedEntity as _;
+
+	sp_io::TestExternalities::default().execute_with(|| {
+		// GIVEN the origin `ScoreAsParticipant` dispatches with, which pays no fee.
+		let account = AccountId::from(ALICE);
+		let origin =
+			OriginCaller::Score(indiv_pallet_score::Origin::AccountParticipant(account.clone()));
+
+		// THEN it is rate limited with no allowance of its own.
+		let entity = RestrictedEntity::restricted_entity(&origin).expect("origin is restricted");
+		assert_eq!(entity, RestrictedEntity::AccountParticipant(account));
+		assert_eq!(entity.allowance().max, 0);
+
+		// AND only the calls taking this origin may go into debt.
+		let remark = RuntimeCall::System(frame_system::Call::remark { remark: vec![0; 1024] });
+		assert!(!OperationAllowedOneTimeExcess::contains(&entity, &remark));
+		let cash_out = RuntimeCall::Score(indiv_pallet_score::Call::cash_out {});
+		assert!(OperationAllowedOneTimeExcess::contains(&entity, &cash_out));
 	});
 }
