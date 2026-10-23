@@ -472,6 +472,9 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 		}
 	}
 
+	// `game::Origin::Invited` pays no fee either, but is not restricted: `GameAsInvited` only
+	// accepts `sign_up_with_invite` and consumes a pending invite in `prepare`, so each such
+	// transaction spends an invite that was granted beforehand.
 	fn restricted_entity(origin_caller: &OriginCaller) -> Option<Self> {
 		use indiv_pallet_people::Origin::*;
 		use indiv_pallet_people_lite::Origin::*;
