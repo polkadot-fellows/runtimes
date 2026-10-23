@@ -15,7 +15,7 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 //! Test harness: snapshot loading, manual block production and manual DMP/UMP message shuttling
-//! between the Relay Chain and the Coretime chain.
+//! between the Relay Chain, the Coretime chain and Asset Hub.
 
 use codec::{Decode, Encode};
 use cumulus_primitives_core::{
@@ -60,22 +60,26 @@ use xcm::{
 /// networks resolves to Kusama rather than failing.
 #[cfg(all(feature = "polkadot", not(feature = "kusama")))]
 pub mod network {
+	pub use asset_hub_polkadot_runtime as ah;
 	pub use coretime_polkadot_runtime as ct;
 	pub use polkadot_runtime as relay;
 	pub use polkadot_runtime_constants as constants;
 
 	pub const RELAY_NAME: &str = "Polkadot Relay";
 	pub const CT_NAME: &str = "Polkadot Coretime";
+	pub const AH_NAME: &str = "Polkadot Asset Hub";
 }
 
 #[cfg(feature = "kusama")]
 pub mod network {
+	pub use asset_hub_kusama_runtime as ah;
 	pub use coretime_kusama_runtime as ct;
 	pub use kusama_runtime as relay;
 	pub use kusama_runtime_constants as constants;
 
 	pub const RELAY_NAME: &str = "Kusama Relay";
 	pub const CT_NAME: &str = "Kusama Coretime";
+	pub const AH_NAME: &str = "Kusama Asset Hub";
 }
 
 pub type RuntimeCallFor<P> = <<P as Para>::Runtime as frame_system::Config>::RuntimeCall;
@@ -103,6 +107,13 @@ impl Para for CoretimePara {
 	const CHAIN: Chain = Chain::Coretime;
 }
 
+pub struct AssetHubPara;
+impl Para for AssetHubPara {
+	type Runtime = network::ah::Runtime;
+	const PARA_ID: u32 = system_parachain::ASSET_HUB_ID;
+	const CHAIN: Chain = Chain::AssetHub;
+}
+
 // ---------------------------------------------------------------------------
 // Snapshot loading
 // ---------------------------------------------------------------------------
@@ -115,11 +126,13 @@ pub type RawSnapshot = (Vec<(Vec<u8>, (Vec<u8>, i32))>, H256);
 
 static RC_CACHE: OnceCell<RawSnapshot> = OnceCell::const_new();
 static CT_CACHE: OnceCell<RawSnapshot> = OnceCell::const_new();
+static AH_CACHE: OnceCell<RawSnapshot> = OnceCell::const_new();
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Chain {
 	Relay,
 	Coretime,
+	AssetHub,
 }
 
 impl Chain {
@@ -128,6 +141,7 @@ impl Chain {
 		match self {
 			Chain::Relay => network::RELAY_NAME,
 			Chain::Coretime => network::CT_NAME,
+			Chain::AssetHub => network::AH_NAME,
 		}
 	}
 
@@ -136,6 +150,7 @@ impl Chain {
 		match self {
 			Chain::Relay => "runtime::relay",
 			Chain::Coretime => "runtime::coretime",
+			Chain::AssetHub => "runtime::asset-hub",
 		}
 	}
 
@@ -143,6 +158,7 @@ impl Chain {
 		match self {
 			Chain::Relay => "SNAP_RC",
 			Chain::Coretime => "SNAP_CT",
+			Chain::AssetHub => "SNAP_AH",
 		}
 	}
 
@@ -150,6 +166,7 @@ impl Chain {
 		match self {
 			Chain::Relay => &RC_CACHE,
 			Chain::Coretime => &CT_CACHE,
+			Chain::AssetHub => &AH_CACHE,
 		}
 	}
 
@@ -422,6 +439,19 @@ pub fn ct_stage() -> CtStage {
 /// A para besides the Coretime chain that the relay chain sends to during the data stages, with
 /// what delivers a block's messages to it.
 pub type Destination<'a> = (ParaId, &'a mut dyn FnMut(Vec<InboundDownwardMessage>));
+
+/// Deliver each block's messages to `P` and run a block there, for [`walk_migration`]'s
+/// destinations. Drain `P` with [`drain_dmp`] after the walk.
+pub fn dmp_sink<P: Para>(
+	ext: &mut TestExternalities,
+) -> impl FnMut(Vec<InboundDownwardMessage>) + '_ {
+	move |dmp| {
+		ext.execute_with(|| {
+			enqueue_dmp::<P>(dmp);
+			next_block_para::<P>();
+		})
+	}
+}
 
 /// Walk both chains from `Pending` to `MigrationDone` over their real queues.
 ///
