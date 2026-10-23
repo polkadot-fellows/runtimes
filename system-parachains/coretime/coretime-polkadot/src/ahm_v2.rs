@@ -38,8 +38,9 @@ impl pallet_ct_migrator::Config for Runtime {
 
 #[cfg(test)]
 mod tests {
-	use crate::{Runtime, RuntimeCall};
+	use crate::{AccountId, Runtime, RuntimeCall};
 	use codec::Encode;
+	use pallet_ct_migrator::accounts::PortableAccountOf;
 	use pallet_rc2_migrator::{CtMigratorCall, CtRuntimeCall};
 
 	/// Ensure the pallet + call index aligns.
@@ -53,6 +54,23 @@ mod tests {
 		assert_eq!(
 			CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown).encode(),
 			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::end_lockdown {}).encode(),
+		);
+		let accounts = vec![PortableAccountOf::<Runtime> {
+			who: AccountId::new([1; 32]),
+			free: 10,
+			holds: Default::default(),
+		}];
+		// The relay chain's hand-written mirror of this call must encode to the same bytes as
+		// the real call.
+		assert_eq!(
+			CtRuntimeCall::CtMigrator(CtMigratorCall::ReceiveAccounts {
+				accounts: accounts.clone()
+			})
+			.encode(),
+			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::receive_accounts {
+				accounts
+			})
+			.encode(),
 		);
 	}
 }
