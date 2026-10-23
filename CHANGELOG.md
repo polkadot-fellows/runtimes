@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Asset Hub Polkadot: add the `technical_maintenance` OpenGov track for operational settings such as quotas, allowances, limits and fees, and the `prosperity_emergency` track for guarding the dotUSD monetary mechanisms ([#1236](https://github.com/polkadot-fellows/runtimes/pull/1236)).
+- PAH & KAH: add `pallet-asset-rewards` (permissionless, deposit-backed staking reward pools) with `pallet-assets-freezer` instances on `Assets`, `ForeignAssets` and `PoolAssets` for stake freezes ([#921](https://github.com/polkadot-fellows/runtimes/issues/921)).
 
 ### Changed
 

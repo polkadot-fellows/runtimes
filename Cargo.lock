@@ -1597,7 +1597,9 @@ dependencies = [
  "pallet-asset-conversion-precompiles",
  "pallet-asset-conversion-tx-payment",
  "pallet-asset-rate",
+ "pallet-asset-rewards",
  "pallet-assets",
+ "pallet-assets-freezer",
  "pallet-assets-precompiles",
  "pallet-aura",
  "pallet-authorship",
@@ -1801,6 +1803,7 @@ dependencies = [
  "pallet-asset-conversion-precompiles",
  "pallet-asset-conversion-tx-payment",
  "pallet-asset-rate",
+ "pallet-asset-rewards",
  "pallet-assets",
  "pallet-assets-freezer",
  "pallet-assets-holder",
@@ -10712,6 +10715,25 @@ dependencies = [
  "scale-info",
  "sp-core 43.0.0",
  "sp-runtime 48.0.0",
+]
+
+[[package]]
+name = "pallet-asset-rewards"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9458d9a51fc3c78307c3510fb13a735d890bb5a2698b708eaa3c0a8c5a9cb51a"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api 43.0.0",
+ "sp-arithmetic",
+ "sp-core 43.0.0",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+ "sp-std",
 ]
 
 [[package]]
