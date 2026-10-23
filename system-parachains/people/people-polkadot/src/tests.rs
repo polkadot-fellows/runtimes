@@ -530,6 +530,41 @@ fn people_airdrops_prize_source_is_set_by_governance() {
 	});
 }
 
+/// The game pallet reads its airdrop source from the governance parameter.
+#[test]
+fn game_airdrop_source_is_set_by_governance() {
+	use crate::{
+		parameters::{dynamic_params::game, RuntimeParameters},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use frame_support::{traits::Get, PalletId};
+	use sp_runtime::{traits::AccountIdConversion, BuildStorage};
+
+	type AirdropSource = <Runtime as indiv_pallet_game::Config>::AirdropSource;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// GIVEN the default airdrop source is the dedicated pallet account.
+		let default: AccountId = PalletId(*b"pop/gads").into_account_truncating();
+		assert_eq!(AirdropSource::get(), default);
+
+		// WHEN Root points it at another account.
+		let updated = AccountId::from(ALICE);
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::Game(game::Parameters::AirdropSource(
+				game::AirdropSource,
+				Some(updated.clone()),
+			)),
+		));
+
+		// THEN the pallet funds airdrops from that account.
+		assert_eq!(AirdropSource::get(), updated);
+	});
+}
+
 #[test]
 fn people_airdrops_context_is_an_account_context() {
 	use crate::{individuality::AccountContexts, PeopleAirdrops, RuntimeGenesisConfig};
@@ -635,8 +670,8 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 	use crate::{
 		parameters::{
 			dynamic_params::{
-				bulletin_storage, coinage, external_asset, lite_personhood, origin_restriction,
-				people_airdrops, statement_storage,
+				bulletin_storage, coinage, external_asset, game, lite_personhood,
+				origin_restriction, people_airdrops, statement_storage,
 			},
 			DynamicParameterOrigin, RuntimeParameters, RuntimeParametersKey,
 		},
@@ -685,6 +720,7 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		Coinage(coinage::InstanceCreationDeposit.into()),
 		ExternalAsset(external_asset::AssetLocation.into()),
 		PeopleAirdrops(people_airdrops::PrizeSource.into()),
+		Game(game::AirdropSource.into()),
 	];
 
 	// THEN Root passes all, the voice only the operational keys.

@@ -144,10 +144,23 @@ pub mod dynamic_params {
 		pub static PrizeSource: sp_runtime::AccountId32 =
 			PalletId(*b"pop/pads").into_account_truncating();
 	}
+
+	/// Game airdrop funding.
+	#[dynamic_pallet_params]
+	#[codec(index = 7)]
+	pub mod game {
+		/// Account funding the airdrops of games. The airdrop pallet records the source per
+		/// event at scheduling time, so an update only affects airdrops scheduled after it.
+		#[codec(index = 0)]
+		pub static AirdropSource: sp_runtime::AccountId32 =
+			PalletId(*b"pop/gads").into_account_truncating();
+	}
 }
 
 /// Any account is a valid prize source, so the value is read unclamped.
 pub type PeopleAirdropsPrizeSource = dynamic_params::people_airdrops::PrizeSource;
+/// Any account is a valid airdrop source, so the value is read unclamped.
+pub type GameAirdropSource = dynamic_params::game::AirdropSource;
 
 pub type LitePersonStatementLimit =
 	StatementAllowanceGetter<dynamic_params::statement_storage::LitePersonStatementLimit>;
@@ -249,7 +262,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use dynamic_params::{
 			bulletin_storage::ParametersKey as BulletinStorageKey,
 			coinage::ParametersKey as CoinageKey,
-			external_asset::ParametersKey as ExternalAssetKey,
+			external_asset::ParametersKey as ExternalAssetKey, game::ParametersKey as GameKey,
 			lite_personhood::ParametersKey as LitePersonhoodKey,
 			origin_restriction::ParametersKey as OriginRestrictionKey,
 			people_airdrops::ParametersKey as PeopleAirdropsKey,
@@ -297,7 +310,8 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				CoinageKey::LoadDepositPrice(_) | CoinageKey::InstanceCreationDeposit(_),
 			) |
 			RuntimeParametersKey::ExternalAsset(ExternalAssetKey::AssetLocation(_)) |
-			RuntimeParametersKey::PeopleAirdrops(PeopleAirdropsKey::PrizeSource(_)) =>
+			RuntimeParametersKey::PeopleAirdrops(PeopleAirdropsKey::PrizeSource(_)) |
+			RuntimeParametersKey::Game(GameKey::AirdropSource(_)) =>
 				frame_system::ensure_root(origin.clone()),
 		}
 		.map_err(|_| origin)

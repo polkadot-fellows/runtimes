@@ -63,7 +63,7 @@ use indiv_support::{
 use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AccountIdConversion, ConstI8, ConstU16},
+	traits::{ConstI8, ConstU16},
 	DispatchError, DispatchResult, MultiSignature,
 };
 use sp_statement_store::StatementAllowance;
@@ -612,7 +612,6 @@ parameter_types! {
 		max_size: 24 * 1024,
 		max_count: 24,
 	};
-	pub GameAirdropSource: AccountId = PalletId(*b"pop/gads").into_account_truncating();
 }
 
 impl indiv_pallet_game::Config for Runtime {
@@ -663,7 +662,7 @@ impl indiv_pallet_game::Config for Runtime {
 	type AirdropAssetId = <Runtime as pallet_assets::Config>::AssetId;
 	type AirdropAssetBalance = Balance;
 	type Airdrop = Airdrop;
-	type AirdropSource = GameAirdropSource;
+	type AirdropSource = crate::parameters::GameAirdropSource;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::GamePalletBenchmarkHelper;
 }
@@ -911,7 +910,7 @@ pub mod benchmark_utils {
 		genesis::ring_verifier_builder_params,
 		traits::{AddOnlyPeopleTrait, AppendOnlyMembers, RingMode},
 	};
-	use sp_runtime::traits::IdentifyAccount;
+	use sp_runtime::traits::{AccountIdConversion, IdentifyAccount};
 	use verifiable::ring::RingDomainSize;
 
 	/// Reads `pallet_timestamp::Now` directly, deliberately skipping `pallet_timestamp::Pallet`'s
