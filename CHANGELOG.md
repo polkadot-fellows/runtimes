@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Asset Hub Polkadot & Kusama: remove the unused `ChildBountyCount` storage value from `pallet-child-bounties`, which is now tracked per-parent (integrates [paritytech/polkadot-sdk#13333](https://github.com/paritytech/polkadot-sdk/pull/13333)) ([#1328](https://github.com/polkadot-fellows/runtimes/pull/1328)).
 - People Polkadot: remove the single-use `SeedSubscriptionWhitelist` migration that seeded the Asset Hub `MembersNotifier` subscription whitelist entry. It shipped in 2.5.0 and has run on chain. [#1292](https://github.com/polkadot-fellows/runtimes/pull/1292)).
 
 ### Changed
