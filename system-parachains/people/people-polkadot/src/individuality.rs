@@ -851,14 +851,8 @@ pub mod benchmark_utils {
 		}
 
 		fn fund_account(who: &AccountId, amount: Balance) {
-			let fee_reserve =
-				Coinage::get_paid_unload_token_fee_quote_in_asset(0, 1).unwrap_or_default();
-			<AssetsWithHolder as Mutate<_>>::mint_into(
-				HollarLocation::get(),
-				who,
-				amount.saturating_add(fee_reserve),
-			)
-			.expect("benchmark: account must be fundable");
+			<AssetsWithHolder as Mutate<_>>::mint_into(HollarLocation::get(), who, amount)
+				.expect("benchmark: account must be fundable");
 		}
 
 		fn create_extra_asset(seed: u32, who: &AccountId) -> Location {
@@ -929,6 +923,12 @@ pub mod benchmark_utils {
 				provider,
 			)
 			.expect("benchmark: fee conversion pool must accept liquidity");
+
+			// Top up the unload caller; fee-failure benchmarks need exact funding.
+			let caller: AccountId = frame_benchmarking::account("caller", 0, 0);
+			let fee_reserve = Coinage::get_paid_unload_token_fee_quote_in_asset(0, 1)
+				.expect("benchmark: fee conversion pool must provide a quote");
+			Self::fund_account(&caller, fee_reserve);
 		}
 
 		fn create_people_proof(
