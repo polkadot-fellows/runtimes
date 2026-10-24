@@ -88,7 +88,7 @@ frame-system-benchmarking = { version = "49.0.0", default-features = false }
 frame-system-rpc-runtime-api = { version = "43.0.0", default-features = false }
 frame-try-runtime = { version = "0.54.0", default-features = false }
 glutton-kusama-runtime = { path = "system-parachains/gluttons/glutton-kusama" }
-grandpa = { version = "0.44.0", package = "sc-consensus-grandpa" }
+grandpa = { version = "0.46.0", package = "sc-consensus-grandpa" }
 grandpa-primitives = { version = "30.0.0", default-features = false, package = "sp-consensus-grandpa" }
 hex-literal = { version = "0.4.1" }
 indiv-pallet-alias-accounts = { git = "https://github.com/paritytech/individuality-community", rev = "e69b079ef93b6b0224ca81b96d4385f6dd4c8e22", default-features = false, version = "*" }
