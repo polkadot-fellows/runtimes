@@ -1371,9 +1371,9 @@ dependencies = [
 
 [[package]]
 name = "ark-vrf"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e1eab4d92e7a80fea37a6a5424de677f8c46809b88ed4c5e94dd4eed5cc39e8"
+checksum = "9b94e43bbb597f342ffc529cc34ea7d45f315793d1fab0d8382878ec134204dc"
 dependencies = [
  "ark-bls12-381 0.6.0",
  "ark-ec 0.6.0",
@@ -1383,9 +1383,28 @@ dependencies = [
  "ark-std 0.6.0",
  "digest 0.10.7",
  "generic-array 0.14.7",
+ "sha2 0.10.9",
+ "w3f-ring-proof 0.0.11",
+ "zeroize",
+]
+
+[[package]]
+name = "ark-vrf"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "974cf0b193d5097bad0fcc8ffdc9dfc49c63cd5677278104b8960ee374744553"
+dependencies = [
+ "ark-bls12-381 0.6.0",
+ "ark-ec 0.6.0",
+ "ark-ed-on-bls12-381-bandersnatch 0.6.0",
+ "ark-ff 0.6.0",
+ "ark-serialize 0.6.0",
+ "ark-std 0.6.0",
+ "digest 0.10.7",
+ "rand 0.8.5",
  "rayon",
  "sha2 0.10.9",
- "w3f-ring-proof 0.0.10",
+ "w3f-ring-proof 0.0.11",
  "zeroize",
 ]
 
@@ -2326,7 +2345,7 @@ version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90dbd31c98227229239363921e60fcf5e558e43ec69094d46fc4996f08d1d5bc"
 dependencies = [
- "bitcoin_hashes 0.13.0",
+ "bitcoin_hashes 0.14.1",
  "rand 0.8.5",
  "rand_core 0.6.4",
  "serde",
@@ -5204,7 +5223,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ab67060fc6b8ef687992d439ca0fa36e7ed17e9a0b16b25b601e8757df720de"
 dependencies = [
  "data-encoding",
- "syn 2.0.114",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -6075,7 +6094,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7656,7 +7675,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.2",
  "system-configuration 0.7.0",
  "tokio",
  "tower-service",
@@ -7964,7 +7983,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-alias-accounts"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7982,7 +8001,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-chunks-manager"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7998,7 +8017,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-coinage"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8020,7 +8039,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-dotns-gateway"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "alloy-core",
  "frame-benchmarking",
@@ -8041,7 +8060,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-dummy-dim"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8057,7 +8076,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-members"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8077,7 +8096,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-members-notifier"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "cumulus-primitives-core",
  "frame-benchmarking",
@@ -8100,7 +8119,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-members-subscriber"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8119,7 +8138,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-network-suffix"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8132,7 +8151,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-origin-restriction"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8148,7 +8167,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-people"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8167,7 +8186,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-people-lite"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "ed25519-zebra",
  "frame-benchmarking",
@@ -8187,7 +8206,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-pgas"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8206,7 +8225,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-relay-randomness"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
@@ -8223,7 +8242,7 @@ dependencies = [
 [[package]]
 name = "indiv-pallet-resources"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -8245,7 +8264,7 @@ dependencies = [
 [[package]]
 name = "indiv-precompile-personhood"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -8259,7 +8278,7 @@ dependencies = [
 [[package]]
 name = "indiv-precompile-support"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -8271,7 +8290,7 @@ dependencies = [
 [[package]]
 name = "indiv-support"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/individuality-community?rev=7137a05ee8de969fdf57714ea4aadb9525b28d93#7137a05ee8de969fdf57714ea4aadb9525b28d93"
+source = "git+https://github.com/paritytech/individuality-community?rev=e69b079ef93b6b0224ca81b96d4385f6dd4c8e22#e69b079ef93b6b0224ca81b96d4385f6dd4c8e22"
 dependencies = [
  "ark-bls12-381-ext 0.6.0",
  "ark-ec 0.6.0",
@@ -10346,7 +10365,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -10465,7 +10484,7 @@ version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff32365de1b6743cb203b710788263c44a03de03802daf96092f2da4fe6ba4d7"
 dependencies = [
- "proc-macro-crate 1.1.3",
+ "proc-macro-crate 3.4.0",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -14852,8 +14871,8 @@ version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
- "heck 0.4.1",
- "itertools 0.12.1",
+ "heck 0.5.0",
+ "itertools 0.10.5",
  "log",
  "multimap",
  "once_cell",
@@ -14872,8 +14891,8 @@ version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "343d3bd7056eda839b03204e68deff7d1b13aba7af2b2fd16890697274262ee7"
 dependencies = [
- "heck 0.4.1",
- "itertools 0.12.1",
+ "heck 0.5.0",
+ "itertools 0.10.5",
  "log",
  "multimap",
  "petgraph 0.8.3",
@@ -14905,7 +14924,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -14918,7 +14937,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.114",
@@ -15030,7 +15049,7 @@ dependencies = [
  "quinn-udp 0.5.14",
  "rustc-hash 2.1.1",
  "rustls 0.23.36",
- "socket2 0.5.10",
+ "socket2 0.6.2",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -15067,9 +15086,9 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.10",
+ "socket2 0.6.2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -15080,9 +15099,9 @@ checksum = "76150b617afc75e6e21ac5f39bc196e80b65415ae48d62dbef8e2519d040ce42"
 dependencies = [
  "cfg_aliases",
  "libc",
- "socket2 0.5.10",
+ "socket2 0.6.2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -15834,7 +15853,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -18986,7 +19005,7 @@ version = "43.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41314ae10e80f9f0c5f68bb23f26f2d21f105bb6d867810b719c29c684aa0458"
 dependencies = [
- "ark-vrf 0.5.3",
+ "ark-vrf 0.5.4",
  "array-bytes 6.2.3",
  "bip39",
  "bitflags 1.3.2",
@@ -20952,7 +20971,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -21782,13 +21801,13 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "verifiable"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61bcf1e43762a8701eb3c2e836633c9ff3b65814ff573772b3250c1ed6ff218d"
+checksum = "3352091cc7dd44e64dc3e070850e7771be1559869251e84311155af296b2ae71"
 dependencies = [
  "ark-scale 0.0.14",
  "ark-serialize 0.6.0",
- "ark-vrf 0.5.3",
+ "ark-vrf 0.6.1",
  "bounded-collections",
  "getrandom 0.2.17",
  "getrandom_or_panic",
@@ -21880,9 +21899,9 @@ dependencies = [
 
 [[package]]
 name = "w3f-plonk-common"
-version = "0.0.10"
+version = "0.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e24647403dfe8eeb4ef57358e41c29c1ae253c4a123ef9e04d3029fabca38bc2"
+checksum = "b87f79489cacacb6abe6a41e240bbf73edb517a9bf418a83f218fb72c178481e"
 dependencies = [
  "ark-ec 0.6.0",
  "ark-ff 0.6.0",
@@ -21914,9 +21933,9 @@ dependencies = [
 
 [[package]]
 name = "w3f-ring-proof"
-version = "0.0.10"
+version = "0.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b86bf57d9f25c1020c372f1a64069fef9f158db85cd6ef087cee560337bed56d"
+checksum = "baebbd0c660fe839a59b6b230a680276504b16d52ab635e2cc11c7a631e5ef4e"
 dependencies = [
  "ark-ec 0.6.0",
  "ark-ff 0.6.0",
@@ -21926,7 +21945,7 @@ dependencies = [
  "ark-transcript 0.0.6",
  "rayon",
  "w3f-pcs 0.0.7",
- "w3f-plonk-common 0.0.10",
+ "w3f-plonk-common 0.0.11",
 ]
 
 [[package]]
@@ -22747,7 +22766,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
