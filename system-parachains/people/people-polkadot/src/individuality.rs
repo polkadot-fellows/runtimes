@@ -1438,10 +1438,8 @@ pub mod benchmark_utils {
 				return;
 			}
 
-			// Price HOLLAR so that a paid unload token fee stays below the ten minimum coins
-			// (0.1 HOLLAR) that the non-anonymous unload benchmarks fund their caller with.
 			let native_liquidity = 1_000 * UNITS;
-			let asset_liquidity = 10 * HOLLAR_UNITS;
+			let asset_liquidity = 1_000 * HOLLAR_UNITS;
 			let provider: AccountId = [42u8; 32].into();
 
 			Balances::mint_into(&provider, native_liquidity.saturating_mul(2))
@@ -1466,6 +1464,12 @@ pub mod benchmark_utils {
 				provider,
 			)
 			.expect("benchmark: fee conversion pool must accept liquidity");
+
+			// Top up the unload caller; fee-failure benchmarks need exact funding.
+			let caller: AccountId = frame_benchmarking::account("caller", 0, 0);
+			let fee_reserve = Coinage::get_paid_unload_token_fee_quote_in_asset(0, 1)
+				.expect("benchmark: fee conversion pool must provide a quote");
+			Self::fund_account(&caller, fee_reserve);
 		}
 
 		fn create_people_proof(
