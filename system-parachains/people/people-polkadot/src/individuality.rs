@@ -803,6 +803,7 @@ impl sp_runtime::traits::TryConvert<AccountId, sp_core::sr25519::Public>
 impl indiv_pallet_airdrop::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_airdrop::WeightInfo<Runtime>;
 	type MemberService = Members;
+	type Suffix = NetworkSuffix;
 	type Fungibles = AssetsWithHolder;
 	type ManagerOrigin = EnsureRoot<Self::AccountId>;
 	type PalletId = AirdropPalletId;
@@ -1122,6 +1123,7 @@ pub mod benchmark_utils {
 					Assets::mint_into(asset_id.clone(), source, BENCH_PRIZE)
 						.expect("fund prize source");
 					indiv_pallet_people_airdrops::AirdropEventInfoOf::<Runtime> {
+						product_name: Default::default(),
 						prize: indiv_pallet_airdrop::types::AirdropPrize {
 							asset_id,
 							asset_amount: BENCH_PRIZE,
