@@ -19,6 +19,8 @@ use crate::{Runtime, TrustBackedAssetsInstance};
 use alloc::vec::Vec;
 use frame_support::parameter_types;
 
+pub mod recalculate_asset_supply;
+
 /// Provides the initial `LastIssuanceTimestamp` for the DAP V1->V2 migration.
 ///
 /// Uses the start of the active era (ms since unix epoch) so the catch-up drip covers
@@ -273,9 +275,25 @@ mod multiblock_migrations {
 		local_and_foreign_assets::ForeignAssetReserveData,
 		migrations::foreign_assets_reserves::ForeignAssetsReservesProvider,
 	};
-	use frame_support::traits::Contains;
+	use frame_support::traits::{Contains, Get};
 	use xcm::v5::{Junction, Location};
 	use xcm_builder::StartsWith;
+
+	/// Trust-backed assets whose recorded total issuance is wrong and must be recomputed by
+	/// [`super::recalculate_asset_supply::RecalculateSupply`].
+	///
+	/// Only **dotUSD** (`7873`): some token credits were dropped during cross-chain message
+	/// handling, lowering `supply` below the real sum of balances without moving any balance. No
+	/// other trust-backed asset is affected.
+	pub struct MismatchedIssuanceAssets;
+	impl Get<Vec<<Runtime as pallet_assets::Config<TrustBackedAssetsInstance>>::AssetId>>
+		for MismatchedIssuanceAssets
+	{
+		fn get() -> Vec<<Runtime as pallet_assets::Config<TrustBackedAssetsInstance>>::AssetId> {
+			// `AssetId` for the trust-backed instance is `u32`; `7873` is dotUSD.
+			vec![7873]
+		}
+	}
 
 	/// MBM migrations to apply on runtime upgrade.
 	pub type MbmMigrations = (
@@ -294,6 +312,14 @@ mod multiblock_migrations {
 		// Mandatory companion to `pallet_revive::Config::Deposit` becoming
 		// `PGasDeposit`.
 		pallet_revive::migrations::v4::Migration<Runtime>,
+		// Recompute dotUSD total issuance, which sits below the real balances. Multi-block:
+		// extrinsics are paused while it runs, so the sum is taken against frozen state.
+		// See `MismatchedIssuanceAssets` above.
+		super::recalculate_asset_supply::RecalculateSupply<
+			Runtime,
+			TrustBackedAssetsInstance,
+			MismatchedIssuanceAssets,
+		>,
 	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration

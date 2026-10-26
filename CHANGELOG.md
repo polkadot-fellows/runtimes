@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Asset Hub Polkadot: multi-block migration recomputing `pallet-assets` total issuance for dotUSD (`7873`) ([#XXXX](https://github.com/polkadot-fellows/runtimes/pull/XXXX)).
+
 ## [2.5.1] 24.10.2026
 
 ### Removed
