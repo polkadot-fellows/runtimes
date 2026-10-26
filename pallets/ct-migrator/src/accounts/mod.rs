@@ -33,7 +33,10 @@ use frame_support::{
 	},
 };
 use migrator_types::PortableAccount;
-use sp_runtime::{traits::Zero, DispatchError, Saturating};
+use sp_runtime::{
+	traits::{CheckedAdd, Zero},
+	ArithmeticError, DispatchError, Saturating,
+};
 
 pub type PortableAccountOf<T> =
 	PortableAccount<<T as frame_system::Config>::AccountId, BalanceOf<T>>;
@@ -62,11 +65,13 @@ impl<T: Config> Pallet<T> {
 	/// stays free; a hold takes what is left up to its amount.
 	fn do_receive_account(account: &PortableAccountOf<T>) -> Result<BalanceOf<T>, DispatchError> {
 		let who = &account.who;
+		// An overflow fails the account, which parks it.
 		let held = account
 			.holds
 			.iter()
-			.fold(BalanceOf::<T>::zero(), |sum, hold| sum.saturating_add(hold.amount));
-		let total = account.free.saturating_add(held);
+			.try_fold(BalanceOf::<T>::zero(), |sum, hold| sum.checked_add(&hold.amount))
+			.ok_or(ArithmeticError::Overflow)?;
+		let total = account.free.checked_add(&held).ok_or(ArithmeticError::Overflow)?;
 
 		let minted = T::Currency::mint_into(who, total)?;
 		defensive_assert!(minted == total, "minted what the relay chain burned");
