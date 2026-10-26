@@ -32,10 +32,7 @@ use frame_support::{
 	traits::Get,
 	weights::{Weight, WeightMeter},
 };
-use pallet_assets::{
-	Account, Asset, AssetAccountOf, AssetDetails, AssetStatus, BalanceOnHold,
-	Config as AssetsConfig, DepositBalanceOf,
-};
+use pallet_assets::{Account, Asset, AssetStatus, BalanceOnHold, Config as AssetsConfig};
 use scale_info::TypeInfo;
 use sp_runtime::traits::{Saturating, Zero};
 
@@ -44,6 +41,13 @@ const LOG_TARGET: &str = "runtime::asset-hub-polkadot::recalculate-asset-supply"
 
 /// Globally unique identifier bytes for this migration (exactly 26 bytes).
 const MIGRATION_ID: &[u8; 26] = b"ahp-assets-supply-recalc-1";
+
+/// Small fixed `ref_time` for this step's own execution, charged once per call (not per account).
+const STEP_EXEC_REF_TIME: u64 = 2_000_000; // ~2 µs
+
+/// Conservative PoV charged per storage item a turn reads. The generated `pallet-assets` weights
+/// show roughly 2.6 KiB of proof per item (value plus trie path); rounded up.
+const PROOF_SIZE_PER_ITEM: u64 = 3 * 1024;
 
 /// Progress cursor for [`RecalculateSupply`].
 ///
@@ -86,21 +90,23 @@ where
 	) -> Result<Option<Self::Cursor>, SteppedMigrationError> {
 		let targets = TargetAssets::get();
 
-		// Conservative per-turn weight (no benchmark): up to 3 reads + 1 write, plus a generous
-		// `proof_size` since `RuntimeDbWeight` only sets `ref_time` and this runs on a parachain.
+		// Conservative weights (no benchmark). Per account: 3 reads + 1 write, plus a generous
+		// `proof_size` for the 3 storage items a turn reads (`Assets::Asset`, `Assets::Account`,
+		// `AssetsHolder::BalancesOnHold`), since `RuntimeDbWeight` sets no proof size and this runs
+		// on a parachain. Plus a small fixed `ref_time` for the call itself, charged once.
 		let db = T::DbWeight::get();
-		let proof_size =
-			AssetDetails::<T::Balance, T::AccountId, DepositBalanceOf<T, I>>::max_encoded_len()
-				.saturating_add(AssetAccountOf::<T, I>::max_encoded_len())
-				.saturating_add(T::Balance::max_encoded_len())
-				// ~256 bytes of trie-node overhead per item, for the 3 items above.
-				.saturating_add(3 * 256) as u64;
-		let required = db.reads_writes(3, 1).saturating_add(Weight::from_parts(0, proof_size));
+		let per_turn = db
+			.reads_writes(3, 1)
+			.saturating_add(Weight::from_parts(0, 3 * PROOF_SIZE_PER_ITEM));
+		let base = Weight::from_parts(STEP_EXEC_REF_TIME, 0);
 
-		// Not even one turn fits in the remaining budget: ask the scheduler for a fresh block.
-		if meter.remaining().any_lt(required) {
-			return Err(SteppedMigrationError::InsufficientWeight { required });
+		// Need the fixed overhead plus at least one turn to make progress.
+		if meter.remaining().any_lt(base.saturating_add(per_turn)) {
+			return Err(SteppedMigrationError::InsufficientWeight {
+				required: base.saturating_add(per_turn),
+			});
 		}
+		let _ = meter.try_consume(base);
 
 		let mut state = cursor.unwrap_or(Cursor {
 			asset_index: 0,
@@ -110,7 +116,7 @@ where
 
 		loop {
 			// Reserve this turn's weight up front; stop cleanly once the block is full.
-			if meter.try_consume(required).is_err() {
+			if meter.try_consume(per_turn).is_err() {
 				break;
 			}
 
@@ -362,13 +368,9 @@ mod tests {
 			corrupt_supply(DOT_USD, 1);
 
 			// Starve each step so only a few accounts are processed per block, forcing the cursor
-			// to carry a partial sum across many steps. Budget both weight dimensions: a few reads
-			// of `ref_time` and a few KiB of `proof_size`, comfortably above one turn but well
-			// below the whole asset.
-			let per_step = <Runtime as frame_system::Config>::DbWeight::get()
-				.reads_writes(3, 1)
-				.saturating_mul(3)
-				.saturating_add(Weight::from_parts(0, 4096));
+			// to carry a partial sum across many steps. `proof_size` is the limiting dimension:
+			// budget about three turns' worth, well below the whole asset.
+			let per_step = Weight::from_parts(u64::MAX, 9 * PROOF_SIZE_PER_ITEM);
 			let steps = run_to_completion(per_step);
 			assert!(steps > 1, "expected the migration to span multiple steps, took {steps}");
 			assert_eq!(AssetStore::get(DOT_USD).unwrap().supply, real);
