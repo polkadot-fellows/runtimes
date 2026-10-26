@@ -16,10 +16,14 @@
 
 //! Test runtime for `pallet-ct-migrator`.
 
-use crate as pallet_ct_migrator;
+use crate::{self as pallet_ct_migrator, accounts::PortableAccountOf, HoldReason};
 use codec::Decode;
-use frame_support::{derive_impl, ord_parameter_types, parameter_types, traits::Contains};
+use frame_support::{
+	derive_impl, ord_parameter_types, parameter_types,
+	traits::{fungible::InspectHold, Contains},
+};
 use frame_system::EnsureSignedBy;
+use migrator_types::{PortableAccount, PortableHold, PortableHoldReason};
 use sp_runtime::BuildStorage;
 use xcm::prelude::*;
 
@@ -41,10 +45,18 @@ impl frame_system::Config for Test {
 	type AccountData = pallet_balances::AccountData<u128>;
 }
 
+/// The existential deposit of the receiving chain
+pub const ED: u128 = 1;
+
+parameter_types! {
+	pub const ExistentialDeposit: u128 = ED;
+}
+
 #[derive_impl(pallet_balances::config_preludes::TestDefaultConfig)]
 impl pallet_balances::Config for Test {
 	type Balance = u128;
 	type AccountStore = System;
+	type ExistentialDeposit = ExistentialDeposit;
 	type RuntimeHoldReason = RuntimeHoldReason;
 }
 
@@ -146,4 +158,44 @@ pub fn sent_call(n: usize) -> crate::Rc2RuntimeCall {
 		}
 	}
 	panic!("message {n} carried no Transact");
+}
+
+pub fn free(who: &AccountId) -> u128 {
+	pallet_balances::Pallet::<Test>::free_balance(who)
+}
+
+pub fn held(reason: HoldReason, who: &AccountId) -> u128 {
+	<Balances as InspectHold<AccountId>>::balance_on_hold(
+		&RuntimeHoldReason::CtMigrator(reason),
+		who,
+	)
+}
+
+pub fn total_issuance() -> u128 {
+	pallet_balances::TotalIssuance::<Test>::get()
+}
+
+/// Every `pallet-ct-migrator` event since the last call.
+pub fn migrator_events() -> Vec<crate::Event<Test>> {
+	let events = System::events()
+		.into_iter()
+		.filter_map(|r| match r.event {
+			RuntimeEvent::CtMigrator(e) => Some(e),
+			_ => None,
+		})
+		.collect();
+	System::reset_events();
+	events
+}
+
+pub fn portable_account(
+	who: &AccountId,
+	free: u128,
+	holds: Vec<(PortableHoldReason, u128)>,
+) -> PortableAccountOf<Test> {
+	let holds: Vec<_> = holds
+		.into_iter()
+		.map(|(reason, amount)| PortableHold { reason, amount })
+		.collect();
+	PortableAccount { who: *who, free, holds: holds.try_into().unwrap() }
 }

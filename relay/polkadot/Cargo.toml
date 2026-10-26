@@ -13,6 +13,7 @@ license.workspace = true
 pallet-rc-migrator = { workspace = true }
 # Behind the `ahm-v2` feature; see `src/ahm_v2.rs`.
 pallet-rc2-migrator = { workspace = true }
+migrator-types = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -141,6 +142,7 @@ polkadot-ahm = [
 
 ahm-v2 = []
 std = [
+	"migrator-types/std",
 	"pallet-rc-migrator/std",
 	"pallet-rc2-migrator/std",
 

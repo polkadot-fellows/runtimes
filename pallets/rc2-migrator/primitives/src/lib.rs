@@ -33,7 +33,10 @@
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use polkadot_parachain_primitives::primitives::{Id as ParaId, Sibling};
 use scale_info::TypeInfo;
-use sp_runtime::{traits::AccountIdConversion, AccountId32};
+use sp_runtime::{
+	traits::{AccountIdConversion, ConstU32},
+	AccountId32, BoundedVec,
+};
 
 /// Sovereign account of `para_id` as seen from a sibling parachain (`sibl` + para id).
 ///
@@ -120,6 +123,33 @@ pub enum PortableProxyType {
 	ParaRegistration,
 }
 
+/// Bound on [`PortableAccount::holds`].
+pub type MaxPortableHolds = ConstU32<4>;
+
+/// An account's balance as it leaves the Relay Chain.
+#[derive(
+	Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
+)]
+pub struct PortableAccount<AccountId, Balance> {
+	/// The account on the receiving chain; see [`translate_destination`].
+	pub who: AccountId,
+	/// Balance that is free on the receiving chain.
+	pub free: Balance,
+	/// Balance that is held on the receiving chain.
+	pub holds: BoundedVec<PortableHold<Balance>, MaxPortableHolds>,
+}
+
+/// Held part of a [`PortableAccount`].
+#[derive(
+	Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
+)]
+pub struct PortableHold<Balance> {
+	/// Why the balance is held on the receiving chain.
+	pub reason: PortableHoldReason,
+	/// The held amount.
+	pub amount: Balance,
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -146,5 +176,21 @@ mod tests {
 		// A sibling-format sovereign already is the destination address.
 		let sibling: AccountId32 = sibling_account(2000);
 		assert_eq!(translate_destination(&sibling), sibling);
+	}
+
+	#[test]
+	fn portable_account_encoding_roundtrips() {
+		let alice = AccountId32::new([1u8; 32]);
+		let account = PortableAccount::<AccountId32, u128> {
+			who: alice,
+			free: 10,
+			holds: BoundedVec::truncate_from(vec![
+				PortableHold { reason: PortableHoldReason::RegistrarDeposit, amount: 20 },
+				PortableHold { reason: PortableHoldReason::UnattributedReserve, amount: 30 },
+			]),
+		};
+
+		let encoded = account.encode();
+		assert_eq!(PortableAccount::decode(&mut &encoded[..]), Ok(account));
 	}
 }
