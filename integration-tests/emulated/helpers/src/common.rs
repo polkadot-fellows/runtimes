@@ -97,8 +97,8 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 				));
 			});
 
-			// WHEN the forward runs, in the same block the funds land: every emulated block ends
-			// with `on_idle`, which would forward the funds before this block gets to observe it.
+			// WHEN the forward runs, in the block the teleport lands in: every emulated block ends
+			// with `on_idle`, which would forward the funds before a later block could observe it.
 			let forwarded = $chain::execute_with(|| {
 				assert_eq!(
 					ChainBalances::total_issuance(),
@@ -107,8 +107,10 @@ macro_rules! test_accumulated_funds_are_burnt_on_asset_hub {
 				);
 				let forwarded = ChainBalances::balance(&accumulation_account) - $chain_ed;
 
-				let block = $crate::frame_system::Pallet::<ChainRuntime>::block_number();
-				pallet_accumulate_and_forward::Pallet::<ChainRuntime>::on_idle(block, Weight::MAX);
+				pallet_accumulate_and_forward::Pallet::<ChainRuntime>::on_idle(
+					$crate::frame_system::Pallet::<ChainRuntime>::block_number(),
+					Weight::MAX,
+				);
 
 				assert_expected_events!(
 					$chain,

@@ -20,7 +20,12 @@
 //! worker; on the default single-thread runtime, `tokio::join!`-ed loads would run one after the
 //! other.
 
-use crate::mock::*;
+use crate::{
+	checks::{
+		accounts::AccountsChecker, session::ValidatorsChecker, ParaMigrationCheck, RcMigrationCheck,
+	},
+	mock::*,
+};
 use codec::Encode;
 use cumulus_primitives_core::UpwardMessage;
 use frame_support::assert_ok;
@@ -140,10 +145,6 @@ where
 	});
 }
 
-/// The windows this suite schedules with.
-const WARM_UP: u32 = 10;
-const COOL_OFF: u32 = 10;
-
 /// A para the relay chain's barrier turns away outright, because it is not a system chain.
 const OUTSIDER_PARA: u32 = 4242;
 
@@ -198,80 +199,48 @@ fn run_handshake(rc: &mut TestExternalities, ct: &mut TestExternalities) -> Vec<
 	ump
 }
 
-/// The migration's stage machine, driven end to end over live relay-chain and Coretime state.
+/// The checkers of every stage, run on each chain before and after the migration.
+type Checks = (AccountsChecker, ValidatorsChecker);
+
+/// The migration, driven end to end over live Relay Chain, Coretime and Asset Hub state, with the
+/// checks of every stage run before and after.
 #[tokio::test(flavor = "multi_thread")]
 async fn the_migration_runs_to_completion() {
-	let (mut rc, mut ct) = tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN));
+	let (mut rc, mut ct, mut ah) =
+		tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN), load(AssetHubPara::CHAIN));
 
-	let rc_issuance_before =
-		rc.execute_with(pallet_balances::Pallet::<network::relay::Runtime>::total_issuance);
-	let ct_issuance_before =
-		ct.execute_with(pallet_balances::Pallet::<network::ct::Runtime>::total_issuance);
+	let rc_pre = rc.execute_with(<Checks as RcMigrationCheck>::pre_check);
+	let ct_pre =
+		ct.execute_with(|| <Checks as ParaMigrationCheck<CoretimePara>>::pre_check(&rc_pre));
+	let ah_pre =
+		ah.execute_with(|| <Checks as ParaMigrationCheck<AssetHubPara>>::pre_check(&rc_pre));
 
-	let ump = run_handshake(&mut rc, &mut ct);
+	// One block per batch of accounts, plus one per stage arm and some slack.
+	let accounts = rc_pre.0.accounts.len() as u32;
+	let per_block = rc
+		.execute_with(pallet_rc2_migrator::Limits::<network::relay::Runtime>::get)
+		.items_per_block();
+	let max_blocks = accounts / per_block + 30;
 
-	// The answer admits the machine to the warm-up, then through every data stage and the
-	// verification window to the finish.
-	let dmp = rc.execute_with(|| {
-		enqueue_ump(CoretimePara::PARA_ID.into(), ump);
-		next_block_rc();
-
-		let RcStage::WarmUp { end_at } = rc_stage() else {
-			panic!("readiness did not admit the machine to the warm-up: {:?}", rc_stage())
-		};
-		let now = frame_system::Pallet::<network::relay::Runtime>::block_number();
-		assert_eq!(end_at, now + WARM_UP, "the warm-up must run for the scheduled window");
-
-		set_block_number_rc(end_at - 1);
-		next_block_rc();
-		assert_eq!(rc_stage(), RcStage::AccountsInit, "the warm-up did not open the data stages");
-
-		// The data stages walk one block each and carry nothing yet, so the only message sent so
-		// far is the start signal already taken above.
-		let mut blocks = 0;
-		let end_at = loop {
-			if let RcStage::CoolOff { end_at } = rc_stage() {
-				break end_at;
-			}
-			assert!(
-				// 15 data stages that is not doing anything currently, so 30 blocks is enough
-				blocks < 30,
-				"the data stages did not reach the cool-off: {:?}",
-				rc_stage()
-			);
-			next_block_rc();
-			blocks += 1;
-		};
-		assert!(
-			take_dmp(CoretimePara::PARA_ID.into()).is_empty(),
-			"a data stage sent something before being filled in"
+	{
+		let mut to_ah = dmp_sink::<AssetHubPara>(&mut ah);
+		walk_migration(
+			&mut rc,
+			&mut ct,
+			max_blocks,
+			&mut [(AssetHubPara::PARA_ID.into(), &mut to_ah)],
+			|| (),
+			|| (),
 		);
-		set_block_number_rc(end_at - 1);
-		next_block_rc();
-		assert_eq!(rc_stage(), RcStage::MigrationDone);
-		take_dmp(CoretimePara::PARA_ID.into())
-	});
-	assert!(!dmp.is_empty(), "the relay chain queued no finish signal");
+	}
+	ah.execute_with(drain_dmp::<AssetHubPara>);
 
+	let rc_post = rc.execute_with(|| <Checks as RcMigrationCheck>::post_check(&rc_pre));
 	ct.execute_with(|| {
-		enqueue_dmp::<CoretimePara>(dmp);
-		next_block_para::<CoretimePara>();
-		assert_eq!(ct_stage(), pallet_ct_migrator::MigrationStage::MigrationDone);
-
-		// Nothing was migrated, so nothing was minted here.
-		assert_eq!(
-			pallet_balances::Pallet::<network::ct::Runtime>::total_issuance(),
-			ct_issuance_before,
-			"a migration with no data stages must not change Coretime issuance"
-		);
+		<Checks as ParaMigrationCheck<CoretimePara>>::post_check(&rc_pre, &rc_post, ct_pre)
 	});
-
-	rc.execute_with(|| {
-		assert_eq!(
-			pallet_balances::Pallet::<network::relay::Runtime>::total_issuance(),
-			rc_issuance_before,
-			"a migration with no data stages must not change relay-chain issuance"
-		);
+	ah.execute_with(|| {
+		<Checks as ParaMigrationCheck<AssetHubPara>>::post_check(&rc_pre, &rc_post, ah_pre)
 	});
 }
 
@@ -356,12 +325,4 @@ fn ump_outcome(para: u32) -> Option<bool> {
 		}
 	}
 	None
-}
-
-fn rc_stage() -> pallet_rc2_migrator::MigrationStageOf<network::relay::Runtime> {
-	pallet_rc2_migrator::RcMigrationStage::<network::relay::Runtime>::get()
-}
-
-fn ct_stage() -> pallet_ct_migrator::MigrationStage {
-	pallet_ct_migrator::CtMigrationStage::<network::ct::Runtime>::get()
 }

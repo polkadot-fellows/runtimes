@@ -14,6 +14,7 @@ version.workspace = true
 pallet-rc-migrator = { workspace = true }
 # Behind the `ahm-v2` feature; see `src/ahm_v2.rs`.
 pallet-rc2-migrator = { workspace = true }
+migrator-types = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -153,6 +154,7 @@ std = [
 	"hex/std",
 	"kusama-runtime-constants/std",
 	"log/std",
+	"migrator-types/std",
 	"pallet-accumulate-and-forward/std",
 	"pallet-asset-rate/std",
 	"pallet-authority-discovery/std",
