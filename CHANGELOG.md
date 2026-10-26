@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Asset Hub Polkadot: multi-block migration recomputing `pallet-assets` total issuance for dotUSD (`7873`) ([#XXXX](https://github.com/polkadot-fellows/runtimes/pull/XXXX)).
+- Asset Hub Polkadot: multi-block migration recomputing `pallet-assets` total issuance for dotUSD (`7873`) ([#1334](https://github.com/polkadot-fellows/runtimes/pull/1334)).
 
 ## [2.5.1] 24.10.2026
 
