@@ -1,11 +1,11 @@
 # AHM v2 migration integration tests
 
 Rust dry-run harness for the AHM v2 migration: moving account, proxy, registrar and HRMP state
-from the Relay Chain to the Coretime chain.
+from the Relay Chain to the Coretime chain, with free balances teleported to Asset Hub.
 
-The Relay Chain and the Coretime chain are loaded from `try-runtime` snapshots of real network
-state. Blocks are produced by calling hooks directly and DMP/UMP messages are shuttled between the
-chains by hand (no nodes or networking).
+The Relay Chain, the Coretime chain and Asset Hub are loaded from `try-runtime` snapshots of real
+network state. Blocks are produced by calling hooks directly and DMP/UMP messages are shuttled
+between the chains by hand (no nodes or networking).
 
 ## The `ahm-v2` feature
 
@@ -33,15 +33,17 @@ through to `cargo test` (e.g. `just test rc_and_coretime`). Snapshot creation ne
 
 Snapshots land in `snapshots/<network>/` (gitignored) and are kept until you delete them, so runs
 do not re-create them. `SNAP_DIR` overrides the parent directory: point it at a tree that already
-holds `<network>/snap_rc.snap` and `<network>/snap_ct.snap`. The default endpoints are public;
-override them with `RC_URI` / `CT_URI` to scrape from your own nodes.
+holds `<network>/snap_rc.snap`, `<network>/snap_ct.snap` and `<network>/snap_ah.snap`. The
+default endpoints are public; override them with `RC_URI` / `CT_URI` / `AH_URI` to scrape from
+your own nodes. The Asset Hub snapshot is the large one (several GB on Polkadot); only tests that
+load Asset Hub read it.
 
 To run against specific snapshot files, bypass the justfile. The network is a cargo feature,
 `polkadot` or `kusama`, and one must be given:
 
 ```bash
-SNAP_RC=... SNAP_CT=... cargo test -p polkadot-integration-tests-ahmv2 --features polkadot
-SNAP_RC=... SNAP_CT=... cargo test -p polkadot-integration-tests-ahmv2 --features kusama
+SNAP_RC=... SNAP_CT=... SNAP_AH=... cargo test -p polkadot-integration-tests-ahmv2 --features polkadot
+SNAP_RC=... SNAP_CT=... SNAP_AH=... cargo test -p polkadot-integration-tests-ahmv2 --features kusama
 ```
 
 Snapshots are cached in memory per test process and re-hydrated per test, so each test gets fresh
