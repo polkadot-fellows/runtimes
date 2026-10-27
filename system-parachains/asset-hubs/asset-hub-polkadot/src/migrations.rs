@@ -230,9 +230,6 @@ impl frame_support::traits::OnRuntimeUpgrade for ForceCreatePgasAsset {
 parameter_types! {
 	/// dotUSD on Asset Hub Polkadot: the asset whose recorded supply is corrected.
 	pub const DotUsdAssetId: u32 = 7873;
-	/// Max dotUSD accounts the supply fix will sum in one block. Above this it does nothing.
-	/// ~500 accounts is about 3 MiB of proof, well inside one block; the live count is ~62.
-	pub const DotUsdMaxAccounts: u32 = 500;
 }
 
 /// Unreleased migrations. Add new ones here:
@@ -261,14 +258,6 @@ pub type Unreleased = (
 	ForceCreatePgasAsset,
 	indiv_pallet_members_subscriber::migration::MigrateV0ToV1<Runtime>,
 	pallet_staking_async::migrations::SetWeightedPointsFormulaStartEra<Runtime>,
-	// Recompute dotUSD total issuance, which sits below the real sum of balances. Single block:
-	// runs only while dotUSD is small enough to sum in one block (see `DotUsdMaxAccounts`).
-	recalculate_asset_supply::RecalculateSupply<
-		Runtime,
-		TrustBackedAssetsInstance,
-		DotUsdAssetId,
-		DotUsdMaxAccounts,
-	>,
 );
 
 /// All single block migrations that will run on the next runtime upgrade.
@@ -312,6 +301,13 @@ mod multiblock_migrations {
 		// Mandatory companion to `pallet_revive::Config::Deposit` becoming
 		// `PGasDeposit`.
 		pallet_revive::migrations::v4::Migration<Runtime>,
+		// Recompute dotUSD total issuance, which sits below the real sum of balances. dotUSD is
+		// frozen while this runs.
+		super::recalculate_asset_supply::RecalculateSupply<
+			Runtime,
+			TrustBackedAssetsInstance,
+			super::DotUsdAssetId,
+		>,
 	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration

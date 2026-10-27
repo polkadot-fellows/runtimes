@@ -16,8 +16,9 @@
 //! Runs the dotUSD issuance-correction migration against real Asset Hub Polkadot state.
 //!
 //! Only dotUSD's own storage is fetched (its `Assets::Asset`, `Assets::Account` and
-//! `AssetsHolder::BalancesOnHold` entries), so the pulled state stays tiny. The test prints the
-//! supply before, the recomputed real issuance and the supply after.
+//! `AssetsHolder::BalancesOnHold` entries), so the pulled state stays tiny. The test steps the
+//! multi-block migration to the end with the runtime's MBM weight per step, and prints the supply
+//! before, the recomputed real issuance, the supply after and the number of steps.
 //!
 //! Run against a node (no snapshot file needed):
 //!
@@ -28,14 +29,15 @@
 //! ```
 
 use crate::{
-	migrations::{recalculate_asset_supply::RecalculateSupply, DotUsdAssetId, DotUsdMaxAccounts},
-	Block, Runtime, TrustBackedAssetsInstance,
+	migrations::{recalculate_asset_supply::RecalculateSupply, DotUsdAssetId},
+	Block, MbmServiceWeight, Runtime, TrustBackedAssetsInstance,
 };
 use codec::Encode;
 use frame_support::{
-	storage::storage_prefix, traits::OnRuntimeUpgrade, Blake2_128Concat, StorageHasher,
+	migrations::SteppedMigration, storage::storage_prefix, weights::WeightMeter, Blake2_128Concat,
+	StorageHasher,
 };
-use pallet_assets::BalanceOnHold;
+use pallet_assets::{AssetStatus, BalanceOnHold};
 use remote_externalities::{Builder, Mode, OnlineConfig};
 use std::env::var;
 
@@ -43,8 +45,7 @@ use std::env::var;
 const DOT_USD: u32 = 7873;
 
 /// The migration under test, wired exactly as it ships in the runtime.
-type Migration =
-	RecalculateSupply<Runtime, TrustBackedAssetsInstance, DotUsdAssetId, DotUsdMaxAccounts>;
+type Migration = RecalculateSupply<Runtime, TrustBackedAssetsInstance, DotUsdAssetId>;
 type Asset = pallet_assets::Asset<Runtime, TrustBackedAssetsInstance>;
 type Account = pallet_assets::Account<Runtime, TrustBackedAssetsInstance>;
 
@@ -115,11 +116,31 @@ async fn dotusd_total_issuance_is_corrected() {
 		println!("recomputed real issuance:  {computed}");
 		println!("gap (computed - supply):   {}", computed as i128 - supply_before as i128);
 
-		// Run the single-block migration.
-		Migration::on_runtime_upgrade();
+		let status_before = Asset::get(DOT_USD).expect("dotUSD asset present in state").status;
 
-		let supply_after = Asset::get(DOT_USD).expect("dotUSD asset still present").supply;
+		// Step the migration to the end, one runtime MBM weight budget per step.
+		let mut cursor = None;
+		let mut steps = 0u32;
+		loop {
+			let mut meter = WeightMeter::with_limit(MbmServiceWeight::get());
+			cursor = Migration::step(cursor, &mut meter).expect("step works");
+			steps += 1;
+			if cursor.is_none() {
+				break;
+			}
+			assert_eq!(
+				Asset::get(DOT_USD).unwrap().status,
+				AssetStatus::Frozen,
+				"frozen while counting"
+			);
+			assert!(steps < 1_000, "migration does not finish");
+		}
+		println!("migration steps:           {steps}");
+
+		let after = Asset::get(DOT_USD).expect("dotUSD asset still present");
+		let supply_after = after.supply;
 		println!("supply AFTER migration:    {supply_after}");
+		assert_eq!(after.status, status_before, "status must be put back");
 
 		// The whole point: recorded issuance now equals the real sum of balances.
 		assert_eq!(supply_after, computed, "supply must equal the sum of balances + holds");
