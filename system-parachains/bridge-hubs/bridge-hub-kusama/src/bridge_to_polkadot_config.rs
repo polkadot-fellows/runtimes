@@ -20,7 +20,7 @@ use crate::{
 	weights,
 	xcm_config::{UniversalLocation, XcmRouter},
 	AccountId, Balance, Balances, BlockNumber, BridgePolkadotMessages, PolkadotXcm, Runtime,
-	RuntimeEvent, RuntimeHoldReason, XcmOverBridgeHubPolkadot, XcmpQueue,
+	RuntimeEvent, RuntimeHoldReason, XcmOverBridgeHubPolkadot, XcmpQueue, HOURS,
 };
 pub use bp_bridge_hub_polkadot::bp_polkadot;
 use bp_messages::{
@@ -118,12 +118,12 @@ parameter_types! {
 	///
 	/// Note that we are keeping only required header information, not the whole header itself. Roughly, it
 	/// is the 2 hours of real time (assuming that every header is submitted).
-	pub const RelayChainHeadersToKeep: u32 = 1_200;
+	pub const RelayChainHeadersToKeep: u32 = 2 * bp_polkadot::time_units::HOURS;
 	/// Number of Polkadot Bridge Hub headers to keep in the runtime storage.
 	///
 	/// Note that we are keeping only required header information, not the whole header itself. Roughly, it
 	/// is the 2 hours of real time (assuming that every header is submitted).
-	pub const ParachainHeadsToKeep: u32 = 600;
+	pub const ParachainHeadsToKeep: u32 = 2 * HOURS;
 	/// Maximal size of Polkadot Bridge Hub header **part** that we are storing in the runtime storage.
 	pub const MaxParaHeadDataSize: u32 = bp_polkadot::MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE;
 
@@ -135,7 +135,7 @@ parameter_types! {
 	/// Reserve identifier, used by the `pallet_bridge_relayers` to hold funds of registered relayer.
 	pub const RelayerStakeReserveId: [u8; 8] = *b"brdgrlrs";
 	/// Minimal period of relayer registration. Roughly, it is the 1 hour of real time.
-	pub const RelayerStakeLease: u32 = 300;
+	pub const RelayerStakeLease: u32 = HOURS;
 
 	// see the `FEE_BOOST_PER_MESSAGE` constant to get the meaning of this value
 	pub PriorityBoostPerMessage: u64 = 364_179_930_795_847;
@@ -393,7 +393,7 @@ mod tests {
 		>(AssertCompleteBridgeConstants {
 			this_chain_constants: AssertChainConstants {
 				block_length: bp_bridge_hub_kusama::BlockLength::get(),
-				block_weights: bp_bridge_hub_kusama::BlockWeights::get(),
+				block_weights: bp_bridge_hub_kusama::BlockWeightsForAsyncBacking::get(),
 			},
 		});
 

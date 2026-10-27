@@ -21,7 +21,7 @@ use crate::{
 	weights,
 	xcm_config::{UniversalLocation, XcmRouter},
 	AccountId, Balance, Balances, BridgeKusamaMessages, PolkadotXcm, Runtime, RuntimeEvent,
-	RuntimeHoldReason, XcmOverBridgeHubKusama, XcmpQueue,
+	RuntimeHoldReason, XcmOverBridgeHubKusama, XcmpQueue, HOURS,
 };
 
 pub use bp_bridge_hub_kusama::bp_kusama;
@@ -87,12 +87,12 @@ parameter_types! {
 	///
 	/// Note that we are keeping only required header information, not the whole header itself. Roughly, it
 	/// is the 2 hours of real time (assuming that every header is submitted).
-	pub const RelayChainHeadersToKeep: u32 = 1_200;
+	pub const RelayChainHeadersToKeep: u32 = 2 * bp_kusama::time_units::HOURS;
 	/// Number of Kusama Bridge Hub headers to keep in the runtime storage.
 	///
 	/// Note that we are keeping only required header information, not the whole header itself. Roughly, it
 	/// is the 2 hours of real time (assuming that every header is submitted).
-	pub const ParachainHeadsToKeep: u32 = 600;
+	pub const ParachainHeadsToKeep: u32 = 2 * HOURS;
 	/// Maximal size of Kusama Bridge Hub header **part** that we are storing in the runtime storage.
 	pub const MaxParaHeadDataSize: u32 = bp_kusama::MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE;
 
@@ -356,7 +356,7 @@ mod tests {
 		>(AssertCompleteBridgeConstants {
 			this_chain_constants: AssertChainConstants {
 				block_length: bp_bridge_hub_polkadot::BlockLength::get(),
-				block_weights: bp_bridge_hub_polkadot::BlockWeights::get(),
+				block_weights: bp_bridge_hub_polkadot::BlockWeightsForAsyncBacking::get(),
 			},
 		});
 
