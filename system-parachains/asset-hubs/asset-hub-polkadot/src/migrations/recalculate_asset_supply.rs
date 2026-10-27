@@ -80,6 +80,20 @@ where
 			.saturating_add(Weight::from_parts(0, PROOF_SIZE_PER_ACCOUNT))
 	}
 
+	/// Deposit a pallet-assets event, the same one its freeze and thaw calls emit.
+	fn deposit_event(event: pallet_assets::Event<T, I>) {
+		frame_system::Pallet::<T>::deposit_event(
+			<T as AssetsConfig<I>>::RuntimeEvent::from(event).into(),
+		);
+	}
+
+	/// Put back the status from before the freeze. Emits `AssetThawed` if that unfreezes it.
+	fn restore_status(asset_id: T::AssetId, prior_status: &AssetStatus) {
+		if *prior_status == AssetStatus::Live {
+			Self::deposit_event(pallet_assets::Event::AssetThawed { asset_id });
+		}
+	}
+
 	/// Weight to read and write the asset details once.
 	pub(crate) fn details_weight() -> Weight {
 		T::DbWeight::get().reads_writes(1, 1)
@@ -132,6 +146,11 @@ where
 					&asset_id,
 					AssetDetails { status: AssetStatus::Frozen, ..details },
 				);
+				if prior_status != AssetStatus::Frozen {
+					Self::deposit_event(pallet_assets::Event::AssetFrozen {
+						asset_id: asset_id.clone(),
+					});
+				}
 				log::info!(target: LOG_TARGET, "asset {asset_id:?} frozen; counting {accounts} accounts");
 				Cursor { prior_status, accounts, sum: Zero::zero(), last: None }
 			},
@@ -182,6 +201,7 @@ where
 				target: LOG_TARGET,
 				"asset {asset_id:?} account count changed while frozen; supply left alone",
 			);
+			Self::restore_status(asset_id.clone(), &cursor.prior_status);
 			Asset::<T, I>::insert(
 				&asset_id,
 				AssetDetails { status: cursor.prior_status, ..details },
@@ -195,6 +215,7 @@ where
 			cursor.sum,
 			cursor.prior_status,
 		);
+		Self::restore_status(asset_id.clone(), &cursor.prior_status);
 		Asset::<T, I>::insert(
 			&asset_id,
 			AssetDetails { supply: cursor.sum, status: cursor.prior_status, ..details },
@@ -243,7 +264,8 @@ where
 mod tests {
 	use super::*;
 	use crate::{Runtime, RuntimeGenesisConfig, RuntimeOrigin, TrustBackedAssetsInstance};
-	use frame_support::{assert_noop, parameter_types};
+	use codec::Encode;
+	use frame_support::{assert_noop, parameter_types, traits::Get};
 	use sp_runtime::{BuildStorage, MultiAddress};
 
 	type AssetsPallet = pallet_assets::Pallet<Runtime, TrustBackedAssetsInstance>;
@@ -580,6 +602,271 @@ mod tests {
 			assert!(step(cursor, Weight::MAX).is_none());
 			assert_eq!(supply(DOT_USD), 1);
 			assert_eq!(status(DOT_USD), AssetStatus::Live);
+		});
+	}
+
+	/// Small deterministic random generator, so failures are reproducible.
+	struct Lcg(u64);
+	impl Lcg {
+		fn next(&mut self) -> u64 {
+			self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+			self.0 >> 33
+		}
+	}
+
+	#[test]
+	fn any_step_size_gives_the_same_sum() {
+		// Every account count against every step size, including steps that end exactly on
+		// the last account.
+		for accounts in 1u8..=9 {
+			for per_step in 1u64..=10 {
+				new_test_ext().execute_with(|| {
+					let owner = acc(1);
+					let balances: Vec<(AccountId, u128)> =
+						(0..accounts).map(|n| (acc(100 + n), 1_000 + n as u128 * 7)).collect();
+					setup_asset(DOT_USD, &owner, &balances);
+					let real = real_issuance(DOT_USD);
+					corrupt_supply(DOT_USD, 3);
+
+					run_with_limit(limit_for(per_step));
+					assert_eq!(supply(DOT_USD), real, "accounts {accounts}, per step {per_step}");
+					assert_eq!(status(DOT_USD), AssetStatus::Live);
+				});
+			}
+		}
+	}
+
+	#[test]
+	fn random_balances_and_weights() {
+		let mut rng = Lcg(0xD07_05D);
+		for round in 0..40 {
+			new_test_ext().execute_with(|| {
+				let owner = acc(1);
+				let n = 1 + (rng.next() % 60) as u8;
+				let balances: Vec<(AccountId, u128)> = (0..n)
+					.map(|i| (acc(20 + i), 1 + (rng.next() as u128 % 1_000_000_000_000)))
+					.collect();
+				setup_asset(DOT_USD, &owner, &balances);
+				let real = real_issuance(DOT_USD);
+				let wrong = rng.next() as u128;
+				corrupt_supply(DOT_USD, wrong);
+				let prior = if rng.next().is_multiple_of(4) {
+					AssetStatus::Frozen
+				} else {
+					AssetStatus::Live
+				};
+				set_status(DOT_USD, prior.clone());
+
+				let per_step = 1 + rng.next() % 15;
+				run_with_limit(limit_for(per_step));
+				assert_eq!(supply(DOT_USD), real, "round {round}");
+				assert_eq!(status(DOT_USD), prior, "round {round}");
+				// Balances are never touched.
+				assert_eq!(real_issuance(DOT_USD), real, "round {round}");
+			});
+		}
+	}
+
+	#[test]
+	fn other_assets_are_untouched() {
+		new_test_ext().execute_with(|| {
+			let owner = acc(1);
+			setup_asset(DOT_USD, &owner, &[(acc(10), 1_000u128)]);
+			setup_asset(1984, &owner, &[(acc(10), 50u128), (acc(11), 70u128)]);
+			corrupt_supply(DOT_USD, 1);
+			corrupt_supply(1984, 9);
+			let usdt_before = AssetStore::get(1984).unwrap();
+
+			run();
+			assert_eq!(supply(DOT_USD), 1_000);
+			let usdt_after = AssetStore::get(1984).unwrap();
+			assert_eq!(usdt_after.supply, 9);
+			assert_eq!(usdt_after.status, usdt_before.status);
+		});
+	}
+
+	#[test]
+	fn many_accounts_with_runtime_mbm_weight() {
+		new_test_ext().execute_with(|| {
+			let owner = acc(1);
+			setup_asset(DOT_USD, &owner, &[]);
+			// 3000 accounts, far above today's 62.
+			for i in 0u32..3_000 {
+				let who: AccountId =
+					sp_core::crypto::AccountId32::new(sp_io::hashing::blake2_256(&i.encode()));
+				AssetsPallet::mint(
+					RuntimeOrigin::signed(owner.clone()),
+					DOT_USD.into(),
+					MultiAddress::Id(who),
+					(i as u128) + 1,
+				)
+				.expect("mint works");
+			}
+			let real = real_issuance(DOT_USD);
+			assert_eq!(real, 3_000 * 3_001 / 2);
+			corrupt_supply(DOT_USD, 1);
+
+			let steps = run_with_limit(crate::MbmServiceWeight::get());
+			assert_eq!(supply(DOT_USD), real);
+			assert_eq!(status(DOT_USD), AssetStatus::Live);
+			println!("3000 accounts took {steps} steps at the runtime MBM weight");
+		});
+	}
+
+	#[test]
+	fn cursor_and_id_fit_the_pallet_limits() {
+		use codec::MaxEncodedLen;
+		let cursor = <TestCursor as MaxEncodedLen>::max_encoded_len();
+		let id = <<Migration as SteppedMigration>::Identifier as MaxEncodedLen>::max_encoded_len();
+		assert!(cursor as u32 <= <Runtime as pallet_migrations::Config>::CursorMaxLen::get());
+		assert!(id as u32 <= <Runtime as pallet_migrations::Config>::IdentifierMaxLen::get());
+	}
+
+	#[test]
+	fn runs_through_the_migrations_pallet() {
+		use frame_support::{
+			migrations::MultiStepMigrator,
+			traits::{OnInitialize, OnRuntimeUpgrade},
+		};
+		new_test_ext().execute_with(|| {
+			frame_system::Pallet::<Runtime>::set_block_number(1);
+			let owner = acc(1);
+			let balances: Vec<(AccountId, u128)> =
+				(0u8..50).map(|n| (acc(100 + n), 10_000 + n as u128)).collect();
+			setup_asset(DOT_USD, &owner, &balances);
+			let real = real_issuance(DOT_USD);
+			corrupt_supply(DOT_USD, 1);
+
+			// Start all MBMs of the runtime, as the real upgrade does.
+			crate::MultiBlockMigrations::on_runtime_upgrade();
+			let mut blocks = 0;
+			while crate::MultiBlockMigrations::ongoing() {
+				blocks += 1;
+				assert!(blocks < 1_000, "MBMs do not finish");
+				let n = frame_system::Pallet::<Runtime>::block_number() + 1;
+				frame_system::Pallet::<Runtime>::set_block_number(n);
+				crate::MultiBlockMigrations::on_initialize(n);
+				crate::MultiBlockMigrations::step();
+			}
+
+			// Not stuck, and ours is recorded as done.
+			assert!(pallet_migrations::Cursor::<Runtime>::get().is_none());
+			assert!(pallet_migrations::Historic::<Runtime>::contains_key(
+				frame_support::BoundedVec::truncate_from(Migration::id().encode())
+			));
+			assert_eq!(supply(DOT_USD), real);
+			assert_eq!(status(DOT_USD), AssetStatus::Live);
+			// No failure was reported.
+			assert!(!frame_system::Pallet::<Runtime>::events().iter().any(|r| matches!(
+				r.event,
+				crate::RuntimeEvent::MultiBlockMigrations(
+					pallet_migrations::Event::MigrationFailed { .. } |
+						pallet_migrations::Event::UpgradeFailed
+				)
+			)));
+		});
+	}
+
+	#[cfg(feature = "try-runtime")]
+	#[test]
+	fn try_runtime_hooks_pass() {
+		new_test_ext().execute_with(|| {
+			let owner = acc(1);
+			setup_asset(DOT_USD, &owner, &[(acc(10), 1_000u128), (acc(11), 2u128)]);
+			corrupt_supply(DOT_USD, 1);
+
+			let state = Migration::pre_upgrade().expect("pre_upgrade works");
+			run_with_limit(limit_for(1));
+			Migration::post_upgrade(state).expect("post_upgrade passes");
+		});
+	}
+
+	#[cfg(feature = "try-runtime")]
+	#[test]
+	fn try_runtime_catches_a_wrong_supply() {
+		new_test_ext().execute_with(|| {
+			let owner = acc(1);
+			setup_asset(DOT_USD, &owner, &[(acc(10), 1_000u128)]);
+			corrupt_supply(DOT_USD, 1);
+			let state = Migration::pre_upgrade().expect("pre_upgrade works");
+			// Migration not run: the check must fail.
+			assert!(Migration::post_upgrade(state).is_err());
+		});
+	}
+
+	/// The pallet-assets events emitted for dotUSD, in order.
+	fn freeze_events() -> Vec<&'static str> {
+		frame_system::Pallet::<Runtime>::events()
+			.into_iter()
+			.filter_map(|r| match r.event {
+				crate::RuntimeEvent::Assets(pallet_assets::Event::AssetFrozen { asset_id })
+					if asset_id == DOT_USD =>
+					Some("frozen"),
+				crate::RuntimeEvent::Assets(pallet_assets::Event::AssetThawed { asset_id })
+					if asset_id == DOT_USD =>
+					Some("thawed"),
+				_ => None,
+			})
+			.collect()
+	}
+
+	#[test]
+	fn emits_frozen_and_thawed_events() {
+		new_test_ext().execute_with(|| {
+			frame_system::Pallet::<Runtime>::set_block_number(1);
+			let owner = acc(1);
+			setup_asset(DOT_USD, &owner, &[(acc(10), 5_000u128), (acc(11), 10u128)]);
+
+			let cursor = partial_step(1);
+			assert_eq!(freeze_events(), vec!["frozen"]);
+			assert!(step(cursor, Weight::MAX).is_none());
+			assert_eq!(freeze_events(), vec!["frozen", "thawed"]);
+		});
+	}
+
+	#[test]
+	fn no_events_if_already_frozen() {
+		new_test_ext().execute_with(|| {
+			frame_system::Pallet::<Runtime>::set_block_number(1);
+			let owner = acc(1);
+			setup_asset(DOT_USD, &owner, &[(acc(10), 5_000u128)]);
+			set_status(DOT_USD, AssetStatus::Frozen);
+
+			run();
+			assert!(freeze_events().is_empty());
+			assert_eq!(status(DOT_USD), AssetStatus::Frozen);
+		});
+	}
+
+	#[test]
+	fn thawed_event_when_bailing_out() {
+		new_test_ext().execute_with(|| {
+			frame_system::Pallet::<Runtime>::set_block_number(1);
+			let owner = acc(1);
+			setup_asset(DOT_USD, &owner, &[(acc(10), 5_000u128)]);
+
+			let cursor = partial_step(1);
+			AssetStore::mutate(DOT_USD, |maybe| {
+				maybe.as_mut().unwrap().accounts += 1;
+			});
+			assert!(step(cursor, Weight::MAX).is_none());
+			assert_eq!(freeze_events(), vec!["frozen", "thawed"]);
+			assert_eq!(status(DOT_USD), AssetStatus::Live);
+		});
+	}
+
+	#[test]
+	fn no_thawed_event_if_status_changed_while_counting() {
+		new_test_ext().execute_with(|| {
+			frame_system::Pallet::<Runtime>::set_block_number(1);
+			let owner = acc(1);
+			setup_asset(DOT_USD, &owner, &[(acc(10), 5_000u128)]);
+
+			let cursor = partial_step(1);
+			set_status(DOT_USD, AssetStatus::Destroying);
+			assert!(step(cursor, Weight::MAX).is_none());
+			// We did not touch the status, so we must not claim we thawed it.
+			assert_eq!(freeze_events(), vec!["frozen"]);
 		});
 	}
 }
