@@ -393,7 +393,7 @@ mod tests {
 		>(AssertCompleteBridgeConstants {
 			this_chain_constants: AssertChainConstants {
 				block_length: bp_bridge_hub_kusama::BlockLength::get(),
-				block_weights: bp_bridge_hub_kusama::BlockWeights::get(),
+				block_weights: bp_bridge_hub_kusama::BlockWeightsForAsyncBacking::get(),
 			},
 		});
 

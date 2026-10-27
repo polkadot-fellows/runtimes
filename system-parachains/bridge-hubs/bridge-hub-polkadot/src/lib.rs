@@ -90,12 +90,21 @@ use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 use parachains_common::{AccountId, Balance, BlockNumber, Hash, Header, Nonce, Signature};
-pub use system_parachains_constants::SLOT_DURATION;
-
 use system_parachains_constants::{
-	polkadot::{consensus::*, currency::*, fee::WeightToFee},
-	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
+	async_backing::{HOURS, MAXIMUM_BLOCK_WEIGHT},
+	polkadot::{
+		consensus::{
+			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
+			RELAY_CHAIN_SLOT_DURATION_MILLIS,
+		},
+		currency::*,
+		fee::WeightToFee,
+	},
+	AVERAGE_ON_INITIALIZE_RATIO, NORMAL_DISPATCH_RATIO,
 };
+
+/// Bridge Hub Polkadot uses a 24s Aura slot duration. Blocks are still authored every 6s.
+pub const SLOT_DURATION: u64 = 24_000;
 
 // XCM Imports
 use xcm::prelude::*;
