@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Bridge Hub Polkadot & Kusama: enable async backing with 6s blocks and 24s Aura slots. Bridge fee constants are raised to match the new block weights ([#1336](https://github.com/polkadot-fellows/runtimes/pull/1336)).
+
 ## [2.5.1] 24.10.2026
 
 ### Removed
