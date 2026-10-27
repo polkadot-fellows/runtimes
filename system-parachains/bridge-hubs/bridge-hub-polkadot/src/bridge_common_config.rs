@@ -20,7 +20,7 @@ use crate::{
 	bridge_to_ethereum_config::InboundQueueV2Location,
 	weights,
 	xcm_config::{XcmConfig, XcmRouter},
-	AccountId, Balance, Balances, BlockNumber, Runtime, RuntimeCall, RuntimeEvent,
+	AccountId, Balance, Balances, BlockNumber, Runtime, RuntimeCall, RuntimeEvent, HOURS,
 };
 use alloc::boxed::Box;
 use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
@@ -38,7 +38,7 @@ parameter_types! {
 	/// Reserve identifier, used by the `pallet_bridge_relayers` to hold funds of registered relayer.
 	pub const RelayerStakeReserveId: [u8; 8] = *b"brdgrlrs";
 	/// Minimal period of relayer registration. Roughly, it is the 1 hour of real time.
-	pub const RelayerStakeLease: u32 = 300;
+	pub const RelayerStakeLease: u32 = HOURS;
 	/// Registered relayer stake.
 	///
 	/// Any relayer may reserve this amount on his account and get a priority boost for his
