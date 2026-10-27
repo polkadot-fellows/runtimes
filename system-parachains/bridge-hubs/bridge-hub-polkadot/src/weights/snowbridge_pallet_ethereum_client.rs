@@ -72,7 +72,8 @@ impl<T: frame_system::Config> snowbridge_pallet_ethereum_client::WeightInfo for 
 		//  Measured:  `4`
 		//  Estimated: `3501`
 		// Minimum execution time: 480_259_997_000 picoseconds.
-		Weight::from_parts(480_697_088_000, 0)
+		// Manual override: retain the 2.5.0 base ref-time per PR #1334 review.
+		Weight::from_parts(111_409_252_000, 0)
 			.saturating_add(Weight::from_parts(0, 3501))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(8))
@@ -124,8 +125,8 @@ impl<T: frame_system::Config> snowbridge_pallet_ethereum_client::WeightInfo for 
 		//  Measured:  `92700`
 		//  Estimated: `93857`
 		// Minimum execution time: 485_616_854_000 picoseconds.
-		// Manual override: 100 ms base ref-time, below the benchmarked execution time above.
-		Weight::from_parts(100_000_000_000, 0)
+		// Manual override: retain the 2.5.0 base ref-time per PR #1334 review.
+		Weight::from_parts(130_686_869_000, 0)
 			.saturating_add(Weight::from_parts(0, 93857))
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(2))
