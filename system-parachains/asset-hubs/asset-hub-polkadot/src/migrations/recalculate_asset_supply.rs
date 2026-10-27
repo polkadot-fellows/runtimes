@@ -722,6 +722,8 @@ mod tests {
 		assert!(id as u32 <= <Runtime as pallet_migrations::Config>::IdentifierMaxLen::get());
 	}
 
+	// With `runtime-benchmarks` the runtime uses mocked migrations, so ours is not in the list.
+	#[cfg(not(feature = "runtime-benchmarks"))]
 	#[test]
 	fn runs_through_the_migrations_pallet() {
 		use frame_support::{
