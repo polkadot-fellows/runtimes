@@ -124,7 +124,7 @@ use frame_support::{
 	dispatch::DispatchClass,
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
-	migrations::ForceUnstuckOnFailedMigration,
+	migrations::{ForceUnstuckOnFailedMigration, MultiStepMigrator},
 	parameter_types,
 	traits::{
 		fungible::{self, HoldConsideration},
@@ -132,7 +132,7 @@ use frame_support::{
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
 		AsEnsureOriginWithArg, ConstBool, ConstU32, ConstU64, ConstU8, ConstantStoragePrice,
 		Contains, EitherOf, EitherOfDiverse, Equals, InstanceFilter, LinearStoragePrice,
-		NeverEnsureOrigin, PrivilegeCmp, TransformOrigin, WithdrawReasons,
+		NeverEnsureOrigin, PrivilegeCmp, QueuePausedQuery, TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -904,6 +904,15 @@ type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
 
 impl parachain_info::Config for Runtime {}
 
+/// Pause every message origin while multi-block migrations are ongoing.
+pub struct PauseDuringMbm;
+
+impl QueuePausedQuery<AggregateMessageOrigin> for PauseDuringMbm {
+	fn is_paused(_: &AggregateMessageOrigin) -> bool {
+		MultiBlockMigrations::ongoing()
+	}
+}
+
 impl pallet_message_queue::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = weights::pallet_message_queue::WeightInfo<Runtime>;
@@ -920,7 +929,7 @@ impl pallet_message_queue::Config for Runtime {
 	type Size = u32;
 	// The XCMP queue pallet is only ever able to handle the `Sibling(ParaId)` origin:
 	type QueueChangeHandler = NarrowOriginToSibling<XcmpQueue>;
-	type QueuePausedQuery = NarrowOriginToSibling<XcmpQueue>;
+	type QueuePausedQuery = (PauseDuringMbm, NarrowOriginToSibling<XcmpQueue>);
 	type HeapSize = sp_core::ConstU32<{ 64 * 1024 }>;
 	type MaxStale = sp_core::ConstU32<8>;
 	type ServiceWeight = dynamic_params::message_queue::MaxOnInitWeight;
@@ -3108,6 +3117,66 @@ mod tests {
 	use sp_weights::WeightToFee as WeightToFeeT;
 
 	type WeightToFee = DotWeightToFee<Runtime>;
+
+	#[test]
+	fn message_queues_pause_during_multiblock_migrations() {
+		use frame_support::traits::{EnqueueMessage, QueueFootprintQuery, ServiceQueues};
+
+		sp_io::TestExternalities::default().execute_with(|| {
+			System::set_block_number(1);
+			type PauseQuery = <Runtime as pallet_message_queue::Config>::QueuePausedQuery;
+			let origins = [
+				AggregateMessageOrigin::Here,
+				AggregateMessageOrigin::Parent,
+				AggregateMessageOrigin::Sibling(2000.into()),
+			];
+			let message = xcm::VersionedXcm::<RuntimeCall>::from(Xcm(vec![
+				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+				ClearOrigin,
+			]))
+			.encode();
+			for origin in &origins {
+				assert!(!PauseQuery::is_paused(origin));
+				MessageQueue::enqueue_message(
+					message.as_slice().try_into().unwrap(),
+					origin.clone(),
+				);
+			}
+			let footprints =
+				origins.each_ref().map(|origin| MessageQueue::footprint(origin.clone()));
+
+			pallet_migrations::Cursor::<Runtime>::put(pallet_migrations::MigrationCursor::Stuck);
+			for origin in &origins {
+				assert!(PauseQuery::is_paused(origin));
+			}
+			MessageQueue::service_queues(Weight::MAX);
+			assert_eq!(
+				origins.each_ref().map(|origin| MessageQueue::footprint(origin.clone())),
+				footprints,
+			);
+
+			pallet_migrations::Cursor::<Runtime>::kill();
+			MessageQueue::service_queues(Weight::MAX);
+			for origin in &origins {
+				assert!(!PauseQuery::is_paused(origin));
+				assert_eq!(MessageQueue::footprint(origin.clone()).ready_pages, 0);
+			}
+			assert!(System::events().iter().any(|record| matches!(
+				record.event,
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed {
+					origin: AggregateMessageOrigin::Parent,
+					success: true,
+					..
+				})
+			)));
+
+			XcmpQueue::suspend_xcm_execution(RuntimeOrigin::root()).unwrap();
+			assert!(PauseQuery::is_paused(&origins[2]));
+			assert!(!PauseQuery::is_paused(&origins[1]));
+			XcmpQueue::resume_xcm_execution(RuntimeOrigin::root()).unwrap();
+			assert!(!PauseQuery::is_paused(&origins[2]));
+		});
+	}
 
 	/// Pin transaction extension version 0 and assert that version 1 appears in the metadata.
 	#[test]
