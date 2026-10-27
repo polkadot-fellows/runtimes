@@ -107,7 +107,7 @@ impl RcMigrationCheck for AccountsChecker {
 				let account = RcAccount {
 					total: info.data.total(),
 					reserved: info.data.reserved,
-					deferred: AccountsMigrator::<Rc>::deferred(&who, &info, manager.as_slice()),
+					deferred: AccountsMigrator::<Rc>::deferred(&who, &info, manager.as_ref()),
 					pure_like: AccountsMigrator::<Rc>::is_pure_proxy(&who, &info),
 				};
 				if !account.deferred {
