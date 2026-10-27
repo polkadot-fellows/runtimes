@@ -29,16 +29,12 @@
 //! ```
 
 use crate::{
-	migrations::recalculate_asset_supply::RecalculateSupply, Block, Runtime,
-	TrustBackedAssetsInstance,
+	migrations::{recalculate_asset_supply::RecalculateSupply, DotUsdAssetId, DotUsdMaxAccounts},
+	Block, Runtime, TrustBackedAssetsInstance,
 };
 use codec::Encode;
 use frame_support::{
-	migrations::SteppedMigration,
-	storage::storage_prefix,
-	traits::Get,
-	weights::{Weight, WeightMeter},
-	Blake2_128Concat, StorageHasher,
+	storage::storage_prefix, traits::OnRuntimeUpgrade, Blake2_128Concat, StorageHasher,
 };
 use pallet_assets::BalanceOnHold;
 use remote_externalities::{Builder, Mode, OnlineConfig};
@@ -47,15 +43,9 @@ use std::env::var;
 /// dotUSD on Asset Hub Polkadot.
 const DOT_USD: u32 = 7873;
 
-/// The assets this run repairs: dotUSD only, matching the runtime wiring.
-struct Target;
-impl Get<Vec<u32>> for Target {
-	fn get() -> Vec<u32> {
-		vec![DOT_USD]
-	}
-}
-
-type Migration = RecalculateSupply<Runtime, TrustBackedAssetsInstance, Target>;
+/// The migration under test, wired exactly as it ships in the runtime.
+type Migration =
+	RecalculateSupply<Runtime, TrustBackedAssetsInstance, DotUsdAssetId, DotUsdMaxAccounts>;
 type Asset = pallet_assets::Asset<Runtime, TrustBackedAssetsInstance>;
 type Account = pallet_assets::Account<Runtime, TrustBackedAssetsInstance>;
 
@@ -92,9 +82,16 @@ async fn dotusd_total_issuance_is_corrected() {
 		return;
 	};
 
+	// Optionally pin the block (`AT=0x..`), so an external check can read the same state.
+	let at = var("AT").ok().map(|h| {
+		use core::str::FromStr;
+		sp_core::H256::from_str(h.trim()).expect("AT must be a 0x-prefixed block hash")
+	});
+
 	// Fetch dotUSD's storage only: its asset details, its accounts, and its holds.
 	let mut ext = Builder::<Block>::default()
 		.mode(Mode::Online(OnlineConfig {
+			at,
 			transport_uris: vec![uri],
 			child_trie: false,
 			// The single asset detail is fetched by its exact key: as a prefix it would be the
@@ -119,10 +116,8 @@ async fn dotusd_total_issuance_is_corrected() {
 		println!("recomputed real issuance:  {computed}");
 		println!("gap (computed - supply):   {}", computed as i128 - supply_before as i128);
 
-		// Run the migration to completion in a single, generously metered step.
-		let mut meter = WeightMeter::with_limit(Weight::MAX);
-		let cursor = Migration::step(None, &mut meter).expect("step must not fail");
-		assert!(cursor.is_none(), "a single small asset should finish in one step");
+		// Run the single-block migration.
+		Migration::on_runtime_upgrade();
 
 		let supply_after = Asset::get(DOT_USD).expect("dotUSD asset still present").supply;
 		println!("supply AFTER migration:    {supply_after}");
