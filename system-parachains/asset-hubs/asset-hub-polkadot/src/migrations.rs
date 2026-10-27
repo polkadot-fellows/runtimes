@@ -291,7 +291,7 @@ mod multiblock_migrations {
 		local_and_foreign_assets::ForeignAssetReserveData,
 		migrations::foreign_assets_reserves::ForeignAssetsReservesProvider,
 	};
-	use frame_support::traits::{Contains, Get};
+	use frame_support::traits::Contains;
 	use xcm::v5::{Junction, Location};
 	use xcm_builder::StartsWith;
 

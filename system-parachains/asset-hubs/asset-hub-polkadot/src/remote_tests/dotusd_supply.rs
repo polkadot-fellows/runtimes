@@ -17,8 +17,7 @@
 //!
 //! Only dotUSD's own storage is fetched (its `Assets::Asset`, `Assets::Account` and
 //! `AssetsHolder::BalancesOnHold` entries), so the pulled state stays tiny. The test prints the
-//! supply before, the recomputed real issuance and the supply after, so the numbers can be checked
-//! by eye, and then asserts that the recorded supply ends equal to the sum of balances.
+//! supply before, the recomputed real issuance and the supply after.
 //!
 //! Run against a node (no snapshot file needed):
 //!
