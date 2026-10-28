@@ -771,32 +771,124 @@ fn session_key_deposit_works() {
 	});
 }
 
-// The benchmarking build replaces `OperationAllowedOneTimeExcess` with its own pair.
+/// The version-2 pipeline, with `ScoreAsParticipant` turning the signer into a participant.
+fn score_participant_tx_extension(nonce: u32) -> crate::TxExtensionV2 {
+	cumulus_pallet_weight_reclaim::StorageWeightReclaim::new((
+		(
+			(),
+			pallet_verify_signature::VerifySignature::<Runtime>::new_disabled(),
+			indiv_pallet_people::extension::AsPerson::<Runtime>::new(None),
+			indiv_pallet_score::ScoreAsParticipant::<Runtime>::new(Some(
+				indiv_pallet_score::ScoreAsParticipantData { nonce },
+			)),
+			indiv_pallet_game::GameAsInvited::<Runtime>::new(None),
+			indiv_pallet_people_lite::extension::PeopleLiteAuth::<Runtime>::new(None),
+			indiv_pallet_members::extension::AsMember::<Runtime>::new(None),
+			indiv_pallet_coinage::extension::AsCoinage::<Runtime>::new(None),
+			indiv_pallet_resources::extension::AsResources::<Runtime>::new(None),
+			frame_system::AuthorizeCall::<Runtime>::new(),
+		),
+		indiv_pallet_origin_restriction::RestrictOrigin::<Runtime>::new(true),
+		frame_system::CheckNonZeroSender::<Runtime>::new(),
+		frame_system::CheckSpecVersion::<Runtime>::new(),
+		frame_system::CheckTxVersion::<Runtime>::new(),
+		frame_system::CheckGenesis::<Runtime>::new(),
+		frame_system::CheckEra::<Runtime>::from(sp_runtime::generic::Era::Immortal),
+		frame_system::CheckNonce::<Runtime>::from(nonce),
+		frame_system::CheckWeight::<Runtime>::new(),
+		pallet_asset_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
+		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+	))
+}
+
 #[cfg(not(feature = "runtime-benchmarks"))]
 #[test]
 fn score_participant_origin_is_restricted() {
-	use crate::{
-		individuality::{OperationAllowedOneTimeExcess, RestrictedEntity},
-		OriginCaller,
+	use crate::{individuality::RestrictedEntity, Balances};
+	use cumulus_pallet_parachain_system::RelaychainDataProvider;
+	use frame_support::{
+		dispatch::GetDispatchInfo,
+		traits::{fungible::Mutate, Get},
 	};
-	use frame_support::traits::ContainsPair;
-	use indiv_pallet_origin_restriction::RestrictedEntity as _;
+	use sp_runtime::{
+		traits::{BlockNumberProvider, DispatchTransaction},
+		transaction_validity::{InvalidTransaction, TransactionValidityError},
+	};
+	use system_parachains_constants::polkadot::currency::UNITS;
 
-	sp_io::TestExternalities::default().execute_with(|| {
-		// GIVEN the origin `ScoreAsParticipant` dispatches with, which pays no fee.
-		let account = AccountId::from(ALICE);
-		let origin =
-			OriginCaller::Score(indiv_pallet_score::Origin::AccountParticipant(account.clone()));
+	// The extension version byte a general (v5) transaction selects for `TxExtensionV2`.
+	const TX_EXT_V2_VERSION: u8 = 2;
+	const RATE_LIMITED: TransactionValidityError =
+		TransactionValidityError::Invalid(InvalidTransaction::Payment);
 
-		// THEN it is rate limited with no allowance of its own.
-		let entity = RestrictedEntity::restricted_entity(&origin).expect("origin is restricted");
-		assert_eq!(entity, RestrictedEntity::AccountParticipant(account));
-		assert_eq!(entity.allowance().max, 0);
+	let dispatch = |nonce: u32, call: RuntimeCall| {
+		let info = call.get_dispatch_info();
+		score_participant_tx_extension(nonce).dispatch_transaction(
+			RuntimeOrigin::signed(AccountId::from(ALICE)),
+			call,
+			&info,
+			0,
+			TX_EXT_V2_VERSION,
+		)
+	};
+	let cash_out = || RuntimeCall::Score(indiv_pallet_score::Call::cash_out {});
+	let remark = || RuntimeCall::System(frame_system::Call::remark { remark: vec![] });
 
-		// AND only the calls taking this origin may go into debt.
-		let remark = RuntimeCall::System(frame_system::Call::remark { remark: vec![0; 1024] });
-		assert!(!OperationAllowedOneTimeExcess::contains(&entity, &remark));
-		let cash_out = RuntimeCall::Score(indiv_pallet_score::Call::cash_out {});
-		assert!(OperationAllowedOneTimeExcess::contains(&entity, &cash_out));
-	});
+	parachains_runtimes_test_utils::ExtBuilder::<Runtime>::default()
+		.build()
+		.execute_with(|| {
+			// GIVEN an active participant with a balance that could pay fees.
+			let alice = AccountId::from(ALICE);
+			assert_ok!(<Balances as Mutate<_>>::mint_into(&alice, UNITS));
+			indiv_pallet_score::Participants::<Runtime>::insert(
+				indiv_pallet_score::AccountOrPerson::Account(alice.clone()),
+				indiv_pallet_score::Participant {
+					score: 2,
+					streak: indiv_pallet_score::Streak::Attended(1),
+					attendance_history: Default::default(),
+					credit: 0,
+					cashed_out: false,
+					reached_personhood: false,
+					has_ever_reached_personhood: false,
+					recognition: indiv_pallet_score::Recognition::NotRecognized,
+					last_attended_game: None,
+				},
+			);
+			RelaychainDataProvider::<Runtime>::set_block_number(1);
+			let entity = RestrictedEntity::AccountParticipant(alice.clone());
+
+			// WHEN it sends a call that does not take the participant origin.
+			// THEN it is rejected without going into debt.
+			assert_eq!(dispatch(0, remark()), Err(RATE_LIMITED));
+			assert!(!indiv_pallet_origin_restriction::Usages::<Runtime>::contains_key(&entity));
+
+			// WHEN it sends a call that takes the participant origin and succeeds.
+			// THEN it dispatches without a fee, and the call being `Pays::No` clears its debt.
+			assert!(matches!(dispatch(0, cash_out()), Ok(Ok(_))));
+			assert_eq!(Balances::free_balance(&alice), UNITS);
+			assert!(!indiv_pallet_origin_restriction::Usages::<Runtime>::contains_key(&entity));
+
+			// WHEN it sends one that fails, here a second cash out within the cooldown.
+			// THEN it dispatches without a fee but goes into debt instead.
+			assert!(matches!(dispatch(1, cash_out()), Ok(Err(_))));
+			assert_eq!(Balances::free_balance(&alice), UNITS);
+			let debt = indiv_pallet_origin_restriction::Usages::<Runtime>::get(&entity)
+				.expect("participant went into debt")
+				.used;
+			assert!(debt > 0);
+
+			// AND any further transaction is rejected until the debt is recovered.
+			assert_eq!(dispatch(2, cash_out()), Err(RATE_LIMITED));
+			let recovery = crate::parameters::AccountParticipantAllowanceRecovery::get();
+			let blocks_to_recover = debt.div_ceil(recovery) as u32;
+			RelaychainDataProvider::<Runtime>::set_block_number(blocks_to_recover);
+			assert_eq!(dispatch(2, cash_out()), Err(RATE_LIMITED));
+
+			// WHEN the debt is recovered.
+			RelaychainDataProvider::<Runtime>::set_block_number(1 + blocks_to_recover);
+
+			// THEN only a call taking the participant origin passes the pipeline again.
+			assert_eq!(dispatch(2, remark()), Err(RATE_LIMITED));
+			assert!(dispatch(2, cash_out()).is_ok());
+		});
 }
