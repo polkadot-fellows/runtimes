@@ -22,8 +22,28 @@
 
 pub mod lockdown;
 
-use crate::{xcm_config::XcmRouter, AccountId, Balances, Runtime, RuntimeEvent, RuntimeHoldReason};
+use crate::{
+	xcm_config::XcmRouter, AccountId, Balances, ProxyType, Runtime, RuntimeEvent,
+	RuntimeHoldReason, RELAY_CHAIN_SLOT_DURATION_MILLIS, SLOT_DURATION,
+};
+use frame_support::traits::ConstU32;
 use frame_system::EnsureRoot;
+use migrator_types::PortableProxyType;
+
+/// How many relay chain blocks this chain's block takes.
+const RC_BLOCK_TIME_RATIO: u32 = (SLOT_DURATION / RELAY_CHAIN_SLOT_DURATION_MILLIS as u64) as u32;
+
+/// What each migrated proxy permission is on this chain.
+impl From<PortableProxyType> for ProxyType {
+	fn from(t: PortableProxyType) -> Self {
+		match t {
+			PortableProxyType::Any => ProxyType::Any,
+			PortableProxyType::NonTransfer => ProxyType::NonTransfer,
+			PortableProxyType::CancelProxy => ProxyType::CancelProxy,
+			PortableProxyType::ParaRegistration => ProxyType::ParaRegistration,
+		}
+	}
+}
 
 impl pallet_ct_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -31,6 +51,7 @@ impl pallet_ct_migrator::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
+	type RcBlockTimeRatio = ConstU32<RC_BLOCK_TIME_RATIO>;
 	type PreMigrationCalls = lockdown::CallsEnabledBeforeMigration;
 	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
 	type PostMigrationCalls = frame_support::traits::Everything;
