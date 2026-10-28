@@ -15,8 +15,8 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	mock::*, xcm_config::NothingOnceStarted, CtMigratorCall, CtRuntimeCall, Error, Event, Manager,
-	Paused, RcMigrationStage,
+	mock::*, xcm_config::NothingOnceDataMigrationStarts, CtMigratorCall, CtRuntimeCall, Error,
+	Event, Manager, Paused, RcMigrationStage,
 };
 use codec::Encode;
 use frame_support::{
@@ -897,7 +897,7 @@ fn teleport_trust_ends_when_the_data_migration_starts() {
 
 			// THEN the inner filter's answer stands until data moves, and nothing is trusted after.
 			assert_eq!(
-				NothingOnceStarted::<Test, Everything>::contains(&asset, &origin),
+				NothingOnceDataMigrationStarts::<Test, Everything>::contains(&asset, &origin),
 				!stage.data_migration_started(),
 				"at {stage:?}"
 			);

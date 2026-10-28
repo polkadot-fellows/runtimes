@@ -177,7 +177,8 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		/// does not move it.
 		///
 		/// After the warm-up period ends, the Relay Chain will start to send the migration data
-		/// to the Coretime chain.
+		/// to the Coretime chain. Calls are filtered from `WaitingForCt` on; inbound messages and
+		/// teleports keep executing until then, so what other chains queued drains.
 		end_at: BlockNumber,
 	},
 	/// Initializing the account migration process.

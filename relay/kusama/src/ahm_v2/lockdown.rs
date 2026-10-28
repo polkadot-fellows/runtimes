@@ -15,7 +15,7 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 //! The relay chain's AHM v2 lockdown: which calls each migration stage allows, and the barrier
-//! that refuses inbound messages once the migration starts.
+//! that refuses inbound messages once the data migration starts.
 
 use crate::{parachains_paras, parachains_slashing, Runtime, RuntimeCall};
 use frame_support::{
@@ -29,8 +29,8 @@ use xcm_executor::traits::{DenyExecution, Properties};
 
 /// Refuses every inbound message once the data migration starts, except from this chain, the
 /// Coretime chain and Asset Hub. Messages still execute during the warm-up so the queues drain.
-pub struct DenyOnceMigrationStarts;
-impl DenyExecution for DenyOnceMigrationStarts {
+pub struct DenyOnceDataMigrationStarts;
+impl DenyExecution for DenyOnceDataMigrationStarts {
 	fn deny_execution<RuntimeCall>(
 		origin: &Location,
 		_instructions: &mut [Instruction<RuntimeCall>],
@@ -383,7 +383,7 @@ mod tests {
 	}
 
 	#[test]
-	fn inbound_teleports_are_refused_once_the_migration_starts() {
+	fn inbound_teleports_are_refused_once_the_data_migration_starts() {
 		let asset_hub = para(ASSET_HUB_ID);
 
 		// GIVEN the data migration has not started. THEN a teleport from Asset Hub lands.
@@ -470,7 +470,7 @@ mod tests {
 	}
 
 	#[test]
-	fn only_coretime_and_asset_hub_reach_this_chain_once_the_migration_starts() {
+	fn only_coretime_and_asset_hub_reach_this_chain_once_the_data_migration_starts() {
 		// GIVEN the data migration has not started. THEN a para and any system chain get through.
 		for stage in stages_before_start().into_iter().chain(stages_in_warm_up()) {
 			for (origin, message) in [

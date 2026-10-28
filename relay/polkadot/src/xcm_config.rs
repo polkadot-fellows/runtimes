@@ -226,17 +226,19 @@ impl xcm_executor::Config for XcmConfig {
 	type OriginConverter = LocalOriginConverter;
 	// Polkadot Relay recognises no chains which act as reserves.
 	type IsReserve = ();
-	// Teleports to and from this chain are refused once the AHM v2 migration starts.
+	// Teleports to and from this chain are refused once the AHM v2 data migration starts.
 	#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
-	type IsTeleporter =
-		pallet_rc2_migrator::xcm_config::NothingOnceStarted<Runtime, TrustedTeleporters>;
+	type IsTeleporter = pallet_rc2_migrator::xcm_config::NothingOnceDataMigrationStarts<
+		Runtime,
+		TrustedTeleporters,
+	>;
 	#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
 	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
-	// Once the AHM v2 migration starts, only the Coretime chain and Asset Hub get through.
+	// Once the AHM v2 data migration starts, only the Coretime chain and Asset Hub get through.
 	#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
 	type Barrier =
-		xcm_builder::DenyThenTry<crate::ahm_v2::lockdown::DenyOnceMigrationStarts, Barrier>;
+		xcm_builder::DenyThenTry<crate::ahm_v2::lockdown::DenyOnceDataMigrationStarts, Barrier>;
 	#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
