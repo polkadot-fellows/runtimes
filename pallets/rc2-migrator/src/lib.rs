@@ -234,34 +234,61 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	MigrationDone,
 }
 
+/// Where a [`MigrationStage`] falls in the migration. The call filter, the teleport filter and
+/// the inbound barrier key on the phase, not on single stages.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MigrationPhase {
+	/// [`MigrationStage::Pending`] and [`MigrationStage::Scheduled`]: only
+	/// [`Config::PreMigrationCalls`] pass, and a scheduled migration can still be cancelled.
+	NotStarted,
+	/// [`MigrationStage::WaitingForCt`] and [`MigrationStage::WarmUp`]: the Coretime chain has
+	/// been told to start and only [`Config::IntraMigrationCalls`] pass. Inbound messages and
+	/// teleports still execute, so what other chains sent before the start drains.
+	WarmUp,
+	/// [`MigrationStage::AccountsInit`] through [`MigrationStage::CoolOff`]: the data is
+	/// snapshotted and sent to the Coretime chain. Inbound messages are refused unless they come
+	/// from the Coretime chain or Asset Hub, and no teleport is trusted.
+	DataMigration,
+	/// [`MigrationStage::MigrationDone`]: what closed stays closed, except that
+	/// [`Config::PostMigrationCalls`] pass.
+	Done,
+}
+
 impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Moment> {
+	/// The phase this stage belongs to.
+	pub fn phase(&self) -> MigrationPhase {
+		match self {
+			Self::Pending | Self::Scheduled { .. } => MigrationPhase::NotStarted,
+			Self::WaitingForCt | Self::WarmUp { .. } => MigrationPhase::WarmUp,
+			Self::MigrationDone => MigrationPhase::Done,
+			_ => MigrationPhase::DataMigration,
+		}
+	}
+
 	/// Whether the migration is finished.
 	///
 	/// This is not the same as `!self.is_ongoing()` since it may not have started.
 	pub fn is_finished(&self) -> bool {
-		matches!(self, Self::MigrationDone)
+		self.phase() == MigrationPhase::Done
 	}
 
 	/// Whether the migration is ongoing.
 	///
 	/// This is not the same as `!self.is_finished()` since it may not have started.
 	pub fn is_ongoing(&self) -> bool {
-		!matches!(self, Self::Pending | Self::Scheduled { .. } | Self::MigrationDone)
+		matches!(self.phase(), MigrationPhase::WarmUp | MigrationPhase::DataMigration)
 	}
 
 	/// Whether the machine has left [`Self::Pending`]/[`Self::Scheduled`]. Stays true after
 	/// [`Self::MigrationDone`].
 	pub fn has_started(&self) -> bool {
-		self.is_ongoing() || self.is_finished()
+		self.phase() != MigrationPhase::NotStarted
 	}
 
 	/// Whether data has started moving: true from [`Self::AccountsInit`] on, and stays true
 	/// after [`Self::MigrationDone`].
 	pub fn data_migration_started(&self) -> bool {
-		!matches!(
-			self,
-			Self::Pending | Self::Scheduled { .. } | Self::WaitingForCt | Self::WarmUp { .. }
-		)
+		matches!(self.phase(), MigrationPhase::DataMigration | MigrationPhase::Done)
 	}
 }
 

@@ -22,13 +22,14 @@ use frame_support::{
 	traits::{Contains, ProcessMessageError},
 	weights::Weight,
 };
-use pallet_rc2_migrator::RcMigrationStage;
+use pallet_rc2_migrator::{MigrationPhase, RcMigrationStage};
 use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, BROKER_ID};
 use xcm::latest::{Instruction, Junction::Parachain, Location};
 use xcm_executor::traits::{DenyExecution, Properties};
 
 /// Refuses every inbound message once the data migration starts, except from this chain, the
 /// Coretime chain and Asset Hub. Messages still execute during the warm-up so the queues drain.
+/// A `Transact` the barrier admits still dispatches through the call filter.
 pub struct DenyOnceDataMigrationStarts;
 impl DenyExecution for DenyOnceDataMigrationStarts {
 	fn deny_execution<RuntimeCall>(
@@ -37,15 +38,12 @@ impl DenyExecution for DenyOnceDataMigrationStarts {
 		_max_weight: Weight,
 		_properties: &mut Properties,
 	) -> Result<(), ProcessMessageError> {
-		let stage = RcMigrationStage::<Runtime>::get();
-		if !stage.data_migration_started() {
-			Ok(())
-		} else if stage.is_ongoing() {
-			only_from_self_coretime_or_asset_hub(origin)
-		} else {
+		match RcMigrationStage::<Runtime>::get().phase() {
+			MigrationPhase::NotStarted | MigrationPhase::WarmUp => Ok(()),
+			MigrationPhase::DataMigration => only_from_self_coretime_or_asset_hub(origin),
 			// TODO(ahm-v2): paras reach `HrmpRelay` and `RegistrarRelay` over XCM after the
 			// migration; let that envelope through here.
-			only_from_self_coretime_or_asset_hub(origin)
+			MigrationPhase::Done => only_from_self_coretime_or_asset_hub(origin),
 		}
 	}
 }

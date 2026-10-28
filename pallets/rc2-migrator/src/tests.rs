@@ -16,7 +16,7 @@
 
 use crate::{
 	mock::*, xcm_config::NothingOnceDataMigrationStarts, CtMigratorCall, CtRuntimeCall, Error,
-	Event, Manager, Paused, RcMigrationStage,
+	Event, Manager, MigrationPhase, Paused, RcMigrationStage,
 };
 use codec::Encode;
 use frame_support::{
@@ -774,32 +774,28 @@ fn the_warm_up_holds_for_its_period_and_can_be_halted() {
 
 #[test]
 fn the_stage_predicates_say_what_their_consumers_need() {
-	fn expected(stage: &Stage) -> (bool, bool, bool, bool) {
+	fn expected(stage: &Stage) -> MigrationPhase {
+		// Exhaustive
 		match stage {
-			//                              ongoing, started, data, finished
-			Stage::Pending => (false, false, false, false),
-			Stage::Scheduled { .. } => (false, false, false, false),
-			Stage::WaitingForCt => (true, true, false, false),
-			Stage::WarmUp { .. } => (true, true, false, false),
-			Stage::AccountsInit => (true, true, true, false),
-			Stage::AccountsOngoing { .. } => (true, true, true, false),
-			Stage::AccountsDone => (true, true, true, false),
-			Stage::ProxyInit => (true, true, true, false),
-			Stage::ProxyOngoing { .. } => (true, true, true, false),
-			Stage::ProxyDone => (true, true, true, false),
-			Stage::RegistrarInit => (true, true, true, false),
-			Stage::RegistrarOngoing { .. } => (true, true, true, false),
-			Stage::RegistrarDone => (true, true, true, false),
-			Stage::HrmpInit => (true, true, true, false),
-			Stage::HrmpOngoing { .. } => (true, true, true, false),
-			Stage::HrmpDone => (true, true, true, false),
-			Stage::Sweep => (true, true, true, false),
-			Stage::SweepDust { .. } => (true, true, true, false),
-			Stage::TiCorrection => (true, true, true, false),
-			Stage::CoolOff { .. } => (true, true, true, false),
-			// `has_started` and `data_migration_started` stay true after the end: what closed must
-			// not reopen.
-			Stage::MigrationDone => (false, true, true, true),
+			Stage::Pending | Stage::Scheduled { .. } => MigrationPhase::NotStarted,
+			Stage::WaitingForCt | Stage::WarmUp { .. } => MigrationPhase::WarmUp,
+			Stage::AccountsInit |
+			Stage::AccountsOngoing { .. } |
+			Stage::AccountsDone |
+			Stage::ProxyInit |
+			Stage::ProxyOngoing { .. } |
+			Stage::ProxyDone |
+			Stage::RegistrarInit |
+			Stage::RegistrarOngoing { .. } |
+			Stage::RegistrarDone |
+			Stage::HrmpInit |
+			Stage::HrmpOngoing { .. } |
+			Stage::HrmpDone |
+			Stage::Sweep |
+			Stage::SweepDust { .. } |
+			Stage::TiCorrection |
+			Stage::CoolOff { .. } => MigrationPhase::DataMigration,
+			Stage::MigrationDone => MigrationPhase::Done,
 		}
 	}
 
@@ -828,7 +824,16 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 	];
 
 	for stage in cases {
-		let (ongoing, started, data, finished) = expected(&stage);
+		let phase = expected(&stage);
+		assert_eq!(stage.phase(), phase, "phase for {stage:?}");
+		// What each phase means to the call filter, the barrier and the teleport filter. What
+		// closed stays closed after the end.
+		let (ongoing, started, data, finished) = match phase {
+			MigrationPhase::NotStarted => (false, false, false, false),
+			MigrationPhase::WarmUp => (true, true, false, false),
+			MigrationPhase::DataMigration => (true, true, true, false),
+			MigrationPhase::Done => (false, true, true, true),
+		};
 		assert_eq!(stage.is_ongoing(), ongoing, "is_ongoing for {stage:?}");
 		assert_eq!(stage.has_started(), started, "has_started for {stage:?}");
 		assert_eq!(stage.data_migration_started(), data, "data_migration_started for {stage:?}");
