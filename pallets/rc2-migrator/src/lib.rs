@@ -42,6 +42,7 @@ mod tests;
 pub mod xcm_config;
 
 pub mod accounts;
+pub mod proxy;
 
 pub use pallet::*;
 

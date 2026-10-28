@@ -114,7 +114,7 @@ struct Withdrawal {
 	to_ah: Option<(AccountId32, u128)>,
 }
 
-type ProxyDefinitionOf<T> = pallet_proxy::ProxyDefinition<
+pub(crate) type ProxyDefinitionOf<T> = pallet_proxy::ProxyDefinition<
 	<T as frame_system::Config>::AccountId,
 	<T as pallet_proxy::Config>::ProxyType,
 	pallet_proxy::BlockNumberFor<T>,
@@ -245,7 +245,9 @@ impl<T: Config> AccountsMigrator<T> {
 	}
 
 	/// What `proxy_type` is on the Coretime chain, if anything.
-	fn portable(proxy_type: &<T as pallet_proxy::Config>::ProxyType) -> Option<PortableProxyType> {
+	pub(crate) fn portable(
+		proxy_type: &<T as pallet_proxy::Config>::ProxyType,
+	) -> Option<PortableProxyType> {
 		proxy_type.clone().try_into().ok()
 	}
 
