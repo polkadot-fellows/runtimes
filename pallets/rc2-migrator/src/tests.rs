@@ -774,31 +774,32 @@ fn the_warm_up_holds_for_its_period_and_can_be_halted() {
 
 #[test]
 fn the_stage_predicates_say_what_their_consumers_need() {
-	fn expected(stage: &Stage) -> (bool, bool, bool) {
+	fn expected(stage: &Stage) -> (bool, bool, bool, bool) {
 		match stage {
-			//                              ongoing, started, finished
-			Stage::Pending => (false, false, false),
-			Stage::Scheduled { .. } => (false, false, false),
-			Stage::WaitingForCt => (true, true, false),
-			Stage::WarmUp { .. } => (true, true, false),
-			Stage::AccountsInit => (true, true, false),
-			Stage::AccountsOngoing { .. } => (true, true, false),
-			Stage::AccountsDone => (true, true, false),
-			Stage::ProxyInit => (true, true, false),
-			Stage::ProxyOngoing { .. } => (true, true, false),
-			Stage::ProxyDone => (true, true, false),
-			Stage::RegistrarInit => (true, true, false),
-			Stage::RegistrarOngoing { .. } => (true, true, false),
-			Stage::RegistrarDone => (true, true, false),
-			Stage::HrmpInit => (true, true, false),
-			Stage::HrmpOngoing { .. } => (true, true, false),
-			Stage::HrmpDone => (true, true, false),
-			Stage::Sweep => (true, true, false),
-			Stage::SweepDust { .. } => (true, true, false),
-			Stage::TiCorrection => (true, true, false),
-			Stage::CoolOff { .. } => (true, true, false),
-			// `has_started` stays true after the end: what closed when it started must not reopen.
-			Stage::MigrationDone => (false, true, true),
+			//                              ongoing, started, data, finished
+			Stage::Pending => (false, false, false, false),
+			Stage::Scheduled { .. } => (false, false, false, false),
+			Stage::WaitingForCt => (true, true, false, false),
+			Stage::WarmUp { .. } => (true, true, false, false),
+			Stage::AccountsInit => (true, true, true, false),
+			Stage::AccountsOngoing { .. } => (true, true, true, false),
+			Stage::AccountsDone => (true, true, true, false),
+			Stage::ProxyInit => (true, true, true, false),
+			Stage::ProxyOngoing { .. } => (true, true, true, false),
+			Stage::ProxyDone => (true, true, true, false),
+			Stage::RegistrarInit => (true, true, true, false),
+			Stage::RegistrarOngoing { .. } => (true, true, true, false),
+			Stage::RegistrarDone => (true, true, true, false),
+			Stage::HrmpInit => (true, true, true, false),
+			Stage::HrmpOngoing { .. } => (true, true, true, false),
+			Stage::HrmpDone => (true, true, true, false),
+			Stage::Sweep => (true, true, true, false),
+			Stage::SweepDust { .. } => (true, true, true, false),
+			Stage::TiCorrection => (true, true, true, false),
+			Stage::CoolOff { .. } => (true, true, true, false),
+			// `has_started` and `data_migration_started` stay true after the end: what closed must
+			// not reopen.
+			Stage::MigrationDone => (false, true, true, true),
 		}
 	}
 
@@ -827,16 +828,11 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 	];
 
 	for stage in cases {
-		let (ongoing, started, finished) = expected(&stage);
+		let (ongoing, started, data, finished) = expected(&stage);
 		assert_eq!(stage.is_ongoing(), ongoing, "is_ongoing for {stage:?}");
 		assert_eq!(stage.has_started(), started, "has_started for {stage:?}");
+		assert_eq!(stage.data_migration_started(), data, "data_migration_started for {stage:?}");
 		assert_eq!(stage.is_finished(), finished, "is_finished for {stage:?}");
-		// Data moves from `AccountsInit` on; the warm-up filters calls but moves nothing.
-		assert_eq!(
-			stage.data_migration_started(),
-			started && !matches!(stage, Stage::WaitingForCt | Stage::WarmUp { .. }),
-			"data_migration_started for {stage:?}"
-		);
 	}
 }
 

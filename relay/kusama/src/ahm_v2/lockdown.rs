@@ -230,6 +230,11 @@ mod tests {
 		vec![Stage::WaitingForCt, Stage::WarmUp { end_at: 0 }]
 	}
 
+	/// Every stage before data moves.
+	fn stages_before_data_migration() -> Vec<Stage> {
+		stages_before_start().into_iter().chain(stages_in_warm_up()).collect()
+	}
+
 	/// One stage from each part of the data migration, and its end.
 	fn stages_from_data_migration() -> Vec<Stage> {
 		vec![
@@ -387,7 +392,7 @@ mod tests {
 		let asset_hub = para(ASSET_HUB_ID);
 
 		// GIVEN the data migration has not started. THEN a teleport from Asset Hub lands.
-		for stage in stages_before_start().into_iter().chain(stages_in_warm_up()) {
+		for stage in stages_before_data_migration() {
 			assert_ok!(execute_from(&stage, asset_hub.clone(), teleport()));
 		}
 
@@ -472,7 +477,7 @@ mod tests {
 	#[test]
 	fn only_coretime_and_asset_hub_reach_this_chain_once_the_data_migration_starts() {
 		// GIVEN the data migration has not started. THEN a para and any system chain get through.
-		for stage in stages_before_start().into_iter().chain(stages_in_warm_up()) {
+		for stage in stages_before_data_migration() {
 			for (origin, message) in [
 				(para(2000), paid()),
 				(para(BRIDGE_HUB_ID), paid()),

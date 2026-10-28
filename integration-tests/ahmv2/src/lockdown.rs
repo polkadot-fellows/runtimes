@@ -143,18 +143,14 @@ fn probe_rc_lockdown() {
 	});
 
 	// Unpaid messages from system chains: once data moves, only Coretime and Asset Hub get in.
-	for (para, admitted_once_started) in [
+	for (para, admitted) in [
 		(system_parachain::BROKER_ID, true),
 		(system_parachain::ASSET_HUB_ID, true),
 		(system_parachain::BRIDGE_HUB_ID, false),
 	] {
 		assert_eq!(
 			hypothetically!(deliver_ump(para, unpaid_noop())),
-			if data_started && !admitted_once_started {
-				Delivery::Refused
-			} else {
-				Delivery::Executed
-			},
+			if data_started && !admitted { Delivery::Refused } else { Delivery::Executed },
 			"an unpaid message from para {para} at {stage:?}"
 		);
 	}
