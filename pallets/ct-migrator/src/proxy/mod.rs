@@ -77,8 +77,9 @@ impl<T: Config> Pallet<T> {
 					proxy_type: delegate.proxy_type.into(),
 					delay: (delegate.delay / ratio).into(),
 				};
-				if !defs.contains(&def) {
-					defs.try_push(def).map_err(|_| pallet_proxy::Error::<T>::TooMany)?;
+				// Kept sorted, as the pallet keeps it: its own calls find entries by binary search.
+				if let Err(i) = defs.binary_search(&def) {
+					defs.try_insert(i, def).map_err(|_| pallet_proxy::Error::<T>::TooMany)?;
 				}
 			}
 

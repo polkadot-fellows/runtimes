@@ -16,7 +16,7 @@
 
 use super::*;
 use crate::mock::*;
-use frame_support::{assert_ok, hypothetically, traits::fungible::Mutate};
+use frame_support::{assert_noop, assert_ok, hypothetically, traits::fungible::Mutate};
 use migrator_types::{PortableHoldReason, PortableProxyType};
 
 /// The entry of `who` in the proxy pallet: `(delegate, type, delay)` per definition, and the
@@ -149,5 +149,49 @@ fn receive_parks_a_set_that_does_not_fit_and_keeps_the_batch() {
 			CtMigrator::do_receive_proxies(vec![alices.clone()]);
 			assert_eq!(FailedProxies::<Test>::get(&ALICE), Some(alices));
 		});
+	});
+}
+
+#[test]
+fn the_proxy_pallet_can_work_with_what_was_written() {
+	new_test_ext().execute_with(|| {
+		// GIVEN Alice with a set that arrives out of the pallet's order, and the funds to back
+		// it.
+		assert_ok!(<Balances as Mutate<AccountId>>::mint_into(&ALICE, 1_000));
+		CtMigrator::do_receive_proxies(vec![portable_proxy(
+			&ALICE,
+			vec![
+				(DAVE, PortableProxyType::Any, 0),
+				(BOB, PortableProxyType::NonTransfer, 2),
+				(CHARLIE, PortableProxyType::Any, 0),
+			],
+		)]);
+
+		// THEN the entry is in the order the pallet keeps.
+		assert_eq!(
+			entry(&ALICE).0,
+			vec![
+				(BOB, ProxyType::NonTransfer, 1),
+				(CHARLIE, ProxyType::Any, 0),
+				(DAVE, ProxyType::Any, 0)
+			]
+		);
+
+		// WHEN the pallet's own calls run over it. THEN a duplicate is refused, and every
+		// migrated definition can be removed, the deposit following each removal.
+		assert_noop!(
+			Proxy::add_proxy(RuntimeOrigin::signed(ALICE), CHARLIE, ProxyType::Any, 0),
+			pallet_proxy::Error::<Test>::Duplicate
+		);
+		for (delegate, proxy_type, delay) in entry(&ALICE).0 {
+			assert_ok!(Proxy::remove_proxy(
+				RuntimeOrigin::signed(ALICE),
+				delegate,
+				proxy_type,
+				delay
+			));
+		}
+		assert_eq!(entry(&ALICE), (vec![], 0));
+		assert_eq!(reserved(&ALICE), 0);
 	});
 }
