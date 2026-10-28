@@ -144,6 +144,10 @@ pub const LOG_TARGET: &str = "runtime::kusama";
 // Genesis preset configurations.
 pub mod genesis_config_presets;
 
+// AHM v2 migration wiring. Kept out of the on-chain build.
+#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+mod ahm_v2;
+
 // Weights used in the runtime.
 mod weights;
 
@@ -178,7 +182,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kusama"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 2_005_000,
+	spec_version: 2_005_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -271,6 +275,9 @@ parameter_types! {
 
 impl frame_system::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+	type BaseCallFilter = frame_support::traits::InsideBoth<PostAhmFilter, Rc2Migrator>;
+	#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
 	type BaseCallFilter = PostAhmFilter;
 	type BlockWeights = BlockWeights;
 	type BlockLength = RuntimeBlockLength;
@@ -2116,6 +2123,10 @@ construct_runtime! {
 		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
 		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
 		RcMigrator: pallet_rc_migrator = 255,
+		// AHM v2 migrator. Below `MessageQueue` for the same reason as `RcMigrator`: its
+		// `on_initialize` has to see the block's inbound messages.
+		#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+		Rc2Migrator: pallet_rc2_migrator = 254,
 	}
 }
 

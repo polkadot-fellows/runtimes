@@ -33,6 +33,7 @@ pub mod xcm_config;
 extern crate alloc;
 use crate::apis::RUNTIME_API_VERSIONS;
 use alloc::{vec, vec::Vec};
+use codec::MaxEncodedLen;
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::{
@@ -71,12 +72,14 @@ use sp_version::RuntimeVersion;
 use system_parachains_constants::{
 	async_backing::{AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT},
 	polkadot::{
+		account::ACCUMULATE_FORWARD_PALLET_ID,
 		consensus::{
 			async_backing::UNINCLUDED_SEGMENT_CAPACITY, BLOCK_PROCESSING_VELOCITY,
 			RELAY_CHAIN_SLOT_DURATION_MILLIS,
 		},
-		currency::{CENTS, SYSTEM_PARA_EXISTENTIAL_DEPOSIT},
+		currency::{system_para_deposit, CENTS, SYSTEM_PARA_EXISTENTIAL_DEPOSIT, UNITS},
 		fee::WeightToFee,
+		locations::DapStagingLocation,
 	},
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
@@ -152,6 +155,7 @@ pub type Executive = frame_executive::Executive<
 >;
 
 impl_opaque_keys! {
+	#[derive(MaxEncodedLen)]
 	pub struct SessionKeys {
 		pub aura: Aura,
 	}
@@ -162,7 +166,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("bulletin-polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("bulletin-polkadot"),
 	authoring_version: 1,
-	spec_version: 2_005_000,
+	spec_version: 2_005_002,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 2,
@@ -272,7 +276,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type DustRemoval = ();
+	type DustRemoval = AccumulateForward;
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -285,6 +289,30 @@ impl pallet_balances::Config for Runtime {
 	type FreezeIdentifier = ();
 	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
+}
+
+parameter_types! {
+	pub const AccumulateForwardPalletId: PalletId = ACCUMULATE_FORWARD_PALLET_ID;
+	pub const ForwardPeriod: BlockNumber = HOURS;
+	pub const MinForwardAmount: Balance = UNITS;
+}
+
+impl pallet_accumulate_and_forward::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = AccumulateForwardPalletId;
+	type Forwarder = xcm_builder::TeleportForwarderForAccountId32<
+		xcm_config::XcmConfig,
+		AssetHubLocation,
+		DotLocation,
+		DapStagingLocation,
+	>;
+	type TransferPeriod = ForwardPeriod;
+	type MinTransferAmount = MinForwardAmount;
+	// Local clock: relay parent numbers can skip the exact multiples the forward fires on.
+	// TODO: switch to `RelaychainDataProvider`, tracked in
+	// https://github.com/polkadot-fellows/runtimes/issues/1327.
+	type BlockNumberProvider = System;
+	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -405,6 +433,15 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 pub const PERIOD: u32 = 6 * HOURS;
 pub const OFFSET: u32 = 0;
 
+parameter_types! {
+	/// One `NextKeys` entry plus one `KeyOwner` entry per session key.
+	pub SessionKeyDeposit: Balance = system_para_deposit(1, SessionKeys::max_encoded_len() as u32)
+		.saturating_add(system_para_deposit(
+			<SessionKeys as sp_runtime::traits::OpaqueKeys>::key_ids().len() as u32,
+			<Runtime as pallet_session::Config>::ValidatorId::max_encoded_len() as u32,
+		));
+}
+
 impl pallet_session::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
@@ -419,7 +456,7 @@ impl pallet_session::Config for Runtime {
 	type DisablingStrategy = ();
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type Currency = Balances;
-	type KeyDeposit = ();
+	type KeyDeposit = SessionKeyDeposit;
 }
 
 impl pallet_aura::Config for Runtime {
@@ -550,6 +587,8 @@ mod runtime {
 	pub type TransactionPayment = pallet_transaction_payment;
 	#[runtime::pallet_index(12)]
 	pub type SkipFeelessPayment = pallet_skip_feeless_payment;
+	#[runtime::pallet_index(13)]
+	pub type AccumulateForward = pallet_accumulate_and_forward;
 
 	// Collator support. The order of these 5 are important and shall not change.
 	#[runtime::pallet_index(20)]
