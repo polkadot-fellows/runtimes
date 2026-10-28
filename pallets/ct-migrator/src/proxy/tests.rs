@@ -19,6 +19,17 @@ use crate::mock::*;
 use frame_support::{assert_noop, assert_ok, hypothetically, traits::fungible::Mutate};
 use migrator_types::{PortableHoldReason, PortableProxyType};
 
+/// What each proxied call dispatched so far returned.
+fn proxy_results() -> Vec<DispatchResult> {
+	System::events()
+		.into_iter()
+		.filter_map(|r| match r.event {
+			RuntimeEvent::Proxy(pallet_proxy::Event::ProxyExecuted { result }) => Some(result),
+			_ => None,
+		})
+		.collect()
+}
+
 /// The entry of `who` in the proxy pallet: `(delegate, type, delay)` per definition, and the
 /// recorded deposit.
 fn entry(who: &AccountId) -> (Vec<(AccountId, ProxyType, u64)>, u128) {
@@ -175,6 +186,16 @@ fn the_proxy_pallet_can_work_with_what_was_written() {
 				(CHARLIE, ProxyType::Any, 0),
 				(DAVE, ProxyType::Any, 0)
 			]
+		);
+
+		// WHEN the delegates use them. THEN Charlie dispatches as Alice, and Bob is refused
+		// until he announces, since his delay came along.
+		let call = Box::new(tagged_remark(PRE_MIGRATION));
+		assert_ok!(Proxy::proxy(RuntimeOrigin::signed(CHARLIE), ALICE, None, call.clone()));
+		assert_eq!(proxy_results(), vec![Ok(())]);
+		assert_noop!(
+			Proxy::proxy(RuntimeOrigin::signed(BOB), ALICE, None, call),
+			pallet_proxy::Error::<Test>::Unannounced
 		);
 
 		// WHEN the pallet's own calls run over it. THEN a duplicate is refused, and every
