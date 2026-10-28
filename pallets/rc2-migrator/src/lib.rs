@@ -55,7 +55,7 @@ use frame_support::{
 	traits::{Contains, EnsureOrigin, GetCallMetadata, Time},
 };
 use frame_system::pallet_prelude::*;
-use migrator_types::{PortableAccount, PortableProxyType};
+use migrator_types::{PortableAccount, PortableProxy, PortableProxyType};
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
 use sp_runtime::AccountId32;
@@ -278,6 +278,9 @@ pub enum CtMigratorCall {
 	// 2 and 3 are `force_set_stage` and `set_manager`, which the relay chain never sends.
 	#[codec(index = 4)]
 	ReceiveAccounts { accounts: Vec<PortableAccount<AccountId32, u128>> },
+	// 5 is `reconcile_balances`.
+	#[codec(index = 6)]
+	ReceiveProxies { proxies: Vec<PortableProxy<AccountId32>> },
 }
 
 #[frame_support::pallet]
@@ -469,6 +472,8 @@ pub mod pallet {
 		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
 		/// retry it.
 		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
+		/// A batch of proxy sets was sent to the Coretime chain.
+		ProxiesBatchSent { count: u32 },
 	}
 
 	#[pallet::hooks]
@@ -729,9 +734,17 @@ pub mod pallet {
 					Self::transition(MigrationStage::ProxyOngoing { last_key: None });
 					T::DbWeight::get().reads_writes(1, 1)
 				},
-				MigrationStage::ProxyOngoing { .. } => {
-					Self::transition(MigrationStage::ProxyDone);
-					T::DbWeight::get().reads_writes(1, 1)
+				MigrationStage::ProxyOngoing { last_key } => {
+					match with_storage_layer(|| Self::migrate_proxies_block(last_key)) {
+						Ok(None) => Self::transition(MigrationStage::ProxyDone),
+						Ok(last_key) => Self::transition(MigrationStage::ProxyOngoing { last_key }),
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "Proxies block failed, retrying: {e:?}");
+						},
+					}
+					T::DbWeight::get()
+						.reads_writes(1, 1)
+						.saturating_mul(Limits::<T>::get().items_per_block().into())
 				},
 				MigrationStage::ProxyDone => {
 					Self::transition(MigrationStage::RegistrarInit);
@@ -846,6 +859,31 @@ pub mod pallet {
 			let count = accounts.len() as u32;
 			Self::send_to_ct(CtMigratorCall::ReceiveAccounts { accounts })?;
 			Self::deposit_event(Event::AccountsBatchSent { count });
+			Ok(())
+		}
+
+		/// One block of the proxy stage. Returns the cursor to continue from, or `None` once
+		/// every entry has been visited.
+		///
+		/// The caller runs it in a storage transaction, so an `Err` rolls the whole block back.
+		fn migrate_proxies_block(
+			last_key: Option<T::AccountId>,
+		) -> Result<Option<T::AccountId>, DispatchError> {
+			let proxy::BlockProxies { proxies, last_key } =
+				proxy::ProxyMigrator::<T>::migrate_many(last_key);
+
+			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
+			for chunk in proxies.chunks(per_xcm) {
+				Self::send_proxies(chunk.to_vec())?;
+			}
+			Ok(last_key)
+		}
+
+		/// Send proxy sets to the Coretime chain, which writes them into its proxy pallet.
+		fn send_proxies(proxies: Vec<PortableProxy<AccountId32>>) -> Result<(), Error<T>> {
+			let count = proxies.len() as u32;
+			Self::send_to_ct(CtMigratorCall::ReceiveProxies { proxies })?;
+			Self::deposit_event(Event::ProxiesBatchSent { count });
 			Ok(())
 		}
 

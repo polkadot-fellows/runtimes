@@ -15,7 +15,7 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use super::*;
-use crate::{mock::*, BlockLimits, Limits};
+use crate::{mock::*, BlockLimits, CtMigratorCall, CtRuntimeCall, Event, Limits, RcMigrationStage};
 use frame_support::assert_ok;
 use migrator_types::{sibling_account, PortableProxyType};
 
@@ -135,5 +135,78 @@ fn migrate_many_resumes_from_cursor() {
 			.collect();
 		sent.sort();
 		assert_eq!(sent, vec![ALICE, BOB, CHARLIE]);
+	});
+}
+
+/// The proxy sets the `n`th sent message carries.
+fn sent_proxies(n: usize) -> Vec<PortableProxy<AccountId>> {
+	assert_eq!(sent()[n].0, ct_dest());
+	let CtRuntimeCall::CtMigrator(CtMigratorCall::ReceiveProxies { proxies }) = sent_call(n) else {
+		panic!("message {n} carries proxies for Coretime");
+	};
+	proxies
+}
+
+#[test]
+fn proxy_stage_sends_in_chunks_and_resumes() {
+	new_test_ext().execute_with(|| {
+		// GIVEN 3 delegators, limits of 2 sets a message and 1 message a block, and the stage
+		// about to start.
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 2, xcm_per_block: 1 });
+		for who in [&ALICE, &BOB, &CHARLIE] {
+			fund(who, 500);
+			add_proxy(who, &DAVE, ProxyType::Any);
+		}
+		RcMigrationStage::<Test>::put(Stage::ProxyInit);
+		run_blocks(1);
+		assert_stage(Stage::ProxyOngoing { last_key: None });
+
+		// WHEN the first block runs. THEN one message carries 2 sets and the stage carries a
+		// cursor.
+		run_blocks(1);
+		assert!(matches!(
+			RcMigrationStage::<Test>::get(),
+			Stage::ProxyOngoing { last_key: Some(_) }
+		));
+		assert_eq!(sent().len(), 1);
+		assert_eq!(sent_proxies(0).len(), 2);
+		System::assert_has_event(Event::ProxiesBatchSent { count: 2 }.into());
+
+		// WHEN the next block runs. THEN the last set leaves and the stage is done, every
+		// delegator sent once and the map as it was.
+		run_blocks(1);
+		assert_stage(Stage::ProxyDone);
+		assert_eq!(sent().len(), 2);
+		let mut delegators: Vec<_> = sent_proxies(0)
+			.into_iter()
+			.chain(sent_proxies(1))
+			.map(|p| p.delegator)
+			.collect();
+		delegators.sort();
+		assert_eq!(delegators, vec![ALICE, BOB, CHARLIE]);
+		assert_eq!(pallet_proxy::Proxies::<Test>::iter().count(), 3);
+	});
+}
+
+#[test]
+fn proxy_stage_retries_a_block_whose_send_failed() {
+	new_test_ext().execute_with(|| {
+		// GIVEN the stage started with one delegator.
+		fund(&ALICE, 500);
+		add_proxy(&ALICE, &BOB, ProxyType::Any);
+		RcMigrationStage::<Test>::put(Stage::ProxyInit);
+		run_blocks(1);
+
+		// WHEN a block runs and its send fails. THEN the stage stays where it was.
+		SendFails::set(true);
+		run_blocks(1);
+		assert_stage(Stage::ProxyOngoing { last_key: None });
+		assert!(sent().is_empty());
+
+		// WHEN the next block runs with a working router. THEN the set leaves.
+		SendFails::set(false);
+		run_blocks(1);
+		assert_stage(Stage::ProxyDone);
+		assert_eq!(sent_proxies(0).len(), 1);
 	});
 }

@@ -61,7 +61,7 @@ impl pallet_ct_migrator::Config for Runtime {
 mod tests {
 	use crate::{AccountId, Runtime, RuntimeCall};
 	use codec::Encode;
-	use pallet_ct_migrator::accounts::PortableAccountOf;
+	use pallet_ct_migrator::{accounts::PortableAccountOf, proxy::PortableProxyOf};
 	use pallet_rc2_migrator::{CtMigratorCall, CtRuntimeCall};
 
 	/// Ensure the pallet + call index aligns.
@@ -90,6 +90,18 @@ mod tests {
 			.encode(),
 			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::receive_accounts {
 				accounts
+			})
+			.encode(),
+		);
+		let proxies = vec![PortableProxyOf::<Runtime> {
+			delegator: AccountId::new([1; 32]),
+			delegates: Default::default(),
+		}];
+		assert_eq!(
+			CtRuntimeCall::CtMigrator(CtMigratorCall::ReceiveProxies { proxies: proxies.clone() })
+				.encode(),
+			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::receive_proxies {
+				proxies
 			})
 			.encode(),
 		);
