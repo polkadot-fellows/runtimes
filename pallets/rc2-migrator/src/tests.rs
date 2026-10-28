@@ -831,6 +831,12 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 		assert_eq!(stage.is_ongoing(), ongoing, "is_ongoing for {stage:?}");
 		assert_eq!(stage.has_started(), started, "has_started for {stage:?}");
 		assert_eq!(stage.is_finished(), finished, "is_finished for {stage:?}");
+		// Data moves from `AccountsInit` on; the warm-up filters calls but moves nothing.
+		assert_eq!(
+			stage.data_migration_started(),
+			started && !matches!(stage, Stage::WaitingForCt | Stage::WarmUp { .. }),
+			"data_migration_started for {stage:?}"
+		);
 	}
 }
 
@@ -881,7 +887,7 @@ fn each_stage_allows_only_its_own_call_set() {
 }
 
 #[test]
-fn teleport_trust_ends_when_the_migration_starts() {
+fn teleport_trust_ends_when_the_data_migration_starts() {
 	new_test_ext().execute_with(|| {
 		let asset: Asset = (Here, 1u128).into();
 		let origin = Location::new(0, [Parachain(CT_PARA_ID)]);
@@ -889,10 +895,10 @@ fn teleport_trust_ends_when_the_migration_starts() {
 			// GIVEN the machine at `stage`.
 			set_stage(stage.clone());
 
-			// THEN the inner filter's answer stands until the start, and nothing is trusted after.
+			// THEN the inner filter's answer stands until data moves, and nothing is trusted after.
 			assert_eq!(
 				NothingOnceStarted::<Test, Everything>::contains(&asset, &origin),
-				!stage.has_started(),
+				!stage.data_migration_started(),
 				"at {stage:?}"
 			);
 		}

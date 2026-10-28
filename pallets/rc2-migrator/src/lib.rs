@@ -253,6 +253,15 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 	pub fn has_started(&self) -> bool {
 		self.is_ongoing() || self.is_finished()
 	}
+
+	/// Whether data has started moving: true from [`Self::AccountsInit`] on, and stays true
+	/// after [`Self::MigrationDone`].
+	pub fn data_migration_started(&self) -> bool {
+		!matches!(
+			self,
+			Self::Pending | Self::Scheduled { .. } | Self::WaitingForCt | Self::WarmUp { .. }
+		)
+	}
 }
 
 /// `CtMigrator`'s pallet index in the Coretime (receiver) chain.
@@ -484,10 +493,10 @@ pub mod pallet {
 		/// ### Parameters:
 		/// - `start`: The wall-clock time at which the migration will start.
 		/// - `warm_up`: Duration in blocks used to prepare for the migration. Calls are filtered
-		///   during this period. It is intended to give enough time for UMP and DMP queues to
-		///   empty. Counted from the transition to the warm-up stage. Must be longer than one
-		///   Coretime timeslice: on-demand orders close at the start, and the Coretime chain claims
-		///   the revenue earned before it at its next timeslice boundary.
+		///   during this period, while inbound messages still execute so the UMP queues drain.
+		///   Counted from the transition to the warm-up stage. Must be longer than one Coretime
+		///   timeslice: on-demand orders close at the start, and the Coretime chain claims the
+		///   revenue earned before it at its next timeslice boundary.
 		/// - `cool_off`: Duration in blocks of the post migration cool-off period. Counted from the
 		///   transition to the cool-off stage.
 		///

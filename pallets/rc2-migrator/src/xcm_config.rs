@@ -21,12 +21,12 @@ use core::marker::PhantomData;
 use frame_support::traits::ContainsPair;
 use xcm::latest::prelude::*;
 
-/// `Inner` until the migration starts, nothing after.
+/// `Inner` until the data migration starts, nothing after.
 pub struct NothingOnceStarted<T, Inner>(PhantomData<(T, Inner)>);
 impl<T: Config, Inner: ContainsPair<Asset, Location>> ContainsPair<Asset, Location>
 	for NothingOnceStarted<T, Inner>
 {
 	fn contains(asset: &Asset, origin: &Location) -> bool {
-		Inner::contains(asset, origin) && !RcMigrationStage::<T>::get().has_started()
+		Inner::contains(asset, origin) && !RcMigrationStage::<T>::get().data_migration_started()
 	}
 }
