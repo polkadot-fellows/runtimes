@@ -19,6 +19,8 @@ use crate::{Runtime, TrustBackedAssetsInstance};
 use alloc::vec::Vec;
 use frame_support::parameter_types;
 
+pub mod recalculate_asset_supply;
+
 /// Provides the initial `LastIssuanceTimestamp` for the DAP V1->V2 migration.
 ///
 /// Uses the start of the active era (ms since unix epoch) so the catch-up drip covers
@@ -225,6 +227,11 @@ impl frame_support::traits::OnRuntimeUpgrade for ForceCreatePgasAsset {
 	}
 }
 
+parameter_types! {
+	/// dotUSD on Asset Hub Polkadot: the asset whose recorded supply is corrected.
+	pub const DotUsdAssetId: u32 = 7873;
+}
+
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
 	// no-op if member has no trapped balance, so second run is safe.
@@ -249,6 +256,7 @@ pub type Unreleased = (
 	>,
 	MigrateBountyAccountAssets,
 	ForceCreatePgasAsset,
+	indiv_pallet_members_subscriber::migration::MigrateV0ToV1<Runtime>,
 	pallet_staking_async::migrations::SetWeightedPointsFormulaStartEra<Runtime>,
 );
 
@@ -293,6 +301,13 @@ mod multiblock_migrations {
 		// Mandatory companion to `pallet_revive::Config::Deposit` becoming
 		// `PGasDeposit`.
 		pallet_revive::migrations::v4::Migration<Runtime>,
+		// Recompute dotUSD total issuance, which sits below the real sum of balances. dotUSD is
+		// frozen while this runs.
+		super::recalculate_asset_supply::RecalculateSupply<
+			Runtime,
+			TrustBackedAssetsInstance,
+			super::DotUsdAssetId,
+		>,
 	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration
@@ -417,6 +432,51 @@ mod tests {
 		sp_io::TestExternalities::new(
 			RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
 		)
+	}
+
+	#[test]
+	fn members_subscriber_migration_preserves_state_and_is_idempotent() {
+		use codec::Encode;
+		use frame_support::traits::StorageVersion;
+		use indiv_pallet_members_subscriber::{Pallet, ProcessingState, RingCollectionStates};
+		use std::collections::{BTreeMap, BTreeSet};
+
+		new_test_ext().execute_with(|| {
+			StorageVersion::new(0).put::<Pallet<Runtime>>();
+			// Encode the V0 layouts: the timestamp lived in the global processing state.
+			sp_io::storage::set(
+				&ProcessingState::<Runtime>::hashed_key(),
+				&(42u64, 600u64, 500u64).encode(),
+			);
+			let missing = BTreeMap::from([(3u32, 2u32)]);
+			let deleted = BTreeSet::from([4u32]);
+			let old_collection = (5u32, 10u32, 6u32, &missing, &deleted).encode();
+			for identifier in [[1u8; 32], [2u8; 32]] {
+				sp_io::storage::set(
+					&RingCollectionStates::<Runtime>::hashed_key_for(identifier),
+					&old_collection,
+				);
+			}
+
+			indiv_pallet_members_subscriber::migration::MigrateV0ToV1::<Runtime>::on_runtime_upgrade();
+			assert_eq!(StorageVersion::get::<Pallet<Runtime>>(), StorageVersion::new(1));
+			let processing = ProcessingState::<Runtime>::get();
+			assert_eq!(processing.last_processed_sequence, 42);
+			assert_eq!(processing.last_replay_request_time, 500);
+			for identifier in [[1u8; 32], [2u8; 32]] {
+				let state = RingCollectionStates::<Runtime>::get(identifier);
+				assert_eq!(state.ring_count, 5);
+				assert_eq!(state.next_ring_index, 10);
+				assert_eq!(state.next_scan_index, 6);
+				assert_eq!(state.missing_indices.into_inner(), missing);
+				assert_eq!(state.deleted_indices.into_inner(), deleted);
+				assert_eq!(state.last_batch_received_time, 600);
+			}
+
+			let before = sp_io::storage::root(sp_runtime::StateVersion::V1);
+			indiv_pallet_members_subscriber::migration::MigrateV0ToV1::<Runtime>::on_runtime_upgrade();
+			assert_eq!(sp_io::storage::root(sp_runtime::StateVersion::V1), before);
+		});
 	}
 
 	fn assert_pgas_asset_matches_pallet_config() {
