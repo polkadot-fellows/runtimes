@@ -15,6 +15,7 @@
 
 //! Tests that run against a state snapshot.
 
+mod dotusd_supply;
 mod psm;
 
 use super::*;
