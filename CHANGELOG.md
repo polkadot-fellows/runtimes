@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Collectives Polkadot: the `NonTransfer` proxy no longer admits salary `payout_other`, which pays the member's salary to any account, and is no longer a superset of `Fellowship` or `Ambassador` ([#1307](https://github.com/polkadot-fellows/runtimes/pull/1307)).
+
 ## [2.5.2] 27.10.2026
 
 ### Fixed
@@ -18,7 +24,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Collectives Polkadot: the `NonTransfer` proxy no longer admits salary `payout_other`, which pays the member's salary to any account, and is no longer a superset of `Fellowship` or `Ambassador` ([#1307](https://github.com/polkadot-fellows/runtimes/pull/1307)).
 - Update Individuality pallets from [`53482baa`](https://github.com/paritytech/individuality-community/commit/53482baa337278c6c4c8115fb8d2b4b5def08ccb) to [`e69b079e`](https://github.com/paritytech/individuality-community/commit/e69b079ef93b6b0224ca81b96d4385f6dd4c8e22) ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331), [#1332](https://github.com/polkadot-fellows/runtimes/pull/1332)).
 - Asset Hub Polkadot: move missing membership-root detection to offchain-submitted scans with a 60-second cooldown after incoming updates. Migrate Members Subscriber timestamps from global to per-collection storage ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
 - `pallet-accumulate-and-forward`: measure `TransferPeriod` from the last forward instead of requiring exact block multiples ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
