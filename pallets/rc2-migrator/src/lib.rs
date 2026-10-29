@@ -852,14 +852,26 @@ pub mod pallet {
 			});
 
 			// send
-			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
-			for chunk in to_ct.chunks(per_xcm) {
-				Self::send_accounts(chunk.to_vec())?;
-			}
-			for chunk in to_ah.chunks(per_xcm) {
-				Self::send_teleport(chunk.to_vec())?;
-			}
+			Self::send_in_batches(to_ct, Self::send_accounts)?;
+			Self::send_in_batches(to_ah, Self::send_teleport)?;
 			Ok(last_key)
+		}
+
+		/// Hand `items` to `send` in batches of at most [`BlockLimits::items_per_xcm`], one
+		/// message each.
+		fn send_in_batches<I>(
+			items: Vec<I>,
+			send: impl Fn(Vec<I>) -> Result<(), Error<T>>,
+		) -> Result<(), Error<T>> {
+			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
+			let mut items = items.into_iter();
+			loop {
+				let batch: Vec<I> = items.by_ref().take(per_xcm).collect();
+				if batch.is_empty() {
+					return Ok(());
+				}
+				send(batch)?;
+			}
 		}
 
 		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.
@@ -881,11 +893,7 @@ pub mod pallet {
 		) -> Result<Option<T::AccountId>, DispatchError> {
 			let proxy::BlockProxies { proxies, last_key } =
 				proxy::ProxyMigrator::<T>::migrate_many(last_key);
-
-			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
-			for chunk in proxies.chunks(per_xcm) {
-				Self::send_proxies(chunk.to_vec())?;
-			}
+			Self::send_in_batches(proxies, Self::send_proxies)?;
 			Ok(last_key)
 		}
 

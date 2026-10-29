@@ -136,6 +136,28 @@ fn receive_reserves_no_more_than_the_migrated_deposit() {
 	});
 }
 
+/// The relay chain sends no empty set.
+#[test]
+#[should_panic(expected = "Defensive failure")]
+fn receive_defends_an_empty_set() {
+	new_test_ext().execute_with(|| {
+		CtMigrator::do_receive_proxies(vec![portable_proxy(&ALICE, vec![])]);
+	});
+}
+
+/// The relay chain's proxy pallet refuses a self proxy, so none arrives.
+#[test]
+#[should_panic(expected = "Defensive failure")]
+fn receive_defends_a_self_proxy() {
+	new_test_ext().execute_with(|| {
+		fund(&ALICE, 1_000);
+		CtMigrator::do_receive_proxies(vec![portable_proxy(
+			&ALICE,
+			vec![(ALICE, PortableProxyType::Any, 0)],
+		)]);
+	});
+}
+
 #[test]
 fn receive_parks_a_set_that_does_not_fit_and_keeps_the_batch() {
 	new_test_ext().execute_with(|| {

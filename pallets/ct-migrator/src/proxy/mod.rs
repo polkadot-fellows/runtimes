@@ -23,10 +23,13 @@ mod tests;
 
 use crate::{Config, CurrencyOf, Event, FailedProxies, HoldReason, Pallet, LOG_TARGET};
 use alloc::vec::Vec;
-use frame_support::traits::{
-	fungible::{InspectHold, MutateHold},
-	tokens::Precision,
-	Currency, Get, ReservableCurrency,
+use frame_support::{
+	defensive, defensive_assert,
+	traits::{
+		fungible::{InspectHold, MutateHold},
+		tokens::Precision,
+		Currency, Get, ReservableCurrency,
+	},
 };
 use migrator_types::PortableProxy;
 use sp_runtime::{traits::Zero, DispatchResult, SaturatedConversion, Saturating};
@@ -47,10 +50,28 @@ impl<T: Config> Pallet<T> {
 			|()| (),
 			|proxy, e| {
 				log::error!(target: LOG_TARGET, "Proxies of {:?} not written: {e:?}", proxy.delegator);
-				FailedProxies::<T>::insert(proxy.delegator.clone(), proxy);
+				Self::park_proxy(proxy);
 			},
 		);
 		Self::deposit_event(Event::ProxiesReceived { count_good, count_bad });
+	}
+
+	/// Park a set that could not be written, merged with one already parked for the same
+	/// delegator.
+	fn park_proxy(proxy: PortableProxyOf<T>) {
+		let who = proxy.delegator.clone();
+		let Some(mut parked) = FailedProxies::<T>::get(&who) else {
+			FailedProxies::<T>::insert(&who, proxy);
+			return;
+		};
+		defensive!("the same delegator parked twice", who);
+		for delegate in proxy.delegates {
+			if !parked.delegates.contains(&delegate) && parked.delegates.try_push(delegate).is_err()
+			{
+				defensive!("more parked definitions than the wire holds", who);
+			}
+		}
+		FailedProxies::<T>::insert(&who, parked);
 	}
 
 	/// Write one proxy set, merged with what the delegator already has here. Delays arrive in
@@ -60,6 +81,11 @@ impl<T: Config> Pallet<T> {
 	/// deposit, as a pure proxy's does, is written with none, and its owner can `poke_deposit`.
 	fn do_receive_proxy(proxy: &PortableProxyOf<T>) -> DispatchResult {
 		let who = &proxy.delegator;
+		// the relay chain sends no empty set, and the proxy pallet keeps no empty entry
+		defensive_assert!(!proxy.delegates.is_empty(), "an empty proxy set");
+		if proxy.delegates.is_empty() {
+			return Ok(());
+		}
 
 		// release the migrated deposit whole
 		let reason: T::RuntimeHoldReason = HoldReason::ProxyDeposit.into();
@@ -73,6 +99,8 @@ impl<T: Config> Pallet<T> {
 		let ratio = T::RcBlockTimeRatio::get();
 		pallet_proxy::Proxies::<T>::try_mutate(who, |(defs, deposit)| {
 			for delegate in &proxy.delegates {
+				// the proxy pallet's own calls refuse a self proxy, so the relay chain holds none
+				defensive_assert!(delegate.delegate != *who, "a self proxy");
 				let def = pallet_proxy::ProxyDefinition {
 					delegate: delegate.delegate.clone(),
 					proxy_type: delegate.proxy_type.into(),
