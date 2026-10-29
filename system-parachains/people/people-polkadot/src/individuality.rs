@@ -223,6 +223,11 @@ impl indiv_pallet_people_lite::Config for Runtime {
 	type Currency = Balances;
 	type PotId = LitePeoplePotId;
 	type RegistrationFee = crate::parameters::LitePersonRegistrationFee;
+	type MaxLitePeople = crate::parameters::MaxLitePeople;
+	type Clock = RuntimeClock;
+	type PaidRegistrationThreshold = crate::parameters::LitePaidRegistrationThreshold;
+	type PaidRegistrationPeriod = crate::parameters::LitePaidRegistrationPeriod;
+	type PaidRegistrationsPerPeriod = crate::parameters::LitePaidRegistrationsPerPeriod;
 	type Suffix = NetworkSuffix;
 	type AttestationAllowanceManager = EnsureRoot<AccountId>;
 	type MemberService = Members;

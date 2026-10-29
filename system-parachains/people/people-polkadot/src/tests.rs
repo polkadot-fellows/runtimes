@@ -852,6 +852,7 @@ fn score_participant_origin_is_restricted() {
 					has_ever_reached_personhood: false,
 					recognition: indiv_pallet_score::Recognition::NotRecognized,
 					last_attended_game: None,
+					attended_games_while_recognized: 0,
 				},
 			);
 			RelaychainDataProvider::<Runtime>::set_block_number(1);

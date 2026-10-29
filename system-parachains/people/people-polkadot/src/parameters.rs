@@ -104,12 +104,24 @@ pub mod dynamic_params {
 		pub static AccountParticipantAllowanceRecovery: Balance = 3 * MILLICENTS;
 	}
 
-	/// Lite-person registration pricing.
+	/// Lite-person registration pricing, cap and throttling.
 	#[dynamic_pallet_params]
 	#[codec(index = 3)]
 	pub mod lite_personhood {
 		#[codec(index = 0)]
 		pub static RegistrationFee: Balance = 75 * UNITS;
+		/// Number of lite people from which paid registrations are throttled.
+		#[codec(index = 1)]
+		pub static PaidRegistrationThreshold: u32 = 20_000;
+		/// Length of a paid registration period in seconds.
+		#[codec(index = 2)]
+		pub static PaidRegistrationPeriod: u32 = SECONDS_PER_DAY;
+		/// Number of paid registrations accepted per period once the threshold is reached.
+		#[codec(index = 3)]
+		pub static PaidRegistrationsPerPeriod: u32 = 10;
+		/// Maximum number of lite people, attested and paid together.
+		#[codec(index = 4)]
+		pub static MaxLitePeople: u32 = 100_000;
 	}
 
 	/// Coinage deposits, both in DOT.
@@ -243,6 +255,19 @@ pub type AccountParticipantAllowanceRecovery = AtLeast<
 pub type LitePersonRegistrationFee =
 	AtLeast<dynamic_params::lite_personhood::RegistrationFee, ExistentialDeposit>;
 
+/// Maximum number of lite people. Any value is valid; zero stops every lite registration.
+pub type MaxLitePeople = dynamic_params::lite_personhood::MaxLitePeople;
+
+/// Lite people count from which paid registrations are throttled. Any value is valid.
+pub type LitePaidRegistrationThreshold = dynamic_params::lite_personhood::PaidRegistrationThreshold;
+
+/// Paid lite registration period. Zero disables the paid registration throttling.
+pub type LitePaidRegistrationPeriod = dynamic_params::lite_personhood::PaidRegistrationPeriod;
+
+/// Paid lite registrations per period. Zero stops paid registrations beyond the threshold.
+pub type LitePaidRegistrationsPerPeriod =
+	dynamic_params::lite_personhood::PaidRegistrationsPerPeriod;
+
 /// Coinage load deposit price, kept non-zero so sponsored loads always take some collateral (the
 /// pallet's integrity test requires it).
 pub type CoinageLoadDepositPrice =
@@ -295,11 +320,16 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				OriginRestrictionKey::LitePeopleAllowanceRecovery(_) |
 				OriginRestrictionKey::AccountParticipantAllowanceRecovery(_),
 			) |
-			RuntimeParametersKey::LitePersonhood(LitePersonhoodKey::RegistrationFee(_)) =>
-				<RootOrTechnicalMaintenance as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
-					origin.clone(),
-				)
-				.map(|_| ()),
+			RuntimeParametersKey::LitePersonhood(
+				LitePersonhoodKey::RegistrationFee(_) |
+				LitePersonhoodKey::PaidRegistrationThreshold(_) |
+				LitePersonhoodKey::PaidRegistrationPeriod(_) |
+				LitePersonhoodKey::PaidRegistrationsPerPeriod(_) |
+				LitePersonhoodKey::MaxLitePeople(_),
+			) => <RootOrTechnicalMaintenance as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
+				origin.clone(),
+			)
+			.map(|_| ()),
 			// Where the chain sends data, what coinage costs, what score pays out in, and which
 			// account funds airdrop prizes.
 			RuntimeParametersKey::BulletinStorage(
