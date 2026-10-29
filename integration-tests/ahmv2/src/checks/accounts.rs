@@ -175,6 +175,9 @@ impl RcMigrationCheck for AccountsChecker {
 #[derive(Clone, Debug)]
 pub struct CtAccountsPre {
 	pub balances: BTreeMap<AccountId32, pallet_balances::AccountData<u128>>,
+	/// What each destination's proxy entry records as reserved, to tell the proxy stage's
+	/// deposit apart from what the accounts stage placed.
+	pub proxy_deposits: BTreeMap<AccountId32, u128>,
 	pub total_issuance: u128,
 }
 
@@ -190,7 +193,16 @@ impl ParaMigrationCheck<CoretimePara> for AccountsChecker {
 			.keys()
 			.map(|dest| (dest.clone(), account_data::<Ct>(dest)))
 			.collect();
-		CtAccountsPre { balances, total_issuance: pallet_balances::TotalIssuance::<Ct>::get() }
+		let proxy_deposits = rc_pre
+			.destinations
+			.keys()
+			.map(|dest| (dest.clone(), pallet_proxy::Proxies::<Ct>::get(dest).1))
+			.collect();
+		CtAccountsPre {
+			balances,
+			proxy_deposits,
+			total_issuance: pallet_balances::TotalIssuance::<Ct>::get(),
+		}
 	}
 
 	fn post_check(
@@ -222,9 +234,18 @@ impl ParaMigrationCheck<CoretimePara> for AccountsChecker {
 				assert_eq!(delta, expected.total, "pure-like {dest:?} must land on Coretime whole");
 			}
 			if expected.reserved > 0 {
+			    // CLAUDE: really? We dip from free buffer? Because thats for free balance
+							// Also statements like this confuses a reviewer. Are these real cases?
+				// The proxy stage reserves this chain's deposit for the definitions it recreates,
+				// out of the free buffer when the migrated hold does not cover it.
+				let proxy_deposit = pallet_proxy::Proxies::<Ct>::get(dest)
+					.1
+					.saturating_sub(ct_pre.proxy_deposits[dest]);
+				let reserved = grown(dest, before.reserved, data.reserved);
 				assert!(
-					grown(dest, before.reserved, data.reserved) <= expected.reserved,
-					"{dest:?} holds more on Coretime than it reserved on the Relay Chain"
+					reserved <= expected.reserved + proxy_deposit,
+					"{dest:?} reserves {reserved} more on Coretime, against {} on the Relay Chain and a proxy deposit of {proxy_deposit}",
+					expected.reserved,
 				);
 				if let Some(amount) = unattributed_hold(dest) {
 					unattributed_count += 1;
