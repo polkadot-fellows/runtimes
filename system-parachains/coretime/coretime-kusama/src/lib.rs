@@ -159,7 +159,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("coretime-kusama"),
 	impl_name: Cow::Borrowed("coretime-kusama"),
 	authoring_version: 1,
-	spec_version: 2_005_000,
+	spec_version: 2_005_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -237,6 +237,10 @@ impl pallet_broker::migration::v4::BlockToRelayHeightConversion<Runtime>
 // Configure FRAME pallets to include in runtime.
 #[derive_impl(frame_system::config_preludes::ParaChainDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Runtime {
+	#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+	type BaseCallFilter =
+		frame_support::traits::InsideBoth<EverythingBut<IsFilteredBrokerCall>, CtMigrator>;
+	#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
 	type BaseCallFilter = EverythingBut<IsFilteredBrokerCall>;
 	/// The identifier used to distinguish between accounts.
 	type AccountId = AccountId;
@@ -733,6 +737,8 @@ construct_runtime!(
 		// AHM v2 migrator.
 		#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
 		CtMigrator: pallet_ct_migrator = 255,
+		// TODO(ahm-v2): `RegistrarPara` and `HrmpPara` go here, closed until the migration is done
+		// (`ahm_v2/lockdown.rs`).
 	}
 );
 

@@ -20,6 +20,8 @@
 //! Compiled only with the `ahm-v2` feature, which released runtimes do not enable. The
 //! integration tests turn it on to drive the real runtime.
 
+pub mod lockdown;
+
 use crate::{xcm_config::XcmRouter, AccountId, Balances, Runtime, RuntimeEvent, RuntimeHoldReason};
 use frame_system::EnsureRoot;
 
@@ -29,12 +31,16 @@ impl pallet_ct_migrator::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
+	type PreMigrationCalls = lockdown::CallsEnabledBeforeMigration;
+	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
+	type PostMigrationCalls = frame_support::traits::Everything;
 }
 
 #[cfg(test)]
 mod tests {
-	use crate::{Runtime, RuntimeCall};
+	use crate::{AccountId, Runtime, RuntimeCall};
 	use codec::Encode;
+	use pallet_ct_migrator::accounts::PortableAccountOf;
 	use pallet_rc2_migrator::{CtMigratorCall, CtRuntimeCall};
 
 	/// Ensure the pallet + call index aligns.
@@ -48,6 +54,23 @@ mod tests {
 		assert_eq!(
 			CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown).encode(),
 			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::end_lockdown {}).encode(),
+		);
+		let accounts = vec![PortableAccountOf::<Runtime> {
+			who: AccountId::new([1; 32]),
+			free: 10,
+			holds: Default::default(),
+		}];
+		// The relay chain's hand-written mirror of this call must encode to the same bytes as
+		// the real call.
+		assert_eq!(
+			CtRuntimeCall::CtMigrator(CtMigratorCall::ReceiveAccounts {
+				accounts: accounts.clone()
+			})
+			.encode(),
+			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::receive_accounts {
+				accounts
+			})
+			.encode(),
 		);
 	}
 }

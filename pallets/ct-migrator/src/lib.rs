@@ -45,6 +45,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod accounts;
+
 pub use pallet::*;
 
 use alloc::{vec, vec::Vec};
@@ -53,7 +55,7 @@ use frame_support::{
 	storage::with_storage_layer,
 	traits::{
 		fungible::{Inspect, Mutate, MutateHold},
-		EnsureOrigin,
+		Contains, EnsureOrigin, GetCallMetadata,
 	},
 };
 use frame_system::pallet_prelude::*;
@@ -146,6 +148,15 @@ pub mod pallet {
 
 		/// The overarching hold reason type.
 		type RuntimeHoldReason: From<HoldReason>;
+
+		/// Calls that are allowed before the migration starts.
+		type PreMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Calls that are allowed during the migration.
+		type IntraMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Calls that are allowed after the migration finished.
+		type PostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 	}
 
 	#[pallet::composite_enum]
@@ -164,6 +175,7 @@ pub mod pallet {
 		ProxyDeposit,
 		/// Relay Chain reserve that no pallet's deposit records accounted for. Parked here for
 		/// investigation. Nothing was allowed to stay behind on the Relay Chain.
+		// TODO(ahm-v2): a root call that releases this hold, for governance to return it.
 		#[codec(index = 3)]
 		UnattributedReserve,
 	}
@@ -181,6 +193,16 @@ pub mod pallet {
 	/// can not set the manager account id via `set_manager` call.
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
+	/// Accounts that could not be minted, parked as received. Each is balance the relay chain
+	/// burned and this chain did not mint.
+	#[pallet::storage]
+	pub type FailedAccounts<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, accounts::PortableAccountOf<T>, OptionQuery>;
+
+	/// Total minted by the accounts stage, to reconcile against what the relay chain burned.
+	#[pallet::storage]
+	pub type CtMintedTotal<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -209,6 +231,8 @@ pub mod pallet {
 			/// The new manager account id.
 			new: Option<T::AccountId>,
 		},
+		/// A batch of migrated accounts was processed.
+		AccountsReceived { count_good: u32, count_bad: u32 },
 	}
 
 	#[pallet::call]
@@ -224,9 +248,6 @@ pub mod pallet {
 		pub fn start_migration(origin: OriginFor<T>) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 
-			// TODO(ahm-v2): lock this chain down before answering, until the migration ends:
-			// filter the calls whose state is about to move, and refuse inbound XCM from anyone
-			// but the relay chain.
 			// TODO(ahm-v2): give the relay chain's queue priority while the migration runs.
 			match CtMigrationStage::<T>::get() {
 				// try send xcm before updating stage.
@@ -290,6 +311,23 @@ pub mod pallet {
 			Self::deposit_event(Event::ManagerSet { old, new });
 			Ok(())
 		}
+
+		/// Mint a batch of accounts migrated from the relay chain, holds included. See
+		/// [`Pallet::do_receive_accounts`]. Never fails: an account that cannot be minted is
+		/// parked, the rest of the batch goes through.
+		// TODO(ahm-v2): proper benchmark
+		#[pallet::call_index(4)]
+		#[pallet::weight(
+			T::DbWeight::get().reads_writes(4, 4).saturating_mul(accounts.len() as u64)
+		)]
+		pub fn receive_accounts(
+			origin: OriginFor<T>,
+			accounts: Vec<accounts::PortableAccountOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			Self::do_receive_accounts(accounts);
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -344,6 +382,34 @@ pub mod pallet {
 	}
 }
 
+/// The call filter for the current migration stage. Meant to be part of the runtime's
+/// `BaseCallFilter`.
+impl<T: Config> Contains<<T as frame_system::Config>::RuntimeCall> for Pallet<T>
+where
+	<T as frame_system::Config>::RuntimeCall: GetCallMetadata,
+{
+	fn contains(call: &<T as frame_system::Config>::RuntimeCall) -> bool {
+		let stage = CtMigrationStage::<T>::get();
+		let allowed = if stage.is_finished() {
+			T::PostMigrationCalls::contains(call)
+		} else if stage.is_ongoing() {
+			T::IntraMigrationCalls::contains(call)
+		} else {
+			T::PreMigrationCalls::contains(call)
+		};
+		if !allowed {
+			let call = call.get_call_metadata();
+			log::debug!(
+				target: LOG_TARGET,
+				"Call filtered at {stage:?}: {}::{}",
+				call.pallet_name,
+				call.function_name,
+			);
+		}
+		allowed
+	}
+}
+
 /// What each hold migrated from the Relay Chain becomes on this chain.
 impl From<PortableHoldReason> for HoldReason {
 	fn from(reason: PortableHoldReason) -> Self {
@@ -356,7 +422,6 @@ impl From<PortableHoldReason> for HoldReason {
 	}
 }
 
-// TODO(ahm-v2): the helper below has no caller and no test until the accounts stage lands.
 impl<T: Config> Pallet<T> {
 	/// Run `integrate` over every item in its own storage transaction. A failing item is rolled
 	/// back and handed to `park`; the other items are unaffected. Returns `(count_good,

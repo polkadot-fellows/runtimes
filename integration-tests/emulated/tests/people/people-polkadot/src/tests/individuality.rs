@@ -51,6 +51,9 @@ fn people_ring_root_notification_activates_asset_hub_subscriber() {
 
 		// Seed an existing People collection/root so subscription initialization has real
 		// state to transmit rather than merely exercising an empty init page.
+		assert_ok!(indiv_pallet_people::Pallet::<PeopleRuntime>::create_people_collection(
+			<PeoplePolkadot as Chain>::RuntimeOrigin::from(frame_system::RawOrigin::Authorized),
+		));
 		Root::<PeopleRuntime>::insert(
 			collection,
 			0,

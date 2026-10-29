@@ -113,7 +113,8 @@ impl indiv_pallet_members_subscriber::Config for Runtime {
 	type SelfParaId = MembersSubscriberSelfParaId;
 	type MaxMissingRootsPerCollection = ConstU32<255>;
 	type MaxDeletedRingsPerCollection = ConstU32<100>;
-	type MaxGapScanPerBatch = ConstU32<32>;
+	type MaxGapScanPerCall = ConstU32<32>;
+	type GapScanCooldownSeconds = ConstU64<60>;
 	type PurgePageSize = ConstU32<100>;
 	type EnsureNotifierOrigin = EnsureNotifierSibling;
 	type EnsureTerminationOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureNotifierSibling>;
