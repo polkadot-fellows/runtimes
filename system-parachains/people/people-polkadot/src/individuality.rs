@@ -772,15 +772,16 @@ impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureClaimsChainSib
 	}
 }
 
+/// The default game phase durations, sized for a game of 10 000 players at 2 second blocks.
 pub struct GamePhaseDurations;
 impl Get<PhaseDurationValues> for GamePhaseDurations {
 	fn get() -> PhaseDurationValues {
 		PhaseDurationValues {
-			registration: 5 * 60,
-			shuffle: 60,
+			registration: 20 * 60,
+			shuffle: 10 * 60,
 			post_shuffle_margin: 30,
-			reporting: 10 * 60,
-			player_process: 60,
+			reporting: 120 * 60,
+			player_process: 8 * 60,
 		}
 	}
 }
