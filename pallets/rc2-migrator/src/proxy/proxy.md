@@ -8,7 +8,7 @@ Every proxy definition whose permission has a meaning on the Coretime chain is r
 |------|------|
 | A definition whose permission the runtime maps (`TryFrom<ProxyType> for PortableProxyType`) | Sent with its delay in Relay Chain blocks. The Coretime chain converts the delay to its own blocks and takes its own deposit out of the `ProxyDeposit` hold the accounts stage placed. |
 | A definition whose permission has no meaning there (staking, governance, …) | Not sent. |
-| A pure proxy | Its `Any` definition travels like any other. The pure account can only act through it, which is why the accounts stage routed its whole balance to the Coretime chain. |
+| A pure proxy | Its `Any` definition travels like any other. The pure account can only act through it, which is why the accounts stage routed its whole balance to the Coretime chain. `kill_pure` works there with the Relay Chain block and extrinsic index of its creation, since the address derives the same way, unless the spawner is a para's sovereign account, which is named differently there. |
 | A para's sovereign account, as delegator or delegate | Named by its sibling address on the wire, like its balance. |
 | Announcements | Not migrated. The accounts stage refunded their deposits. |
 
