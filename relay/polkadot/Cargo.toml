@@ -96,7 +96,6 @@ pallet-xcm-benchmarks = { optional = true, workspace = true }
 frame-benchmarking = { optional = true, workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
-pallet-election-provider-support-benchmarking = { optional = true, workspace = true }
 pallet-offences-benchmarking = { optional = true, workspace = true }
 pallet-session-benchmarking = { optional = true, workspace = true }
 pallet-nomination-pools-benchmarking = { optional = true, workspace = true }
@@ -173,7 +172,6 @@ std = [
 	"pallet-child-bounties/std",
 	"pallet-conviction-voting/std",
 	"pallet-delegated-staking/std",
-	"pallet-election-provider-support-benchmarking?/std",
 	"pallet-fast-unstake/std",
 	"pallet-grandpa/std",
 	"pallet-indices/std",
@@ -258,7 +256,6 @@ runtime-benchmarks = [
 	"pallet-conviction-voting/runtime-benchmarks",
 	"pallet-ct-migrator/runtime-benchmarks",
 	"pallet-delegated-staking/runtime-benchmarks",
-	"pallet-election-provider-support-benchmarking/runtime-benchmarks",
 	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-grandpa/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",

@@ -35,10 +35,6 @@ use beefy_primitives::{
 };
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::cmp::Ordering;
-use frame_election_provider_support::{
-	bounds::ElectionBoundsBuilder, onchain, BoundedSupportsOf, ElectionProvider, PageIndex,
-	SequentialPhragmen,
-};
 use frame_support::{
 	construct_runtime,
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
@@ -106,7 +102,7 @@ use runtime_parachains::{
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
 };
-use sp_core::{ConstBool, OpaqueMetadata, H256};
+use sp_core::{OpaqueMetadata, H256};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
@@ -570,11 +566,6 @@ impl pallet_session::historical::Config for Runtime {
 
 parameter_types! {
 	pub const MaxElectingVoters: u32 = 22_500;
-	/// We take the top 22500 nominators as electing voters and all of the validators as electable
-	/// targets. Whilst this is the case, we cannot and shall not increase the size of the
-	/// validator intentions.
-	pub ElectionBounds: frame_election_provider_support::bounds::ElectionBounds =
-		ElectionBoundsBuilder::default().voters_count(MaxElectingVoters::get().into()).build();
 	/// Setup election pallet to support maximum winners upto 1200. This will mean Staking Pallet
 	/// cannot have active validators higher than this count.
 	pub const MaxActiveValidators: u32 = 1200;
@@ -582,58 +573,6 @@ parameter_types! {
 	pub const MaxWinnersPerPage: u32 = MaxActiveValidators::get();
 	// Unbounded, thus the max backers per winner maps to the max electing voters limit.
 	pub const MaxBackersPerWinner: u32 = MaxElectingVoters::get();
-}
-
-pub struct OnChainSeqPhragmen;
-impl onchain::Config for OnChainSeqPhragmen {
-	type Sort = ConstBool<true>;
-	type System = Runtime;
-	type Solver =
-		SequentialPhragmen<AccountId, polkadot_runtime_common::elections::OnChainAccuracy>;
-	type DataProvider = Staking;
-	type WeightInfo = weights::frame_election_provider_support::WeightInfo<Runtime>;
-	type Bounds = ElectionBounds;
-	type MaxBackersPerWinner = MaxBackersPerWinner;
-	type MaxWinnersPerPage = MaxWinnersPerPage;
-}
-
-type OnChainElection = onchain::OnChainExecution<OnChainSeqPhragmen>;
-
-/// The on-chain election of `Staking`, which never reports an ongoing election.
-///
-/// It exists only so that the parachains slashing benchmark can elect its validator set through
-/// `Staking`. TODO: use `NoElection` once
-/// <https://github.com/paritytech/polkadot-sdk/issues/12513> decouples that benchmark from
-/// `pallet-staking`.
-///
-/// `pallet-staking` calls `elect` without reading `status`, and it treats any `Ok` from `status`
-/// as an ongoing election, which pauses fast unstake. An on-chain election ends inside `elect`.
-pub struct StakingElection;
-impl ElectionProvider for StakingElection {
-	type AccountId = <OnChainElection as ElectionProvider>::AccountId;
-	type BlockNumber = <OnChainElection as ElectionProvider>::BlockNumber;
-	type Error = <OnChainElection as ElectionProvider>::Error;
-	type MaxWinnersPerPage = <OnChainElection as ElectionProvider>::MaxWinnersPerPage;
-	type MaxBackersPerWinner = <OnChainElection as ElectionProvider>::MaxBackersPerWinner;
-	type MaxBackersPerWinnerFinal = <OnChainElection as ElectionProvider>::MaxBackersPerWinnerFinal;
-	type Pages = <OnChainElection as ElectionProvider>::Pages;
-	type DataProvider = <OnChainElection as ElectionProvider>::DataProvider;
-
-	fn elect(page: PageIndex) -> Result<BoundedSupportsOf<Self>, Self::Error> {
-		OnChainElection::elect(page)
-	}
-
-	fn duration() -> Self::BlockNumber {
-		OnChainElection::duration()
-	}
-
-	fn start() -> Result<(), Self::Error> {
-		OnChainElection::start()
-	}
-
-	fn status() -> Result<Option<Weight>, ()> {
-		Err(())
-	}
 }
 
 parameter_types! {
@@ -727,8 +666,15 @@ impl pallet_staking::Config for Runtime {
 	type EraPayout = EraPayout;
 	type MaxExposurePageSize = MaxExposurePageSize;
 	type NextNewSession = Session;
-	type ElectionProvider = StakingElection;
-	type GenesisElectionProvider = OnChainElection;
+	// Asset Hub runs the staking elections.
+	type ElectionProvider = frame_election_provider_support::NoElection<(
+		AccountId,
+		BlockNumber,
+		Staking,
+		MaxWinnersPerPage,
+		MaxBackersPerWinner,
+	)>;
+	type GenesisElectionProvider = Self::ElectionProvider;
 	type VoterList = VoterList;
 	type TargetList = UseValidatorsMap<Self>;
 	type MaxValidatorSet = MaxActiveValidators;
@@ -1974,7 +1920,8 @@ mod benches {
 		[polkadot_runtime_common::paras_registrar, Registrar]
 		[runtime_parachains::configuration, Configuration]
 		[runtime_parachains::disputes, ParasDisputes]
-		[runtime_parachains::disputes::slashing, ParasSlashing]
+		// TODO: add `runtime_parachains::disputes::slashing` when its benchmark stops needing
+		// `pallet-staking`: <https://github.com/paritytech/polkadot-sdk/issues/12513>.
 		[runtime_parachains::hrmp, Hrmp]
 		[runtime_parachains::inclusion, ParaInclusion]
 		[runtime_parachains::initializer, Initializer]
@@ -1989,7 +1936,6 @@ mod benches {
 		[frame_benchmarking::baseline, Baseline::<Runtime>]
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
-		[frame_election_provider_support, ElectionProviderBench::<Runtime>]
 		[pallet_fast_unstake, FastUnstake]
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
@@ -2026,7 +1972,6 @@ mod benches {
 	pub use frame_system_benchmarking::{
 		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
 	};
-	pub use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
 	pub use pallet_offences_benchmarking::Pallet as OffencesBench;
 	pub use pallet_session_benchmarking::Pallet as SessionBench;
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
@@ -2040,10 +1985,8 @@ mod benches {
 		}
 	}
 	impl pallet_offences_benchmarking::Config for Runtime {}
-	impl pallet_election_provider_support_benchmarking::Config for Runtime {}
 	impl frame_system_benchmarking::Config for Runtime {}
 	impl frame_benchmarking::baseline::Config for Runtime {}
-	impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
 
 	parameter_types! {
 		pub ExistentialDepositAsset: Option<Asset> = Some((
