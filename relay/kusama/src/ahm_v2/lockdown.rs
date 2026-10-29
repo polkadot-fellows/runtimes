@@ -15,7 +15,7 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 //! The relay chain's AHM v2 lockdown: which calls each migration stage allows, and the barrier
-//! that refuses inbound messages once the migration starts.
+//! that refuses inbound messages once the data migration starts.
 
 use crate::{parachains_paras, parachains_slashing, Runtime, RuntimeCall};
 use frame_support::{
@@ -23,29 +23,27 @@ use frame_support::{
 	weights::Weight,
 };
 use kusama_runtime_constants::system_parachain::{ASSET_HUB_ID, BROKER_ID};
-use pallet_rc2_migrator::RcMigrationStage;
+use pallet_rc2_migrator::{MigrationPhase, RcMigrationStage};
 use xcm::latest::{Instruction, Junction::Parachain, Location};
 use xcm_executor::traits::{DenyExecution, Properties};
 
-/// Refuses every inbound message once the migration starts, except from this chain, the Coretime
-/// chain and Asset Hub.
-pub struct DenyOnceMigrationStarts;
-impl DenyExecution for DenyOnceMigrationStarts {
+/// Refuses every inbound message once the data migration starts, except from this chain, the
+/// Coretime chain and Asset Hub. Messages still execute during the warm-up so the queues drain.
+/// A `Transact` the barrier admits still dispatches through the call filter.
+pub struct DenyOnceDataMigrationStarts;
+impl DenyExecution for DenyOnceDataMigrationStarts {
 	fn deny_execution<RuntimeCall>(
 		origin: &Location,
 		_instructions: &mut [Instruction<RuntimeCall>],
 		_max_weight: Weight,
 		_properties: &mut Properties,
 	) -> Result<(), ProcessMessageError> {
-		let stage = RcMigrationStage::<Runtime>::get();
-		if !stage.has_started() {
-			Ok(())
-		} else if stage.is_ongoing() {
-			only_from_self_coretime_or_asset_hub(origin)
-		} else {
+		match RcMigrationStage::<Runtime>::get().phase() {
+			MigrationPhase::NotStarted | MigrationPhase::WarmUp => Ok(()),
+			MigrationPhase::DataMigration => only_from_self_coretime_or_asset_hub(origin),
 			// TODO(ahm-v2): paras reach `HrmpRelay` and `RegistrarRelay` over XCM after the
 			// migration; let that envelope through here.
-			only_from_self_coretime_or_asset_hub(origin)
+			MigrationPhase::Done => only_from_self_coretime_or_asset_hub(origin),
 		}
 	}
 }
@@ -222,9 +220,22 @@ mod tests {
 
 	/// One stage from each part of the migration, and its end.
 	fn stages_from_start() -> Vec<Stage> {
+		stages_in_warm_up().into_iter().chain(stages_from_data_migration()).collect()
+	}
+
+	/// The stages where calls are filtered but nothing moves yet.
+	fn stages_in_warm_up() -> Vec<Stage> {
+		vec![Stage::WaitingForCt, Stage::WarmUp { end_at: 0 }]
+	}
+
+	/// Every stage before data moves.
+	fn stages_before_data_migration() -> Vec<Stage> {
+		stages_before_start().into_iter().chain(stages_in_warm_up()).collect()
+	}
+
+	/// One stage from each part of the data migration, and its end.
+	fn stages_from_data_migration() -> Vec<Stage> {
 		vec![
-			Stage::WaitingForCt,
-			Stage::WarmUp { end_at: 0 },
 			Stage::AccountsOngoing { last_key: None },
 			Stage::CoolOff { end_at: 0 },
 			Stage::MigrationDone,
@@ -375,17 +386,17 @@ mod tests {
 	}
 
 	#[test]
-	fn inbound_teleports_are_refused_once_the_migration_starts() {
+	fn inbound_teleports_are_refused_once_the_data_migration_starts() {
 		let asset_hub = para(ASSET_HUB_ID);
 
-		// GIVEN the migration has not started. THEN a teleport from Asset Hub lands.
-		for stage in stages_before_start() {
+		// GIVEN the data migration has not started. THEN a teleport from Asset Hub lands.
+		for stage in stages_before_data_migration() {
 			assert_ok!(execute_from(&stage, asset_hub.clone(), teleport()));
 		}
 
-		// GIVEN the migration has started. THEN the same teleport is refused as untrusted, also
-		// after it is done.
-		for stage in stages_from_start() {
+		// GIVEN the data migration has started. THEN the same teleport is refused as untrusted,
+		// also after it is done.
+		for stage in stages_from_data_migration() {
 			assert_err!(
 				execute_from(&stage, asset_hub.clone(), teleport()),
 				XcmError::UntrustedTeleportLocation
@@ -462,9 +473,9 @@ mod tests {
 	}
 
 	#[test]
-	fn only_coretime_and_asset_hub_reach_this_chain_once_the_migration_starts() {
-		// GIVEN the migration has not started. THEN a para and any system chain get through.
-		for stage in stages_before_start() {
+	fn only_coretime_and_asset_hub_reach_this_chain_once_the_data_migration_starts() {
+		// GIVEN the data migration has not started. THEN a para and any system chain get through.
+		for stage in stages_before_data_migration() {
 			for (origin, message) in [
 				(para(2000), paid()),
 				(para(BRIDGE_HUB_ID), paid()),
@@ -474,9 +485,10 @@ mod tests {
 			}
 		}
 
-		// GIVEN the migration has started. THEN a para and every other system chain are refused,
-		// paid or unpaid, also after it is done. The Coretime chain and Asset Hub get through.
-		for stage in stages_from_start() {
+		// GIVEN the data migration has started. THEN a para and every other system chain are
+		// refused, paid or unpaid, also after it is done. The Coretime chain and Asset Hub get
+		// through.
+		for stage in stages_from_data_migration() {
 			for message in [paid(), unpaid()] {
 				for origin in [para(2000), para(BRIDGE_HUB_ID)] {
 					assert_err!(execute_from(&stage, origin, message.clone()), XcmError::Barrier);

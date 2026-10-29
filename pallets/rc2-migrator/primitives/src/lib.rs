@@ -123,7 +123,7 @@ pub enum PortableProxyType {
 	ParaRegistration,
 }
 
-/// Bound on [`PortableAccount::holds`].
+/// Bound on [`PortableAccount::holds`]: one hold per [`PortableHoldReason`] variant.
 pub type MaxPortableHolds = ConstU32<4>;
 
 /// An account's balance as it leaves the Relay Chain.
