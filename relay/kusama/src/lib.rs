@@ -38,6 +38,7 @@ use beefy_primitives::{
 };
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::cmp::Ordering;
+use frame_election_provider_support::{bounds::ElectionBoundsBuilder, onchain, SequentialPhragmen};
 use frame_support::{
 	construct_runtime,
 	dispatch::RawOrigin,
@@ -104,7 +105,7 @@ use runtime_parachains::{
 	shared as parachains_shared,
 };
 use scale_info::TypeInfo;
-use sp_core::{ConstU128, OpaqueMetadata, H256};
+use sp_core::{ConstBool, ConstU128, OpaqueMetadata, H256};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
@@ -601,6 +602,11 @@ impl pallet_session::historical::Config for Runtime {
 
 parameter_types! {
 	pub const MaxElectingVoters: u32 = 12_500;
+	/// We take the top 12500 nominators as electing voters and all of the validators as electable
+	/// targets. Whilst this is the case, we cannot and shall not increase the size of the
+	/// validator intentions.
+	pub ElectionBounds: frame_election_provider_support::bounds::ElectionBounds =
+		ElectionBoundsBuilder::default().voters_count(MaxElectingVoters::get().into()).build();
 	/// Setup election pallet to support maximum winners upto 2000. This will mean Staking Pallet
 	/// cannot have active validators higher than this count.
 	pub const MaxActiveValidators: u32 = 2000;
@@ -608,6 +614,19 @@ parameter_types! {
 	pub const MaxWinnersPerPage: u32 = MaxActiveValidators::get();
 	// Unbounded, thus the max backers per winner maps to the max electing voters limit.
 	pub const MaxBackersPerWinner: u32 = MaxElectingVoters::get();
+}
+
+pub struct OnChainSeqPhragmen;
+impl onchain::Config for OnChainSeqPhragmen {
+	type Sort = ConstBool<true>;
+	type System = Runtime;
+	type Solver =
+		SequentialPhragmen<AccountId, polkadot_runtime_common::elections::OnChainAccuracy>;
+	type DataProvider = Staking;
+	type WeightInfo = weights::frame_election_provider_support::WeightInfo<Runtime>;
+	type Bounds = ElectionBounds;
+	type MaxBackersPerWinner = MaxBackersPerWinner;
+	type MaxWinnersPerPage = MaxWinnersPerPage;
 }
 
 parameter_types! {
@@ -829,7 +848,7 @@ impl pallet_staking::Config for Runtime {
 		MaxWinnersPerPage,
 		MaxBackersPerWinner,
 	)>;
-	type GenesisElectionProvider = Self::ElectionProvider;
+	type GenesisElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
 	type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
 	type RuntimeEvent = RuntimeEvent;
 	type Slash = ResolveTo<TreasuryAccount, Balances>;
@@ -2101,6 +2120,7 @@ mod benches {
 		[pallet_bounties, Bounties]
 		[pallet_child_bounties, ChildBounties]
 		[pallet_conviction_voting, ConvictionVoting]
+		[frame_election_provider_support, ElectionProviderBench::<Runtime>]
 		[pallet_fast_unstake, FastUnstake]
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
@@ -2138,6 +2158,7 @@ mod benches {
 		}
 	}
 	impl pallet_offences_benchmarking::Config for Runtime {}
+	impl pallet_election_provider_support_benchmarking::Config for Runtime {}
 	impl frame_system_benchmarking::Config for Runtime {}
 	impl frame_benchmarking::baseline::Config for Runtime {}
 
@@ -2330,6 +2351,7 @@ mod benches {
 	pub use frame_system_benchmarking::{
 		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
 	};
+	pub use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
 	pub use pallet_offences_benchmarking::Pallet as OffencesBench;
 	pub use pallet_session_benchmarking::Pallet as SessionBench;
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
