@@ -772,6 +772,7 @@ fn session_key_deposit_works() {
 }
 
 /// The version-2 pipeline, with `ScoreAsParticipant` turning the signer into a participant.
+#[cfg(not(feature = "runtime-benchmarks"))]
 fn score_participant_tx_extension(nonce: u32) -> crate::TxExtensionV2 {
 	cumulus_pallet_weight_reclaim::StorageWeightReclaim::new((
 		(
