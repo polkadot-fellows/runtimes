@@ -82,11 +82,16 @@ fn receive_writes_the_definitions_and_reprices_the_deposit() {
 #[test]
 fn receive_merges_with_the_definitions_already_here() {
 	new_test_ext().execute_with(|| {
-		// GIVEN Alice already delegates to Bob here, priced at this chain's rates, and no
-		// migrated deposit.
+		// GIVEN Alice already delegates to Bob here, priced at this chain's rates, and her relay
+		// chain proxy deposit on hold.
 		assert_ok!(<Balances as Mutate<AccountId>>::mint_into(&ALICE, 1_000));
 		assert_ok!(Proxy::add_proxy(RuntimeOrigin::signed(ALICE), BOB, ProxyType::Any, 0));
 		assert_eq!(reserved(&ALICE), proxy_deposit(1));
+		CtMigrator::do_receive_accounts(vec![portable_account(
+			&ALICE,
+			0,
+			vec![(PortableHoldReason::ProxyDeposit, 400)],
+		)]);
 
 		// WHEN a set arrives with Bob again and Charlie.
 		CtMigrator::do_receive_proxies(vec![portable_proxy(
@@ -94,30 +99,51 @@ fn receive_merges_with_the_definitions_already_here() {
 			vec![(BOB, PortableProxyType::Any, 0), (CHARLIE, PortableProxyType::Any, 0)],
 		)]);
 
-		// THEN Bob is not added twice and the deposit tops up to two definitions.
+		// THEN Bob is not added twice, the deposit tops up to two definitions out of the
+		// migrated one, and the rest of it is free.
 		assert_eq!(
 			entry(&ALICE),
 			(vec![(BOB, ProxyType::Any, 0), (CHARLIE, ProxyType::Any, 0)], proxy_deposit(2))
 		);
 		assert_eq!(reserved(&ALICE), proxy_deposit(2));
+		assert_eq!(held(HoldReason::ProxyDeposit, &ALICE), 0);
+		assert_eq!(free(&ALICE), 1_000 + 400 - proxy_deposit(2));
 	});
 }
 
 #[test]
-fn receive_writes_the_entry_without_a_deposit_it_cannot_reserve() {
+fn receive_reserves_no_more_than_the_migrated_deposit() {
 	new_test_ext().execute_with(|| {
-		// GIVEN Alice with the existential deposit only and nothing on hold.
-		assert_ok!(<Balances as Mutate<AccountId>>::mint_into(&ALICE, ED));
+		// GIVEN Alice with a balance of her own and nothing on hold, as a pure proxy arrives.
+		assert_ok!(<Balances as Mutate<AccountId>>::mint_into(&ALICE, 1_000));
+		let set = vec![portable_proxy(&ALICE, vec![(BOB, PortableProxyType::Any, 0)])];
 
-		// WHEN her set arrives. THEN the definition is written with no deposit recorded, and
-		// the set counts as good.
-		CtMigrator::do_receive_proxies(vec![portable_proxy(
+		// WHEN her set arrives. THEN the definition is written with no deposit recorded, her
+		// balance stays free, and the set counts as good.
+		hypothetically!({
+			CtMigrator::do_receive_proxies(set.clone());
+			assert_eq!(entry(&ALICE), (vec![(BOB, ProxyType::Any, 0)], 0));
+			assert_eq!(reserved(&ALICE), 0);
+			assert_eq!(free(&ALICE), 1_000);
+			assert_eq!(
+				migrator_events(),
+				vec![Event::ProxiesReceived { count_good: 1, count_bad: 0 }]
+			);
+		});
+
+		// WHEN a deposit short of this chain's price arrives on hold with her instead. THEN
+		// that much is reserved and recorded, and her own balance stays free.
+		let short = proxy_deposit(1) - 1;
+		CtMigrator::do_receive_accounts(vec![portable_account(
 			&ALICE,
-			vec![(BOB, PortableProxyType::Any, 0)],
+			0,
+			vec![(PortableHoldReason::ProxyDeposit, short)],
 		)]);
-		assert_eq!(entry(&ALICE), (vec![(BOB, ProxyType::Any, 0)], 0));
-		assert_eq!(reserved(&ALICE), 0);
-		assert_eq!(migrator_events(), vec![Event::ProxiesReceived { count_good: 1, count_bad: 0 }]);
+		CtMigrator::do_receive_proxies(set);
+		assert_eq!(entry(&ALICE), (vec![(BOB, ProxyType::Any, 0)], short));
+		assert_eq!(reserved(&ALICE), short);
+		assert_eq!(held(HoldReason::ProxyDeposit, &ALICE), 0);
+		assert_eq!(free(&ALICE), 1_000);
 	});
 }
 
