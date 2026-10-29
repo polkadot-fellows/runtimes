@@ -19,6 +19,8 @@ use crate::{Runtime, TrustBackedAssetsInstance};
 use alloc::vec::Vec;
 use frame_support::parameter_types;
 
+pub mod recalculate_asset_supply;
+
 /// Provides the initial `LastIssuanceTimestamp` for the DAP V1->V2 migration.
 ///
 /// Uses the start of the active era (ms since unix epoch) so the catch-up drip covers
@@ -225,6 +227,11 @@ impl frame_support::traits::OnRuntimeUpgrade for ForceCreatePgasAsset {
 	}
 }
 
+parameter_types! {
+	/// dotUSD on Asset Hub Polkadot: the asset whose recorded supply is corrected.
+	pub const DotUsdAssetId: u32 = 7873;
+}
+
 /// Unreleased migrations. Add new ones here:
 pub type Unreleased = (
 	// no-op if member has no trapped balance, so second run is safe.
@@ -294,6 +301,13 @@ mod multiblock_migrations {
 		// Mandatory companion to `pallet_revive::Config::Deposit` becoming
 		// `PGasDeposit`.
 		pallet_revive::migrations::v4::Migration<Runtime>,
+		// Recompute dotUSD total issuance, which sits below the real sum of balances. dotUSD is
+		// frozen while this runs.
+		super::recalculate_asset_supply::RecalculateSupply<
+			Runtime,
+			TrustBackedAssetsInstance,
+			super::DotUsdAssetId,
+		>,
 	);
 
 	/// This type provides reserves information for `asset_id`. Meant to be used in a migration

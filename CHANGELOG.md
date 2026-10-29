@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Polkadot & Kusama: remove `pallet-election-provider-multi-phase` from the relay runtimes. Staking elections run on Asset Hub since the AHM, and a migration clears the pallet's storage ([#1313](https://github.com/polkadot-fellows/runtimes/pull/1313)).
 
+## [2.5.2] 27.10.2026
+
+### Fixed
+
+- Asset Hub Polkadot: multi-block migration recomputing `pallet-assets` total issuance for dotUSD (`7873`). dotUSD is frozen while it runs ([#1334](https://github.com/polkadot-fellows/runtimes/pull/1334)).
+
 ## [2.5.1] 24.10.2026
 
 ### Removed
