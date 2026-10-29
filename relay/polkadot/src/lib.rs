@@ -490,13 +490,16 @@ const BEEFY_WHITELISTED_PARATHREADS: &[ParaId] = &[
 pub struct ParaHeadsRootProvider;
 impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 	fn extra_data() -> H256 {
-		let para_heads: BTreeMap<u32, Vec<u8>> = parachains_paras::Parachains::<Runtime>::get()
-			.iter()
-			.chain(BEEFY_WHITELISTED_PARATHREADS.iter())
-			.filter_map(|id| {
-				parachains_paras::Heads::<Runtime>::get(id).map(|head| ((*id).into(), head.0))
-			})
-			.collect();
+		let mut para_heads = Paras::sorted_para_heads();
+
+		for id in BEEFY_WHITELISTED_PARATHREADS {
+			let raw_id = u32::from(*id);
+			if let Err(pos) = para_heads.binary_search_by_key(&raw_id, |(id, _)| *id) {
+				if let Some(head) = parachains_paras::Heads::<Runtime>::get(id) {
+					para_heads.insert(pos, (raw_id, head.0));
+				}
+			}
+		}
 
 		binary_merkle_tree::merkle_root::<mmr::Hashing, _>(
 			para_heads.into_iter().map(|pair| pair.encode()),
