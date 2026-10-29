@@ -21,19 +21,13 @@ mod tests;
 
 use crate::{
 	accounts::{AccountsMigrator, ProxyDefinitionOf},
-	Config, Limits, LOG_TARGET,
+	Config, Limits,
 };
 use alloc::vec::Vec;
 use core::marker::PhantomData;
+use frame_support::{traits::DefensiveTruncateFrom, BoundedVec};
 use migrator_types::{translate_destination, PortableProxy, PortableProxyDelegate};
 use sp_runtime::{traits::UniqueSaturatedInto, AccountId32};
-
-/// Why a delegator's definitions could not be sent. The entry is skipped.
-#[derive(Debug, PartialEq, Eq)]
-pub enum Error {
-	/// More portable definitions than the wire format holds.
-	TooManyDelegates,
-}
 
 /// What one block of the stage read.
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -55,9 +49,7 @@ impl<T: Config> ProxyMigrator<T> {
 	// deposit.
 	pub fn migrate_many(last_key: Option<T::AccountId>) -> BlockProxies {
 		let mut iter = match last_key {
-			Some(last_key) => pallet_proxy::Proxies::<T>::iter_from(
-				pallet_proxy::Proxies::<T>::hashed_key_for(&last_key),
-			),
+			Some(last_key) => pallet_proxy::Proxies::<T>::iter_from_key(last_key),
 			None => pallet_proxy::Proxies::<T>::iter(),
 		};
 
@@ -67,12 +59,8 @@ impl<T: Config> ProxyMigrator<T> {
 				out.last_key = None;
 				return out;
 			};
-			match Self::migrate_single(&who, &defs) {
-				Ok(Some(proxy)) => out.proxies.push(proxy),
-				Ok(None) => (),
-				Err(error) => {
-					log::error!(target: LOG_TARGET, "Proxies of {who:?} not sent: {error:?}");
-				},
+			if let Some(proxy) = Self::migrate_single(&who, &defs) {
+				out.proxies.push(proxy);
 			}
 			out.last_key = Some(who);
 		}
@@ -84,7 +72,7 @@ impl<T: Config> ProxyMigrator<T> {
 	pub fn migrate_single(
 		who: &T::AccountId,
 		defs: &[ProxyDefinitionOf<T>],
-	) -> Result<Option<PortableProxy<AccountId32>>, Error> {
+	) -> Option<PortableProxy<AccountId32>> {
 		let delegates: Vec<_> = defs
 			.iter()
 			.filter_map(|def| {
@@ -98,11 +86,12 @@ impl<T: Config> ProxyMigrator<T> {
 			})
 			.collect();
 		if delegates.is_empty() {
-			return Ok(None);
+			return None;
 		}
-		Ok(Some(PortableProxy {
+		Some(PortableProxy {
 			delegator: translate_destination(who),
-			delegates: delegates.try_into().map_err(|_| Error::TooManyDelegates)?,
-		}))
+			// a relay set fits the wire, which the integrity test asserts
+			delegates: BoundedVec::defensive_truncate_from(delegates),
+		})
 	}
 }

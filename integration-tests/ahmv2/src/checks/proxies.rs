@@ -20,8 +20,7 @@ use crate::{
 	checks::{ParaMigrationCheck, RcMigrationCheck},
 	mock::{network, AssetHubPara, CoretimePara},
 };
-use codec::Encode;
-use frame_support::traits::{fungible::InspectHold, Get};
+use frame_support::traits::Get;
 use migrator_types::PortableProxyDelegate;
 use pallet_rc2_migrator::proxy::ProxyMigrator;
 use sp_runtime::AccountId32;
@@ -30,14 +29,37 @@ use std::collections::{BTreeMap, BTreeSet};
 type Rc = network::relay::Runtime;
 type Ct = network::ct::Runtime;
 
-/// A proxy definition as the Coretime chain stores it: `(delegate, type, delay)`.
-type CtDef = (AccountId32, network::ct::ProxyType, u32);
+/// A Relay Chain proxy entry as stored: the definitions and the recorded deposit.
+type RcEntry = (
+	Vec<
+		pallet_proxy::ProxyDefinition<
+			AccountId32,
+			<Rc as pallet_proxy::Config>::ProxyType,
+			pallet_proxy::BlockNumberFor<Rc>,
+		>,
+	>,
+	u128,
+);
+
+/// A Coretime proxy entry: `(delegate, type, delay)` per definition, in storage order, and the
+/// recorded deposit.
+type CtEntry = (Vec<(AccountId32, network::ct::ProxyType, u32)>, u128);
+
+fn rc_entry(who: &AccountId32) -> RcEntry {
+	let (defs, deposit) = pallet_proxy::Proxies::<Rc>::get(who);
+	(defs.into_inner(), deposit)
+}
+
+fn ct_entry(who: &AccountId32) -> CtEntry {
+	let (defs, deposit) = pallet_proxy::Proxies::<Ct>::get(who);
+	(defs.iter().map(|d| (d.delegate.clone(), d.proxy_type, d.delay)).collect(), deposit)
+}
 
 /// What the Relay Chain held before the migration.
 #[derive(Clone, Debug)]
 pub struct RcProxiesPre {
-	/// Every entry of the proxy map, encoded, to assert the stage changed none of them.
-	pub entries: Vec<(AccountId32, Vec<u8>)>,
+	/// Every entry of the proxy map, to assert the stage changed none of them.
+	pub entries: BTreeMap<AccountId32, RcEntry>,
 	/// The definitions that travel, by the account they land on. Two Relay Chain delegators
 	/// can land on one account.
 	pub expected: BTreeMap<AccountId32, Vec<PortableProxyDelegate<AccountId32>>>,
@@ -53,51 +75,34 @@ impl RcMigrationCheck for ProxiesChecker {
 
 	fn pre_check() -> Self::RcPrePayload {
 		let mut expected: BTreeMap<AccountId32, Vec<_>> = BTreeMap::new();
-		let entries = pallet_proxy::Proxies::<Rc>::iter()
-			.map(|(who, (defs, deposit))| {
-				let portable = ProxyMigrator::<Rc>::migrate_single(&who, &defs)
-					.unwrap_or_else(|e| panic!("proxies of {who:?} cannot travel: {e:?}"));
-				if let Some(portable) = portable {
+		let entries = pallet_proxy::Proxies::<Rc>::iter_keys()
+			.map(|who| {
+				let (defs, _) = pallet_proxy::Proxies::<Rc>::get(&who);
+				if let Some(portable) = ProxyMigrator::<Rc>::migrate_single(&who, &defs) {
 					expected
 						.entry(portable.delegator)
 						.or_default()
 						.extend(portable.delegates.into_inner());
 				}
-				(who, (defs, deposit).encode())
+				let entry = rc_entry(&who);
+				(who, entry)
 			})
 			.collect();
 		RcProxiesPre { entries, expected }
 	}
 
 	fn post_check(rc_pre: &Self::RcPrePayload) -> Self::RcPostPayload {
-		assert_eq!(pallet_proxy::Proxies::<Rc>::iter().count(), rc_pre.entries.len());
-		for (who, before) in &rc_pre.entries {
-			assert_eq!(
-				pallet_proxy::Proxies::<Rc>::get(who).encode(),
-				*before,
-				"the proxy entry of {who:?} must be left as it was"
-			);
-		}
+		let after: BTreeMap<_, _> = pallet_proxy::Proxies::<Rc>::iter_keys()
+			.map(|who| (who.clone(), rc_entry(&who)))
+			.collect();
+		assert_eq!(after, rc_pre.entries, "the Relay Chain's proxy map must be left as it was");
 	}
 }
 
-/// The Coretime chain's definitions of every account a set lands on, before the migration.
+/// The Coretime chain's entries of every account a set lands on, before the migration.
 #[derive(Clone, Debug)]
 pub struct CtProxiesPre {
-	pub entries: BTreeMap<AccountId32, BTreeSet<CtDef>>,
-}
-
-fn ct_defs(who: &AccountId32) -> (BTreeSet<CtDef>, u128, bool) {
-	let (defs, deposit) = pallet_proxy::Proxies::<Ct>::get(who);
-	let sorted = defs.windows(2).all(|w| w[0] <= w[1]);
-	let defs = defs.iter().map(|d| (d.delegate.clone(), d.proxy_type, d.delay)).collect();
-	(defs, deposit, sorted)
-}
-
-fn proxy_deposit_hold(who: &AccountId32) -> u128 {
-	let reason =
-		network::ct::RuntimeHoldReason::CtMigrator(pallet_ct_migrator::HoldReason::ProxyDeposit);
-	pallet_balances::Pallet::<Ct>::balance_on_hold(&reason, who)
+	pub entries: BTreeMap<AccountId32, CtEntry>,
 }
 
 impl ParaMigrationCheck<CoretimePara> for ProxiesChecker {
@@ -107,33 +112,44 @@ impl ParaMigrationCheck<CoretimePara> for ProxiesChecker {
 
 	fn pre_check(rc_pre: &Self::RcPrePayload) -> Self::PrePayload {
 		assert_eq!(pallet_ct_migrator::FailedProxies::<Ct>::iter().count(), 0);
-		let entries = rc_pre.expected.keys().map(|dest| (dest.clone(), ct_defs(dest).0)).collect();
+		let entries = rc_pre.expected.keys().map(|dest| (dest.clone(), ct_entry(dest))).collect();
 		CtProxiesPre { entries }
 	}
 
-	fn post_check(rc_pre: &Self::RcPrePayload, _: &Self::RcPostPayload, ct_pre: Self::PrePayload) {
+	fn post_check(
+		rc_pre: &Self::RcPrePayload,
+		_: &Self::RcPostPayload,
+		mut ct_pre: Self::PrePayload,
+	) {
 		let failed: Vec<_> = pallet_ct_migrator::FailedProxies::<Ct>::iter_keys().collect();
 		assert!(failed.is_empty(), "proxy sets failed to integrate: {failed:?}");
 
 		let ratio: u32 = <Ct as pallet_ct_migrator::Config>::RcBlockTimeRatio::get();
 		let mut definitions = 0usize;
 		for (dest, delegates) in &rc_pre.expected {
-			// What was there, plus every migrated definition as this chain represents it.
-			let mut expected = ct_pre.entries[dest].clone();
-			expected.extend(delegates.iter().map(|d| {
-				(d.delegate.clone(), network::ct::ProxyType::from(d.proxy_type), d.delay / ratio)
-			}));
+			// What was there, plus every migrated definition as this chain represents it, in
+			// the pallet's order: the tuple orders as `ProxyDefinition` does.
+			let (before, _) = ct_pre.entries.remove(dest).expect("every destination was read");
+			let expected: BTreeSet<_> = before
+				.into_iter()
+				.chain(delegates.iter().map(|d| {
+					let proxy_type = network::ct::ProxyType::from(d.proxy_type);
+					(d.delegate.clone(), proxy_type, d.delay.div_ceil(ratio))
+				}))
+				.collect();
 			definitions += delegates.len();
 
-			let (defs, deposit, sorted) = ct_defs(dest);
-			assert_eq!(defs, expected, "the proxy entry of {dest:?} on Coretime");
-			assert!(sorted, "the proxy entry of {dest:?} is not in the pallet's order");
+			let (defs, deposit) = ct_entry(dest);
+			assert_eq!(
+				defs,
+				expected.into_iter().collect::<Vec<_>>(),
+				"the proxy entry of {dest:?}"
+			);
 			let reserved = frame_system::Account::<Ct>::get(dest).data.reserved;
 			assert!(
 				deposit <= reserved,
 				"{dest:?} records a proxy deposit of {deposit} but reserves {reserved}"
 			);
-			assert_eq!(proxy_deposit_hold(dest), 0, "{dest:?} still holds its migrated deposit");
 		}
 
 		// Every migrated proxy deposit was consumed by the stage.

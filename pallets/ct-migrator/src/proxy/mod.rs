@@ -15,10 +15,8 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 //! Proxy stage, receiving side: each proxy set the relay chain sent is written into the proxy
-//! pallet, merged with what the delegator already has here. The `ProxyDeposit` hold the accounts
-//! stage placed is released, the entry is reserved at this chain's rates out of it, and the rest
-//! stays free. A set that fails is rolled back and parked in `FailedProxies`; the rest of the
-//! batch continues.
+//! pallet. A set that fails is rolled back and parked in `FailedProxies`; the rest of the batch
+//! continues.
 
 #[cfg(test)]
 mod tests;
@@ -28,12 +26,16 @@ use alloc::vec::Vec;
 use frame_support::traits::{
 	fungible::{InspectHold, MutateHold},
 	tokens::Precision,
-	Get, ReservableCurrency,
+	Currency, Get, ReservableCurrency,
 };
 use migrator_types::PortableProxy;
 use sp_runtime::{traits::Zero, DispatchResult, SaturatedConversion, Saturating};
 
 pub type PortableProxyOf<T> = PortableProxy<<T as frame_system::Config>::AccountId>;
+/// The proxy pallet's balance; `pallet_proxy::BalanceOf` is private.
+type ProxyBalanceOf<T> = <<T as pallet_proxy::Config>::Currency as Currency<
+	<T as frame_system::Config>::AccountId,
+>>::Balance;
 
 impl<T: Config> Pallet<T> {
 	/// Write a batch of proxy sets, each in a transaction of its own. A failed set is parked in
@@ -51,32 +53,30 @@ impl<T: Config> Pallet<T> {
 		Self::deposit_event(Event::ProxiesReceived { count_good, count_bad });
 	}
 
-	/// Write one proxy set. Delays arrive in relay chain blocks and are converted to this
-	/// chain's. The entry is backed by the migrated deposit and nothing else: a set that arrives
-	/// without one, as a pure proxy's does, is written with none, and its owner can
-	/// `poke_deposit`.
+	/// Write one proxy set, merged with what the delegator already has here. Delays arrive in
+	/// relay chain blocks and are converted to this chain's, rounding up. The `ProxyDeposit`
+	/// hold the accounts stage placed is released, the entry is reserved at this chain's rates
+	/// out of it and nothing else, and the rest stays free: a set that arrives without a
+	/// deposit, as a pure proxy's does, is written with none, and its owner can `poke_deposit`.
 	fn do_receive_proxy(proxy: &PortableProxyOf<T>) -> DispatchResult {
 		let who = &proxy.delegator;
 
-		// Release the migrated deposit whole; the entry is reserved out of it below, at this
-		// chain's rates, and the rest stays free.
+		// release the migrated deposit whole
 		let reason: T::RuntimeHoldReason = HoldReason::ProxyDeposit.into();
 		let migrated = CurrencyOf::<T>::balance_on_hold(&reason, who);
 		if !migrated.is_zero() {
 			CurrencyOf::<T>::release(&reason, who, migrated, Precision::Exact)?;
 		}
-		// the proxy pallet's currency spells its balance differently
-		let migrated: u128 = migrated.saturated_into();
+		let migrated: ProxyBalanceOf<T> = migrated.saturated_into::<u128>().saturated_into();
 
-		// Written into storage rather than through `add_proxy_delegate`, which refuses a
-		// duplicate and a deposit it cannot reserve.
-		let ratio = T::RcBlockTimeRatio::get().max(1);
+		// `add_proxy_delegate` would refuse a duplicate, so the entry is written directly
+		let ratio = T::RcBlockTimeRatio::get();
 		pallet_proxy::Proxies::<T>::try_mutate(who, |(defs, deposit)| {
 			for delegate in &proxy.delegates {
 				let def = pallet_proxy::ProxyDefinition {
 					delegate: delegate.delegate.clone(),
 					proxy_type: delegate.proxy_type.into(),
-					delay: (delegate.delay / ratio).into(),
+					delay: delegate.delay.div_ceil(ratio).into(),
 				};
 				// Kept sorted, as the pallet keeps it: its own calls find entries by binary search.
 				if let Err(i) = defs.binary_search(&def) {
@@ -84,11 +84,9 @@ impl<T: Config> Pallet<T> {
 				}
 			}
 
-			// What the proxy pallet charges for the entry on top of what is reserved for the
-			// definitions already here, capped at what was migrated: nothing of the delegator's
-			// own balance is reserved.
+			// reserve at this chain's rates, out of the migrated deposit only
 			let required = pallet_proxy::Pallet::<T>::deposit(defs.len() as u32);
-			let top_up = required.saturating_sub(*deposit).min(migrated.saturated_into());
+			let top_up = required.saturating_sub(*deposit).min(migrated);
 			if !top_up.is_zero() {
 				<T as pallet_proxy::Config>::Currency::reserve(who, top_up)?;
 				*deposit = deposit.saturating_add(top_up);

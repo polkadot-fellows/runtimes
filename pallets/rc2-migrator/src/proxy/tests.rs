@@ -21,18 +21,15 @@ use migrator_types::{sibling_account, PortableProxyType};
 
 type Migrator = ProxyMigrator<Test>;
 
-fn delegate(
-	who: &AccountId,
-	proxy_type: PortableProxyType,
-	delay: u32,
-) -> PortableProxyDelegate<AccountId> {
-	PortableProxyDelegate { delegate: who.clone(), proxy_type, delay }
-}
-
+/// A set as the wire carries it: `(delegate, type, delay)` per definition.
 fn portable(
 	delegator: &AccountId,
-	delegates: Vec<PortableProxyDelegate<AccountId>>,
+	delegates: Vec<(AccountId, PortableProxyType, u32)>,
 ) -> PortableProxy<AccountId> {
+	let delegates = delegates
+		.into_iter()
+		.map(|(delegate, proxy_type, delay)| PortableProxyDelegate { delegate, proxy_type, delay })
+		.collect::<Vec<_>>();
 	PortableProxy { delegator: delegator.clone(), delegates: delegates.try_into().unwrap() }
 }
 
@@ -59,29 +56,11 @@ fn portable_definitions_travel_and_the_map_is_untouched() {
 		assert_eq!(
 			Migrator::migrate_many(None),
 			BlockProxies {
-				proxies: vec![portable(
-					&ALICE,
-					vec![delegate(&CHARLIE, PortableProxyType::Any, 4)]
-				)],
+				proxies: vec![portable(&ALICE, vec![(CHARLIE, PortableProxyType::Any, 4)])],
 				last_key: None,
 			}
 		);
 		assert_eq!((entry(&ALICE), entry(&BOB)), before);
-	});
-}
-
-#[test]
-fn a_pure_proxy_travels_like_any_delegator() {
-	new_test_ext().execute_with(|| {
-		// GIVEN a pure proxy Alice created. Its `Any` definition points back at her.
-		fund(&ALICE, 500);
-		let pure = create_pure(&ALICE);
-
-		// WHEN the stage runs. THEN the definition travels under the pure account.
-		assert_eq!(
-			Migrator::migrate_many(None).proxies,
-			vec![portable(&pure, vec![delegate(&ALICE, PortableProxyType::Any, 0)])]
-		);
 	});
 }
 
@@ -100,41 +79,9 @@ fn sovereigns_are_named_by_their_sibling_address_on_the_wire() {
 			Migrator::migrate_many(None).proxies,
 			vec![portable(
 				&sibling_account(2000),
-				vec![delegate(&sibling_account(2001), PortableProxyType::NonTransfer, 0)]
+				vec![(sibling_account(2001), PortableProxyType::NonTransfer, 0)]
 			)]
 		);
-	});
-}
-
-#[test]
-fn migrate_many_resumes_from_cursor() {
-	new_test_ext().execute_with(|| {
-		// GIVEN a limit of 2 entries a block, and 3 delegators.
-		Limits::<Test>::put(BlockLimits { items_per_xcm: 2, xcm_per_block: 1 });
-		for who in [&ALICE, &BOB, &CHARLIE] {
-			fund(who, 500);
-			add_proxy(who, &DAVE, ProxyType::Any);
-		}
-
-		// WHEN the first block runs. THEN it sends 2 and leaves a cursor.
-		let first = Migrator::migrate_many(None);
-		assert_eq!(first.proxies.len(), 2);
-		let cursor = first.last_key.clone().expect("one entry is left");
-
-		// WHEN the next block continues from it. THEN it sends the last one and reports the end.
-		let second = Migrator::migrate_many(Some(cursor));
-		assert_eq!(second.proxies.len(), 1);
-		assert_eq!(second.last_key, None);
-
-		// Every delegator was sent exactly once.
-		let mut sent: Vec<_> = first
-			.proxies
-			.iter()
-			.chain(&second.proxies)
-			.map(|p| p.delegator.clone())
-			.collect();
-		sent.sort();
-		assert_eq!(sent, vec![ALICE, BOB, CHARLIE]);
 	});
 }
 

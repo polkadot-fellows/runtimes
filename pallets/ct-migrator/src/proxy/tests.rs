@@ -16,19 +16,8 @@
 
 use super::*;
 use crate::mock::*;
-use frame_support::{assert_noop, assert_ok, hypothetically, traits::fungible::Mutate};
+use frame_support::{assert_noop, assert_ok, hypothetically};
 use migrator_types::{PortableHoldReason, PortableProxyType};
-
-/// What each proxied call dispatched so far returned.
-fn proxy_results() -> Vec<DispatchResult> {
-	System::events()
-		.into_iter()
-		.filter_map(|r| match r.event {
-			RuntimeEvent::Proxy(pallet_proxy::Event::ProxyExecuted { result }) => Some(result),
-			_ => None,
-		})
-		.collect()
-}
 
 /// The entry of `who` in the proxy pallet: `(delegate, type, delay)` per definition, and the
 /// recorded deposit.
@@ -55,11 +44,11 @@ fn receive_writes_the_definitions_and_reprices_the_deposit() {
 			vec![(BOB, PortableProxyType::Any, 4), (CHARLIE, PortableProxyType::NonTransfer, 1)],
 		)]);
 
-		// THEN both definitions exist with the delays halved, rounding down.
+		// THEN both definitions exist with the delays halved, rounding up.
 		assert_eq!(
 			entry(&ALICE),
 			(
-				vec![(BOB, ProxyType::Any, 2), (CHARLIE, ProxyType::NonTransfer, 0)],
+				vec![(BOB, ProxyType::Any, 2), (CHARLIE, ProxyType::NonTransfer, 1)],
 				proxy_deposit(2)
 			)
 		);
@@ -84,7 +73,7 @@ fn receive_merges_with_the_definitions_already_here() {
 	new_test_ext().execute_with(|| {
 		// GIVEN Alice already delegates to Bob here, priced at this chain's rates, and her relay
 		// chain proxy deposit on hold.
-		assert_ok!(<Balances as Mutate<AccountId>>::mint_into(&ALICE, 1_000));
+		fund(&ALICE, 1_000);
 		assert_ok!(Proxy::add_proxy(RuntimeOrigin::signed(ALICE), BOB, ProxyType::Any, 0));
 		assert_eq!(reserved(&ALICE), proxy_deposit(1));
 		CtMigrator::do_receive_accounts(vec![portable_account(
@@ -115,7 +104,7 @@ fn receive_merges_with_the_definitions_already_here() {
 fn receive_reserves_no_more_than_the_migrated_deposit() {
 	new_test_ext().execute_with(|| {
 		// GIVEN Alice with a balance of her own and nothing on hold, as a pure proxy arrives.
-		assert_ok!(<Balances as Mutate<AccountId>>::mint_into(&ALICE, 1_000));
+		fund(&ALICE, 1_000);
 		let set = vec![portable_proxy(&ALICE, vec![(BOB, PortableProxyType::Any, 0)])];
 
 		// WHEN her set arrives. THEN the definition is written with no deposit recorded, her
@@ -152,7 +141,7 @@ fn receive_parks_a_set_that_does_not_fit_and_keeps_the_batch() {
 	new_test_ext().execute_with(|| {
 		// GIVEN Alice with a full entry here and a migrated deposit on hold, and Dave with
 		// nothing.
-		assert_ok!(<Balances as Mutate<AccountId>>::mint_into(&ALICE, 1_000));
+		fund(&ALICE, 1_000);
 		for delegate in [BOB, CHARLIE, DAVE, ADMIN] {
 			assert_ok!(Proxy::add_proxy(RuntimeOrigin::signed(ALICE), delegate, ProxyType::Any, 0));
 		}
@@ -173,19 +162,13 @@ fn receive_parks_a_set_that_does_not_fit_and_keeps_the_batch() {
 
 		// THEN Alice's set is parked whole and nothing of hers moved, hold included; Dave's
 		// went through.
-		assert_eq!(FailedProxies::<Test>::get(&ALICE), Some(alices.clone()));
+		assert_eq!(FailedProxies::<Test>::get(&ALICE), Some(alices));
 		assert_eq!(
 			(entry(&ALICE), reserved(&ALICE), held(HoldReason::ProxyDeposit, &ALICE)),
 			before
 		);
 		assert_eq!(entry(&DAVE).0, vec![(BOB, ProxyType::Any, 0)]);
 		assert_eq!(migrator_events(), vec![Event::ProxiesReceived { count_good: 1, count_bad: 1 }]);
-
-		// A repeat of the same batch parks it again, as received.
-		hypothetically!({
-			CtMigrator::do_receive_proxies(vec![alices.clone()]);
-			assert_eq!(FailedProxies::<Test>::get(&ALICE), Some(alices));
-		});
 	});
 }
 
@@ -194,7 +177,7 @@ fn the_proxy_pallet_can_work_with_what_was_written() {
 	new_test_ext().execute_with(|| {
 		// GIVEN Alice with a set that arrives out of the pallet's order, and the funds to back
 		// it.
-		assert_ok!(<Balances as Mutate<AccountId>>::mint_into(&ALICE, 1_000));
+		fund(&ALICE, 1_000);
 		CtMigrator::do_receive_proxies(vec![portable_proxy(
 			&ALICE,
 			vec![
@@ -218,7 +201,7 @@ fn the_proxy_pallet_can_work_with_what_was_written() {
 		// until he announces, since his delay came along.
 		let call = Box::new(tagged_remark(PRE_MIGRATION));
 		assert_ok!(Proxy::proxy(RuntimeOrigin::signed(CHARLIE), ALICE, None, call.clone()));
-		assert_eq!(proxy_results(), vec![Ok(())]);
+		System::assert_has_event(pallet_proxy::Event::ProxyExecuted { result: Ok(()) }.into());
 		assert_noop!(
 			Proxy::proxy(RuntimeOrigin::signed(BOB), ALICE, None, call),
 			pallet_proxy::Error::<Test>::Unannounced

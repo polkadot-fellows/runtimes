@@ -155,8 +155,8 @@ pub mod pallet {
 		/// The overarching hold reason type.
 		type RuntimeHoldReason: From<HoldReason>;
 
-		/// How many Relay Chain blocks make one of this chain's. Migrated proxy delays are
-		/// divided by it.
+		/// How many Relay Chain blocks make one of this chain's, at least one. Migrated proxy
+		/// delays are divided by it, rounding up.
 		#[pallet::constant]
 		type RcBlockTimeRatio: Get<u32>;
 
@@ -193,6 +193,13 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn integrity_test() {
+			assert!(T::RcBlockTimeRatio::get() >= 1, "a Relay Chain block is at most one of ours");
+		}
+	}
 
 	/// The Coretime chain migration state.
 	#[pallet::storage]

@@ -232,6 +232,12 @@ pub fn sent_call(n: usize) -> crate::Rc2RuntimeCall {
 	panic!("message {n} carried no Transact");
 }
 
+pub fn fund(who: &AccountId, amount: u128) {
+	frame_support::assert_ok!(
+		<Balances as frame_support::traits::fungible::Mutate<AccountId>>::mint_into(who, amount)
+	);
+}
+
 pub fn free(who: &AccountId) -> u128 {
 	pallet_balances::Pallet::<Test>::free_balance(who)
 }

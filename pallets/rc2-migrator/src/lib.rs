@@ -55,7 +55,7 @@ use frame_support::{
 	traits::{Contains, EnsureOrigin, GetCallMetadata, Time},
 };
 use frame_system::pallet_prelude::*;
-use migrator_types::{PortableAccount, PortableProxy, PortableProxyType};
+use migrator_types::{MaxPortableProxies, PortableAccount, PortableProxy, PortableProxyType};
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
 use sp_runtime::AccountId32;
@@ -278,7 +278,7 @@ pub enum CtMigratorCall {
 	// 2 and 3 are `force_set_stage` and `set_manager`, which the relay chain never sends.
 	#[codec(index = 4)]
 	ReceiveAccounts { accounts: Vec<PortableAccount<AccountId32, u128>> },
-	// 5 is `reconcile_balances`.
+	// 5 is reserved for `reconcile_balances`.
 	#[codec(index = 6)]
 	ReceiveProxies { proxies: Vec<PortableProxy<AccountId32>> },
 }
@@ -480,6 +480,14 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			Self::progress_migration(now)
+		}
+
+		fn integrity_test() {
+			assert!(
+				<T as pallet_proxy::Config>::MaxProxies::get() <=
+					<MaxPortableProxies as Get<u32>>::get(),
+				"a proxy set has to fit the wire"
+			);
 		}
 	}
 
@@ -742,9 +750,11 @@ pub mod pallet {
 							log::error!(target: LOG_TARGET, "Proxies block failed, retrying: {e:?}");
 						},
 					}
+					// one read per entry; the stage writes nothing
 					T::DbWeight::get()
-						.reads_writes(1, 1)
+						.reads(1)
 						.saturating_mul(Limits::<T>::get().items_per_block().into())
+						.saturating_add(T::DbWeight::get().reads_writes(1, 1))
 				},
 				MigrationStage::ProxyDone => {
 					Self::transition(MigrationStage::RegistrarInit);

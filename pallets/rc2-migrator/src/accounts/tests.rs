@@ -162,9 +162,9 @@ fn migrate_one_account_per_case() {
 			(FRANK.clone(), 600),                // what is left after the deposit and the buffer
 			(GRACE.clone(), 500 - PROXY_DEPOSIT - CT_FREE_BUFFER),
 			(HEIDI.clone(), 500), // the deposit was refunded
-			(IVAN.clone(), 500 - PROXY_DEPOSIT - CT_FREE_BUFFER),
-			(JUDY.clone(), 500), // the deposit was refunded
-			(LEO.clone(), 500),  // the deposit was refunded
+			(IVAN.clone(), 500),  // the pure's deposit was refunded
+			(JUDY.clone(), 500),  // the deposit was refunded
+			(LEO.clone(), 500),   // the deposit was refunded
 			(BOB.clone(), 500 - 40 - CT_FREE_BUFFER),
 			(MALLORY.clone(), 500), // the preimage deposit was released
 			(NIAJ.clone(), 500),    // the stray hold was released
@@ -172,7 +172,7 @@ fn migrate_one_account_per_case() {
 		expected.sort();
 		assert_eq!(to_ah, expected);
 		// deposit holders: the deposit as a hold, the free part (here only the ED) with it
-		assert_eq!(out.to_ct.len(), 9);
+		assert_eq!(out.to_ct.len(), 8);
 		let frank_ct = to_ct(&out, &FRANK);
 		assert_eq!(frank_ct.free, CT_FREE_BUFFER);
 		assert_eq!(holds(frank_ct), vec![(PortableHoldReason::RegistrarDeposit, PARA_DEPOSIT)]);
@@ -186,18 +186,15 @@ fn migrate_one_account_per_case() {
 			assert_eq!(sov.free, ED, "para {para}");
 			assert_eq!(holds(sov), vec![(PortableHoldReason::HrmpDeposit, deposit)], "para {para}");
 		}
-		for who in [&GRACE, &IVAN] {
-			let delegator = to_ct(&out, who);
-			assert_eq!(delegator.free, CT_FREE_BUFFER, "{who:?}");
-			assert_eq!(
-				holds(delegator),
-				vec![(PortableHoldReason::ProxyDeposit, PROXY_DEPOSIT)],
-				"{who:?}"
-			);
-		}
-		for (who, amount) in
-			[(HEIDI, PROXY_DEPOSIT), (JUDY, ANNOUNCEMENT_DEPOSIT), (LEO, MULTISIG_DEPOSIT)]
-		{
+		let grace_ct = to_ct(&out, &GRACE);
+		assert_eq!(grace_ct.free, CT_FREE_BUFFER);
+		assert_eq!(holds(grace_ct), vec![(PortableHoldReason::ProxyDeposit, PROXY_DEPOSIT)]);
+		for (who, amount) in [
+			(HEIDI, PROXY_DEPOSIT),
+			(IVAN, PROXY_DEPOSIT),
+			(JUDY, ANNOUNCEMENT_DEPOSIT),
+			(LEO, MULTISIG_DEPOSIT),
+		] {
 			System::assert_has_event(Event::DepositRefunded { who, amount }.into());
 		}
 		// what no record explains is parked on Coretime under its own reason
@@ -320,7 +317,7 @@ fn init_indexes_proxy_deposits() {
 		let pure = create_pure(&IVAN);
 
 		// WHEN the index is built. THEN a portable or mixed set is a proxy deposit, a
-		// non-portable one a refund, and the pure's is under its creator.
+		// non-portable one a refund, and the pure's a refund to its creator.
 		assert_eq!(Migrator::init(), 4);
 		let expected = |who: &AccountId| {
 			let e = ExpectedReserves::<Test>::get(who);
@@ -329,7 +326,7 @@ fn init_indexes_proxy_deposits() {
 		assert_eq!(expected(&GRACE), (PROXY_DEPOSIT, 0));
 		assert_eq!(expected(&HEIDI), (0, PROXY_DEPOSIT));
 		assert_eq!(expected(&BOB), (PROXY_DEPOSIT + PROXY_DEPOSIT_FACTOR, 0));
-		assert_eq!(expected(&IVAN), (PROXY_DEPOSIT, 0));
+		assert_eq!(expected(&IVAN), (0, PROXY_DEPOSIT));
 		assert_eq!(expected(&pure), (0, 0));
 	});
 }
