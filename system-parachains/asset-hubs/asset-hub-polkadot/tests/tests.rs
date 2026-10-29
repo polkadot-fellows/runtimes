@@ -1577,6 +1577,53 @@ fn dust_removal_terminates_when_staging_is_dusted() {
 	});
 }
 
+/// Regression test for the dotUSD supply drift fixed by #1334.
+///
+/// In `staging-xcm-executor` < 28.1.0 a failing `WithdrawAsset` rolled back the storage of the
+/// assets already withdrawn by the same instruction, but dropped their credit only afterwards. The
+/// credit drop decreased the asset's `supply` while the account balances stayed unchanged.
+#[test]
+fn failed_withdraw_asset_does_not_decrease_trust_backed_asset_supply() {
+	use frame_support::traits::fungibles::{Inspect, Mutate};
+	use xcm_executor::XcmExecutor;
+
+	const DOT_USD: AssetIdForTrustBackedAssets = 7873;
+	const AMOUNT: Balance = 1_000 * 1_000_000;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		let alice = AccountId::from(ALICE);
+		assert_ok!(Assets::force_create(
+			RuntimeHelper::root_origin(),
+			DOT_USD.into(),
+			AccountId::from(SOME_ASSET_ADMIN).into(),
+			true,
+			1,
+		));
+		assert_ok!(Assets::mint_into(DOT_USD, &alice, AMOUNT));
+		assert_eq!(Assets::total_issuance(DOT_USD), AMOUNT);
+
+		let dot_usd = AssetIdForTrustBackedAssetsConvertLatest::convert_back(&DOT_USD).unwrap();
+		// dotUSD sorts before DOT, so it is withdrawn first and the DOT withdrawal (Alice has
+		// none) fails afterwards.
+		let xcm = Xcm::<RuntimeCall>(vec![WithdrawAsset(
+			vec![(dot_usd, AMOUNT).into(), (DotLocation::get(), UNITS).into()].into(),
+		)]);
+
+		let mut hash = xcm.using_encoded(sp_io::hashing::blake2_256);
+		let outcome = XcmExecutor::<XcmConfig>::prepare_and_execute(
+			Location::new(0, [AccountId32 { network: None, id: ALICE }]),
+			xcm,
+			&mut hash,
+			Weight::MAX,
+			Weight::MAX,
+		);
+		assert!(matches!(outcome, Outcome::Incomplete { .. }), "unexpected outcome: {outcome:?}");
+
+		assert_eq!(Assets::balance(DOT_USD, &alice), AMOUNT);
+		assert_eq!(Assets::total_issuance(DOT_USD), AMOUNT);
+	});
+}
+
 #[test]
 fn session_key_deposit_works() {
 	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
