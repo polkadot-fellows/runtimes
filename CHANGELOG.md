@@ -4,6 +4,13 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Asset Hub Polkadot and Kusama: `NonTransfer` proxies can call `CollatorSelection` again, as on the other system parachains. It was unintentionally dropped from the allowlist while `NonTransfer` still claimed to be a superset of `Collator`.
+- Collectives Polkadot: only `Any` proxies can call `pallet_salary::payout_other`, so other proxies can no longer pay the proxied account's salary to another account. `NonTransfer` proxies are no longer a superset of `Secretary` proxies.
+
 ## [2.5.2] 27.10.2026
 
 ### Fixed
