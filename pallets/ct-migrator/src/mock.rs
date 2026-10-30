@@ -21,10 +21,12 @@ use codec::Decode;
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{fungible::InspectHold, Contains},
+	weights::Weight,
 };
 use frame_system::EnsureSignedBy;
-use migrator_types::{PortableAccount, PortableHold, PortableHoldReason};
-use sp_runtime::BuildStorage;
+use hrmp_primitives::{DepositKey, ReceiveMigratedDeposits};
+use migrator_types::{sibling_account, PortableAccount, PortableHold, PortableHoldReason};
+use sp_runtime::{traits::Convert, BuildStorage, DispatchError, DispatchResult};
 use xcm::prelude::*;
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -34,6 +36,7 @@ frame_support::construct_runtime! {
 	pub enum Test {
 		System: frame_system,
 		Balances: pallet_balances,
+		HrmpPara: pallet_hrmp_para,
 		CtMigrator: pallet_ct_migrator,
 	}
 }
@@ -58,6 +61,24 @@ impl pallet_balances::Config for Test {
 	type AccountStore = System;
 	type ExistentialDeposit = ExistentialDeposit;
 	type RuntimeHoldReason = RuntimeHoldReason;
+}
+
+/// A para's sovereign account here, as the migration names it.
+pub struct SiblingAccount;
+
+impl Convert<u32, AccountId> for SiblingAccount {
+	fn convert(para: u32) -> AccountId {
+		sibling_account(para)
+	}
+}
+
+impl pallet_hrmp_para::Config for Test {
+	type Currency = Balances;
+	type SendToRelay = ();
+	type SovereignAccountOf = SiblingAccount;
+	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 // Somebody
@@ -111,6 +132,28 @@ impl pallet_ct_migrator::Config for Test {
 	type PreMigrationCalls = TaggedRemark<PRE_MIGRATION>;
 	type IntraMigrationCalls = TaggedRemark<INTRA_MIGRATION>;
 	type PostMigrationCalls = TaggedRemark<POST_MIGRATION>;
+	type HrmpDeposits = MockHrmpDeposits;
+}
+
+parameter_types! {
+	/// Makes [`MockHrmpDeposits`] refuse every deposit.
+	pub static HrmpDepositsFail: bool = false;
+}
+
+/// `pallet-hrmp-para`, unless [`HrmpDepositsFail`] is set.
+pub struct MockHrmpDeposits;
+
+impl ReceiveMigratedDeposits for MockHrmpDeposits {
+	fn receive_deposit(key: DepositKey, amount: u128) -> DispatchResult {
+		if HrmpDepositsFail::get() {
+			return Err(DispatchError::Other("deposit refused"));
+		}
+		<HrmpPara as ReceiveMigratedDeposits>::receive_deposit(key, amount)
+	}
+
+	fn weight_of_receive_deposit() -> Weight {
+		<HrmpPara as ReceiveMigratedDeposits>::weight_of_receive_deposit()
+	}
 }
 
 /// Tags for [`TaggedRemark`], one per call set.
@@ -135,6 +178,7 @@ pub fn tagged_remark(tag: u8) -> RuntimeCall {
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	SentXcm::set(vec![]);
 	SendFails::set(false);
+	HrmpDepositsFail::set(false);
 
 	let storage = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	let mut ext = sp_io::TestExternalities::new(storage);

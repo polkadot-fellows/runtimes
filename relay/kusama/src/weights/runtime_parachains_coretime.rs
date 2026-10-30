@@ -120,4 +120,21 @@ impl<T: frame_system::Config> runtime_parachains::coretime::WeightInfo for Weigh
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	// TODO(ahm-v2): benchmark. Westend's, from the stable2606 backport of
+	// paritytech/polkadot-sdk#13009, which the local SDK patch brings in.
+	/// Storage: `OnDemandAssignmentProvider::OrderStatus` (r:1 w:1)
+	/// Proof: `OnDemandAssignmentProvider::OrderStatus` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// The range of component `s` is `[0, 100]`.
+	fn queue_on_demand_batch(s: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `80156`
+		//  Estimated: `81641`
+		// Minimum execution time: 128_480_000 picoseconds.
+		Weight::from_parts(144_956_852, 0)
+			.saturating_add(Weight::from_parts(0, 81641))
+			// Standard Error: 1_279
+			.saturating_add(Weight::from_parts(16_204, 0).saturating_mul(s.into()))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }

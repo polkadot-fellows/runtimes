@@ -31,6 +31,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+/// The HRMP deposit types the HRMP stage carries, shared with the HRMP deposit pallets.
+pub use hrmp_primitives::{ChannelId, DepositKey, DepositSide};
 use polkadot_parachain_primitives::primitives::{Id as ParaId, Sibling};
 use scale_info::TypeInfo;
 use sp_runtime::{
@@ -148,6 +150,30 @@ pub struct PortableHold<Balance> {
 	pub reason: PortableHoldReason,
 	/// The held amount.
 	pub amount: Balance,
+}
+
+/// One HRMP channel deposit as the Relay Chain records it: what one side of one channel or open
+/// request pays.
+///
+/// The channel stays on the Relay Chain, which keeps deciding its deposits. The balance itself
+/// travels with the accounts stage, as an `HrmpDeposit` hold on the paying para's sibling account.
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Clone,
+	Copy,
+	PartialEq,
+	Eq,
+	Debug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct PortableHrmpDeposit {
+	/// The channel side that pays the deposit.
+	pub key: DepositKey,
+	/// The deposit the Relay Chain records for that side.
+	pub amount: u128,
 }
 
 #[cfg(test)]
