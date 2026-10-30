@@ -12,7 +12,7 @@ Every proxy definition whose permission has a meaning on the Coretime chain is r
 | A para's sovereign account, as delegator or delegate | Named by its sibling address on the wire, like its balance. |
 | Announcements | Not migrated. The accounts stage refunded their deposits. |
 
-On Polkadot (October 2026) the map holds 587 entries. 439 are pure proxies, 434 of which already record a deposit of 0 (AHM v1 left their entries in place and moved the creators' deposits to Asset Hub) and 5 record about 20 DOT their creator no longer reserves. The 148 other sets carry a deposit. The common Coretime entry is therefore one recorded with 0.
+On Polkadot (October 2026) the map holds 587 entries. 439 are pure proxies, 434 of which already record a deposit of 0 (AHM v1 left their entries in place and moved the creators' deposits to Asset Hub) and 5 record about 20 DOT their creator no longer reserves. The 148 other sets carry a deposit. The common Coretime entry is therefore one recorded with 0. On Kusama, 527 definitions land for 402 delegators, 264 of them without a deposit.
 
 ## What stays
 

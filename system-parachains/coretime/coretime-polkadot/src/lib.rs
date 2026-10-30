@@ -595,7 +595,8 @@ pub enum ProxyType {
 	OnDemandPurchaser,
 	/// Collator selection proxy. Can execute calls related to collator selection mechanism.
 	Collator,
-	/// Para registration proxy.
+	/// Para registration proxy. Allows nothing until the registrar is on this chain; definitions
+	/// migrated from the Relay Chain keep it so they work once it is.
 	ParaRegistration,
 }
 
