@@ -30,7 +30,7 @@ use crate::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Equals},
+	traits::{ConstU32, Contains, Equals},
 };
 use frame_system::EnsureRoot;
 use migrator_types::PortableProxyType;
@@ -66,6 +66,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type CtParaId = BrokerId;
 	type AhParaId = AhParaId;
 	type CtFreeBuffer = CtFreeBuffer;
+	type HrmpRecordsPerBlock = ConstU32<200>;
 	type TimeProvider = Timestamp;
 	type CtOrigin = EnsureXcm<Equals<CoretimeLocation>>;
 	type AdminOrigin = EnsureRoot<AccountId>;

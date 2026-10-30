@@ -19,7 +19,9 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{Config, Error, Event, ExpectedReserves, Limits, Pallet, LOG_TARGET};
+use crate::{
+	hrmp::HrmpMigrator, Config, Error, Event, ExpectedReserves, Limits, Pallet, LOG_TARGET,
+};
 use alloc::vec::Vec;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::marker::PhantomData;
@@ -36,7 +38,6 @@ use frame_support::{
 use migrator_types::{
 	MaxPortableHolds, PortableAccount, PortableHold, PortableHoldReason, PortableProxyType,
 };
-use polkadot_parachain_primitives::primitives::IsSystem;
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::{configuration, hrmp};
 use scale_info::TypeInfo;
@@ -155,7 +156,7 @@ impl<T: Config> AccountsMigrator<T> {
 		// HRMP channel deposits, reserved on both sovereigns. A channel about to close returns
 		// them, so they are refunded.
 		for (id, channel) in hrmp::HrmpChannels::<T>::iter() {
-			let kind = if hrmp::HrmpCloseChannelRequests::<T>::contains_key(&id) {
+			let kind = if HrmpMigrator::<T>::is_closing(&id) {
 				DepositKind::Refund
 			} else {
 				DepositKind::Hrmp
@@ -179,7 +180,7 @@ impl<T: Config> AccountsMigrator<T> {
 				DepositKind::Hrmp,
 				request.sender_deposit,
 			);
-			if request.confirmed && !id.sender.is_system() && !id.recipient.is_system() {
+			if HrmpMigrator::<T>::recipient_reserved(&id, &request) {
 				Self::add_expected(
 					id.recipient.into_account_truncating(),
 					DepositKind::Hrmp,

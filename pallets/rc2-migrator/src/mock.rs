@@ -142,6 +142,7 @@ impl parachains_hrmp::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type ChannelManager = EnsureRoot<AccountId>;
 	type Currency = Balances;
+	type DepositProvider = Hrmp;
 	type DefaultChannelSizeAndCapacityWithSystem = DefaultChannelSizeAndCapacityWithSystem;
 	type VersionWrapper = ();
 	type WeightInfo = parachains_hrmp::TestWeightInfo;
@@ -308,6 +309,8 @@ parameter_types! {
 	pub static SentXcm: Vec<(Location, Xcm<()>)> = vec![];
 	/// Makes the router reject everything, to exercise the retry-next-block path.
 	pub static SendFails: bool = false;
+	/// Records the HRMP stage reads a block; tests lower it to shape the blocks.
+	pub static HrmpRecordsPerBlock: u32 = 200;
 
 	/// The mock wall clock, in milliseconds. Advanced by [`run_blocks`].
 	pub static MockNow: u64 = BLOCK_TIME_MS;
@@ -365,6 +368,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type CtParaId = CtParaId;
 	type AhParaId = AhParaId;
 	type CtFreeBuffer = CtFreeBuffer;
+	type HrmpRecordsPerBlock = HrmpRecordsPerBlock;
 	type TimeProvider = MockTime;
 	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId>;
 	type AdminOrigin = EnsureSignedBy<AdminAccount, AccountId>;

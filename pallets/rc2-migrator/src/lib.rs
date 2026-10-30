@@ -42,6 +42,7 @@ mod tests;
 pub mod xcm_config;
 
 pub mod accounts;
+pub mod hrmp;
 
 pub use pallet::*;
 
@@ -52,10 +53,11 @@ use frame_support::{
 	sp_runtime::traits::Saturating,
 	storage::with_storage_layer,
 	traits::{Contains, EnsureOrigin, GetCallMetadata, Time},
+	transactional,
 };
 use frame_system::pallet_prelude::*;
-use migrator_types::{PortableAccount, PortableProxyType};
-use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
+use migrator_types::{PortableAccount, PortableHrmpChannelRecord, PortableProxyType};
+use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::paras_registrar;
 use sp_runtime::AccountId32;
 use xcm::prelude::*;
@@ -64,7 +66,8 @@ const LOG_TARGET: &str = "runtime::rc2-migrator";
 
 /// Per-block limits of the data stages. Set by [`Pallet::set_limits`].
 ///
-/// An item is whatever the stage moves: an account, a proxy entry, a registrar or HRMP record.
+/// An item is whatever the stage moves: an account, a proxy entry, a registrar record or an HRMP
+/// deposit.
 #[derive(
 	Encode,
 	Decode,
@@ -208,7 +211,8 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// HRMP channels, pending open requests, and their deposits.
 	HrmpInit,
 	HrmpOngoing {
-		last_key: Option<HrmpChannelId>,
+		/// The last record read, the open requests first and then the channels.
+		last_key: Option<hrmp::HrmpKey>,
 	},
 	HrmpDone,
 	/// Empty the pots whose balance has no owning account to migrate it with, such as the
@@ -277,6 +281,10 @@ pub enum CtMigratorCall {
 	// 2 and 3 are `force_set_stage` and `set_manager`, which the relay chain never sends.
 	#[codec(index = 4)]
 	ReceiveAccounts { accounts: Vec<PortableAccount<AccountId32, u128>> },
+	// 5, 6 and 7 are reserved for `reconcile_balances`, `receive_proxies` and
+	// `receive_registrar`.
+	#[codec(index = 8)]
+	ReceiveHrmpDeposits { deposits: Vec<PortableHrmpChannelRecord> },
 }
 
 #[frame_support::pallet]
@@ -319,6 +327,14 @@ pub mod pallet {
 		/// pay fees there without a teleport first.
 		#[pallet::constant]
 		type CtFreeBuffer: Get<u128>;
+
+		// TODO(ahm-v2): this bound compensates for the stages' weights not yet being benchmarked.
+		// The stages should instead be given the block's remaining weight and iterate until it is
+		// consumed, rather than counting records or items.
+		// Or maybe the XCM constraint is obviously the bottleneck.
+		/// The most records the HRMP stage reads a block, open requests and channels alike.
+		#[pallet::constant]
+		type HrmpRecordsPerBlock: Get<u32>;
 
 		/// Wall clock that [`MigrationStage::Scheduled`] is compared against, so a schedule set
 		/// weeks ahead does not drift with block times.
@@ -468,12 +484,19 @@ pub mod pallet {
 		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
 		/// retry it.
 		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
+		/// A batch of HRMP deposits was sent to the Coretime chain.
+		HrmpDepositsBatchSent { count: u32 },
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			Self::progress_migration(now)
+		}
+
+		fn integrity_test() {
+			// A zero bound would end the HRMP stage on its first block, sending nothing.
+			assert!(T::HrmpRecordsPerBlock::get() >= 1, "HrmpRecordsPerBlock must be at least 1");
 		}
 	}
 
@@ -487,7 +510,9 @@ pub mod pallet {
 		///   during this period. It is intended to give enough time for UMP and DMP queues to
 		///   empty. Counted from the transition to the warm-up stage. Must be longer than one
 		///   Coretime timeslice: on-demand orders close at the start, and the Coretime chain claims
-		///   the revenue earned before it at its next timeslice boundary.
+		///   the revenue earned before it at its next timeslice boundary. Must also end right after
+		///   a session boundary: HRMP channels change at session boundaries only, and the HRMP
+		///   stage sends the records as they stand (see `hrmp.md`).
 		/// - `cool_off`: Duration in blocks of the post migration cool-off period. Counted from the
 		///   transition to the cool-off stage.
 		///
@@ -752,9 +777,34 @@ pub mod pallet {
 					Self::transition(MigrationStage::HrmpOngoing { last_key: None });
 					T::DbWeight::get().reads_writes(1, 1)
 				},
-				MigrationStage::HrmpOngoing { .. } => {
-					Self::transition(MigrationStage::HrmpDone);
-					T::DbWeight::get().reads_writes(1, 1)
+				MigrationStage::HrmpOngoing { last_key } => {
+					// The reads change nothing; a failed send rolls back the sends and leaves the
+					// stage put, so the block is retried.
+					let hrmp::BlockHrmpChannels { channels, records, last_key } =
+						hrmp::HrmpMigrator::<T>::migrate_many(last_key);
+					let messages = match Self::send_hrmp_deposits(channels) {
+						Ok(messages) => {
+							match last_key {
+								None => Self::transition(MigrationStage::HrmpDone),
+								last_key =>
+									Self::transition(MigrationStage::HrmpOngoing { last_key }),
+							}
+							messages
+						},
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "HRMP block failed, retrying: {e:?}");
+							Limits::<T>::get().xcm_per_block.into()
+						},
+					};
+					// TODO(ahm-v2): benchmark the HRMP stage rather than counting its operations.
+					// Two reads per record, a request, or a channel and its close request; the
+					// limits and the configuration; and each message sent.
+					T::DbWeight::get()
+						.reads(u64::from(records).saturating_mul(2).saturating_add(2))
+						.saturating_add(
+							T::DbWeight::get().reads_writes(3, 3).saturating_mul(messages),
+						)
+						.saturating_add(T::DbWeight::get().reads_writes(1, 1))
 				},
 				MigrationStage::HrmpDone => {
 					Self::transition(MigrationStage::Sweep);
@@ -836,6 +886,23 @@ pub mod pallet {
 				Self::send_teleport(chunk.to_vec())?;
 			}
 			Ok(last_key)
+		}
+
+		/// Send HRMP channel records to the Coretime chain, which holds their deposits, at most
+		/// [`BlockLimits::items_per_xcm`] a message. Returns the number of messages sent; on an
+		/// error none is.
+		#[transactional]
+		fn send_hrmp_deposits(
+			channels: Vec<PortableHrmpChannelRecord>,
+		) -> Result<u64, DispatchError> {
+			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
+			let mut messages = 0;
+			for chunk in channels.chunks(per_xcm) {
+				Self::send_to_ct(CtMigratorCall::ReceiveHrmpDeposits { deposits: chunk.to_vec() })?;
+				Self::deposit_event(Event::HrmpDepositsBatchSent { count: chunk.len() as u32 });
+				messages += 1;
+			}
+			Ok(messages)
 		}
 
 		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.

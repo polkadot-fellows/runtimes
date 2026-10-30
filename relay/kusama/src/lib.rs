@@ -1629,6 +1629,9 @@ impl parachains_hrmp::Config for Runtime {
 		EnsureXcm<IsVoiceOfBody<AssetHubLocation, GeneralAdminBodyId>>,
 	>;
 	type Currency = Balances;
+	// TODO(ahm-v2): `pallet-hrmp-relay` once the migration is done, on the general switch
+	// `MigrationStage::is_finished`, as `Rc2Migrator`'s post-migration call filter does.
+	type DepositProvider = Hrmp;
 	// Use the `HrmpChannelSizeAndCapacityWithSystemRatio` ratio from the actual active
 	// `HostConfiguration` configuration for `hrmp_channel_max_message_size` and
 	// `hrmp_channel_max_capacity`.
