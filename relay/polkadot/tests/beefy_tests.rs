@@ -52,24 +52,29 @@ fn para_heads_root_provider_includes_whitelisted_parathreads() {
 		// active parachains list.
 		assert_eq!(root_without_3367_in_parachains, root_with_3367_in_parachains);
 
-		// Undersized heads are skipped.
+		// Undersized heads of active parachains are skipped.
+		parachains_paras::Parachains::<Runtime>::mutate(|paras| paras.push(ParaId::from(5000u32)));
 		parachains_paras::Heads::<Runtime>::insert(
 			ParaId::from(5000u32),
 			HeadData(vec![0; MIN_PARA_HEAD_LEN - 1]),
 		);
 		assert_eq!(ParaHeadsRootProvider::extra_data(), root_with_3367_in_parachains);
 
+		// Once the head is valid, it is included.
+		parachains_paras::Heads::<Runtime>::insert(ParaId::from(5000u32), head(5000));
+		let root_with_5000 = ParaHeadsRootProvider::extra_data();
+		assert_ne!(root_with_5000, root_with_3367_in_parachains);
+
 		// Removing 3367's head changes the root, so it really was part of it.
 		parachains_paras::Heads::<Runtime>::remove(ParaId::from(3367u32));
 		let root_without_3367 = ParaHeadsRootProvider::extra_data();
-		assert_ne!(root_without_3367, root_with_3367_in_parachains);
+		assert_ne!(root_without_3367, root_with_5000);
 
-		// An undersized head is skipped by `sorted_para_heads`, but whitelisted parathreads are
-		// still added manually.
+		// Undersized heads of whitelisted parathreads are skipped as well.
 		parachains_paras::Heads::<Runtime>::insert(
 			ParaId::from(3367u32),
 			HeadData(vec![0; MIN_PARA_HEAD_LEN - 1]),
 		);
-		assert_ne!(ParaHeadsRootProvider::extra_data(), root_without_3367);
+		assert_eq!(ParaHeadsRootProvider::extra_data(), root_without_3367);
 	});
 }

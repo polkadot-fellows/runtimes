@@ -495,7 +495,10 @@ impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 		for id in BEEFY_WHITELISTED_PARATHREADS {
 			let raw_id = u32::from(*id);
 			if let Err(pos) = para_heads.binary_search_by_key(&raw_id, |(id, _)| *id) {
-				if let Some(head) = parachains_paras::Heads::<Runtime>::get(id) {
+				// Apply the same sanity bound as `sorted_para_heads`.
+				if let Some(head) = parachains_paras::Heads::<Runtime>::get(id)
+					.filter(|head| head.0.len() >= parachains_paras::MIN_PARA_HEAD_LEN)
+				{
 					para_heads.insert(pos, (raw_id, head.0));
 				}
 			}
