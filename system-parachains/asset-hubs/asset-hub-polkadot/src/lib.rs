@@ -693,6 +693,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::Utility(..) |
 				RuntimeCall::Proxy(..) |
 				RuntimeCall::Multisig(..) |
+				RuntimeCall::CollatorSelection(..) |
 				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::register {..}) |
 				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::deregister {..}) |
 				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::reserve {..}) |
