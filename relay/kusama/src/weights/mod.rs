@@ -15,7 +15,6 @@
 
 //! A list of the different weight modules for our runtime.
 
-pub mod frame_election_provider_support;
 pub mod frame_system;
 pub mod frame_system_extensions;
 pub mod pallet_accumulate_and_forward;
