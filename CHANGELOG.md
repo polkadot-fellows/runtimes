@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Removed
+
+- Polkadot & Kusama: remove `pallet-election-provider-multi-phase` and the on-chain election from the relay runtimes. Staking elections run on Asset Hub since the AHM, and a migration clears the pallet's storage ([#1313](https://github.com/polkadot-fellows/runtimes/pull/1313)).
+
 ## [2.5.2] 27.10.2026
 
 ### Fixed

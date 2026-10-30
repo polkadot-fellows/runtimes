@@ -145,7 +145,6 @@ pub fn call_allowed_status(call: &RuntimeCall) -> (bool, bool) {
 		Multisig(..) => (OFF, OFF),
 		Bounties(..) => (OFF, OFF),
 		ChildBounties(..) => (OFF, OFF),
-		ElectionProviderMultiPhase(..) => (OFF, OFF),
 		VoterList(..) => (OFF, OFF),
 		NominationPools(..) => (OFF, OFF),
 		FastUnstake(..) => (OFF, OFF),

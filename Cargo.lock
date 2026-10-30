@@ -11453,20 +11453,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-election-provider-support-benchmarking"
-version = "48.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3deeb9031a8caef98bf68d0325701f7ba472dbbbbf3df44e8787ddb5ea043ada"
-dependencies = [
- "frame-benchmarking",
- "frame-election-provider-support",
- "frame-system",
- "parity-scale-codec",
- "sp-npos-elections",
- "sp-runtime 48.0.0",
-]
-
-[[package]]
 name = "pallet-encointer-balances"
 version = "24.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13942,6 +13928,7 @@ version = "1.0.0"
 dependencies = [
  "approx",
  "binary-merkle-tree",
+ "cumulus-pallet-session-benchmarking",
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-executive",
@@ -13969,8 +13956,6 @@ dependencies = [
  "pallet-conviction-voting",
  "pallet-ct-migrator",
  "pallet-delegated-staking",
- "pallet-election-provider-multi-phase 52.0.0",
- "pallet-election-provider-support-benchmarking",
  "pallet-fast-unstake",
  "pallet-grandpa",
  "pallet-indices",
@@ -19836,6 +19821,7 @@ name = "staging-kusama-runtime"
 version = "1.0.0"
 dependencies = [
  "binary-merkle-tree",
+ "cumulus-pallet-session-benchmarking",
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-executive",
@@ -19865,8 +19851,6 @@ dependencies = [
  "pallet-conviction-voting",
  "pallet-ct-migrator",
  "pallet-delegated-staking",
- "pallet-election-provider-multi-phase 52.0.0",
- "pallet-election-provider-support-benchmarking",
  "pallet-fast-unstake",
  "pallet-grandpa",
  "pallet-indices",
