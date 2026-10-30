@@ -253,12 +253,14 @@ fn governance_authorize_upgrade_works() {
 }
 
 /// The transaction extension pipeline is versioned: version 0 is the pipeline that predates the
-/// Individuality deployment and must stay frozen so already-built signers keep working, while
-/// version 1 carries the Individuality origin modifiers.
+/// Individuality deployment and must stay frozen so already-built signers keep working, version 1
+/// carries the Individuality origin modifiers shipped in 2.5.0, and version 2 adds the Game and
+/// Score origin modifiers on top of version 1.
 ///
-/// This pins both: the identifiers of version 0 in order, and the fact that version 1 exists and is
-/// version 0 plus the Individuality extensions. Any reordering of version 0 breaks live signers, so
-/// it should only ever change together with `transaction_version`.
+/// This pins the identifiers of version 0 in order, that version 1 is version 0 plus the
+/// Individuality extensions, and that version 2 is version 1 plus the Game and Score extensions.
+/// Any reordering of a released version breaks live signers, so a new pipeline must be added as a
+/// new version rather than by amending an existing one.
 #[test]
 fn transaction_extension_versions_are_stable() {
 	use sp_runtime::traits::{Pipeline, PipelineMetadataBuilder, TransactionExtension};
@@ -284,13 +286,21 @@ fn transaction_extension_versions_are_stable() {
 		],
 	);
 
-	// Version 1 must be advertised in the metadata, otherwise no wallet can construct it.
+	// Versions 1 and 2 must be advertised in the metadata, otherwise no wallet can construct them.
 	let mut builder = PipelineMetadataBuilder::new();
 	<crate::TxExtensionOtherVersions as Pipeline<RuntimeCall>>::build_metadata(&mut builder);
-	let v1_indices = builder.by_version.get(&1).expect("extension version 1 must be advertised");
-	let v1: Vec<&str> =
-		v1_indices.iter().map(|i| builder.in_versions[*i as usize].identifier).collect();
-	assert_eq!(builder.by_version.len(), 1, "only version 1 lives outside version 0");
+	let identifiers = |version: u8| -> Vec<&str> {
+		builder
+			.by_version
+			.get(&version)
+			.unwrap_or_else(|| panic!("extension version {version} must be advertised"))
+			.iter()
+			.map(|i| builder.in_versions[*i as usize].identifier)
+			.collect()
+	};
+	let v1 = identifiers(1);
+	let v2 = identifiers(2);
+	assert_eq!(builder.by_version.len(), 2, "only versions 1 and 2 live outside version 0");
 
 	// Version 1 is version 0 plus the Individuality pipeline: same non-Individuality identifiers,
 	// in the same relative order.
@@ -308,6 +318,15 @@ fn transaction_extension_versions_are_stable() {
 	assert_eq!(v1_without_indiv, v0, "version 1 must extend version 0, not reshuffle it");
 	for id in indiv {
 		assert!(v1.contains(&id), "version 1 must carry `{id}`");
+	}
+
+	// Version 2 is version 1 plus the Game and Score origin modifiers
+	let v2_additions = ["ScoreAsParticipant", "GameAsInvited"];
+	let v2_without_new: Vec<&str> =
+		v2.iter().copied().filter(|id| !v2_additions.contains(id)).collect();
+	assert_eq!(v2_without_new, v1, "version 2 must extend version 1, not reshuffle it");
+	for id in v2_additions {
+		assert!(v2.contains(&id), "version 2 must carry `{id}`");
 	}
 }
 
@@ -442,6 +461,125 @@ fn bulletin_destination_is_governable_but_must_remain_a_sibling_parachain() {
 	});
 }
 
+/// Score payouts carry no hardcoded asset: governance picks it, and until then there is none.
+#[test]
+fn score_payout_asset_is_set_by_governance() {
+	use crate::{
+		parameters::{dynamic_params::external_asset, RuntimeParameters},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use frame_support::traits::Get;
+	use sp_runtime::BuildStorage;
+
+	type PayoutAsset = <Runtime as indiv_pallet_score::Config>::CurrencyLocationInfo;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// GIVEN no asset has been chosen yet.
+		assert_eq!(PayoutAsset::get(), Location::here());
+
+		// WHEN Root points it at an Asset Hub asset.
+		let asset = Location::new(1, [Parachain(1000), PalletInstance(50), GeneralIndex(4242)]);
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::ExternalAsset(external_asset::Parameters::AssetLocation(
+				external_asset::AssetLocation,
+				Some(asset.clone()),
+			)),
+		));
+
+		// THEN score pays out in that asset.
+		assert_eq!(PayoutAsset::get(), asset);
+	});
+}
+
+/// The people-airdrops pallet reads its prize source from the governance parameter.
+#[test]
+fn people_airdrops_prize_source_is_set_by_governance() {
+	use crate::{
+		parameters::{dynamic_params::people_airdrops, RuntimeParameters},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use frame_support::{traits::Get, PalletId};
+	use sp_runtime::{traits::AccountIdConversion, BuildStorage};
+
+	type PrizeSource = <Runtime as indiv_pallet_people_airdrops::Config>::PrizeSource;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// GIVEN the default prize source is the dedicated pallet account.
+		let default: AccountId = PalletId(*b"pop/pads").into_account_truncating();
+		assert_eq!(PrizeSource::get(), default);
+
+		// WHEN Root points it at another account.
+		let updated = AccountId::from(ALICE);
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::PeopleAirdrops(people_airdrops::Parameters::PrizeSource(
+				people_airdrops::PrizeSource,
+				Some(updated.clone()),
+			)),
+		));
+
+		// THEN the pallet funds draws from that account.
+		assert_eq!(PrizeSource::get(), updated);
+	});
+}
+
+/// The game pallet reads its airdrop source from the governance parameter.
+#[test]
+fn game_airdrop_source_is_set_by_governance() {
+	use crate::{
+		parameters::{dynamic_params::game, RuntimeParameters},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use frame_support::{traits::Get, PalletId};
+	use sp_runtime::{traits::AccountIdConversion, BuildStorage};
+
+	type AirdropSource = <Runtime as indiv_pallet_game::Config>::AirdropSource;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// GIVEN the default airdrop source is the dedicated pallet account.
+		let default: AccountId = PalletId(*b"pop/gads").into_account_truncating();
+		assert_eq!(AirdropSource::get(), default);
+
+		// WHEN Root points it at another account.
+		let updated = AccountId::from(ALICE);
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::Game(game::Parameters::AirdropSource(
+				game::AirdropSource,
+				Some(updated.clone()),
+			)),
+		));
+
+		// THEN the pallet funds airdrops from that account.
+		assert_eq!(AirdropSource::get(), updated);
+	});
+}
+
+#[test]
+fn people_airdrops_context_is_an_account_context() {
+	use crate::{individuality::AccountContexts, PeopleAirdrops, RuntimeGenesisConfig};
+	use frame_support::traits::Contains;
+	use sp_runtime::BuildStorage;
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		let airdrops = PeopleAirdrops::people_airdrops_context();
+		assert!(AccountContexts::contains(&airdrops));
+	});
+}
+
 /// Only assets Asset Hub itself issues may be reserve transferred here from Asset Hub.
 ///
 /// Accepting an asset from a chain that is not its real reserve gives it two reserves, and
@@ -532,7 +670,8 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 	use crate::{
 		parameters::{
 			dynamic_params::{
-				bulletin_storage, coinage, lite_personhood, origin_restriction, statement_storage,
+				bulletin_storage, coinage, external_asset, game, lite_personhood,
+				origin_restriction, people_airdrops, statement_storage,
 			},
 			DynamicParameterOrigin, RuntimeParameters, RuntimeParametersKey,
 		},
@@ -571,6 +710,7 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		OriginRestriction(origin_restriction::PeopleIdentityAndAliasAllowanceRecovery.into()),
 		OriginRestriction(origin_restriction::LitePeopleAllowanceMax.into()),
 		OriginRestriction(origin_restriction::LitePeopleAllowanceRecovery.into()),
+		OriginRestriction(origin_restriction::AccountParticipantAllowanceRecovery.into()),
 		LitePersonhood(lite_personhood::RegistrationFee.into()),
 	];
 	let root_only = [
@@ -578,6 +718,9 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		BulletinStorage(bulletin_storage::BulletinTransactionStoragePalletIndex.into()),
 		Coinage(coinage::LoadDepositPrice.into()),
 		Coinage(coinage::InstanceCreationDeposit.into()),
+		ExternalAsset(external_asset::AssetLocation.into()),
+		PeopleAirdrops(people_airdrops::PrizeSource.into()),
+		Game(game::AirdropSource.into()),
 	];
 
 	// THEN Root passes all, the voice only the operational keys.
@@ -626,4 +769,128 @@ fn session_key_deposit_works() {
 		let generated = SessionKeys::generate(&owner.encode(), None);
 		(generated.keys, generated.proof.encode())
 	});
+}
+
+/// The version-2 pipeline, with `ScoreAsParticipant` turning the signer into a participant.
+#[cfg(not(feature = "runtime-benchmarks"))]
+fn score_participant_tx_extension(nonce: u32) -> crate::TxExtensionV2 {
+	cumulus_pallet_weight_reclaim::StorageWeightReclaim::new((
+		(
+			(),
+			pallet_verify_signature::VerifySignature::<Runtime>::new_disabled(),
+			indiv_pallet_people::extension::AsPerson::<Runtime>::new(None),
+			indiv_pallet_score::ScoreAsParticipant::<Runtime>::new(Some(
+				indiv_pallet_score::ScoreAsParticipantData { nonce },
+			)),
+			indiv_pallet_game::GameAsInvited::<Runtime>::new(None),
+			indiv_pallet_people_lite::extension::PeopleLiteAuth::<Runtime>::new(None),
+			indiv_pallet_members::extension::AsMember::<Runtime>::new(None),
+			indiv_pallet_coinage::extension::AsCoinage::<Runtime>::new(None),
+			indiv_pallet_resources::extension::AsResources::<Runtime>::new(None),
+			frame_system::AuthorizeCall::<Runtime>::new(),
+		),
+		indiv_pallet_origin_restriction::RestrictOrigin::<Runtime>::new(true),
+		frame_system::CheckNonZeroSender::<Runtime>::new(),
+		frame_system::CheckSpecVersion::<Runtime>::new(),
+		frame_system::CheckTxVersion::<Runtime>::new(),
+		frame_system::CheckGenesis::<Runtime>::new(),
+		frame_system::CheckEra::<Runtime>::from(sp_runtime::generic::Era::Immortal),
+		frame_system::CheckNonce::<Runtime>::from(nonce),
+		frame_system::CheckWeight::<Runtime>::new(),
+		pallet_asset_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
+		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+	))
+}
+
+#[cfg(not(feature = "runtime-benchmarks"))]
+#[test]
+fn score_participant_origin_is_restricted() {
+	use crate::{individuality::RestrictedEntity, Balances};
+	use cumulus_pallet_parachain_system::RelaychainDataProvider;
+	use frame_support::{
+		dispatch::GetDispatchInfo,
+		traits::{fungible::Mutate, Get},
+	};
+	use sp_runtime::{
+		traits::{BlockNumberProvider, DispatchTransaction},
+		transaction_validity::{InvalidTransaction, TransactionValidityError},
+	};
+	use system_parachains_constants::polkadot::currency::UNITS;
+
+	// The extension version byte a general (v5) transaction selects for `TxExtensionV2`.
+	const TX_EXT_V2_VERSION: u8 = 2;
+	const RATE_LIMITED: TransactionValidityError =
+		TransactionValidityError::Invalid(InvalidTransaction::Payment);
+
+	let dispatch = |nonce: u32, call: RuntimeCall| {
+		let info = call.get_dispatch_info();
+		score_participant_tx_extension(nonce).dispatch_transaction(
+			RuntimeOrigin::signed(AccountId::from(ALICE)),
+			call,
+			&info,
+			0,
+			TX_EXT_V2_VERSION,
+		)
+	};
+	let cash_out = || RuntimeCall::Score(indiv_pallet_score::Call::cash_out {});
+	let remark = || RuntimeCall::System(frame_system::Call::remark { remark: vec![] });
+
+	parachains_runtimes_test_utils::ExtBuilder::<Runtime>::default()
+		.build()
+		.execute_with(|| {
+			// GIVEN an active participant with a balance that could pay fees.
+			let alice = AccountId::from(ALICE);
+			assert_ok!(<Balances as Mutate<_>>::mint_into(&alice, UNITS));
+			indiv_pallet_score::Participants::<Runtime>::insert(
+				indiv_pallet_score::AccountOrPerson::Account(alice.clone()),
+				indiv_pallet_score::Participant {
+					score: 2,
+					streak: indiv_pallet_score::Streak::Attended(1),
+					attendance_history: Default::default(),
+					credit: 0,
+					cashed_out: false,
+					reached_personhood: false,
+					has_ever_reached_personhood: false,
+					recognition: indiv_pallet_score::Recognition::NotRecognized,
+					last_attended_game: None,
+					attended_games_while_recognized: 0,
+				},
+			);
+			RelaychainDataProvider::<Runtime>::set_block_number(1);
+			let entity = RestrictedEntity::AccountParticipant(alice.clone());
+
+			// WHEN it sends a call that does not take the participant origin.
+			// THEN it is rejected without going into debt.
+			assert_eq!(dispatch(0, remark()), Err(RATE_LIMITED));
+			assert!(!indiv_pallet_origin_restriction::Usages::<Runtime>::contains_key(&entity));
+
+			// WHEN it sends a call that takes the participant origin and succeeds.
+			// THEN it dispatches without a fee, and the call being `Pays::No` clears its debt.
+			assert!(matches!(dispatch(0, cash_out()), Ok(Ok(_))));
+			assert_eq!(Balances::free_balance(&alice), UNITS);
+			assert!(!indiv_pallet_origin_restriction::Usages::<Runtime>::contains_key(&entity));
+
+			// WHEN it sends one that fails, here a second cash out within the cooldown.
+			// THEN it dispatches without a fee but goes into debt instead.
+			assert!(matches!(dispatch(1, cash_out()), Ok(Err(_))));
+			assert_eq!(Balances::free_balance(&alice), UNITS);
+			let debt = indiv_pallet_origin_restriction::Usages::<Runtime>::get(&entity)
+				.expect("participant went into debt")
+				.used;
+			assert!(debt > 0);
+
+			// AND any further transaction is rejected until the debt is recovered.
+			assert_eq!(dispatch(2, cash_out()), Err(RATE_LIMITED));
+			let recovery = crate::parameters::AccountParticipantAllowanceRecovery::get();
+			let blocks_to_recover = debt.div_ceil(recovery) as u32;
+			RelaychainDataProvider::<Runtime>::set_block_number(blocks_to_recover);
+			assert_eq!(dispatch(2, cash_out()), Err(RATE_LIMITED));
+
+			// WHEN the debt is recovered.
+			RelaychainDataProvider::<Runtime>::set_block_number(1 + blocks_to_recover);
+
+			// THEN only a call taking the participant origin passes the pipeline again.
+			assert_eq!(dispatch(2, remark()), Err(RATE_LIMITED));
+			assert!(dispatch(2, cash_out()).is_ok());
+		});
 }
