@@ -33,26 +33,9 @@ use std::collections::{BTreeMap, BTreeSet};
 type Rc = network::relay::Runtime;
 type Ct = network::ct::Runtime;
 
-/// A Relay Chain proxy entry as stored: the definitions and the recorded deposit.
-type RcEntry = (
-	Vec<
-		pallet_proxy::ProxyDefinition<
-			AccountId32,
-			<Rc as pallet_proxy::Config>::ProxyType,
-			pallet_proxy::BlockNumberFor<Rc>,
-		>,
-	>,
-	u128,
-);
-
 /// A Coretime proxy entry: `(delegate, type, delay)` per definition, in storage order, and the
 /// recorded deposit.
 type CtEntry = (Vec<(AccountId32, network::ct::ProxyType, u32)>, u128);
-
-fn rc_entry(who: &AccountId32) -> RcEntry {
-	let (defs, deposit) = pallet_proxy::Proxies::<Rc>::get(who);
-	(defs.into_inner(), deposit)
-}
 
 fn ct_entry(who: &AccountId32) -> CtEntry {
 	let (defs, deposit) = pallet_proxy::Proxies::<Ct>::get(who);
@@ -75,8 +58,6 @@ pub struct Expected {
 /// What the Relay Chain held before the migration.
 #[derive(Clone, Debug)]
 pub struct RcProxiesPre {
-	/// Every entry of the proxy map, to assert the stage changed none of them.
-	pub entries: BTreeMap<AccountId32, RcEntry>,
 	/// By the account the definitions land on. Two Relay Chain delegators can land on one
 	/// account.
 	pub expected: BTreeMap<AccountId32, Expected>,
@@ -101,7 +82,7 @@ fn any_delegate_without_delay(portable: &PortableProxy<AccountId32>) -> Option<A
 }
 
 /// Every portable definition is recreated on the Coretime chain under the delegator's address
-/// there, merged with what it already had, and the Relay Chain's map is left as it was.
+/// there, merged with what it already had, and the Relay Chain's map is emptied.
 pub struct ProxiesChecker;
 
 fn dispatch_signed<C>(who: &AccountId32, call: C) -> Result<(), DispatchError>
@@ -149,27 +130,24 @@ impl RcMigrationCheck for ProxiesChecker {
 	fn pre_check() -> Self::RcPrePayload {
 		let mut expected: BTreeMap<AccountId32, Expected> = BTreeMap::new();
 		let (mut probe, mut pure_probe) = (None, None);
-		let entries = pallet_proxy::Proxies::<Rc>::iter_keys()
-			.map(|who| {
-				let (defs, deposit) = pallet_proxy::Proxies::<Rc>::get(&who);
-				let info = frame_system::Account::<Rc>::get(&who);
-				let pure = AccountsMigrator::<Rc>::is_pure_proxy(&who, &info);
-				if let Some(portable) = ProxyMigrator::<Rc>::migrate_single(&who, &defs) {
-					if translate_destination(&who) == who {
-						if let Some(delegate) = any_delegate_without_delay(&portable) {
-							let slot = if pure { &mut pure_probe } else { &mut probe };
-							slot.get_or_insert((who.clone(), delegate));
-						}
-					}
-					let to = expected.entry(portable.delegator).or_default();
-					to.delegates.extend(portable.delegates.into_inner());
-					if !pure {
-						to.hold += deposit.min(info.data.reserved);
+		for who in pallet_proxy::Proxies::<Rc>::iter_keys() {
+			let (defs, deposit) = pallet_proxy::Proxies::<Rc>::get(&who);
+			let info = frame_system::Account::<Rc>::get(&who);
+			let pure = AccountsMigrator::<Rc>::is_pure_proxy(&who, &info);
+			if let Some(portable) = ProxyMigrator::<Rc>::migrate_single(&who, &defs) {
+				if translate_destination(&who) == who {
+					if let Some(delegate) = any_delegate_without_delay(&portable) {
+						let slot = if pure { &mut pure_probe } else { &mut probe };
+						slot.get_or_insert((who.clone(), delegate));
 					}
 				}
-				(who, (defs.into_inner(), deposit))
-			})
-			.collect();
+				let to = expected.entry(portable.delegator).or_default();
+				to.delegates.extend(portable.delegates.into_inner());
+				if !pure {
+					to.hold += deposit.min(info.data.reserved);
+				}
+			}
+		}
 
 		// the probes are sound: the calls go through before the migration
 		let probe = probe.expect("a plain delegator with a plain `Any` delegate");
@@ -178,14 +156,14 @@ impl RcMigrationCheck for ProxiesChecker {
 			assert_ok!(rc_proxied_remark(&probe.1, &probe.0));
 			assert_ok!(rc_proxied_remark(&pure_probe.1, &pure_probe.0));
 		});
-		RcProxiesPre { entries, expected, probe, pure_probe }
+		RcProxiesPre { expected, probe, pure_probe }
 	}
 
 	fn post_check(rc_pre: &Self::RcPrePayload) -> Self::RcPostPayload {
-		let after: BTreeMap<_, _> = pallet_proxy::Proxies::<Rc>::iter_keys()
-			.map(|who| (who.clone(), rc_entry(&who)))
-			.collect();
-		assert_eq!(after, rc_pre.entries, "the Relay Chain's proxy map must be left as it was");
+		let left: Vec<_> = pallet_proxy::Proxies::<Rc>::iter_keys().collect();
+		assert!(left.is_empty(), "the Relay Chain's proxy map must be empty: {left:?}");
+		let left: Vec<_> = pallet_proxy::Announcements::<Rc>::iter_keys().collect();
+		assert!(left.is_empty(), "the Relay Chain's announcements must be empty: {left:?}");
 
 		// Proxies are closed here for good.
 		let filtered: DispatchError = frame_system::Error::<Rc>::CallFiltered.into();

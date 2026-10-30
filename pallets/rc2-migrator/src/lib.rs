@@ -192,11 +192,10 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// make it easier to swap out what stage should run next for testing, and as a clean
 	/// `force_set_stage` target for rewinding a single stage.
 	AccountsDone,
-	/// Proxy definitions whose permissions have meaning on the Coretime chain.
+	/// Proxy entries: the definitions with a meaning on the Coretime chain are recreated there,
+	/// and every entry is removed, announcements included.
 	ProxyInit,
-	ProxyOngoing {
-		last_key: Option<AccountId>,
-	},
+	ProxyOngoing,
 	ProxyDone,
 	/// `paras_registrar` records and their deposits.
 	RegistrarInit,
@@ -738,20 +737,21 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::ProxyInit => {
-					Self::transition(MigrationStage::ProxyOngoing { last_key: None });
+					Self::transition(MigrationStage::ProxyOngoing);
 					T::DbWeight::get().reads_writes(1, 1)
 				},
-				MigrationStage::ProxyOngoing { last_key } => {
-					match with_storage_layer(|| Self::migrate_proxies_block(last_key)) {
-						Ok(None) => Self::transition(MigrationStage::ProxyDone),
-						Ok(last_key) => Self::transition(MigrationStage::ProxyOngoing { last_key }),
+				MigrationStage::ProxyOngoing => {
+					// Removals and sends commit or roll back together.
+					match with_storage_layer(Self::migrate_proxies_block) {
+						Ok(true) => Self::transition(MigrationStage::ProxyDone),
+						Ok(false) => {},
 						Err(e) => {
 							log::error!(target: LOG_TARGET, "Proxies block failed, retrying: {e:?}");
 						},
 					}
-					// one read per entry; the stage writes nothing
+					// one read and one write per entry
 					T::DbWeight::get()
-						.reads(1)
+						.reads_writes(1, 1)
 						.saturating_mul(Limits::<T>::get().items_per_block().into())
 						.saturating_add(T::DbWeight::get().reads_writes(1, 1))
 				},
@@ -883,17 +883,17 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// One block of the proxy stage. Returns the cursor to continue from, or `None` once
-		/// every entry has been visited.
+		/// One block of the proxy stage. Returns whether both maps are empty.
 		///
-		/// The caller runs it in a storage transaction, so an `Err` rolls the whole block back.
-		fn migrate_proxies_block(
-			last_key: Option<T::AccountId>,
-		) -> Result<Option<T::AccountId>, DispatchError> {
-			let proxy::BlockProxies { proxies, last_key } =
-				proxy::ProxyMigrator::<T>::migrate_many(last_key);
+		/// The caller runs it in a storage transaction, so an `Err` rolls the whole block back,
+		/// removals included.
+		fn migrate_proxies_block() -> Result<bool, DispatchError> {
+			let limit = Limits::<T>::get().items_per_block();
+			let proxy::BlockProxies { proxies, removed } =
+				proxy::ProxyMigrator::<T>::migrate_many(limit);
 			Self::send_in_batches(proxies, Self::send_proxies)?;
-			Ok(last_key)
+			// A block with budget to spare has emptied both maps.
+			Ok(removed < limit)
 		}
 
 		/// Send proxy sets to the Coretime chain, which writes them into its proxy pallet.

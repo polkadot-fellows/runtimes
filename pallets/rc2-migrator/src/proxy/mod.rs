@@ -21,7 +21,7 @@ mod tests;
 
 use crate::{
 	accounts::{AccountsMigrator, ProxyDefinitionOf},
-	Config, Limits,
+	Config,
 };
 use alloc::vec::Vec;
 use core::marker::PhantomData;
@@ -29,39 +29,33 @@ use frame_support::{traits::DefensiveTruncateFrom, BoundedVec};
 use migrator_types::{translate_destination, PortableProxy, PortableProxyDelegate};
 use sp_runtime::{traits::UniqueSaturatedInto, AccountId32};
 
-/// What one block of the stage read.
+/// What one block of the stage removed.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct BlockProxies {
 	/// Sets to recreate on the Coretime chain.
 	pub proxies: Vec<PortableProxy<AccountId32>>,
-	/// Where the next block continues from; `None` once every entry has been visited.
-	pub last_key: Option<AccountId32>,
+	/// Proxy and announcement entries removed.
+	pub removed: u32,
 }
 
 pub struct ProxyMigrator<T>(PhantomData<T>);
 
 impl<T: Config> ProxyMigrator<T> {
-	/// Read the proxy entries after `last_key`, up to the block's [`Limits`], and return what
-	/// travels. Writes nothing.
-	// TODO(ahm-v2): open for review: leave the entries, remove them, or zero the recorded
-	// deposit. See proxy.md, "What stays".
-	pub fn migrate_many(last_key: Option<T::AccountId>) -> BlockProxies {
-		let mut iter = match last_key {
-			Some(last_key) => pallet_proxy::Proxies::<T>::iter_from_key(last_key),
-			None => pallet_proxy::Proxies::<T>::iter(),
-		};
-
+	/// Remove up to `limit` entries, the proxy map from the front and, once that is empty, the
+	/// announcements, and return what travels. An entry goes whether or not anything of it
+	/// does: the relay chain's proxy calls are closed for good, and its deposit left with the
+	/// accounts stage.
+	pub fn migrate_many(limit: u32) -> BlockProxies {
 		let mut out = BlockProxies::default();
-		for _ in 0..Limits::<T>::get().items_per_block() {
-			let Some((who, (defs, _deposit))) = iter.next() else {
-				out.last_key = None;
-				return out;
-			};
+		for (who, (defs, _deposit)) in pallet_proxy::Proxies::<T>::drain().take(limit as usize) {
 			if let Some(proxy) = Self::migrate_single(&who, &defs) {
 				out.proxies.push(proxy);
 			}
-			out.last_key = Some(who);
+			out.removed += 1;
 		}
+		let budget = (limit - out.removed) as usize;
+		out.removed +=
+			pallet_proxy::Announcements::<T>::iter_keys().drain().take(budget).count() as u32;
 		out
 	}
 

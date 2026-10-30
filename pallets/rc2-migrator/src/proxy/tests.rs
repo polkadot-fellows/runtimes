@@ -18,6 +18,7 @@ use super::*;
 use crate::{mock::*, BlockLimits, CtMigratorCall, CtRuntimeCall, Event, Limits, RcMigrationStage};
 use frame_support::assert_ok;
 use migrator_types::{sibling_account, PortableProxyType};
+use pallet_proxy::{Announcements, Proxies};
 
 type Migrator = ProxyMigrator<Test>;
 
@@ -33,34 +34,33 @@ fn portable(
 	PortableProxy { delegator: delegator.clone(), delegates: delegates.try_into().unwrap() }
 }
 
-/// The relay chain's entry of `who`, as stored.
-fn entry(who: &AccountId) -> (Vec<ProxyDefinitionOf<Test>>, u128) {
-	let (defs, deposit) = pallet_proxy::Proxies::<Test>::get(who);
-	(defs.into_inner(), deposit)
-}
-
 #[test]
-fn portable_definitions_travel_and_the_map_is_untouched() {
+fn portable_definitions_travel_and_every_entry_goes() {
 	new_test_ext().execute_with(|| {
 		// GIVEN Alice with one portable and one non-portable definition, the portable one with
-		// a delay, and Bob with a non-portable definition only.
+		// a delay and an announcement pending on it, and Bob with a non-portable definition
+		// only.
 		fund(&ALICE, 500);
 		fund(&BOB, 500);
+		fund(&CHARLIE, 500);
 		assert_ok!(Proxy::add_proxy(RuntimeOrigin::signed(ALICE), CHARLIE, ProxyType::Any, 4));
 		add_proxy(&ALICE, &DAVE, ProxyType::Staking);
 		add_proxy(&BOB, &CHARLIE, ProxyType::Staking);
-		let before = (entry(&ALICE), entry(&BOB));
+		announce(&CHARLIE, &ALICE);
 
 		// WHEN the stage runs. THEN Alice's portable definition travels with its delay, Bob
-		// sends nothing, and both entries are as they were.
+		// sends nothing, and both entries and the announcement are gone.
 		assert_eq!(
-			Migrator::migrate_many(None),
+			Migrator::migrate_many(10),
 			BlockProxies {
 				proxies: vec![portable(&ALICE, vec![(CHARLIE, PortableProxyType::Any, 4)])],
-				last_key: None,
+				removed: 3,
 			}
 		);
-		assert_eq!((entry(&ALICE), entry(&BOB)), before);
+		assert_eq!(
+			(Proxies::<Test>::iter().count(), Announcements::<Test>::iter().count()),
+			(0, 0)
+		);
 	});
 }
 
@@ -76,7 +76,7 @@ fn sovereigns_are_named_by_their_sibling_address_on_the_wire() {
 
 		// WHEN the stage runs. THEN both ends carry the address that is the para on a parachain.
 		assert_eq!(
-			Migrator::migrate_many(None).proxies,
+			Migrator::migrate_many(10).proxies,
 			vec![portable(
 				&sibling_account(2000),
 				vec![(sibling_account(2001), PortableProxyType::NonTransfer, 0)]
@@ -85,12 +85,15 @@ fn sovereigns_are_named_by_their_sibling_address_on_the_wire() {
 	});
 }
 
-/// How many `ProxiesBatchSent` events are in the block's events.
-fn batches_sent() -> usize {
+/// The `ProxiesBatchSent` counts in the block's events.
+fn batches_sent() -> Vec<u32> {
 	System::events()
-		.iter()
-		.filter(|r| matches!(r.event, RuntimeEvent::Rc2Migrator(Event::ProxiesBatchSent { .. })))
-		.count()
+		.into_iter()
+		.filter_map(|r| match r.event {
+			RuntimeEvent::Rc2Migrator(Event::ProxiesBatchSent { count }) => Some(count),
+			_ => None,
+		})
+		.collect()
 }
 
 /// The proxy sets the `n`th sent message carries.
@@ -114,50 +117,47 @@ fn proxy_stage_sends_in_chunks_and_resumes() {
 		}
 		RcMigrationStage::<Test>::put(Stage::ProxyInit);
 		run_blocks(1);
-		assert_stage(Stage::ProxyOngoing { last_key: None });
+		assert_stage(Stage::ProxyOngoing);
 
-		// WHEN the first block runs. THEN 4 sets leave in 2 full messages and the stage
-		// carries a cursor.
+		// WHEN the first block runs. THEN 4 sets leave in 2 full messages, their entries are
+		// gone, and the stage goes on.
 		run_blocks(1);
-		assert!(matches!(
-			RcMigrationStage::<Test>::get(),
-			Stage::ProxyOngoing { last_key: Some(_) }
-		));
+		assert_stage(Stage::ProxyOngoing);
+		assert_eq!(Proxies::<Test>::iter().count(), 1);
 		assert_eq!(sent().len(), 2);
 		assert_eq!((sent_proxies(0).len(), sent_proxies(1).len()), (2, 2));
-		assert_eq!(batches_sent(), 2);
+		assert_eq!(batches_sent(), vec![2, 2]);
 
 		// WHEN the next block runs. THEN the last set leaves alone and the stage is done,
-		// every delegator sent once and the map as it was.
+		// every delegator sent once and the map empty.
 		run_blocks(1);
 		assert_stage(Stage::ProxyDone);
 		assert_eq!(sent().len(), 3);
-		System::assert_has_event(Event::ProxiesBatchSent { count: 1 }.into());
+		assert_eq!(batches_sent(), vec![2, 2, 1]);
 		let mut delegators: Vec<_> = (0..3).flat_map(sent_proxies).map(|p| p.delegator).collect();
 		delegators.sort();
 		assert_eq!(delegators, vec![ALICE, BOB, CHARLIE, DAVE, EVE]);
-		assert_eq!(pallet_proxy::Proxies::<Test>::iter().count(), 5);
+		assert_eq!(Proxies::<Test>::iter().count(), 0);
 	});
 }
 
 #[test]
-fn an_entry_without_portable_definitions_still_moves_the_cursor() {
+fn an_entry_without_portable_definitions_is_removed_too() {
 	new_test_ext().execute_with(|| {
 		// GIVEN one delegator with only a non-portable definition, and blocks of one entry.
 		Limits::<Test>::put(BlockLimits { items_per_xcm: 1, xcm_per_block: 1 });
 		fund(&BOB, 500);
 		add_proxy(&BOB, &CHARLIE, ProxyType::Staking);
 
-		// WHEN a block reads it. THEN nothing travels and the cursor points past it; the next
-		// block finds the end.
-		let first = Migrator::migrate_many(None);
-		assert_eq!(first, BlockProxies { proxies: vec![], last_key: Some(BOB) });
-		assert_eq!(
-			Migrator::migrate_many(first.last_key),
-			BlockProxies { proxies: vec![], last_key: None }
-		);
+		// WHEN a block visits it. THEN nothing travels and the entry is gone; the next block
+		// finds the map empty.
+		assert_eq!(Migrator::migrate_many(1), BlockProxies { removed: 1, ..Default::default() });
+		assert!(!Proxies::<Test>::contains_key(&BOB));
+		assert_eq!(Migrator::migrate_many(1), BlockProxies::default());
 
-		// WHEN the stage runs over it. THEN it ends without sending anything.
+		// GIVEN the entry again. WHEN the stage runs over it. THEN it ends without sending
+		// anything.
+		add_proxy(&BOB, &CHARLIE, ProxyType::Staking);
 		RcMigrationStage::<Test>::put(Stage::ProxyInit);
 		run_blocks(3);
 		assert_stage(Stage::ProxyDone);
@@ -174,18 +174,48 @@ fn proxy_stage_retries_a_block_whose_send_failed() {
 		RcMigrationStage::<Test>::put(Stage::ProxyInit);
 		run_blocks(1);
 
-		// WHEN a block runs and its send fails. THEN the stage stays where it was, and no
-		// event of the block survives.
+		// WHEN a block runs and its send fails. THEN the stage stays where it was, the entry
+		// too, and no event of the block survives.
 		SendFails::set(true);
 		run_blocks(1);
-		assert_stage(Stage::ProxyOngoing { last_key: None });
+		assert_stage(Stage::ProxyOngoing);
+		assert!(Proxies::<Test>::contains_key(&ALICE));
 		assert!(sent().is_empty());
-		assert_eq!(batches_sent(), 0);
+		assert!(batches_sent().is_empty());
 
-		// WHEN the next block runs with a working router. THEN the set leaves.
+		// WHEN the next block runs with a working router. THEN the set leaves and the entry
+		// goes.
 		SendFails::set(false);
 		run_blocks(1);
 		assert_stage(Stage::ProxyDone);
 		assert_eq!(sent_proxies(0).len(), 1);
+		assert!(!Proxies::<Test>::contains_key(&ALICE));
+	});
+}
+
+#[test]
+fn announcements_go_once_the_proxy_map_is_empty() {
+	new_test_ext().execute_with(|| {
+		// GIVEN Alice delegating to Bob, who has announced, and blocks of one entry.
+		fund(&ALICE, 500);
+		fund(&BOB, 500);
+		add_proxy(&ALICE, &BOB, ProxyType::Any);
+		announce(&BOB, &ALICE);
+
+		// WHEN a block runs. THEN Alice's entry takes the block and the announcement waits.
+		assert_eq!(
+			Migrator::migrate_many(1),
+			BlockProxies {
+				proxies: vec![portable(&ALICE, vec![(BOB, PortableProxyType::Any, 0)])],
+				removed: 1,
+			}
+		);
+		assert!(Announcements::<Test>::contains_key(&BOB));
+
+		// WHEN the next blocks run. THEN the announcement goes, and the block after finds
+		// both maps empty.
+		assert_eq!(Migrator::migrate_many(1), BlockProxies { removed: 1, ..Default::default() });
+		assert!(!Announcements::<Test>::contains_key(&BOB));
+		assert_eq!(Migrator::migrate_many(1), BlockProxies::default());
 	});
 }

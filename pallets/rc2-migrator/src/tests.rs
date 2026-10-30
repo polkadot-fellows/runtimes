@@ -46,7 +46,7 @@ fn data_stages() -> Vec<Stage> {
 		Stage::AccountsOngoing { last_key: None },
 		Stage::AccountsDone,
 		Stage::ProxyInit,
-		Stage::ProxyOngoing { last_key: None },
+		Stage::ProxyOngoing,
 		Stage::ProxyDone,
 		Stage::RegistrarInit,
 		Stage::RegistrarOngoing { last_key: None },
@@ -789,7 +789,7 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 			Stage::AccountsOngoing { .. } => (true, true, false),
 			Stage::AccountsDone => (true, true, false),
 			Stage::ProxyInit => (true, true, false),
-			Stage::ProxyOngoing { .. } => (true, true, false),
+			Stage::ProxyOngoing => (true, true, false),
 			Stage::ProxyDone => (true, true, false),
 			Stage::RegistrarInit => (true, true, false),
 			Stage::RegistrarOngoing { .. } => (true, true, false),
@@ -815,7 +815,7 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 		Stage::AccountsOngoing { last_key: None },
 		Stage::AccountsDone,
 		Stage::ProxyInit,
-		Stage::ProxyOngoing { last_key: None },
+		Stage::ProxyOngoing,
 		Stage::ProxyDone,
 		Stage::RegistrarInit,
 		Stage::RegistrarOngoing { last_key: None },
@@ -850,7 +850,7 @@ fn each_stage_allows_only_its_own_call_set() {
 				Stage::AccountsOngoing { .. } |
 				Stage::AccountsDone |
 				Stage::ProxyInit |
-				Stage::ProxyOngoing { .. } |
+				Stage::ProxyOngoing |
 				Stage::ProxyDone |
 				Stage::RegistrarInit |
 				Stage::RegistrarOngoing { .. } |
