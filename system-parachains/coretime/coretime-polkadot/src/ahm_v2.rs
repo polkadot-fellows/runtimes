@@ -24,14 +24,15 @@ pub mod lockdown;
 
 use crate::{
 	xcm_config::XcmRouter, AccountId, Balances, ProxyType, Runtime, RuntimeEvent,
-	RuntimeHoldReason, RELAY_CHAIN_SLOT_DURATION_MILLIS, SLOT_DURATION,
+	RuntimeHoldReason, MILLISECS_PER_BLOCK, RELAY_CHAIN_SLOT_DURATION_MILLIS,
 };
 use frame_support::traits::ConstU32;
 use frame_system::EnsureRoot;
 use migrator_types::PortableProxyType;
 
 /// How many relay chain blocks this chain's block takes.
-const RC_BLOCK_TIME_RATIO: u32 = (SLOT_DURATION / RELAY_CHAIN_SLOT_DURATION_MILLIS as u64) as u32;
+const RC_BLOCK_TIME_RATIO: u32 =
+	(MILLISECS_PER_BLOCK / RELAY_CHAIN_SLOT_DURATION_MILLIS as u64) as u32;
 
 /// What each migrated proxy permission is on this chain.
 impl From<PortableProxyType> for ProxyType {
@@ -59,8 +60,9 @@ impl pallet_ct_migrator::Config for Runtime {
 
 #[cfg(test)]
 mod tests {
-	use crate::{AccountId, Runtime, RuntimeCall};
+	use crate::{AccountId, ProxyType, Runtime, RuntimeCall};
 	use codec::Encode;
+	use migrator_types::PortableProxyType;
 	use pallet_ct_migrator::{accounts::PortableAccountOf, proxy::PortableProxyOf};
 	use pallet_rc2_migrator::{CtMigratorCall, CtRuntimeCall};
 
@@ -105,5 +107,19 @@ mod tests {
 			})
 			.encode(),
 		);
+	}
+
+	/// A migrated permission lands on its own kind: nothing but `Any` may become `Any`.
+	#[test]
+	fn migrated_permissions_land_on_their_own_kind() {
+		let mapped = [
+			(PortableProxyType::Any, ProxyType::Any),
+			(PortableProxyType::NonTransfer, ProxyType::NonTransfer),
+			(PortableProxyType::CancelProxy, ProxyType::CancelProxy),
+			(PortableProxyType::ParaRegistration, ProxyType::ParaRegistration),
+		];
+		for (portable, expected) in mapped {
+			assert_eq!(ProxyType::from(portable), expected);
+		}
 	}
 }

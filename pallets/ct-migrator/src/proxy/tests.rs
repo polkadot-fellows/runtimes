@@ -18,6 +18,7 @@ use super::*;
 use crate::mock::*;
 use frame_support::{assert_noop, assert_ok, hypothetically};
 use migrator_types::{PortableHoldReason, PortableProxyType};
+use sp_runtime::traits::Hash;
 
 /// The entry of `who` in the proxy pallet: `(delegate, type, delay)` per definition, and the
 /// recorded deposit.
@@ -83,10 +84,11 @@ fn receive_merges_with_the_definitions_already_here() {
 		)]);
 
 		// WHEN a set arrives with Bob again and Charlie.
-		CtMigrator::do_receive_proxies(vec![portable_proxy(
+		let set = vec![portable_proxy(
 			&ALICE,
 			vec![(BOB, PortableProxyType::Any, 0), (CHARLIE, PortableProxyType::Any, 0)],
-		)]);
+		)];
+		CtMigrator::do_receive_proxies(set.clone());
 
 		// THEN Bob is not added twice, the deposit tops up to two definitions out of the
 		// migrated one, and the rest of it is free.
@@ -97,11 +99,31 @@ fn receive_merges_with_the_definitions_already_here() {
 		assert_eq!(reserved(&ALICE), proxy_deposit(2));
 		assert_eq!(held(HoldReason::ProxyDeposit, &ALICE), 0);
 		assert_eq!(free(&ALICE), 1_000 + 400 - proxy_deposit(2));
+		assert_eq!(
+			migrator_events(),
+			vec![
+				Event::AccountsReceived { count_good: 1, count_bad: 0 },
+				Event::ProxiesReceived { count_good: 1, count_bad: 0 }
+			]
+		);
+
+		// WHEN the same set arrives again, as a relay chain rewind resends it. THEN nothing
+		// changes and it still counts as good.
+		CtMigrator::do_receive_proxies(set);
+		assert_eq!(
+			entry(&ALICE),
+			(vec![(BOB, ProxyType::Any, 0), (CHARLIE, ProxyType::Any, 0)], proxy_deposit(2))
+		);
+		assert_eq!(
+			(reserved(&ALICE), free(&ALICE)),
+			(proxy_deposit(2), 1_000 + 400 - proxy_deposit(2))
+		);
+		assert_eq!(migrator_events(), vec![Event::ProxiesReceived { count_good: 1, count_bad: 0 }]);
 	});
 }
 
 #[test]
-fn receive_reserves_no_more_than_the_migrated_deposit() {
+fn receive_takes_the_deposit_out_of_the_migrated_hold_only() {
 	new_test_ext().execute_with(|| {
 		// GIVEN Alice with a balance of her own and nothing on hold, as a pure proxy arrives.
 		fund(&ALICE, 1_000);
@@ -175,8 +197,25 @@ fn receive_parks_a_set_that_does_not_fit_and_keeps_the_batch() {
 		let before = (entry(&ALICE), reserved(&ALICE), held(HoldReason::ProxyDeposit, &ALICE));
 		System::reset_events();
 
+		// WHEN a set arrives in which every definition is already here. THEN it is good, the
+		// entry is as it was, and the hold is released whole.
+		hypothetically!({
+			let all: Vec<_> =
+				[BOB, CHARLIE, DAVE, ADMIN].map(|d| (d, PortableProxyType::Any, 0)).to_vec();
+			CtMigrator::do_receive_proxies(vec![portable_proxy(&ALICE, all)]);
+			assert_eq!(
+				migrator_events(),
+				vec![Event::ProxiesReceived { count_good: 1, count_bad: 0 }]
+			);
+			assert_eq!(entry(&ALICE), before.0);
+			assert_eq!(
+				(reserved(&ALICE), held(HoldReason::ProxyDeposit, &ALICE)),
+				(proxy_deposit(4), 0)
+			);
+		});
+
 		// WHEN a batch arrives with one more delegate for Alice and a set for Dave.
-		let alices = portable_proxy(&ALICE, vec![(ALICE + 100, PortableProxyType::Any, 0)]);
+		let alices = portable_proxy(&ALICE, vec![(EVE, PortableProxyType::Any, 0)]);
 		CtMigrator::do_receive_proxies(vec![
 			alices.clone(),
 			portable_proxy(&DAVE, vec![(BOB, PortableProxyType::Any, 0)]),
@@ -197,37 +236,62 @@ fn receive_parks_a_set_that_does_not_fit_and_keeps_the_batch() {
 #[test]
 fn the_proxy_pallet_can_work_with_what_was_written() {
 	new_test_ext().execute_with(|| {
-		// GIVEN Alice with a set that arrives out of the pallet's order, and the funds to back
-		// it.
+		// GIVEN Alice with her relay chain deposit on hold and a set that arrives out of the
+		// pallet's order, Bob's definition with a 2-block delay, which is one block here.
 		fund(&ALICE, 1_000);
+		CtMigrator::do_receive_accounts(vec![portable_account(
+			&ALICE,
+			0,
+			vec![(PortableHoldReason::ProxyDeposit, 400)],
+		)]);
 		CtMigrator::do_receive_proxies(vec![portable_proxy(
 			&ALICE,
 			vec![
 				(DAVE, PortableProxyType::Any, 0),
-				(BOB, PortableProxyType::NonTransfer, 2),
+				(BOB, PortableProxyType::Any, 2),
 				(CHARLIE, PortableProxyType::Any, 0),
 			],
 		)]);
-
-		// THEN the entry is in the order the pallet keeps.
 		assert_eq!(
-			entry(&ALICE).0,
+			migrator_events(),
 			vec![
-				(BOB, ProxyType::NonTransfer, 1),
-				(CHARLIE, ProxyType::Any, 0),
-				(DAVE, ProxyType::Any, 0)
+				Event::AccountsReceived { count_good: 1, count_bad: 0 },
+				Event::ProxiesReceived { count_good: 1, count_bad: 0 }
 			]
 		);
 
-		// WHEN the delegates use them. THEN Charlie dispatches as Alice, and Bob is refused
-		// until he announces, since his delay came along.
+		// THEN the entry is in the order the pallet keeps, priced for three.
+		assert_eq!(
+			entry(&ALICE),
+			(
+				vec![
+					(BOB, ProxyType::Any, 1),
+					(CHARLIE, ProxyType::Any, 0),
+					(DAVE, ProxyType::Any, 0)
+				],
+				proxy_deposit(3)
+			)
+		);
+
+		// WHEN the delegates use them. THEN Charlie dispatches as Alice at once, and Bob only
+		// after announcing and waiting out his delay.
 		let call = Box::new(tagged_remark(PRE_MIGRATION));
 		assert_ok!(Proxy::proxy(RuntimeOrigin::signed(CHARLIE), ALICE, None, call.clone()));
 		System::assert_has_event(pallet_proxy::Event::ProxyExecuted { result: Ok(()) }.into());
 		assert_noop!(
-			Proxy::proxy(RuntimeOrigin::signed(BOB), ALICE, None, call),
+			Proxy::proxy(RuntimeOrigin::signed(BOB), ALICE, None, call.clone()),
 			pallet_proxy::Error::<Test>::Unannounced
 		);
+		let hash = <Test as pallet_proxy::Config>::CallHasher::hash_of(&call);
+		assert_ok!(Proxy::announce(RuntimeOrigin::signed(BOB), ALICE, hash));
+		assert_noop!(
+			Proxy::proxy_announced(RuntimeOrigin::signed(BOB), BOB, ALICE, None, call.clone()),
+			pallet_proxy::Error::<Test>::Unannounced
+		);
+		System::set_block_number(2);
+		System::reset_events();
+		assert_ok!(Proxy::proxy_announced(RuntimeOrigin::signed(BOB), BOB, ALICE, None, call));
+		System::assert_has_event(pallet_proxy::Event::ProxyExecuted { result: Ok(()) }.into());
 
 		// WHEN the pallet's own calls run over it. THEN a duplicate is refused, and every
 		// migrated definition can be removed, the deposit following each removal.
@@ -235,15 +299,133 @@ fn the_proxy_pallet_can_work_with_what_was_written() {
 			Proxy::add_proxy(RuntimeOrigin::signed(ALICE), CHARLIE, ProxyType::Any, 0),
 			pallet_proxy::Error::<Test>::Duplicate
 		);
-		for (delegate, proxy_type, delay) in entry(&ALICE).0 {
+		for (n, (delegate, proxy_type, delay)) in entry(&ALICE).0.into_iter().enumerate() {
 			assert_ok!(Proxy::remove_proxy(
 				RuntimeOrigin::signed(ALICE),
 				delegate,
 				proxy_type,
 				delay
 			));
+			let left = 2 - n as u128;
+			assert_eq!(reserved(&ALICE), if left == 0 { 0 } else { proxy_deposit(left) });
 		}
 		assert_eq!(entry(&ALICE), (vec![], 0));
-		assert_eq!(reserved(&ALICE), 0);
+		assert_eq!(free(&ALICE), 1_000 + 400);
+	});
+}
+
+/// Most migrated entries record no deposit: a pure's creator was refunded on the relay chain.
+/// The proxy pallet prices such an entry on its next change.
+#[test]
+fn a_deposit_free_entry_is_priced_by_the_next_change() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a pure, Alice, with two migrated definitions, no deposit recorded, and no
+		// funds.
+		let set = vec![portable_proxy(
+			&ALICE,
+			vec![(BOB, PortableProxyType::Any, 0), (CHARLIE, PortableProxyType::Any, 0)],
+		)];
+		CtMigrator::do_receive_proxies(set);
+		assert_eq!(entry(&ALICE).1, 0);
+		assert_eq!(free(&ALICE), 0);
+
+		// WHEN she removes one definition. THEN the price of the one that stays has to be
+		// reserved, and she cannot: a pure without funds cannot shrink its set one by one.
+		assert_noop!(
+			Proxy::remove_proxy(RuntimeOrigin::signed(ALICE), BOB, ProxyType::Any, 0),
+			pallet_balances::Error::<Test>::InsufficientBalance
+		);
+		// WHEN she removes them all. THEN nothing is reserved, and the entry is gone.
+		hypothetically!({
+			assert_ok!(Proxy::remove_proxies(RuntimeOrigin::signed(ALICE)));
+			assert!(!pallet_proxy::Proxies::<Test>::contains_key(ALICE));
+			assert_eq!(reserved(&ALICE), 0);
+		});
+
+		// GIVEN she has funds.
+		fund(&ALICE, 1_000);
+		// WHEN she pokes. THEN the full price of two is reserved and recorded.
+		hypothetically!({
+			assert_ok!(Proxy::poke_deposit(RuntimeOrigin::signed(ALICE)));
+			assert_eq!(entry(&ALICE).1, proxy_deposit(2));
+			assert_eq!(reserved(&ALICE), proxy_deposit(2));
+			System::assert_has_event(
+				pallet_proxy::Event::DepositPoked {
+					who: ALICE,
+					kind: pallet_proxy::DepositKind::Proxies,
+					old_deposit: 0,
+					new_deposit: proxy_deposit(2),
+				}
+				.into(),
+			);
+		});
+		// WHEN she removes one. THEN the price of the one that stays is reserved.
+		hypothetically!({
+			assert_ok!(Proxy::remove_proxy(RuntimeOrigin::signed(ALICE), BOB, ProxyType::Any, 0));
+			assert_eq!(entry(&ALICE), (vec![(CHARLIE, ProxyType::Any, 0)], proxy_deposit(1)));
+			assert_eq!(reserved(&ALICE), proxy_deposit(1));
+		});
+		// WHEN she adds one. THEN the price of all three is reserved, not the increment.
+		assert_ok!(Proxy::add_proxy(RuntimeOrigin::signed(ALICE), DAVE, ProxyType::Any, 0));
+		assert_eq!(entry(&ALICE).1, proxy_deposit(3));
+		assert_eq!(reserved(&ALICE), proxy_deposit(3));
+	});
+}
+
+/// A pure's address derives from its creation on the relay chain, the same way here.
+#[test]
+fn kill_pure_works_with_the_relay_chain_coordinates() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a pure spawned by Bob on the relay chain at block 5, extrinsic 3, whose entry
+		// and balance the migration brought here.
+		let (height, ext_index) = (5u64, 3u32);
+		let pure = pallet_proxy::Pallet::<Test>::pure_account(
+			&BOB,
+			&ProxyType::Any,
+			0,
+			Some((height, ext_index)),
+		);
+		fund(&pure, 50);
+		CtMigrator::do_receive_proxies(vec![portable_proxy(
+			&pure,
+			vec![(BOB, PortableProxyType::Any, 0)],
+		)]);
+		assert_eq!(entry(&pure), (vec![(BOB, ProxyType::Any, 0)], 0));
+
+		// WHEN the wrong coordinates are given. THEN refused.
+		assert_noop!(
+			Proxy::kill_pure(
+				RuntimeOrigin::signed(pure),
+				BOB,
+				ProxyType::Any,
+				0,
+				height + 1,
+				ext_index
+			),
+			pallet_proxy::Error::<Test>::NoPermission
+		);
+
+		// WHEN the pure kills itself with the relay chain's coordinates. THEN the entry goes,
+		// Bob has nothing to unreserve, and the pure's own balance stays. Dispatched directly:
+		// the mock's base call filter admits no `kill_pure` through `proxy`.
+		assert_ok!(Proxy::kill_pure(
+			RuntimeOrigin::signed(pure),
+			BOB,
+			ProxyType::Any,
+			0,
+			height,
+			ext_index
+		));
+		assert!(!pallet_proxy::Proxies::<Test>::contains_key(pure));
+		assert_eq!((reserved(&BOB), free(&pure)), (0, 50));
+		System::assert_has_event(
+			pallet_proxy::Event::PureKilled {
+				pure,
+				spawner: BOB,
+				proxy_type: ProxyType::Any,
+				disambiguation_index: 0,
+			}
+			.into(),
+		);
 	});
 }

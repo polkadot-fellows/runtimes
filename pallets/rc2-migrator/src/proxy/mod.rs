@@ -43,10 +43,8 @@ pub struct ProxyMigrator<T>(PhantomData<T>);
 impl<T: Config> ProxyMigrator<T> {
 	/// Read the proxy entries after `last_key`, up to the block's [`Limits`], and return what
 	/// travels. Writes nothing.
-	// TODO(ahm-v2): open question for review: the entries stay as they are. Each still records
-	// the deposit the accounts stage released, and nothing can act on it since `Proxy` is closed
-	// after the migration. Decide whether to leave them, remove them, or zero the recorded
-	// deposit.
+	// TODO(ahm-v2): open for review: leave the entries, remove them, or zero the recorded
+	// deposit. See proxy.md, "What stays".
 	pub fn migrate_many(last_key: Option<T::AccountId>) -> BlockProxies {
 		let mut iter = match last_key {
 			Some(last_key) => pallet_proxy::Proxies::<T>::iter_from_key(last_key),

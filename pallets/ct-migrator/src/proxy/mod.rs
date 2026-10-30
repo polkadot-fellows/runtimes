@@ -64,6 +64,9 @@ impl<T: Config> Pallet<T> {
 			FailedProxies::<T>::insert(&who, proxy);
 			return;
 		};
+		// Each relay chain entry is visited once and only a para sovereign is renamed on the
+		// wire, so one delegator parks once unless a `sibl` account on the relay chain also
+		// holds proxies; none does. The merge keeps the second set anyway.
 		defensive!("the same delegator parked twice", who);
 		for delegate in proxy.delegates {
 			if !parked.delegates.contains(&delegate) && parked.delegates.try_push(delegate).is_err()
@@ -74,11 +77,11 @@ impl<T: Config> Pallet<T> {
 		FailedProxies::<T>::insert(&who, parked);
 	}
 
-	/// Write one proxy set, merged with what the delegator already has here. Delays arrive in
-	/// relay chain blocks and are converted to this chain's, rounding up. The `ProxyDeposit`
-	/// hold the accounts stage placed is released, the entry is reserved at this chain's rates
-	/// out of it and nothing else, and the rest stays free: a set that arrives without a
-	/// deposit, as a pure proxy's does, is written with none, and its owner can `poke_deposit`.
+	/// Write one proxy set, merged with the delegator's entry here. Delays are converted from
+	/// relay chain blocks, rounding up. The `ProxyDeposit` hold is released and this chain's
+	/// deposit for the entry is reserved out of it, capped at what was migrated; the rest stays
+	/// free. A set that arrives without a hold, as a pure proxy's does, is recorded with a
+	/// deposit of 0 until its owner calls `poke_deposit`.
 	fn do_receive_proxy(proxy: &PortableProxyOf<T>) -> DispatchResult {
 		let who = &proxy.delegator;
 		// the relay chain sends no empty set, and the proxy pallet keeps no empty entry
@@ -95,11 +98,13 @@ impl<T: Config> Pallet<T> {
 		}
 		let migrated: ProxyBalanceOf<T> = migrated.saturated_into::<u128>().saturated_into();
 
-		// `add_proxy_delegate` would refuse a duplicate, so the entry is written directly
+		// written directly: `add_proxy_delegate` refuses a duplicate and reserves the full
+		// deposit from free balance
 		let ratio = T::RcBlockTimeRatio::get();
 		pallet_proxy::Proxies::<T>::try_mutate(who, |(defs, deposit)| {
 			for delegate in &proxy.delegates {
-				// the proxy pallet's own calls refuse a self proxy, so the relay chain holds none
+				// `NoSelfProxy`: the proxy pallet's own calls refuse one, so the relay chain holds
+				// none
 				defensive_assert!(delegate.delegate != *who, "a self proxy");
 				let def = pallet_proxy::ProxyDefinition {
 					delegate: delegate.delegate.clone(),

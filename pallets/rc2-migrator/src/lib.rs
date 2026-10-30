@@ -193,8 +193,6 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// `force_set_stage` target for rewinding a single stage.
 	AccountsDone,
 	/// Proxy definitions whose permissions have meaning on the Coretime chain.
-	///
-	/// Runs before the registrar so classification can still read the un-drained `Paras` map.
 	ProxyInit,
 	ProxyOngoing {
 		last_key: Option<AccountId>,

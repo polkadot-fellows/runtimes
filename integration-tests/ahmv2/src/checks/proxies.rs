@@ -20,10 +20,12 @@ use crate::{
 	checks::{ParaMigrationCheck, RcMigrationCheck},
 	mock::{network, AssetHubPara, CoretimePara},
 };
-use frame_support::traits::Get;
-use migrator_types::PortableProxyDelegate;
-use pallet_rc2_migrator::proxy::ProxyMigrator;
-use sp_runtime::AccountId32;
+use frame_support::{
+	assert_noop, assert_ok, dispatch::PostDispatchInfo, hypothetically, traits::Get,
+};
+use migrator_types::{translate_destination, PortableProxyDelegate};
+use pallet_rc2_migrator::{accounts::AccountsMigrator, proxy::ProxyMigrator};
+use sp_runtime::{traits::Dispatchable, AccountId32, DispatchError};
 use std::collections::{BTreeMap, BTreeSet};
 
 type Rc = network::relay::Runtime;
@@ -55,40 +57,109 @@ fn ct_entry(who: &AccountId32) -> CtEntry {
 	(defs.iter().map(|d| (d.delegate.clone(), d.proxy_type, d.delay)).collect(), deposit)
 }
 
+/// What travels to one Coretime account.
+#[derive(Clone, Debug, Default)]
+pub struct Expected {
+	pub delegates: Vec<PortableProxyDelegate<AccountId32>>,
+	/// The most the accounts stage can place on hold for these definitions: what each
+	/// delegator that is not a pure proxy recorded, up to its reserve.
+	pub hold_at_most: u128,
+}
+
 /// What the Relay Chain held before the migration.
 #[derive(Clone, Debug)]
 pub struct RcProxiesPre {
 	/// Every entry of the proxy map, to assert the stage changed none of them.
 	pub entries: BTreeMap<AccountId32, RcEntry>,
-	/// The definitions that travel, by the account they land on. Two Relay Chain delegators
-	/// can land on one account.
-	pub expected: BTreeMap<AccountId32, Vec<PortableProxyDelegate<AccountId32>>>,
+	/// By the account the definitions land on. Two Relay Chain delegators can land on one
+	/// account.
+	pub expected: BTreeMap<AccountId32, Expected>,
+	/// A delegator and a delegate, both plain accounts, to dispatch a proxied call with: on
+	/// the Relay Chain before the migration, and on both chains after it.
+	pub probe: Option<(AccountId32, AccountId32)>,
 }
 
 /// Every portable definition is recreated on the Coretime chain under the delegator's address
 /// there, merged with what it already had, and the Relay Chain's map is left as it was.
 pub struct ProxiesChecker;
 
+fn dispatch_signed<C>(who: &AccountId32, call: C) -> Result<(), DispatchError>
+where
+	C: Dispatchable<PostInfo = PostDispatchInfo>,
+	C::RuntimeOrigin: From<frame_system::RawOrigin<AccountId32>>,
+{
+	call.dispatch(frame_system::RawOrigin::Signed(who.clone()).into())
+		.map(|_| ())
+		.map_err(|e| e.error)
+}
+
+/// `delegate`'s proxied `remark` as `real`, through the Relay Chain's call filter.
+fn rc_proxied_remark(delegate: &AccountId32, real: &AccountId32) -> Result<(), DispatchError> {
+	let remark = network::relay::RuntimeCall::System(frame_system::Call::remark { remark: vec![] });
+	let call = network::relay::RuntimeCall::Proxy(pallet_proxy::Call::proxy {
+		real: real.clone().into(),
+		force_proxy_type: None,
+		call: Box::new(remark),
+	});
+	dispatch_signed(delegate, call)
+}
+
+/// `delegate` dispatches a `remark` as `real` on the Coretime chain, and the proxy pallet
+/// reports that it ran.
+fn ct_proxied_remark_works(delegate: &AccountId32, real: &AccountId32) {
+	let remark = network::ct::RuntimeCall::System(frame_system::Call::remark { remark: vec![] });
+	let call = network::ct::RuntimeCall::Proxy(pallet_proxy::Call::proxy {
+		real: real.clone().into(),
+		force_proxy_type: None,
+		call: Box::new(remark),
+	});
+	hypothetically!({
+		frame_system::Pallet::<Ct>::reset_events();
+		assert_ok!(dispatch_signed(delegate, call));
+		let executed = pallet_proxy::Event::<Ct>::ProxyExecuted { result: Ok(()) };
+		frame_system::Pallet::<Ct>::assert_has_event(executed.into());
+	});
+}
+
 impl RcMigrationCheck for ProxiesChecker {
 	type RcPrePayload = RcProxiesPre;
 	type RcPostPayload = ();
 
 	fn pre_check() -> Self::RcPrePayload {
-		let mut expected: BTreeMap<AccountId32, Vec<_>> = BTreeMap::new();
+		let mut expected: BTreeMap<AccountId32, Expected> = BTreeMap::new();
+		let mut probe = None;
 		let entries = pallet_proxy::Proxies::<Rc>::iter_keys()
 			.map(|who| {
-				let (defs, _) = pallet_proxy::Proxies::<Rc>::get(&who);
+				let (defs, deposit) = pallet_proxy::Proxies::<Rc>::get(&who);
+				let info = frame_system::Account::<Rc>::get(&who);
+				let pure = AccountsMigrator::<Rc>::is_pure_proxy(&who, &info);
 				if let Some(portable) = ProxyMigrator::<Rc>::migrate_single(&who, &defs) {
-					expected
-						.entry(portable.delegator)
-						.or_default()
-						.extend(portable.delegates.into_inner());
+					// a plain delegator with a plain delegate that needs no announcement
+					if probe.is_none() && !pure && translate_destination(&who) == who {
+						probe = portable
+							.delegates
+							.iter()
+							.find(|d| {
+								d.delay == 0 && translate_destination(&d.delegate) == d.delegate
+							})
+							.map(|d| (who.clone(), d.delegate.clone()));
+					}
+					let to = expected.entry(portable.delegator).or_default();
+					to.delegates.extend(portable.delegates.into_inner());
+					if !pure {
+						to.hold_at_most += deposit.min(info.data.reserved);
+					}
 				}
-				let entry = rc_entry(&who);
-				(who, entry)
+				(who, (defs.into_inner(), deposit))
 			})
 			.collect();
-		RcProxiesPre { entries, expected }
+
+		// the probe is sound: the call goes through before the migration
+		let (delegator, delegate) = probe.clone().expect("a plain delegator with a plain delegate");
+		hypothetically!({
+			assert_ok!(rc_proxied_remark(&delegate, &delegator));
+		});
+		RcProxiesPre { entries, expected, probe }
 	}
 
 	fn post_check(rc_pre: &Self::RcPrePayload) -> Self::RcPostPayload {
@@ -96,6 +167,13 @@ impl RcMigrationCheck for ProxiesChecker {
 			.map(|who| (who.clone(), rc_entry(&who)))
 			.collect();
 		assert_eq!(after, rc_pre.entries, "the Relay Chain's proxy map must be left as it was");
+
+		// Proxies are closed here for good.
+		let (delegator, delegate) = rc_pre.probe.clone().expect("picked before the migration");
+		let filtered: DispatchError = frame_system::Error::<Rc>::CallFiltered.into();
+		hypothetically!({
+			assert_noop!(rc_proxied_remark(&delegate, &delegator), filtered);
+		});
 	}
 }
 
@@ -125,31 +203,39 @@ impl ParaMigrationCheck<CoretimePara> for ProxiesChecker {
 		assert!(failed.is_empty(), "proxy sets failed to integrate: {failed:?}");
 
 		let ratio: u32 = <Ct as pallet_ct_migrator::Config>::RcBlockTimeRatio::get();
-		let mut definitions = 0usize;
-		for (dest, delegates) in &rc_pre.expected {
+		let (mut definitions, mut deposit_free) = (0usize, 0usize);
+		for (dest, expected) in &rc_pre.expected {
 			// What was there, plus every migrated definition as this chain represents it, in
 			// the pallet's order: the tuple orders as `ProxyDefinition` does.
-			let (before, _) = ct_pre.entries.remove(dest).expect("every destination was read");
-			let expected: BTreeSet<_> = before
+			let (before, before_deposit) =
+				ct_pre.entries.remove(dest).expect("every destination was read");
+			let defs_expected: BTreeSet<_> = before
 				.into_iter()
-				.chain(delegates.iter().map(|d| {
+				.chain(expected.delegates.iter().map(|d| {
 					let proxy_type = network::ct::ProxyType::from(d.proxy_type);
 					(d.delegate.clone(), proxy_type, d.delay.div_ceil(ratio))
 				}))
 				.collect();
-			definitions += delegates.len();
+			definitions += expected.delegates.len();
 
 			let (defs, deposit) = ct_entry(dest);
 			assert_eq!(
 				defs,
-				expected.into_iter().collect::<Vec<_>>(),
+				defs_expected.into_iter().collect::<Vec<_>>(),
 				"the proxy entry of {dest:?}"
 			);
-			let reserved = frame_system::Account::<Ct>::get(dest).data.reserved;
-			assert!(
-				deposit <= reserved,
-				"{dest:?} records a proxy deposit of {deposit} but reserves {reserved}"
+			// Priced at this chain's rates out of the migrated hold, and never more.
+			let required = pallet_proxy::Pallet::<Ct>::deposit(defs.len() as u32);
+			assert_eq!(
+				deposit,
+				required.min(before_deposit + expected.hold_at_most),
+				"the proxy deposit of {dest:?}"
 			);
+			let reserved = frame_system::Account::<Ct>::get(dest).data.reserved;
+			assert!(deposit <= reserved, "{dest:?} records {deposit} but reserves {reserved}");
+			if deposit == 0 {
+				deposit_free += 1;
+			}
 		}
 
 		// Every migrated proxy deposit was consumed by the stage.
@@ -162,11 +248,26 @@ impl ParaMigrationCheck<CoretimePara> for ProxiesChecker {
 			.collect();
 		assert!(left.is_empty(), "proxy deposits still on hold: {left:?}");
 
+		// A migrated definition works here: for a plain delegator, and for a pure proxy
+		// through its `Any` delegate.
+		let (delegator, delegate) = rc_pre.probe.clone().expect("picked before the migration");
+		ct_proxied_remark_works(&delegate, &delegator);
+		let pure = rc_pre
+			.expected
+			.iter()
+			.find(|(dest, e)| {
+				e.hold_at_most == 0 && e.delegates.iter().all(|d| d.delegate != **dest)
+			})
+			.map(|(dest, e)| (dest.clone(), e.delegates[0].delegate.clone()))
+			.expect("a pure proxy");
+		ct_proxied_remark_works(&pure.1, &pure.0);
+
 		log::info!(
 			target: "runtime::coretime",
-			"Proxies recreated on Coretime: {} definition(s) for {} delegator(s)",
+			"Proxies recreated on Coretime: {} definition(s) for {} delegator(s), {} of them deposit-free",
 			definitions,
-			rc_pre.expected.len()
+			rc_pre.expected.len(),
+			deposit_free
 		);
 	}
 }

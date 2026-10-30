@@ -71,9 +71,11 @@ impl pallet_balances::Config for Test {
 pub const ALICE: AccountId = 1;
 // The account behind the admin origin.
 pub const ADMIN: AccountId = 2;
+// Delegates in the proxy tests.
 pub const BOB: AccountId = 3;
 pub const CHARLIE: AccountId = 4;
 pub const DAVE: AccountId = 5;
+pub const EVE: AccountId = 6;
 
 #[derive(
 	Copy,

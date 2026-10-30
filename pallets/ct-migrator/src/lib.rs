@@ -155,8 +155,8 @@ pub mod pallet {
 		/// The overarching hold reason type.
 		type RuntimeHoldReason: From<HoldReason>;
 
-		/// How many Relay Chain blocks make one of this chain's, at least one. Migrated proxy
-		/// delays are divided by it, rounding up.
+		/// How many Relay Chain blocks make one of this chain's, at least one: it divides every
+		/// migrated proxy delay, rounding up.
 		#[pallet::constant]
 		type RcBlockTimeRatio: Get<u32>;
 
@@ -181,7 +181,8 @@ pub mod pallet {
 		#[codec(index = 1)]
 		HrmpDeposit,
 		/// A Relay Chain proxy deposit whose definitions travel here. Released when they arrive:
-		/// the recreated entry is re-reserved at this chain's rates and the rest becomes free.
+		/// this chain's deposit for the recreated entry is reserved out of it, never more, and
+		/// what is left becomes free.
 		#[codec(index = 2)]
 		ProxyDeposit,
 		/// Relay Chain reserve that no pallet's deposit records accounted for. Parked here for
@@ -222,7 +223,9 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type CtMintedTotal<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
-	/// Proxy sets that could not be written, parked as received, by delegator.
+	/// Proxy sets that could not be written, parked as received, by delegator. The delegator's
+	/// `ProxyDeposit` hold stays in place.
+	// TODO(ahm-v2): a root call that writes a parked set again or releases its hold.
 	#[pallet::storage]
 	pub type FailedProxies<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, proxy::PortableProxyOf<T>, OptionQuery>;

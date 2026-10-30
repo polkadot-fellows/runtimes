@@ -191,7 +191,7 @@ impl<T: Config> AccountsMigrator<T> {
 
 		// Proxy deposits, reserved on the delegator. A set with a portable permission continues
 		// on the Coretime chain, the others are refunded. A pure proxy's deposit is refunded to
-		// its creator, who reserved it: the pure's entry is recreated without one.
+		// its creator, who reserved it.
 		for (delegator, (defs, deposit)) in pallet_proxy::Proxies::<T>::iter() {
 			let (who, kind) = match Self::pure_creator(&delegator, &defs) {
 				Some(creator) => (creator, DepositKind::Refund),
