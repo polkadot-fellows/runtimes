@@ -80,7 +80,8 @@ use system_parachains_constants::{
 		account::ACCUMULATE_FORWARD_PALLET_ID, consensus::*, currency::*, fee::WeightToFee,
 		locations::DapStagingLocation,
 	},
-	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
+	AVERAGE_ON_INITIALIZE_RATIO, HOURS, MAXIMUM_BLOCK_WEIGHT, MILLISECS_PER_BLOCK,
+	NORMAL_DISPATCH_RATIO, SLOT_DURATION,
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use xcm::prelude::*;
@@ -594,6 +595,9 @@ pub enum ProxyType {
 	OnDemandPurchaser,
 	/// Collator selection proxy. Can execute calls related to collator selection mechanism.
 	Collator,
+	/// Para registration proxy. Allows nothing until the registrar is on this chain; definitions
+	/// migrated from the Relay Chain keep it so they work once it is.
+	ParaRegistration,
 }
 
 impl InstanceFilter<RuntimeCall> for ProxyType {
@@ -655,6 +659,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
+			// TODO(ahm-v2): the registrar calls, once the control plane is on this chain.
+			ProxyType::ParaRegistration => false,
 		}
 	}
 

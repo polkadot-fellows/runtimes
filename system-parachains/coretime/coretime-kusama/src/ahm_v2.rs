@@ -22,8 +22,29 @@
 
 pub mod lockdown;
 
-use crate::{xcm_config::XcmRouter, AccountId, Balances, Runtime, RuntimeEvent, RuntimeHoldReason};
+use crate::{
+	xcm_config::XcmRouter, AccountId, Balances, ProxyType, Runtime, RuntimeEvent,
+	RuntimeHoldReason, MILLISECS_PER_BLOCK, RELAY_CHAIN_SLOT_DURATION_MILLIS,
+};
+use frame_support::traits::ConstU32;
 use frame_system::EnsureRoot;
+use migrator_types::PortableProxyType;
+
+/// How many relay chain blocks this chain's block takes.
+const RC_BLOCK_TIME_RATIO: u32 =
+	(MILLISECS_PER_BLOCK / RELAY_CHAIN_SLOT_DURATION_MILLIS as u64) as u32;
+
+/// What each migrated proxy permission is on this chain.
+impl From<PortableProxyType> for ProxyType {
+	fn from(t: PortableProxyType) -> Self {
+		match t {
+			PortableProxyType::Any => ProxyType::Any,
+			PortableProxyType::NonTransfer => ProxyType::NonTransfer,
+			PortableProxyType::CancelProxy => ProxyType::CancelProxy,
+			PortableProxyType::ParaRegistration => ProxyType::ParaRegistration,
+		}
+	}
+}
 
 impl pallet_ct_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -31,6 +52,7 @@ impl pallet_ct_migrator::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
+	type RcBlockTimeRatio = ConstU32<RC_BLOCK_TIME_RATIO>;
 	type PreMigrationCalls = lockdown::CallsEnabledBeforeMigration;
 	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
 	type PostMigrationCalls = frame_support::traits::Everything;
@@ -38,9 +60,10 @@ impl pallet_ct_migrator::Config for Runtime {
 
 #[cfg(test)]
 mod tests {
-	use crate::{AccountId, Runtime, RuntimeCall};
+	use crate::{AccountId, ProxyType, Runtime, RuntimeCall};
 	use codec::Encode;
-	use pallet_ct_migrator::accounts::PortableAccountOf;
+	use migrator_types::PortableProxyType;
+	use pallet_ct_migrator::{accounts::PortableAccountOf, proxy::PortableProxyOf};
 	use pallet_rc2_migrator::{CtMigratorCall, CtRuntimeCall};
 
 	/// Ensure the pallet + call index aligns.
@@ -72,5 +95,31 @@ mod tests {
 			})
 			.encode(),
 		);
+		let proxies = vec![PortableProxyOf::<Runtime> {
+			delegator: AccountId::new([1; 32]),
+			delegates: Default::default(),
+		}];
+		assert_eq!(
+			CtRuntimeCall::CtMigrator(CtMigratorCall::ReceiveProxies { proxies: proxies.clone() })
+				.encode(),
+			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::receive_proxies {
+				proxies
+			})
+			.encode(),
+		);
+	}
+
+	/// A migrated permission lands on its own kind: nothing but `Any` may become `Any`.
+	#[test]
+	fn migrated_permissions_land_on_their_own_kind() {
+		let mapped = [
+			(PortableProxyType::Any, ProxyType::Any),
+			(PortableProxyType::NonTransfer, ProxyType::NonTransfer),
+			(PortableProxyType::CancelProxy, ProxyType::CancelProxy),
+			(PortableProxyType::ParaRegistration, ProxyType::ParaRegistration),
+		];
+		for (portable, expected) in mapped {
+			assert_eq!(ProxyType::from(portable), expected);
+		}
 	}
 }

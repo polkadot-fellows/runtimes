@@ -22,7 +22,8 @@
 
 use crate::{
 	checks::{
-		accounts::AccountsChecker, session::ValidatorsChecker, ParaMigrationCheck, RcMigrationCheck,
+		accounts::AccountsChecker, proxies::ProxiesChecker, session::ValidatorsChecker,
+		ParaMigrationCheck, RcMigrationCheck,
 	},
 	mock::*,
 };
@@ -200,7 +201,7 @@ fn run_handshake(rc: &mut TestExternalities, ct: &mut TestExternalities) -> Vec<
 }
 
 /// The checkers of every stage, run on each chain before and after the migration.
-type Checks = (AccountsChecker, ValidatorsChecker);
+type Checks = (AccountsChecker, ProxiesChecker, ValidatorsChecker);
 
 /// The migration, driven end to end over live Relay Chain, Coretime and Asset Hub state, with the
 /// checks of every stage run before and after.

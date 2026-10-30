@@ -42,10 +42,12 @@ mod tests;
 pub mod xcm_config;
 
 pub mod accounts;
+pub mod proxy;
 
 pub use pallet::*;
 
 use alloc::{vec, vec::Vec};
+use codec::Compact;
 use frame_support::{
 	defensive_assert,
 	pallet_prelude::*,
@@ -54,9 +56,10 @@ use frame_support::{
 	traits::{Contains, EnsureOrigin, GetCallMetadata, Time},
 };
 use frame_system::pallet_prelude::*;
-use migrator_types::{PortableAccount, PortableProxyType};
+use migrator_types::{MaxPortableProxies, PortableAccount, PortableProxy, PortableProxyType};
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
+use runtime_parachains::configuration;
 use sp_runtime::AccountId32;
 use xcm::prelude::*;
 
@@ -78,7 +81,7 @@ const LOG_TARGET: &str = "runtime::rc2-migrator";
 	MaxEncodedLen,
 )]
 pub struct BlockLimits {
-	/// Items per message, at most [`Self::MAX_ITEMS_PER_XCM`].
+	/// Items per message, at most [`Pallet::max_items_per_xcm`].
 	pub items_per_xcm: u32,
 	/// Messages sent per block; together at most [`Self::MAX_ITEMS_PER_BLOCK`] items.
 	pub xcm_per_block: u32,
@@ -88,24 +91,22 @@ impl Default for BlockLimits {
 	// TODO(ahm-v2): take the values from the benchmarks. These are guesses; v1 moved 1,600 items
 	// and sent 10 messages a block.
 	fn default() -> Self {
-		Self { items_per_xcm: 40, xcm_per_block: 10 }
+		Self { items_per_xcm: 20, xcm_per_block: 10 }
 	}
 }
 
 impl BlockLimits {
-	/// Maximum number of items in a single XCM.
-	///
 	/// A teleport to Asset Hub uses one instruction per item and an XCM can have at most 100
-	/// instructions, two of which are the header. This also keeps the Coretime batches well
-	/// below the 50 KiB DMP message size limit.
-	pub const MAX_ITEMS_PER_XCM: u32 = 98;
+	/// instructions, two of which are the header.
+	const MAX_TELEPORTS_PER_XCM: u32 = 98;
 
 	/// The most items a block may be told to move.
 	pub const MAX_ITEMS_PER_BLOCK: u32 = 1600;
 
-	/// Whether the limits are within their bounds, and neither is zero.
-	pub fn validate(&self) -> bool {
-		(1..=Self::MAX_ITEMS_PER_XCM).contains(&self.items_per_xcm) &&
+	/// Whether the limits are within their bounds, and neither is zero. `max_items_per_xcm` is
+	/// [`Pallet::max_items_per_xcm`].
+	pub fn validate(&self, max_items_per_xcm: u32) -> bool {
+		(1..=max_items_per_xcm).contains(&self.items_per_xcm) &&
 			(1..=Self::MAX_ITEMS_PER_BLOCK).contains(&self.items_per_block())
 	}
 
@@ -191,13 +192,10 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// make it easier to swap out what stage should run next for testing, and as a clean
 	/// `force_set_stage` target for rewinding a single stage.
 	AccountsDone,
-	/// Proxy definitions whose permissions have meaning on the Coretime chain.
-	///
-	/// Runs before the registrar so classification can still read the un-drained `Paras` map.
+	/// Proxy entries: the definitions with a meaning on the Coretime chain are recreated there,
+	/// and every entry is removed, announcements included.
 	ProxyInit,
-	ProxyOngoing {
-		last_key: Option<AccountId>,
-	},
+	ProxyOngoing,
 	ProxyDone,
 	/// `paras_registrar` records and their deposits.
 	RegistrarInit,
@@ -277,6 +275,9 @@ pub enum CtMigratorCall {
 	// 2 and 3 are `force_set_stage` and `set_manager`, which the relay chain never sends.
 	#[codec(index = 4)]
 	ReceiveAccounts { accounts: Vec<PortableAccount<AccountId32, u128>> },
+	// 5 is reserved for `reconcile_balances`.
+	#[codec(index = 6)]
+	ReceiveProxies { proxies: Vec<PortableProxy<AccountId32>> },
 }
 
 #[frame_support::pallet]
@@ -421,7 +422,7 @@ pub mod pallet {
 		AlreadyPaused,
 		/// The migration is not paused.
 		NotPaused,
-		/// A limit is zero, or `items_per_xcm` is above [`BlockLimits::MAX_ITEMS_PER_XCM`].
+		/// A limit is zero, or `items_per_xcm` is above [`Pallet::max_items_per_xcm`].
 		BadLimits,
 		/// The account's balance could not be withdrawn whole.
 		FailedToWithdrawAccount,
@@ -468,12 +469,22 @@ pub mod pallet {
 		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
 		/// retry it.
 		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
+		/// A batch of proxy sets was sent to the Coretime chain.
+		ProxiesBatchSent { count: u32 },
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			Self::progress_migration(now)
+		}
+
+		fn integrity_test() {
+			assert!(
+				<T as pallet_proxy::Config>::MaxProxies::get() <=
+					<MaxPortableProxies as Get<u32>>::get(),
+				"a proxy set has to fit the wire"
+			);
 		}
 	}
 
@@ -636,10 +647,11 @@ pub mod pallet {
 
 		/// Set the per-block limits of the data stages.
 		#[pallet::call_index(7)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		// the active configuration, for the message size, and the limits
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn set_limits(origin: OriginFor<T>, limits: BlockLimits) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
-			ensure!(limits.validate(), Error::<T>::BadLimits);
+			ensure!(limits.validate(Self::max_items_per_xcm()), Error::<T>::BadLimits);
 			Limits::<T>::put(limits);
 			Ok(())
 		}
@@ -725,12 +737,23 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::ProxyInit => {
-					Self::transition(MigrationStage::ProxyOngoing { last_key: None });
+					Self::transition(MigrationStage::ProxyOngoing);
 					T::DbWeight::get().reads_writes(1, 1)
 				},
-				MigrationStage::ProxyOngoing { .. } => {
-					Self::transition(MigrationStage::ProxyDone);
-					T::DbWeight::get().reads_writes(1, 1)
+				MigrationStage::ProxyOngoing => {
+					// Removals and sends commit or roll back together.
+					match with_storage_layer(Self::migrate_proxies_block) {
+						Ok(true) => Self::transition(MigrationStage::ProxyDone),
+						Ok(false) => {},
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "Proxies block failed, retrying: {e:?}");
+						},
+					}
+					// one read and one write per entry
+					T::DbWeight::get()
+						.reads_writes(1, 1)
+						.saturating_mul(Limits::<T>::get().items_per_block().into())
+						.saturating_add(T::DbWeight::get().reads_writes(1, 1))
 				},
 				MigrationStage::ProxyDone => {
 					Self::transition(MigrationStage::RegistrarInit);
@@ -828,18 +851,30 @@ pub mod pallet {
 			});
 
 			// send
-			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
-			for chunk in to_ct.chunks(per_xcm) {
-				Self::send_accounts(chunk.to_vec())?;
-			}
-			for chunk in to_ah.chunks(per_xcm) {
-				Self::send_teleport(chunk.to_vec())?;
-			}
+			Self::send_in_batches(to_ct, Self::send_accounts)?;
+			Self::send_in_batches(to_ah, Self::send_teleport)?;
 			Ok(last_key)
 		}
 
+		/// Hand `items` to `send` in batches of at most [`BlockLimits::items_per_xcm`], one
+		/// message each.
+		fn send_in_batches<I>(
+			items: Vec<I>,
+			send: impl Fn(Vec<I>) -> Result<(), Error<T>>,
+		) -> Result<(), Error<T>> {
+			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
+			let mut items = items.into_iter();
+			loop {
+				let batch: Vec<I> = items.by_ref().take(per_xcm).collect();
+				if batch.is_empty() {
+					return Ok(());
+				}
+				send(batch)?;
+			}
+		}
+
 		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.
-		fn send_accounts(
+		pub(crate) fn send_accounts(
 			accounts: Vec<PortableAccount<AccountId32, u128>>,
 		) -> Result<(), Error<T>> {
 			let count = accounts.len() as u32;
@@ -848,10 +883,35 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// One block of the proxy stage. Returns whether both maps are empty.
+		///
+		/// The caller runs it in a storage transaction, so an `Err` rolls the whole block back,
+		/// removals included.
+		fn migrate_proxies_block() -> Result<bool, DispatchError> {
+			let limit = Limits::<T>::get().items_per_block();
+			let proxy::BlockProxies { proxies, removed } =
+				proxy::ProxyMigrator::<T>::migrate_many(limit);
+			Self::send_in_batches(proxies, Self::send_proxies)?;
+			// A block with budget to spare has emptied both maps.
+			Ok(removed < limit)
+		}
+
+		/// Send proxy sets to the Coretime chain, which writes them into its proxy pallet.
+		pub(crate) fn send_proxies(
+			proxies: Vec<PortableProxy<AccountId32>>,
+		) -> Result<(), Error<T>> {
+			let count = proxies.len() as u32;
+			Self::send_to_ct(CtMigratorCall::ReceiveProxies { proxies })?;
+			Self::deposit_event(Event::ProxiesBatchSent { count });
+			Ok(())
+		}
+
 		/// Teleport free balances to their owners on Asset Hub. Every amount is at least the
 		/// existential deposit here, which is above Asset Hub's, so each deposit endows its
 		/// account.
-		fn send_teleport(beneficiaries: Vec<(T::AccountId, u128)>) -> Result<(), Error<T>> {
+		pub(crate) fn send_teleport(
+			beneficiaries: Vec<(T::AccountId, u128)>,
+		) -> Result<(), Error<T>> {
 			// the native token, as Asset Hub names it
 			let native = |amount: u128| Asset {
 				id: AssetId(Location::parent()),
@@ -890,12 +950,32 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Send a `pallet-ct-migrator` call to the Coretime chain as a single XCM `Transact`.
-		fn send_to_ct(call: CtMigratorCall) -> Result<(), Error<T>> {
+		/// The most items one message may carry: as many of the largest item any stage sends to
+		/// the Coretime chain as fit the Relay Chain's downward message size, and never more
+		/// than a teleport can hold.
+		pub fn max_items_per_xcm() -> u32 {
+			let largest = PortableAccount::<AccountId32, u128>::max_encoded_len()
+				.max(PortableProxy::<AccountId32>::max_encoded_len()) as u32;
+			let room = configuration::ActiveConfig::<T>::get()
+				.max_downward_message_size
+				.saturating_sub(Self::xcm_envelope());
+			(room / largest).min(BlockLimits::MAX_TELEPORTS_PER_XCM)
+		}
+
+		/// What a message to the Coretime chain wraps around its items, as the router encodes
+		/// it: an empty call, with its two length prefixes at their widest.
+		pub(crate) fn xcm_envelope() -> u32 {
+			let empty = Self::ct_message(CtMigratorCall::ReceiveProxies { proxies: vec![] });
+			let prefix_growth = 2 * (Compact::<u32>::max_encoded_len() - 1);
+			(VersionedXcm::from(empty).encoded_size() + prefix_growth) as u32
+		}
+
+		/// The message that carries `call` to the Coretime chain, as a single XCM `Transact`.
+		fn ct_message(call: CtMigratorCall) -> Xcm<()> {
 			let call = CtRuntimeCall::CtMigrator(call);
 			// `Superuser` converts to Root on the Coretime chain; the receiving calls check for
 			// Root.
-			let message = Xcm(vec![
+			Xcm(vec![
 				UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 				Transact {
 					origin_kind: OriginKind::Superuser,
@@ -905,10 +985,13 @@ pub mod pallet {
 				// A call that fails inside `Transact` does not fail the XCM by itself; this makes
 				// it fail, so the Coretime chain reports it instead of a success.
 				ExpectTransactStatus(MaybeErrorCode::Success),
-			]);
+			])
+		}
 
+		/// Send a `pallet-ct-migrator` call to the Coretime chain.
+		pub(crate) fn send_to_ct(call: CtMigratorCall) -> Result<(), Error<T>> {
 			let dest = Location::new(0, [Parachain(T::CtParaId::get())]);
-			send_xcm::<T::SendXcm>(dest, message).map_err(|e| {
+			send_xcm::<T::SendXcm>(dest, Self::ct_message(call)).map_err(|e| {
 				log::error!(target: LOG_TARGET, "Sending to CT failed: {e:?}");
 				Error::<T>::XcmSendFailed
 			})?;

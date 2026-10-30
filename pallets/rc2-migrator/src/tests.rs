@@ -18,10 +18,14 @@ use crate::{
 	mock::*, xcm_config::NothingOnceStarted, CtMigratorCall, CtRuntimeCall, Error, Event, Manager,
 	Paused, RcMigrationStage,
 };
-use codec::Encode;
+use codec::{Encode, MaxEncodedLen};
 use frame_support::{
 	assert_noop, assert_ok,
 	traits::{ContainsPair, Everything},
+};
+use migrator_types::{
+	PortableAccount, PortableHold, PortableHoldReason, PortableProxy, PortableProxyDelegate,
+	PortableProxyType,
 };
 use sp_runtime::{traits::Dispatchable, DispatchError::BadOrigin};
 use xcm::prelude::*;
@@ -42,7 +46,7 @@ fn data_stages() -> Vec<Stage> {
 		Stage::AccountsOngoing { last_key: None },
 		Stage::AccountsDone,
 		Stage::ProxyInit,
-		Stage::ProxyOngoing { last_key: None },
+		Stage::ProxyOngoing,
 		Stage::ProxyDone,
 		Stage::RegistrarInit,
 		Stage::RegistrarOngoing { last_key: None },
@@ -785,7 +789,7 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 			Stage::AccountsOngoing { .. } => (true, true, false),
 			Stage::AccountsDone => (true, true, false),
 			Stage::ProxyInit => (true, true, false),
-			Stage::ProxyOngoing { .. } => (true, true, false),
+			Stage::ProxyOngoing => (true, true, false),
 			Stage::ProxyDone => (true, true, false),
 			Stage::RegistrarInit => (true, true, false),
 			Stage::RegistrarOngoing { .. } => (true, true, false),
@@ -811,7 +815,7 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 		Stage::AccountsOngoing { last_key: None },
 		Stage::AccountsDone,
 		Stage::ProxyInit,
-		Stage::ProxyOngoing { last_key: None },
+		Stage::ProxyOngoing,
 		Stage::ProxyDone,
 		Stage::RegistrarInit,
 		Stage::RegistrarOngoing { last_key: None },
@@ -846,7 +850,7 @@ fn each_stage_allows_only_its_own_call_set() {
 				Stage::AccountsOngoing { .. } |
 				Stage::AccountsDone |
 				Stage::ProxyInit |
-				Stage::ProxyOngoing { .. } |
+				Stage::ProxyOngoing |
 				Stage::ProxyDone |
 				Stage::RegistrarInit |
 				Stage::RegistrarOngoing { .. } |
@@ -895,6 +899,52 @@ fn teleport_trust_ends_when_the_migration_starts() {
 				!stage.has_started(),
 				"at {stage:?}"
 			);
+		}
+	});
+}
+
+/// The largest batch `set_limits` admits fits a downward message, whichever stage sends it and
+/// with every item at its largest.
+#[test]
+fn the_largest_batches_fit_a_downward_message() {
+	new_test_ext().execute_with(|| {
+		// GIVEN an account and a proxy set at their encoded bound.
+		let who = AccountId::from([0xff; 32]);
+		let hold = PortableHold { reason: PortableHoldReason::RegistrarDeposit, amount: u128::MAX };
+		let account = PortableAccount {
+			who: who.clone(),
+			free: u128::MAX,
+			holds: vec![hold; 4].try_into().unwrap(),
+		};
+		let delegate = PortableProxyDelegate {
+			delegate: who.clone(),
+			proxy_type: PortableProxyType::ParaRegistration,
+			delay: u32::MAX,
+		};
+		let proxy = PortableProxy {
+			delegator: who.clone(),
+			delegates: vec![delegate; 32].try_into().unwrap(),
+		};
+		assert_eq!(account.encoded_size(), PortableAccount::<AccountId, u128>::max_encoded_len());
+		assert_eq!(proxy.encoded_size(), PortableProxy::<AccountId>::max_encoded_len());
+
+		// WHEN each kind of batch leaves at the largest admitted size.
+		let max = Rc2Migrator::max_items_per_xcm() as usize;
+		assert_ok!(Rc2Migrator::send_accounts(vec![account.clone(); max]));
+		assert_ok!(Rc2Migrator::send_proxies(vec![proxy.clone(); max]));
+		assert_ok!(Rc2Migrator::send_teleport(vec![(who, u128::MAX); max]));
+
+		// THEN what each message carries beyond its items is within the envelope the bound
+		// assumes, and every message fits as the router encodes it.
+		let sizes: Vec<_> = sent()
+			.into_iter()
+			.map(|(_, xcm)| VersionedXcm::from(xcm).encoded_size())
+			.collect();
+		let envelope = Rc2Migrator::xcm_envelope() as usize;
+		assert!(sizes[0] - max * account.encoded_size() <= envelope);
+		assert!(sizes[1] - max * proxy.encoded_size() <= envelope);
+		for (n, size) in sizes.iter().enumerate() {
+			assert!(*size <= DMP_MESSAGE_SIZE as usize, "message {n} is {size} bytes");
 		}
 	});
 }

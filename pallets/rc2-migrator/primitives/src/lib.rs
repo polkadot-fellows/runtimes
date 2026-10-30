@@ -123,6 +123,33 @@ pub enum PortableProxyType {
 	ParaRegistration,
 }
 
+/// Bound on [`PortableProxy::delegates`]. A sender's `MaxProxies` must not exceed it.
+pub type MaxPortableProxies = ConstU32<32>;
+
+/// A proxy definition as it leaves the Relay Chain.
+#[derive(
+	Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
+)]
+pub struct PortableProxyDelegate<AccountId> {
+	/// The account that may act for the delegator; see [`translate_destination`].
+	pub delegate: AccountId,
+	/// What it may do.
+	pub proxy_type: PortableProxyType,
+	/// The announcement delay, in Relay Chain blocks.
+	pub delay: u32,
+}
+
+/// A delegator's proxy definitions as they leave the Relay Chain.
+#[derive(
+	Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
+)]
+pub struct PortableProxy<AccountId> {
+	/// The account that is delegating to its proxies; see [`translate_destination`].
+	pub delegator: AccountId,
+	/// The definitions with a permission the receiving chain represents; the rest are not sent.
+	pub delegates: BoundedVec<PortableProxyDelegate<AccountId>, MaxPortableProxies>,
+}
+
 /// Bound on [`PortableAccount::holds`].
 pub type MaxPortableHolds = ConstU32<4>;
 

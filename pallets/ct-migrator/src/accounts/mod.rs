@@ -22,7 +22,8 @@
 mod tests;
 
 use crate::{
-	BalanceOf, Config, CtMintedTotal, Event, FailedAccounts, HoldReason, Pallet, LOG_TARGET,
+	BalanceOf, Config, CtMintedTotal, CurrencyOf, Event, FailedAccounts, HoldReason, Pallet,
+	LOG_TARGET,
 };
 use alloc::vec::Vec;
 use frame_support::{
@@ -68,19 +69,19 @@ impl<T: Config> Pallet<T> {
 			.fold(BalanceOf::<T>::zero(), |sum, hold| sum.saturating_add(hold.amount));
 		let total = account.free.saturating_add(held);
 
-		let minted = T::Currency::mint_into(who, total)?;
+		let minted = CurrencyOf::<T>::mint_into(who, total)?;
 		defensive_assert!(minted == total, "minted what the relay chain burned");
 
 		for hold in &account.holds {
 			let holdable =
-				T::Currency::reducible_balance(who, Preservation::Preserve, Fortitude::Force);
+				CurrencyOf::<T>::reducible_balance(who, Preservation::Preserve, Fortitude::Force);
 			let amount = hold.amount.min(holdable);
 			defensive_assert!(amount == hold.amount, "the hold is placed whole");
 			if amount.is_zero() {
 				continue;
 			}
 			let reason: T::RuntimeHoldReason = HoldReason::from(hold.reason).into();
-			T::Currency::hold(&reason, who, amount)?;
+			CurrencyOf::<T>::hold(&reason, who, amount)?;
 		}
 
 		Ok(minted)
