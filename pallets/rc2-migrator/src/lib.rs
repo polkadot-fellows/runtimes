@@ -47,6 +47,7 @@ pub mod proxy;
 pub use pallet::*;
 
 use alloc::{vec, vec::Vec};
+use codec::Compact;
 use frame_support::{
 	defensive_assert,
 	pallet_prelude::*,
@@ -58,6 +59,7 @@ use frame_system::pallet_prelude::*;
 use migrator_types::{MaxPortableProxies, PortableAccount, PortableProxy, PortableProxyType};
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
+use runtime_parachains::configuration;
 use sp_runtime::AccountId32;
 use xcm::prelude::*;
 
@@ -79,7 +81,7 @@ const LOG_TARGET: &str = "runtime::rc2-migrator";
 	MaxEncodedLen,
 )]
 pub struct BlockLimits {
-	/// Items per message, at most [`Self::MAX_ITEMS_PER_XCM`].
+	/// Items per message, at most [`Pallet::max_items_per_xcm`].
 	pub items_per_xcm: u32,
 	/// Messages sent per block; together at most [`Self::MAX_ITEMS_PER_BLOCK`] items.
 	pub xcm_per_block: u32,
@@ -89,24 +91,22 @@ impl Default for BlockLimits {
 	// TODO(ahm-v2): take the values from the benchmarks. These are guesses; v1 moved 1,600 items
 	// and sent 10 messages a block.
 	fn default() -> Self {
-		Self { items_per_xcm: 40, xcm_per_block: 10 }
+		Self { items_per_xcm: 20, xcm_per_block: 10 }
 	}
 }
 
 impl BlockLimits {
-	/// Maximum number of items in a single XCM.
-	///
 	/// A teleport to Asset Hub uses one instruction per item and an XCM can have at most 100
-	/// instructions, two of which are the header. This also keeps the Coretime batches well
-	/// below the 50 KiB DMP message size limit.
-	pub const MAX_ITEMS_PER_XCM: u32 = 98;
+	/// instructions, two of which are the header.
+	const MAX_TELEPORTS_PER_XCM: u32 = 98;
 
 	/// The most items a block may be told to move.
 	pub const MAX_ITEMS_PER_BLOCK: u32 = 1600;
 
-	/// Whether the limits are within their bounds, and neither is zero.
-	pub fn validate(&self) -> bool {
-		(1..=Self::MAX_ITEMS_PER_XCM).contains(&self.items_per_xcm) &&
+	/// Whether the limits are within their bounds, and neither is zero. `max_items_per_xcm` is
+	/// [`Pallet::max_items_per_xcm`].
+	pub fn validate(&self, max_items_per_xcm: u32) -> bool {
+		(1..=max_items_per_xcm).contains(&self.items_per_xcm) &&
 			(1..=Self::MAX_ITEMS_PER_BLOCK).contains(&self.items_per_block())
 	}
 
@@ -423,7 +423,7 @@ pub mod pallet {
 		AlreadyPaused,
 		/// The migration is not paused.
 		NotPaused,
-		/// A limit is zero, or `items_per_xcm` is above [`BlockLimits::MAX_ITEMS_PER_XCM`].
+		/// A limit is zero, or `items_per_xcm` is above [`Pallet::max_items_per_xcm`].
 		BadLimits,
 		/// The account's balance could not be withdrawn whole.
 		FailedToWithdrawAccount,
@@ -648,10 +648,11 @@ pub mod pallet {
 
 		/// Set the per-block limits of the data stages.
 		#[pallet::call_index(7)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		// the active configuration, for the message size, and the limits
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
 		pub fn set_limits(origin: OriginFor<T>, limits: BlockLimits) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
-			ensure!(limits.validate(), Error::<T>::BadLimits);
+			ensure!(limits.validate(Self::max_items_per_xcm()), Error::<T>::BadLimits);
 			Limits::<T>::put(limits);
 			Ok(())
 		}
@@ -873,7 +874,7 @@ pub mod pallet {
 		}
 
 		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.
-		fn send_accounts(
+		pub(crate) fn send_accounts(
 			accounts: Vec<PortableAccount<AccountId32, u128>>,
 		) -> Result<(), Error<T>> {
 			let count = accounts.len() as u32;
@@ -896,7 +897,9 @@ pub mod pallet {
 		}
 
 		/// Send proxy sets to the Coretime chain, which writes them into its proxy pallet.
-		fn send_proxies(proxies: Vec<PortableProxy<AccountId32>>) -> Result<(), Error<T>> {
+		pub(crate) fn send_proxies(
+			proxies: Vec<PortableProxy<AccountId32>>,
+		) -> Result<(), Error<T>> {
 			let count = proxies.len() as u32;
 			Self::send_to_ct(CtMigratorCall::ReceiveProxies { proxies })?;
 			Self::deposit_event(Event::ProxiesBatchSent { count });
@@ -906,7 +909,9 @@ pub mod pallet {
 		/// Teleport free balances to their owners on Asset Hub. Every amount is at least the
 		/// existential deposit here, which is above Asset Hub's, so each deposit endows its
 		/// account.
-		fn send_teleport(beneficiaries: Vec<(T::AccountId, u128)>) -> Result<(), Error<T>> {
+		pub(crate) fn send_teleport(
+			beneficiaries: Vec<(T::AccountId, u128)>,
+		) -> Result<(), Error<T>> {
 			// the native token, as Asset Hub names it
 			let native = |amount: u128| Asset {
 				id: AssetId(Location::parent()),
@@ -945,12 +950,32 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Send a `pallet-ct-migrator` call to the Coretime chain as a single XCM `Transact`.
-		fn send_to_ct(call: CtMigratorCall) -> Result<(), Error<T>> {
+		/// The most items one message may carry: as many of the largest item any stage sends to
+		/// the Coretime chain as fit the Relay Chain's downward message size, and never more
+		/// than a teleport can hold.
+		pub fn max_items_per_xcm() -> u32 {
+			let largest = PortableAccount::<AccountId32, u128>::max_encoded_len()
+				.max(PortableProxy::<AccountId32>::max_encoded_len()) as u32;
+			let room = configuration::ActiveConfig::<T>::get()
+				.max_downward_message_size
+				.saturating_sub(Self::xcm_envelope());
+			(room / largest).min(BlockLimits::MAX_TELEPORTS_PER_XCM)
+		}
+
+		/// What a message to the Coretime chain wraps around its items, as the router encodes
+		/// it: an empty call, with its two length prefixes at their widest.
+		pub(crate) fn xcm_envelope() -> u32 {
+			let empty = Self::ct_message(CtMigratorCall::ReceiveProxies { proxies: vec![] });
+			let prefix_growth = 2 * (Compact::<u32>::max_encoded_len() - 1);
+			(VersionedXcm::from(empty).encoded_size() + prefix_growth) as u32
+		}
+
+		/// The message that carries `call` to the Coretime chain, as a single XCM `Transact`.
+		fn ct_message(call: CtMigratorCall) -> Xcm<()> {
 			let call = CtRuntimeCall::CtMigrator(call);
 			// `Superuser` converts to Root on the Coretime chain; the receiving calls check for
 			// Root.
-			let message = Xcm(vec![
+			Xcm(vec![
 				UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 				Transact {
 					origin_kind: OriginKind::Superuser,
@@ -960,10 +985,13 @@ pub mod pallet {
 				// A call that fails inside `Transact` does not fail the XCM by itself; this makes
 				// it fail, so the Coretime chain reports it instead of a success.
 				ExpectTransactStatus(MaybeErrorCode::Success),
-			]);
+			])
+		}
 
+		/// Send a `pallet-ct-migrator` call to the Coretime chain.
+		pub(crate) fn send_to_ct(call: CtMigratorCall) -> Result<(), Error<T>> {
 			let dest = Location::new(0, [Parachain(T::CtParaId::get())]);
-			send_xcm::<T::SendXcm>(dest, message).map_err(|e| {
+			send_xcm::<T::SendXcm>(dest, Self::ct_message(call)).map_err(|e| {
 				log::error!(target: LOG_TARGET, "Sending to CT failed: {e:?}");
 				Error::<T>::XcmSendFailed
 			})?;

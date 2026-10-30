@@ -651,12 +651,16 @@ fn set_limits_checks_origin_and_range() {
 	new_test_ext().execute_with(|| {
 		let limits = BlockLimits { items_per_xcm: 2, xcm_per_block: 2 };
 		assert_noop!(Rc2Migrator::set_limits(RuntimeOrigin::signed(ALICE), limits), BadOrigin);
+		let max = Rc2Migrator::max_items_per_xcm();
 		for bad in [
 			BlockLimits { items_per_xcm: 0, ..limits },
 			BlockLimits { xcm_per_block: 0, ..limits },
-			BlockLimits { items_per_xcm: BlockLimits::MAX_ITEMS_PER_XCM + 1, ..limits },
-			// 98 * 17 = 1666 items, above the block limit
-			BlockLimits { items_per_xcm: BlockLimits::MAX_ITEMS_PER_XCM, xcm_per_block: 17 },
+			BlockLimits { items_per_xcm: max + 1, ..limits },
+			// one message more than the block limit holds
+			BlockLimits {
+				items_per_xcm: max,
+				xcm_per_block: BlockLimits::MAX_ITEMS_PER_BLOCK / max + 1,
+			},
 		] {
 			assert_noop!(
 				Rc2Migrator::set_limits(RuntimeOrigin::signed(ADMIN), bad),
