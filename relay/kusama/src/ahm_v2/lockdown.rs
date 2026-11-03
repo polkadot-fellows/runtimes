@@ -236,6 +236,7 @@ mod tests {
 	/// One stage from each part of the data migration, and its end.
 	fn stages_from_data_migration() -> Vec<Stage> {
 		vec![
+			Stage::AccountsInit,
 			Stage::AccountsOngoing { last_key: None },
 			Stage::CoolOff { end_at: 0 },
 			Stage::MigrationDone,
