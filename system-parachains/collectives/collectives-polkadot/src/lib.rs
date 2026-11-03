@@ -343,6 +343,20 @@ pub enum ProxyType {
 	Secretary,
 }
 
+/// `pallet_salary` calls that only pay the claimant itself.
+///
+/// Specifically omitting `payout_other`, which pays the claimant's salary to any account.
+macro_rules! own_salary_call {
+	() => {
+		pallet_salary::Call::init { .. } |
+			pallet_salary::Call::bump { .. } |
+			pallet_salary::Call::induct { .. } |
+			pallet_salary::Call::register { .. } |
+			pallet_salary::Call::payout { .. } |
+			pallet_salary::Call::check_payment { .. }
+	};
+}
+
 impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
@@ -363,12 +377,12 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::FellowshipCollective(_) |
 					RuntimeCall::FellowshipReferenda(_) |
 					RuntimeCall::FellowshipCore(_) |
-					RuntimeCall::FellowshipSalary(_) |
+					RuntimeCall::FellowshipSalary(own_salary_call!()) |
 					RuntimeCall::FellowshipTreasury(_) |
 					RuntimeCall::AmbassadorCollective(_) |
 					RuntimeCall::AmbassadorReferenda(_) |
 					RuntimeCall::AmbassadorCore(_) |
-					RuntimeCall::AmbassadorSalary(_) |
+					RuntimeCall::AmbassadorSalary(own_salary_call!()) |
 					RuntimeCall::AmbassadorTreasury(_)
 			),
 			ProxyType::CancelProxy => matches!(
@@ -395,7 +409,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::FellowshipCollective { .. } |
 					RuntimeCall::FellowshipReferenda { .. } |
 					RuntimeCall::FellowshipCore { .. } |
-					RuntimeCall::FellowshipSalary { .. } |
+					RuntimeCall::FellowshipSalary(own_salary_call!()) |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -404,14 +418,14 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::AmbassadorCollective { .. } |
 					RuntimeCall::AmbassadorReferenda { .. } |
 					RuntimeCall::AmbassadorCore { .. } |
-					RuntimeCall::AmbassadorSalary { .. } |
+					RuntimeCall::AmbassadorSalary(own_salary_call!()) |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
 			ProxyType::Secretary => matches!(
 				c,
 				RuntimeCall::SecretaryCollective { .. } |
-					RuntimeCall::SecretarySalary { .. } |
+					RuntimeCall::SecretarySalary(own_salary_call!()) |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -422,7 +436,15 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
-			(ProxyType::NonTransfer, _) => true,
+			// Only list proxy types whose calls are all allowed by `NonTransfer`.
+			(
+				ProxyType::NonTransfer,
+				ProxyType::CancelProxy |
+				ProxyType::Collator |
+				ProxyType::Alliance |
+				ProxyType::Fellowship |
+				ProxyType::Ambassador,
+			) => true,
 			_ => false,
 		}
 	}
