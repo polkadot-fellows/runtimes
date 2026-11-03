@@ -287,7 +287,7 @@ fn fails_to_extend() {
 		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), transfer(), None));
 		assert_noop!(
 			KillSwitch::extend(RuntimeOrigin::signed(2), transfer()),
-			Error::<Test>::OpenEnded
+			Error::<Test>::ForcedPause
 		);
 	});
 }
@@ -527,7 +527,7 @@ fn fails_to_extend_pause_that_ran_out() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
 		// The relay chain moves past the end, but the hook hasn't run yet.
-		RelayBlock::set(1 + PAUSE_DURATION);
+		RelayBlock::set(5 + PAUSE_DURATION);
 
 		assert_noop!(
 			KillSwitch::extend(RuntimeOrigin::signed(2), transfer()),
@@ -537,7 +537,11 @@ fn fails_to_extend_pause_that_ran_out() {
 			KillSwitch::force_extend(fellowship(), transfer(), 20),
 			Error::<Test>::AlreadyExpired
 		);
-		// Root can still keep it going.
+		// Root can still keep it going, but not to a block that already passed.
+		assert_noop!(
+			KillSwitch::force_extend(RuntimeOrigin::root(), transfer(), 3 + PAUSE_DURATION),
+			Error::<Test>::InPast
+		);
 		assert_ok!(KillSwitch::force_extend(RuntimeOrigin::root(), transfer(), 20));
 		assert_ok!(KillSwitch::do_try_state());
 	});
@@ -547,8 +551,11 @@ fn fails_to_extend_pause_that_ran_out() {
 fn fellowship_cannot_touch_root_pause() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), transfer(), Some(50)));
-		// Someone backs it with a deposit, that doesn't make it the Fellowship's to manage.
-		assert_ok!(KillSwitch::extend(RuntimeOrigin::signed(1), transfer()));
+		// Nobody else can stretch it either, or the Fellowship would be stuck with it.
+		assert_noop!(
+			KillSwitch::extend(RuntimeOrigin::signed(1), transfer()),
+			Error::<Test>::ForcedPause
+		);
 
 		assert_noop!(KillSwitch::unpause(fellowship(), transfer(), true), DispatchError::BadOrigin);
 		assert_noop!(
@@ -558,7 +565,6 @@ fn fellowship_cannot_touch_root_pause() {
 
 		assert_ok!(KillSwitch::unpause(RuntimeOrigin::root(), transfer(), false));
 		assert!(transfer_works());
-		assert_eq!(Balances::free_balance(1), 1_000);
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }

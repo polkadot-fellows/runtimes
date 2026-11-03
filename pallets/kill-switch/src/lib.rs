@@ -304,6 +304,8 @@ pub mod pallet {
 		TooEarly,
 		/// The pauser refused to pause the target.
 		PauseFailed,
+		/// The pause was started with `force_pause`. Only `ForceOrigin` can change it.
+		ForcedPause,
 	}
 
 	#[pallet::hooks]
@@ -361,6 +363,8 @@ pub mod pallet {
 			let now = T::BlockNumberProvider::current_block_number();
 
 			let mut pause = Pauses::<T>::get(&target).ok_or(Error::<T>::NotPaused)?;
+			// Otherwise anyone could stretch a Root pause that the Fellowship then can't lift.
+			ensure!(!pause.forced, Error::<T>::ForcedPause);
 			let until = pause.until.ok_or(Error::<T>::OpenEnded)?;
 			// If the hook is behind, the pause is still stored after it ran out. Extending it
 			// then would bring it back to life.
@@ -397,10 +401,15 @@ pub mod pallet {
 			Self::ensure_can_manage(&pause, is_force)?;
 			Self::do_unpause(&target, &pause);
 			// Lifting the pause matters more than the deposits. If one can't be settled it stays
-			// in `Deposits` and can still be released or slashed later.
+			// in `Deposits`, open for `release_deposit` or `slash_deposit` right away.
 			for id in pause.deposits.iter() {
 				if let Err(e) = Self::settle_deposit(*id, slash) {
 					log::error!(target: LOG_TARGET, "could not settle deposit {id}: {e:?}");
+					Deposits::<T>::mutate(id, |deposit| {
+						if let Some(deposit) = deposit {
+							deposit.release_at = Some(now);
+						}
+					});
 				}
 			}
 
@@ -439,6 +448,8 @@ pub mod pallet {
 				ensure!(total <= T::MaxFellowshipExtension::get(), Error::<T>::ExtensionTooLong);
 				pause.fellowship_extension = total;
 			}
+			// Root can revive a pause the hook hasn't cleaned up yet, but only into the future.
+			ensure!(until > now, Error::<T>::InPast);
 			Self::reschedule_expiry(&target, &mut pause, until);
 			Pauses::<T>::insert(&target, pause);
 
@@ -662,7 +673,8 @@ impl<T: Config> Pallet<T> {
 		if meter.try_consume(T::WeightInfo::on_poll_base()).is_err() {
 			return;
 		}
-		let Some(mut cursor) = ExpiryCursor::<T>::get() else { return };
+		let Some(start) = ExpiryCursor::<T>::get() else { return };
+		let mut cursor = start;
 		let now = T::BlockNumberProvider::current_block_number();
 
 		let mut steps = 0;
@@ -685,7 +697,9 @@ impl<T: Config> Pallet<T> {
 				},
 			}
 		}
-		ExpiryCursor::<T>::put(cursor);
+		if cursor != start {
+			ExpiryCursor::<T>::put(cursor);
+		}
 	}
 
 	pub(crate) fn expire_queued(at: BlockNumberOf<T>, target: T::Target, now: BlockNumberOf<T>) {
@@ -722,7 +736,7 @@ impl<T: Config> Pallet<T> {
 			if let Some(until) = pause.until {
 				ensure!(Expiries::<T>::contains_key(until, &target), "a pause isn't queued");
 			}
-			ensure!(pause.forced || !pause.deposits.is_empty(), "a paid pause has no deposits");
+			ensure!(pause.forced == pause.deposits.is_empty(), "a pause has the wrong deposits");
 			for id in pause.deposits.iter() {
 				let deposit = Deposits::<T>::get(id).ok_or("a pause lists a missing deposit")?;
 				ensure!(deposit.target == target, "a deposit points at another target");
