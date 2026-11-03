@@ -68,6 +68,9 @@ fn can_pause_call() {
 		assert_eq!(pause.until, Some(1 + PAUSE_DURATION));
 		assert_eq!(pause.deposits.to_vec(), vec![0]);
 		assert_eq!(Deposits::<Test>::get(0).unwrap().who, 1);
+		System::assert_has_event(
+			Event::DepositHeld { id: 0, target: transfer(), who: 1, amount: DEPOSIT }.into(),
+		);
 		System::assert_last_event(
 			Event::Paused { target: transfer(), who: Some(1), until: Some(1 + PAUSE_DURATION) }
 				.into(),
@@ -160,6 +163,9 @@ fn pause_expires_and_deposit_is_released() {
 		assert_ok!(KillSwitch::release_deposit(RuntimeOrigin::signed(3), 0));
 		assert_eq!(held(1), 0);
 		assert_eq!(Balances::free_balance(1), 1_000);
+		System::assert_last_event(
+			Event::DepositReleased { id: 0, target: transfer(), who: 1, amount: DEPOSIT }.into(),
+		);
 		assert_noop!(
 			KillSwitch::release_deposit(RuntimeOrigin::signed(3), 0),
 			Error::<Test>::UnknownDeposit
@@ -450,6 +456,9 @@ fn can_slash_deposit_of_expired_pause() {
 		assert_ok!(KillSwitch::slash_deposit(fellowship(), 0));
 		assert_eq!(held(1), 0);
 		assert_eq!(Balances::free_balance(TREASURY), DEPOSIT);
+		System::assert_last_event(
+			Event::DepositSlashed { id: 0, target: transfer(), who: 1, amount: DEPOSIT }.into(),
+		);
 		assert_noop!(KillSwitch::slash_deposit(fellowship(), 0), Error::<Test>::UnknownDeposit);
 		// Slashing an old deposit doesn't start a cooldown.
 		assert!(Cooldowns::<Test>::get(transfer()).is_none());

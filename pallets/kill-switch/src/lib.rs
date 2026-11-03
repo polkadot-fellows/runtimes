@@ -260,11 +260,16 @@ pub mod pallet {
 		/// A target can't be paused again until `until`.
 		CooldownStarted { target: T::Target, until: BlockNumberOf<T> },
 		/// A deposit was put on hold.
-		DepositHeld { id: DepositId, who: T::AccountId, amount: BalanceOf<T> },
+		DepositHeld { id: DepositId, target: T::Target, who: T::AccountId, amount: BalanceOf<T> },
 		/// A deposit was given back.
-		DepositReleased { id: DepositId, who: T::AccountId, amount: BalanceOf<T> },
+		DepositReleased {
+			id: DepositId,
+			target: T::Target,
+			who: T::AccountId,
+			amount: BalanceOf<T>,
+		},
 		/// A deposit was slashed.
-		DepositSlashed { id: DepositId, who: T::AccountId, amount: BalanceOf<T> },
+		DepositSlashed { id: DepositId, target: T::Target, who: T::AccountId, amount: BalanceOf<T> },
 	}
 
 	#[pallet::error]
@@ -536,12 +541,17 @@ impl<T: Config> Pallet<T> {
 			id,
 			DepositInfo { who: who.clone(), amount, target: target.clone(), release_at: None },
 		);
-		Self::deposit_event(Event::DepositHeld { id, who: who.clone(), amount });
+		Self::deposit_event(Event::DepositHeld {
+			id,
+			target: target.clone(),
+			who: who.clone(),
+			amount,
+		});
 		Ok(id)
 	}
 
 	fn settle_deposit(id: DepositId, slash: bool) -> DispatchResult {
-		let DepositInfo { who, amount, .. } =
+		let DepositInfo { who, amount, target, .. } =
 			Deposits::<T>::get(id).ok_or(Error::<T>::UnknownDeposit)?;
 		let reason = HoldReason::Pause.into();
 
@@ -552,10 +562,15 @@ impl<T: Config> Pallet<T> {
 				log::warn!(target: LOG_TARGET, "deposit {id} was short by {missing:?} when slashed");
 			}
 			T::OnSlash::on_unbalanced(credit);
-			Self::deposit_event(Event::DepositSlashed { id, who, amount: amount - missing });
+			Self::deposit_event(Event::DepositSlashed {
+				id,
+				target,
+				who,
+				amount: amount - missing,
+			});
 		} else {
 			let released = T::Currency::release(&reason, &who, amount, Precision::BestEffort)?;
-			Self::deposit_event(Event::DepositReleased { id, who, amount: released });
+			Self::deposit_event(Event::DepositReleased { id, target, who, amount: released });
 		}
 		// Only forget the deposit once the funds actually moved.
 		Deposits::<T>::remove(id);
