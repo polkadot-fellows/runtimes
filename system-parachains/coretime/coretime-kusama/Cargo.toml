@@ -93,8 +93,8 @@ substrate-wasm-builder = { optional = true, workspace = true }
 default = ["std"]
 ahm-v2 = []
 std = [
-	"pallet-ct-migrator/std",
 	"migrator-types/std",
+	"pallet-ct-migrator/std",
 
 	"codec/std",
 	"cumulus-pallet-aura-ext/std",

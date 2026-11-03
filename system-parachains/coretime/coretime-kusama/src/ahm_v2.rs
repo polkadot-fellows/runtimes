@@ -24,11 +24,12 @@ pub mod lockdown;
 
 use crate::{
 	xcm_config::XcmRouter, AccountId, Balances, ProxyType, Runtime, RuntimeEvent,
-	RuntimeHoldReason, MILLISECS_PER_BLOCK, RELAY_CHAIN_SLOT_DURATION_MILLIS,
+	RuntimeHoldReason, RELAY_CHAIN_SLOT_DURATION_MILLIS,
 };
 use frame_support::traits::ConstU32;
 use frame_system::EnsureRoot;
 use migrator_types::PortableProxyType;
+use system_parachains_constants::MILLISECS_PER_BLOCK;
 
 /// How many relay chain blocks this chain's block takes.
 const RC_BLOCK_TIME_RATIO: u32 =

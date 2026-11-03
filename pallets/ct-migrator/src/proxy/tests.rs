@@ -223,7 +223,7 @@ fn receive_parks_a_set_that_does_not_fit_and_keeps_the_batch() {
 
 		// THEN Alice's set is parked whole and nothing of hers moved, hold included; Dave's
 		// went through.
-		assert_eq!(FailedProxies::<Test>::get(&ALICE), Some(alices));
+		assert_eq!(FailedProxies::<Test>::get(ALICE), Some(alices));
 		assert_eq!(
 			(entry(&ALICE), reserved(&ALICE), held(HoldReason::ProxyDeposit, &ALICE)),
 			before
