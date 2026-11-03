@@ -48,10 +48,11 @@ const CAROL: AccountId32 = AccountId32::new([0xca; 32]); // receives through the
 /// The lockdown at every stage of a real run, through both chains' real call filters and XCM
 /// configuration.
 ///
-/// From the relay chain's start signal on: a signed transfer is filtered, the manager still drives
-/// the migrator, only the Coretime chain and Asset Hub get past the barrier, and a teleport from
-/// Asset Hub mints nothing. None of that reopens at the end. On the Coretime chain, adding a proxy
-/// is refused exactly while its migration runs, and a proxy already in place works throughout.
+/// From the relay chain's start signal on, a signed transfer is filtered and the manager still
+/// drives the migrator. Once data starts moving, only the Coretime chain and Asset Hub get past
+/// the barrier, and a teleport from Asset Hub mints nothing. None of that reopens at the end. On
+/// the Coretime chain, adding a proxy is refused exactly while its migration runs, and a proxy
+/// already in place works throughout.
 #[tokio::test(flavor = "multi_thread")]
 async fn the_lockdown_holds_at_every_stage() {
 	let (mut rc, mut ct) = tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN));
