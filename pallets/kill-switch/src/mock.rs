@@ -110,6 +110,15 @@ ord_parameter_types! {
 	pub const Fellowship: u64 = 99;
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+pub struct BenchmarkHelper;
+#[cfg(feature = "runtime-benchmarks")]
+impl crate::BenchmarkHelper<RuntimeCallNameOf<Test>> for BenchmarkHelper {
+	fn target() -> RuntimeCallNameOf<Test> {
+		full_name("Balances", "transfer_allow_death")
+	}
+}
+
 impl Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type Target = RuntimeCallNameOf<Test>;
@@ -128,6 +137,8 @@ impl Config for Test {
 	type MaxDepositsPerPause = ConstU32<MAX_DEPOSITS>;
 	type MaxPollSteps = ConstU32<MAX_POLL_STEPS>;
 	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = BenchmarkHelper;
 }
 
 pub fn full_name(pallet: &str, call: &str) -> RuntimeCallNameOf<Test> {

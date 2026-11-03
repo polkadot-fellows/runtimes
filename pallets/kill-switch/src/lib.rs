@@ -46,6 +46,8 @@
 
 extern crate alloc;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -107,6 +109,13 @@ pub struct DepositInfo<T: Config> {
 	/// What it was paid for.
 	pub target: T::Target,
 	pub created_at: BlockNumberOf<T>,
+}
+
+/// Benchmark setup that only the runtime knows.
+#[cfg(feature = "runtime-benchmarks")]
+pub trait BenchmarkHelper<Target> {
+	/// A target that [`Config::DepositFor`] prices and [`Config::Pauser`] can pause.
+	fn target() -> Target;
 }
 
 #[frame_support::pallet]
@@ -179,6 +188,8 @@ pub mod pallet {
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
 
+		#[cfg(feature = "runtime-benchmarks")]
+		type BenchmarkHelper: BenchmarkHelper<Self::Target>;
 	}
 
 	#[pallet::composite_enum]
