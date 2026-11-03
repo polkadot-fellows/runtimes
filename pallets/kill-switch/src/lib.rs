@@ -95,6 +95,8 @@ pub struct PauseInfo<T: Config> {
 	pub fellowship_extension: BlockNumberOf<T>,
 	/// The deposits behind this pause, from [`Call::pause`] and [`Call::extend`].
 	pub deposits: BoundedVec<DepositId, T::MaxDepositsPerPause>,
+	/// Started through [`Call::force_pause`]. Only [`Config::ForceOrigin`] can end or move it.
+	pub forced: bool,
 }
 
 /// A deposit that is on hold.
@@ -104,11 +106,15 @@ pub struct PauseInfo<T: Config> {
 #[scale_info(skip_type_params(T))]
 #[codec(mel_bound())]
 pub struct DepositInfo<T: Config> {
+	/// Who put it up.
 	pub who: T::AccountId,
+	/// How much is on hold.
 	pub amount: BalanceOf<T>,
 	/// What it was paid for.
 	pub target: T::Target,
-	pub created_at: BlockNumberOf<T>,
+	/// When it can be released. `None` while it still backs a running pause, set once that pause
+	/// runs out.
+	pub release_at: Option<BlockNumberOf<T>>,
 }
 
 /// Benchmark setup that only the runtime knows.
@@ -122,7 +128,10 @@ pub trait BenchmarkHelper<Target> {
 pub mod pallet {
 	use super::*;
 
+	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+
 	#[pallet::pallet]
+	#[pallet::storage_version(STORAGE_VERSION)]
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
@@ -139,6 +148,10 @@ pub mod pallet {
 		type Pauser: TransactionPause<CallIdentifier = Self::Target>;
 
 		/// The deposit needed to pause or extend a target. `None` means it can't be paused.
+		///
+		/// The pauser doesn't check that a target exists, so this has to return `None` for
+		/// anything that isn't real. It also has to return `None` for this pallet's own calls and
+		/// for whatever the Fellowship needs to reach [`Call::unpause`].
 		type DepositFor: Convert<Self::Target, Option<BalanceOf<Self>>>;
 
 		/// Holds the deposits.
@@ -165,7 +178,8 @@ pub mod pallet {
 		#[pallet::constant]
 		type PauseDuration: Get<BlockNumberOf<Self>>;
 
-		/// How long the deposit of a pause that ran out on its own stays slashable.
+		/// How long the deposits of a pause that ran out on its own stay slashable, counted from
+		/// when it ran out.
 		#[pallet::constant]
 		type ReleaseDelay: Get<BlockNumberOf<Self>>;
 
@@ -182,6 +196,10 @@ pub mod pallet {
 		type MaxDepositsPerPause: Get<u32>;
 
 		/// Upper bound on the work `on_poll` does in one block, counted in queue lookups.
+		///
+		/// Every relay block the cursor moves over costs a step, even when nothing ends there. If
+		/// the chain stalls for a while it takes some blocks to catch up, and [`Call::expire`]
+		/// can be used in the meantime.
 		#[pallet::constant]
 		type MaxPollSteps: Get<u32>;
 
@@ -261,6 +279,8 @@ pub mod pallet {
 		InCooldown,
 		/// The pause has no end. It only ends through `unpause`.
 		OpenEnded,
+		/// The pause already ran out, it just hasn't been cleaned up yet.
+		AlreadyExpired,
 		/// The pause hasn't run out yet.
 		NotExpired,
 		/// The new end isn't later than the current one.
@@ -313,10 +333,10 @@ pub mod pallet {
 			}
 			ensure!(T::Pauser::can_pause(target.clone()), Error::<T>::NotPausable);
 
-			let id = Self::hold_deposit(&who, &target, now)?;
+			let id = Self::hold_deposit(&who, &target)?;
 			let until = now.saturating_add(T::PauseDuration::get());
 			let deposits = BoundedVec::truncate_from(alloc::vec![id]);
-			Self::do_pause(&target, Some(until), deposits)?;
+			Self::do_pause(&target, Some(until), deposits, false)?;
 
 			Self::deposit_event(Event::Paused { target, who: Some(who), until: Some(until) });
 			Ok(())
@@ -332,14 +352,17 @@ pub mod pallet {
 
 			let mut pause = Pauses::<T>::get(&target).ok_or(Error::<T>::NotPaused)?;
 			let until = pause.until.ok_or(Error::<T>::OpenEnded)?;
+			// If the hook is behind, the pause is still stored after it ran out. Extending it
+			// then would bring it back to life.
+			ensure!(until > now, Error::<T>::AlreadyExpired);
 			ensure!(
 				pause.deposits.len() < T::MaxDepositsPerPause::get() as usize,
 				Error::<T>::TooManyDeposits
 			);
 
-			let id = Self::hold_deposit(&who, &target, now)?;
+			let id = Self::hold_deposit(&who, &target)?;
 			pause.deposits.try_push(id).map_err(|_| Error::<T>::TooManyDeposits)?;
-			let new_until = until.max(now).saturating_add(T::PauseDuration::get());
+			let new_until = until.saturating_add(T::PauseDuration::get());
 			Self::reschedule_expiry(&target, &mut pause, new_until);
 			Pauses::<T>::insert(&target, pause);
 
@@ -357,13 +380,18 @@ pub mod pallet {
 			target: T::Target,
 			slash: bool,
 		) -> DispatchResultWithPostInfo {
-			Self::ensure_fellowship_or_force(origin)?;
+			let is_force = Self::ensure_fellowship_or_force(origin)?;
 			let now = T::BlockNumberProvider::current_block_number();
 
 			let pause = Pauses::<T>::get(&target).ok_or(Error::<T>::NotPaused)?;
+			Self::ensure_can_manage(&pause, is_force)?;
 			Self::do_unpause(&target, &pause);
+			// Lifting the pause matters more than the deposits. If one can't be settled it stays
+			// in `Deposits` and can still be released or slashed later.
 			for id in pause.deposits.iter() {
-				Self::settle_deposit(*id, slash)?;
+				if let Err(e) = Self::settle_deposit(*id, slash) {
+					log::error!(target: LOG_TARGET, "could not settle deposit {id}: {e:?}");
+				}
 			}
 
 			let cooldown = T::Cooldown::get();
@@ -389,11 +417,14 @@ pub mod pallet {
 			until: BlockNumberOf<T>,
 		) -> DispatchResult {
 			let is_force = Self::ensure_fellowship_or_force(origin)?;
+			let now = T::BlockNumberProvider::current_block_number();
 
 			let mut pause = Pauses::<T>::get(&target).ok_or(Error::<T>::NotPaused)?;
+			Self::ensure_can_manage(&pause, is_force)?;
 			let current = pause.until.ok_or(Error::<T>::OpenEnded)?;
 			ensure!(until > current, Error::<T>::NotLater);
 			if !is_force {
+				ensure!(current > now, Error::<T>::AlreadyExpired);
 				let total = pause.fellowship_extension.saturating_add(until - current);
 				ensure!(total <= T::MaxFellowshipExtension::get(), Error::<T>::ExtensionTooLong);
 				pause.fellowship_extension = total;
@@ -422,7 +453,7 @@ pub mod pallet {
 				ensure!(until > now, Error::<T>::InPast);
 			}
 			ensure!(T::Pauser::can_pause(target.clone()), Error::<T>::NotPausable);
-			Self::do_pause(&target, until, Default::default())?;
+			Self::do_pause(&target, until, Default::default(), true)?;
 
 			Self::deposit_event(Event::Paused { target, who: None, until });
 			Ok(())
@@ -440,13 +471,11 @@ pub mod pallet {
 			let pause = Pauses::<T>::get(&target).ok_or(Error::<T>::NotPaused)?;
 			let until = pause.until.ok_or(Error::<T>::OpenEnded)?;
 			ensure!(until <= now, Error::<T>::NotExpired);
-			Self::do_unpause(&target, &pause);
-
-			Self::deposit_event(Event::Expired { target });
+			Self::do_expire(&target, &pause, now);
 			Ok(())
 		}
 
-		/// Give back a deposit once [`Config::ReleaseDelay`] has passed since it was made.
+		/// Give back a deposit [`Config::ReleaseDelay`] after its pause ran out.
 		#[pallet::call_index(6)]
 		#[pallet::weight(T::WeightInfo::release_deposit())]
 		pub fn release_deposit(origin: OriginFor<T>, id: DepositId) -> DispatchResult {
@@ -454,11 +483,8 @@ pub mod pallet {
 			let now = T::BlockNumberProvider::current_block_number();
 
 			let deposit = Deposits::<T>::get(id).ok_or(Error::<T>::UnknownDeposit)?;
-			ensure!(!Self::deposit_in_use(id, &deposit.target), Error::<T>::StillPaused);
-			ensure!(
-				now >= deposit.created_at.saturating_add(T::ReleaseDelay::get()),
-				Error::<T>::TooEarly
-			);
+			let release_at = deposit.release_at.ok_or(Error::<T>::StillPaused)?;
+			ensure!(now >= release_at, Error::<T>::TooEarly);
 			Self::settle_deposit(id, false)
 		}
 
@@ -471,7 +497,7 @@ pub mod pallet {
 			Self::ensure_fellowship_or_force(origin)?;
 
 			let deposit = Deposits::<T>::get(id).ok_or(Error::<T>::UnknownDeposit)?;
-			ensure!(!Self::deposit_in_use(id, &deposit.target), Error::<T>::StillPaused);
+			ensure!(deposit.release_at.is_some(), Error::<T>::StillPaused);
 			Self::settle_deposit(id, true)
 		}
 	}
@@ -487,31 +513,32 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	fn hold_deposit(
-		who: &T::AccountId,
-		target: &T::Target,
-		now: BlockNumberOf<T>,
-	) -> Result<DepositId, DispatchError> {
+	/// Root's own pauses can only be lifted or moved by Root.
+	fn ensure_can_manage(pause: &PauseInfo<T>, is_force: bool) -> DispatchResult {
+		ensure!(is_force || !pause.forced, DispatchError::BadOrigin);
+		Ok(())
+	}
+
+	fn hold_deposit(who: &T::AccountId, target: &T::Target) -> Result<DepositId, DispatchError> {
 		let amount = T::DepositFor::convert(target.clone()).ok_or(Error::<T>::NotPausable)?;
+		// A free pause would make the whole thing pointless.
+		ensure!(!amount.is_zero(), Error::<T>::NotPausable);
 		T::Currency::hold(&HoldReason::Pause.into(), who, amount)?;
 
-		let id = NextDepositId::<T>::mutate(|next| {
-			let id = *next;
-			*next = next.saturating_add(1);
-			id
-		});
+		let id = NextDepositId::<T>::get();
+		NextDepositId::<T>::put(id.checked_add(1).ok_or(sp_runtime::ArithmeticError::Overflow)?);
 		Deposits::<T>::insert(
 			id,
-			DepositInfo { who: who.clone(), amount, target: target.clone(), created_at: now },
+			DepositInfo { who: who.clone(), amount, target: target.clone(), release_at: None },
 		);
 		Self::deposit_event(Event::DepositHeld { id, who: who.clone(), amount });
 		Ok(id)
 	}
 
 	fn settle_deposit(id: DepositId, slash: bool) -> DispatchResult {
-		let deposit = Deposits::<T>::take(id).ok_or(Error::<T>::UnknownDeposit)?;
+		let DepositInfo { who, amount, .. } =
+			Deposits::<T>::get(id).ok_or(Error::<T>::UnknownDeposit)?;
 		let reason = HoldReason::Pause.into();
-		let DepositInfo { who, amount, .. } = deposit;
 
 		if slash {
 			let (credit, missing) =
@@ -525,17 +552,16 @@ impl<T: Config> Pallet<T> {
 			let released = T::Currency::release(&reason, &who, amount, Precision::BestEffort)?;
 			Self::deposit_event(Event::DepositReleased { id, who, amount: released });
 		}
+		// Only forget the deposit once the funds actually moved.
+		Deposits::<T>::remove(id);
 		Ok(())
-	}
-
-	fn deposit_in_use(id: DepositId, target: &T::Target) -> bool {
-		Pauses::<T>::get(target).is_some_and(|pause| pause.deposits.contains(&id))
 	}
 
 	fn do_pause(
 		target: &T::Target,
 		until: Option<BlockNumberOf<T>>,
 		deposits: BoundedVec<DepositId, T::MaxDepositsPerPause>,
+		forced: bool,
 	) -> DispatchResult {
 		T::Pauser::pause(target.clone()).map_err(|_| Error::<T>::PauseFailed)?;
 		if let Some(until) = until {
@@ -543,7 +569,7 @@ impl<T: Config> Pallet<T> {
 		}
 		Pauses::<T>::insert(
 			target,
-			PauseInfo { until, fellowship_extension: Zero::zero(), deposits },
+			PauseInfo { until, fellowship_extension: Zero::zero(), deposits, forced },
 		);
 		Ok(())
 	}
@@ -554,11 +580,25 @@ impl<T: Config> Pallet<T> {
 			Self::unschedule_expiry(until, target);
 		}
 		Pauses::<T>::remove(target);
-		// The pauser must be able to lift anything it paused, so this can't fail as long as
-		// nothing else touches it.
+		// Nothing else can touch tx-pause, so anything we paused is still paused.
 		if T::Pauser::unpause(target.clone()).is_err() {
-			log::error!(target: LOG_TARGET, "pauser could not lift the pause of {target:?}");
+			frame_support::defensive!("the pauser could not lift a pause it applied");
 		}
+	}
+
+	/// Ends a pause that ran out. Its deposits stay on hold for [`Config::ReleaseDelay`] from
+	/// now, so they can still be slashed.
+	pub(crate) fn do_expire(target: &T::Target, pause: &PauseInfo<T>, now: BlockNumberOf<T>) {
+		Self::do_unpause(target, pause);
+		let release_at = now.saturating_add(T::ReleaseDelay::get());
+		for id in pause.deposits.iter() {
+			Deposits::<T>::mutate(id, |deposit| {
+				if let Some(deposit) = deposit {
+					deposit.release_at = Some(release_at);
+				}
+			});
+		}
+		Self::deposit_event(Event::Expired { target: target.clone() });
 	}
 
 	fn reschedule_expiry(target: &T::Target, pause: &mut PauseInfo<T>, until: BlockNumberOf<T>) {
@@ -570,11 +610,15 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn schedule_expiry(at: BlockNumberOf<T>, target: &T::Target) {
+		// Keeps `ExpiryCount` right even if this is ever called twice for the same entry.
+		if Expiries::<T>::contains_key(at, target) {
+			return;
+		}
 		Expiries::<T>::insert(at, target, ());
 		ExpiryCount::<T>::mutate(|count| count.saturating_inc());
 		// The cursor must not be past anything queued, or the hook skips it.
 		ExpiryCursor::<T>::mutate(|cursor| {
-			if cursor.map_or(true, |cursor| cursor > at) {
+			if cursor.is_none_or(|cursor| cursor > at) {
 				*cursor = Some(at);
 			}
 		});
@@ -613,27 +657,25 @@ impl<T: Config> Pallet<T> {
 					if meter.try_consume(T::WeightInfo::on_poll_expire()).is_err() {
 						break;
 					}
-					Self::do_expire(cursor, target);
+					Self::expire_queued(cursor, target, now);
+					// `unschedule_expiry` clears the cursor once the queue is empty.
+					if !ExpiryCursor::<T>::exists() {
+						return;
+					}
 				},
 			}
 		}
-
-		// `unschedule_expiry` clears the cursor once the queue is empty.
-		if ExpiryCursor::<T>::exists() {
-			ExpiryCursor::<T>::put(cursor);
-		}
+		ExpiryCursor::<T>::put(cursor);
 	}
 
-	fn do_expire(at: BlockNumberOf<T>, target: T::Target) {
+	pub(crate) fn expire_queued(at: BlockNumberOf<T>, target: T::Target, now: BlockNumberOf<T>) {
 		match Pauses::<T>::get(&target) {
-			Some(pause) if pause.until == Some(at) => {
-				Self::do_unpause(&target, &pause);
-				Self::deposit_event(Event::Expired { target });
-			},
+			Some(pause) if pause.until == Some(at) => Self::do_expire(&target, &pause, now),
 			_ => {
-				log::error!(target: LOG_TARGET, "stale expiry of {target:?} at {at:?}, dropping it");
+				frame_support::defensive!("an expiry was queued for a pause that doesn't end then");
 				Self::unschedule_expiry(at, &target);
 			},
 		}
 	}
+
 }

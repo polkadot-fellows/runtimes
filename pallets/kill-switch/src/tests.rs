@@ -150,7 +150,13 @@ fn pause_expires_and_deposit_is_released() {
 			KillSwitch::release_deposit(RuntimeOrigin::signed(3), 0),
 			Error::<Test>::TooEarly
 		);
-		run_to_relay(1 + RELEASE_DELAY);
+		// Counted from when the pause ran out, not from when the deposit was made.
+		run_to_relay(1 + PAUSE_DURATION + RELEASE_DELAY - 1);
+		assert_noop!(
+			KillSwitch::release_deposit(RuntimeOrigin::signed(3), 0),
+			Error::<Test>::TooEarly
+		);
+		run_to_relay(1 + PAUSE_DURATION + RELEASE_DELAY);
 		assert_ok!(KillSwitch::release_deposit(RuntimeOrigin::signed(3), 0));
 		assert_eq!(held(1), 0);
 		assert_eq!(Balances::free_balance(1), 1_000);
@@ -371,6 +377,11 @@ fn fellowship_extension_is_capped() {
 		// Root has no cap.
 		assert_ok!(KillSwitch::force_extend(RuntimeOrigin::root(), transfer(), until + 1_000));
 		assert_eq!(Pauses::<Test>::get(transfer()).unwrap().until, Some(until + 1_000));
+		// And it doesn't count against the Fellowship's cap.
+		assert_eq!(
+			Pauses::<Test>::get(transfer()).unwrap().fellowship_extension,
+			MAX_FELLOWSHIP_EXTENSION
+		);
 		assert_eq!(ExpiryCount::<Test>::get(), 1);
 
 		assert_noop!(
@@ -405,7 +416,12 @@ fn force_pause_without_end() {
 			Error::<Test>::OpenEnded
 		);
 
-		assert_ok!(KillSwitch::unpause(fellowship(), transfer(), false));
+		// Only Root can lift its own pause.
+		assert_noop!(
+			KillSwitch::unpause(fellowship(), transfer(), false),
+			DispatchError::BadOrigin
+		);
+		assert_ok!(KillSwitch::unpause(RuntimeOrigin::root(), transfer(), false));
 		assert!(transfer_works());
 	});
 }
@@ -467,5 +483,63 @@ fn expiry_queue_is_cleaned_up() {
 		assert_eq!(ExpiryCount::<Test>::get(), 0);
 		assert!(ExpiryCursor::<Test>::get().is_none());
 		assert_eq!(Expiries::<Test>::iter().count(), 0);
+	});
+}
+
+#[test]
+fn release_delay_starts_when_pause_runs_out() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
+		// Root keeps it going for much longer than the release delay.
+		assert_ok!(KillSwitch::force_extend(RuntimeOrigin::root(), transfer(), 500));
+		run_to_relay(500);
+		assert!(transfer_works());
+
+		// The deposit was made at 1, but it only becomes free 100 blocks after the pause ended.
+		assert_noop!(
+			KillSwitch::release_deposit(RuntimeOrigin::signed(1), 0),
+			Error::<Test>::TooEarly
+		);
+		assert_ok!(KillSwitch::slash_deposit(fellowship(), 0));
+		assert_eq!(Balances::free_balance(TREASURY), DEPOSIT);
+	});
+}
+
+#[test]
+fn fails_to_extend_pause_that_ran_out() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
+		// The relay chain moves past the end, but the hook hasn't run yet.
+		RelayBlock::set(1 + PAUSE_DURATION);
+
+		assert_noop!(
+			KillSwitch::extend(RuntimeOrigin::signed(2), transfer()),
+			Error::<Test>::AlreadyExpired
+		);
+		assert_noop!(
+			KillSwitch::force_extend(fellowship(), transfer(), 20),
+			Error::<Test>::AlreadyExpired
+		);
+		// Root can still keep it going.
+		assert_ok!(KillSwitch::force_extend(RuntimeOrigin::root(), transfer(), 20));
+	});
+}
+
+#[test]
+fn fellowship_cannot_touch_root_pause() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), transfer(), Some(50)));
+		// Someone backs it with a deposit, that doesn't make it the Fellowship's to manage.
+		assert_ok!(KillSwitch::extend(RuntimeOrigin::signed(1), transfer()));
+
+		assert_noop!(KillSwitch::unpause(fellowship(), transfer(), true), DispatchError::BadOrigin);
+		assert_noop!(
+			KillSwitch::force_extend(fellowship(), transfer(), 55),
+			DispatchError::BadOrigin
+		);
+
+		assert_ok!(KillSwitch::unpause(RuntimeOrigin::root(), transfer(), false));
+		assert!(transfer_works());
+		assert_eq!(Balances::free_balance(1), 1_000);
 	});
 }

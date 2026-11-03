@@ -128,8 +128,10 @@ mod benchmarks {
 	#[benchmark]
 	fn expire() {
 		set_relay_block::<T>(10);
-		let target = pause_with_deposits::<T>(1);
-		set_relay_block::<T>(10u32.saturating_add(1_000_000));
+		// Every deposit gets its release block set, so a full pause is the worst case.
+		let target = pause_with_deposits::<T>(T::MaxDepositsPerPause::get());
+		let until = Pauses::<T>::get(&target).unwrap().until.unwrap();
+		T::BlockNumberProvider::set_block_number(until);
 		let caller = funded_account::<T>("caller", 0);
 
 		#[extrinsic_call]
@@ -142,7 +144,7 @@ mod benchmarks {
 	fn release_deposit() {
 		set_relay_block::<T>(10);
 		let target = pause_with_deposits::<T>(1);
-		Pallet::<T>::do_unpause(&target, &Pauses::<T>::get(&target).unwrap());
+		Pallet::<T>::do_expire(&target, &Pauses::<T>::get(&target).unwrap(), 10u32.into());
 		let now = BlockNumberOf::<T>::from(10u32).saturating_add(T::ReleaseDelay::get());
 		T::BlockNumberProvider::set_block_number(now);
 		let caller = funded_account::<T>("caller", 0);
@@ -157,7 +159,7 @@ mod benchmarks {
 	fn slash_deposit() -> Result<(), BenchmarkError> {
 		set_relay_block::<T>(10);
 		let target = pause_with_deposits::<T>(1);
-		Pallet::<T>::do_unpause(&target, &Pauses::<T>::get(&target).unwrap());
+		Pallet::<T>::do_expire(&target, &Pauses::<T>::get(&target).unwrap(), 10u32.into());
 		let origin = fellowship_origin::<T>()?;
 
 		#[extrinsic_call]
@@ -199,17 +201,17 @@ mod benchmarks {
 		assert_eq!(ExpiryCursor::<T>::get(), Some(BlockNumberOf::<T>::from(11u32)));
 	}
 
-	/// One pause that is due.
+	/// Ending one pause that is due, on top of the step that found it.
 	#[benchmark]
 	fn on_poll_expire() {
 		set_relay_block::<T>(10);
-		let target = pause_with_deposits::<T>(1);
+		let target = pause_with_deposits::<T>(T::MaxDepositsPerPause::get());
 		let until = Pauses::<T>::get(&target).unwrap().until.unwrap();
 		T::BlockNumberProvider::set_block_number(until);
 
 		#[block]
 		{
-			Pallet::<T>::process_expiries(&mut WeightMeter::new());
+			Pallet::<T>::expire_queued(until, target.clone(), until);
 		}
 
 		assert!(!Pauses::<T>::contains_key(&target));
