@@ -19,16 +19,16 @@
 //! registrar calls start on the Coretime chain. What stays here is the part only this chain can do
 //! — onboarding, lifecycles, PVF pre-checks — reached through `pallet-registrar-relay`.
 //!
-//! HRMP stays on this chain. A parachain reaches it through `HrmpRelay::relay_request`, and only
-//! its deposits move: once the migration is done they are held on the Coretime chain, which
+//! HRMP stays on this chain, and a parachain keeps dispatching its HRMP calls here. Only the
+//! deposits move: once the migration is done they are held on the Coretime chain, which
 //! `pallet-hrmp-relay` asks to hold and release them (see [`HrmpDeposits`]).
 //!
 //! Requests arrive from exactly one origin: the Coretime chain, as an XCM `Transact` converted to
 //! `parachains_origin::Origin::Parachain`. Reports go back as `Transact` with
 //! `OriginKind::Superuser`, which Coretime converts to Root — the origin both para-side pallets
-//! accept as their `RelayOrigin`.
+//! accept.
 
-use crate::{parachains_origin, Hrmp, Registrar, Runtime, RuntimeEvent, RuntimeOrigin};
+use crate::{parachains_origin, Hrmp, HrmpRelay, Registrar, Runtime, RuntimeEvent, RuntimeOrigin};
 use alloc::{vec, vec::Vec};
 use codec::Encode;
 use core::marker::PhantomData;
@@ -37,8 +37,11 @@ use frame_support::{
 	traits::{Contains, EnsureOrigin, ProcessMessageError},
 	weights::Weight,
 };
-use kusama_runtime_constants::{currency::CENTS, system_parachain::BROKER_ID};
-use sp_runtime::transaction_validity::TransactionPriority;
+use kusama_runtime_constants::system_parachain::BROKER_ID;
+use runtime_parachains::hrmp::deposits::{
+	ChannelDepositProvider, DepositChangeRequest, DepositChangeResponse,
+};
+use sp_runtime::{transaction_validity::TransactionPriority, DispatchError};
 use xcm::latest::prelude::*;
 use xcm_executor::traits::{Properties, ShouldExecute};
 
@@ -50,8 +53,7 @@ parameter_types! {
 	///
 	/// The bound that matters is the **product** with `MaxPendingRegistrations`: this is
 	/// relay-chain state that no deposit here pays for, and an entry only leaves when the code
-	/// lands or Coretime cancels. 100 x 1 MiB is the real commitment. Nothing expires on its own;
-	/// governance drops an abandoned entry with `force_drop_pending`.
+	/// lands or Coretime cancels. 100 x 1 MiB is the real commitment.
 	pub const RegistrarMaxHeadDataSize: u32 = polkadot_primitives::MAX_HEAD_DATA_SIZE;
 	pub const RegistrarMaxCodeSize: u32 = polkadot_primitives::MAX_CODE_SIZE;
 	pub const MaxPendingRegistrations: u32 = 100;
@@ -60,11 +62,12 @@ parameter_types! {
 	/// of its own. Below the top of the range, so it cannot crowd out inherents.
 	pub const RegistrarUnsignedPriority: TransactionPriority = TransactionPriority::MAX / 2;
 
-	/// The execution budget a forwarded request carries, withdrawn from the asking para's
-	/// sovereign account **on the Coretime chain** — written as Coretime sees the asset. Surplus
-	/// is refunded to the same account, so this only needs to be comfortably above one call's
-	/// fee; a para whose sovereign cannot cover it has its request fail over there.
-	pub ForwardedRequestFee: Asset = (Location::parent(), 10 * CENTS).into();
+	/// How many deposit releases may wait for the transport to the Coretime chain. Enough for the
+	/// offboarding of a dozen paras with the maximum number of channels each.
+	pub const HrmpMaxOutbox: u32 = 1024;
+
+	/// The para that holds the HRMP deposits, and the only one allowed to answer for them.
+	pub HrmpHolderParaId: polkadot_primitives::Id = BROKER_ID.into();
 }
 
 /// Accepts Root, or the Coretime chain.
@@ -107,20 +110,8 @@ pub enum CoretimeRuntimePallets {
 
 #[derive(Encode)]
 pub enum RegistrarParaCalls {
-	/// A para asked this chain to deregister it; forwarded on its behalf.
-	#[codec(index = 4)]
-	Deregister(u32),
 	#[codec(index = 0)]
 	Receive(registrar_primitives::MessageToPara),
-	/// A para asked this chain to lock it against its manager.
-	#[codec(index = 6)]
-	AddLock(u32),
-	/// A para asked this chain to unlock it.
-	#[codec(index = 7)]
-	RemoveLock(u32),
-	/// A para asked this chain to set its head data.
-	#[codec(index = 9)]
-	SetCurrentHead(u32, Vec<u8>),
 }
 
 #[derive(Encode)]
@@ -129,149 +120,7 @@ pub enum HrmpParaCalls {
 	Receive(hrmp_primitives::MessageToPara),
 }
 
-/// A parachain acting for itself, whether or not it is a system chain.
-///
-/// The calls a parachain dispatches for itself accept this; every other call that accepts a
-/// parachain keeps `EnsureParachain` and so stays system-chains-only. Two shapes arrive here:
-///
-/// - a **system** chain, as `parachains_origin::Origin::Parachain` — unchanged from today;
-/// - any **other** parachain, as `pallet_registrar_relay::Origin::Para`, which the XCM origin
-///   converter hands it precisely so that it reaches these calls and nothing else.
-pub struct EnsureAnyParaSelf;
-
-impl EnsureOrigin<RuntimeOrigin> for EnsureAnyParaSelf {
-	type Success = polkadot_primitives::Id;
-
-	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
-		// A non-system parachain, through the narrow origin the XCM converter hands it.
-		let o = match <RuntimeOrigin as Into<
-			Result<pallet_registrar_relay::Origin, RuntimeOrigin>,
-		>>::into(o)
-		{
-			Ok(pallet_registrar_relay::Origin::Para(id)) => return Ok(id.into()),
-			Err(o) => o,
-		};
-
-		// A system chain, exactly as before.
-		match <RuntimeOrigin as Into<Result<parachains_origin::Origin, RuntimeOrigin>>>::into(o) {
-			Ok(parachains_origin::Origin::Parachain(id)) => Ok(id),
-			Err(o) => Err(o),
-		}
-	}
-
-	#[cfg(feature = "runtime-benchmarks")]
-	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
-		Err(())
-	}
-}
-
-/// Forwards a parachain's own registrar and HRMP requests to the Coretime chain.
-///
-/// This is what keeps a parachain's encoded call unchanged after the control plane moves: the relay
-/// chain keeps its para-facing calls, and in remote mode their bodies land here instead of touching
-/// relay-chain state. The request travels **as the para**: this chain descends its own origin to
-/// the asking para's, so Coretime sees the para itself and serves it through the same origin checks
-/// a para arriving directly would meet. Descending is sound because this chain has authority over
-/// its children's locations and knows exactly which para each request arrived from — and the system
-/// chains trust it absolutely.
-///
-/// The work is **priced on Coretime**: the message withdraws [`ForwardedRequestFee`] from the
-/// para's sovereign account there and buys its execution with it, surplus refunded. Nothing is paid
-/// on this chain — a para's relay-chain sovereign is empty by design — which is why each para's
-/// forwards are rationed by [`pallet_registrar_relay::Pallet::note_forwarded`].
-/// Tells the control plane that a para has produced its first block.
-///
-/// The relay chain's whole part in the manager lock, and the one fact Coretime cannot observe for
-/// itself. A para's first block is what decides that its manager may no longer change its code,
-/// rewrite its head or deregister it — not its first coretime assignment, which would lock a para
-/// whose genesis blob is wrong out of the very calls that would fix it, permanently, since only
-/// the para or root can lift a lock and a para that never booted cannot ask.
-///
-/// Reports each para once and only for paras onboarded through `pallet-registrar-relay`: migrated
-/// paras arrived on Coretime already live and already locked, so there is nothing left to tell it.
-pub struct NoteFirstHeadToCoretime;
-
-impl runtime_parachains::paras::OnNewHead for NoteFirstHeadToCoretime {
-	fn on_new_head(id: polkadot_primitives::Id, _head: &polkadot_primitives::HeadData) -> Weight {
-		pallet_registrar_relay::Pallet::<Runtime>::note_first_head(id.into())
-	}
-}
-
-pub struct ForwardToCoretime;
-
-impl ForwardToCoretime {
-	/// Whether the control plane has taken over. Requests are applied locally until it has.
-	///
-	/// Keyed on the migration being *finished*, not merely started: Coretime's registry is empty
-	/// until the migration hands it over, so forwarding earlier would record state there for paras
-	/// it does not yet know about. The window in between is covered by the call filter, which
-	/// blocks these calls outright while the migration runs — see `ahm_v2::lockdown`.
-	fn remote() -> bool {
-		pallet_rc2_migrator::RcMigrationStage::<Runtime>::get().is_finished()
-	}
-
-	fn registrar(as_para: u32, call: RegistrarParaCalls) -> Result<(), ()> {
-		forward_as_para(as_para, CoretimeRuntimePallets::RegistrarPara(call).encode())
-	}
-}
-
-impl registrar_primitives::ParaRequestRouter for ForwardToCoretime {
-	fn is_remote() -> bool {
-		Self::remote()
-	}
-
-	fn deregister(para_id: u32) -> Result<(), ()> {
-		Self::registrar(para_id, RegistrarParaCalls::Deregister(para_id))
-	}
-
-	fn add_lock(para_id: u32) -> Result<(), ()> {
-		Self::registrar(para_id, RegistrarParaCalls::AddLock(para_id))
-	}
-
-	fn remove_lock(para_id: u32) -> Result<(), ()> {
-		Self::registrar(para_id, RegistrarParaCalls::RemoveLock(para_id))
-	}
-
-	fn set_current_head(para_id: u32, head: Vec<u8>) -> Result<(), ()> {
-		Self::registrar(para_id, RegistrarParaCalls::SetCurrentHead(para_id, head))
-	}
-}
-
-/// Forward one of `as_para`'s own requests to the Coretime chain, as that para, at its expense.
-///
-/// The message descends this chain's origin to the para's, so Coretime's origin converter hands
-/// the dispatch the para's own origin — the same one it would get arriving directly — and the
-/// execution is bought with [`ForwardedRequestFee`] withdrawn from the para's sovereign account
-/// there, surplus refunded to it. `Err(())` (the para is over its forward budget, or the transport
-/// refused) surfaces to the caller as `RequestNotForwarded`, with nothing written anywhere.
-fn forward_as_para(as_para: u32, call: Vec<u8>) -> Result<(), ()> {
-	if !pallet_registrar_relay::Pallet::<Runtime>::note_forwarded(as_para) {
-		return Err(());
-	}
-
-	let fee = ForwardedRequestFee::get();
-	let message = Xcm(vec![
-		Instruction::DescendOrigin(Parachain(as_para).into()),
-		Instruction::WithdrawAsset(fee.clone().into()),
-		Instruction::BuyExecution { fees: fee, weight_limit: WeightLimit::Unlimited },
-		Instruction::Transact {
-			origin_kind: OriginKind::Native,
-			fallback_max_weight: None,
-			call: call.into(),
-		},
-		Instruction::RefundSurplus,
-		Instruction::DepositAsset {
-			assets: AssetFilter::Wild(WildAsset::All),
-			beneficiary: Location::new(1, [Parachain(as_para)]),
-		},
-	]);
-
-	send_xcm::<crate::xcm_config::XcmRouter>(ControlPlaneLocation::get(), message)
-		.map(|_| ())
-		.map_err(|_| ())
-}
-
-/// Admits, without payment, exactly the message a parachain sends to reach its forwarded calls.
+/// Admits, without payment, exactly the message a parachain sends to reach its own HRMP calls.
 ///
 /// After the migration a parachain has no funds here — emptying its relay-chain sovereign account
 /// is one of the migration's goals — so the paid door is closed to it in practice. What opens
@@ -279,12 +128,11 @@ fn forward_as_para(as_para: u32, call: Vec<u8>) -> Result<(), ()> {
 /// `UnpaidExecution` followed by a single `Transact` with `OriginKind::Native` (a trailing
 /// `SetTopic` is tolerated, since routers append one).
 ///
-/// `Native` is the containment. A non-system para's native origin is the narrow
-/// `pallet_registrar_relay::Origin::Para`, which only the forwarding calls accept — so the program
-/// admitted here reaches those calls and nothing else. In particular
-/// `OriginKind::SovereignAccount` is not admitted, so free execution can never reach signed calls.
-/// The forwarded work itself is priced on the Coretime chain (see [`forward_as_para`]), and
-/// rationed per para per block (see `pallet_registrar_relay::Pallet::note_forwarded`).
+/// `Native` is the containment: the para arrives as `Origin::Parachain`, and the call filter
+/// leaves that origin nothing but `hrmp`'s para-facing calls. `OriginKind::SovereignAccount` is
+/// not admitted, so free execution can never reach signed calls.
+// TODO(ahm-v2): bound the admitted `Transact` by weight and ration it per para per block
+// (polkadot-sdk#13567 discussion).
 pub struct AllowUnpaidParaControlFrom<T>(PhantomData<T>);
 
 impl<T: Contains<Location>> ShouldExecute for AllowUnpaidParaControlFrom<T> {
@@ -297,9 +145,8 @@ impl<T: Contains<Location>> ShouldExecute for AllowUnpaidParaControlFrom<T> {
 		if !T::contains(origin) {
 			return Err(ProcessMessageError::Unsupported);
 		}
-		// Nothing changes until the control plane has actually moved: before the migration these
-		// calls act locally and a para pays its way in as it always has, and during it they are
-		// filtered — free execution for a local call would be a behaviour change with no upside.
+		// Nothing changes until the migration is done: before it a para pays its way in as it
+		// always has, and during it these calls are filtered.
 		if !pallet_rc2_migrator::RcMigrationStage::<Runtime>::get().is_finished() {
 			return Err(ProcessMessageError::Unsupported);
 		}
@@ -370,184 +217,42 @@ impl pallet_registrar_relay::Config for Runtime {
 	type MaxCodeSize = RegistrarMaxCodeSize;
 	type MaxPendingRegistrations = MaxPendingRegistrations;
 	type UnsignedPriority = RegistrarUnsignedPriority;
-	// One forwarded request per para per block, across the registrar and HRMP together. These are
-	// rare, human-paced calls; what is rationed is unpaid relay-chain execution.
-	type MaxForwardsPerBlock = frame_support::traits::ConstU32<1>;
 	type WeightInfo = ();
 }
 
 impl pallet_hrmp_relay::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type ParaOrigin = EnsureCoretime;
-	type ParachainOrigin = EnsureAnyParaSelf;
+	type OnDepositSet = Hrmp;
+	type HolderParaId = HrmpHolderParaId;
 	type SendToPara = HrmpToCoretime;
-	type Hrmp = HrmpAsPara;
-	type OnDepositHeld = HrmpDepositAnswers;
-	// Shares the registrar's per-para budget: one request per para per block, across both.
-	type AdmitRequest = RationParaRequests;
+	type MaxOutbox = HrmpMaxOutbox;
 	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
-/// `hrmp`'s deposit key, as the wire names it.
-fn to_wire(key: &runtime_parachains::hrmp::DepositKey) -> hrmp_primitives::DepositKey {
-	use runtime_parachains::hrmp::DepositSide;
-	hrmp_primitives::DepositKey {
-		channel: hrmp_primitives::ChannelId {
-			sender: key.channel.sender.into(),
-			recipient: key.channel.recipient.into(),
-		},
-		side: match key.side {
-			DepositSide::Sender => hrmp_primitives::DepositSide::Sender,
-			DepositSide::Recipient => hrmp_primitives::DepositSide::Recipient,
-		},
-	}
-}
-
-/// The wire's deposit key, as `hrmp` names it.
-fn from_wire(key: hrmp_primitives::DepositKey) -> runtime_parachains::hrmp::DepositKey {
-	use runtime_parachains::hrmp::DepositKey;
-	let channel = polkadot_primitives::HrmpChannelId {
-		sender: key.channel.sender.into(),
-		recipient: key.channel.recipient.into(),
-	};
-	match key.side {
-		hrmp_primitives::DepositSide::Sender => DepositKey::sender(channel),
-		hrmp_primitives::DepositSide::Recipient => DepositKey::recipient(channel),
-	}
-}
-
-/// Where `hrmp` holds channel deposits.
+/// Where `hrmp` holds its channel deposits.
 ///
-/// Reserved on this chain until the migration is done, and held on the Coretime chain from then
-/// on. The migration moves every reserve, and hands Coretime a record of each deposit, before it
-/// is done.
+/// Reserved on this chain until the migration is done, and held on the Coretime chain through
+/// `HrmpRelay` from then on. The migration moves every reserve, and hands Coretime a record of
+/// each deposit, before it is done.
 pub struct HrmpDeposits;
 
-impl HrmpDeposits {
-	fn on_coretime() -> bool {
-		pallet_rc2_migrator::RcMigrationStage::<Runtime>::get().is_finished()
-	}
-}
+impl ChannelDepositProvider for HrmpDeposits {
+	type OnDepositSet = Hrmp;
 
-impl runtime_parachains::hrmp::ChannelDeposits for HrmpDeposits {
-	fn hold(
-		key: &runtime_parachains::hrmp::DepositKey,
-		amount: polkadot_primitives::Balance,
-	) -> Result<runtime_parachains::hrmp::HoldOutcome, sp_runtime::DispatchError> {
-		if !Self::on_coretime() {
-			return runtime_parachains::hrmp::ReserveDeposits::<Runtime>::hold(key, amount);
-		}
-		pallet_hrmp_relay::Pallet::<Runtime>::hold(to_wire(key), amount)
-			.map_err(|()| sp_runtime::DispatchError::Other("the hold could not be sent"))?;
-		Ok(runtime_parachains::hrmp::HoldOutcome::Pending)
-	}
-
-	fn release(key: &runtime_parachains::hrmp::DepositKey, amount: polkadot_primitives::Balance) {
-		if !Self::on_coretime() {
-			return runtime_parachains::hrmp::ReserveDeposits::<Runtime>::release(key, amount);
-		}
-		pallet_hrmp_relay::Pallet::<Runtime>::release(to_wire(key), None);
-	}
-
-	fn reduce(key: &runtime_parachains::hrmp::DepositKey, amount: polkadot_primitives::Balance) {
-		if !Self::on_coretime() {
-			return runtime_parachains::hrmp::ReserveDeposits::<Runtime>::reduce(key, amount);
-		}
-		pallet_hrmp_relay::Pallet::<Runtime>::release(to_wire(key), Some(amount));
-	}
-
-	fn release_offboarded(
-		key: &runtime_parachains::hrmp::DepositKey,
-		amount: polkadot_primitives::Balance,
-	) {
-		if !Self::on_coretime() {
-			return runtime_parachains::hrmp::ReserveDeposits::<Runtime>::release_offboarded(
-				key, amount,
-			);
-		}
-		pallet_hrmp_relay::Pallet::<Runtime>::release(to_wire(key), None);
-	}
-}
-
-/// Hands Coretime's answer to a hold back to `hrmp`.
-pub struct HrmpDepositAnswers;
-
-impl hrmp_primitives::OnDepositHeld for HrmpDepositAnswers {
-	fn on_deposit_held(key: hrmp_primitives::DepositKey, held: bool) {
-		<Hrmp as runtime_parachains::hrmp::OnDepositHeld>::on_deposit_held(from_wire(key), held);
-	}
-}
-
-/// `hrmp`'s para-facing calls, dispatched as the asking para.
-pub struct HrmpAsPara;
-
-impl HrmpAsPara {
-	fn origin(para: u32) -> RuntimeOrigin {
-		parachains_origin::Origin::Parachain(para.into()).into()
-	}
-
-	fn channel(channel: hrmp_primitives::ChannelId) -> polkadot_primitives::HrmpChannelId {
-		polkadot_primitives::HrmpChannelId {
-			sender: channel.sender.into(),
-			recipient: channel.recipient.into(),
+	fn try_set_deposit(
+		request: DepositChangeRequest,
+	) -> Result<DepositChangeResponse, DispatchError> {
+		if pallet_rc2_migrator::RcMigrationStage::<Runtime>::get().is_finished() {
+			HrmpRelay::try_set_deposit(request)
+		} else {
+			Hrmp::try_set_deposit(request)
 		}
 	}
-}
 
-impl hrmp_primitives::RelayHrmp for HrmpAsPara {
-	fn init_open_channel(
-		para: u32,
-		recipient: u32,
-		proposed_max_capacity: u32,
-		proposed_max_message_size: u32,
-	) -> sp_runtime::DispatchResult {
-		Hrmp::hrmp_init_open_channel(
-			Self::origin(para),
-			recipient.into(),
-			proposed_max_capacity,
-			proposed_max_message_size,
+	fn weight_of_try_set_deposit() -> Weight {
+		<Runtime as frame_system::Config>::DbWeight::get().reads(1).saturating_add(
+			HrmpRelay::weight_of_try_set_deposit().max(Hrmp::weight_of_try_set_deposit()),
 		)
-	}
-
-	fn accept_open_channel(para: u32, sender: u32) -> sp_runtime::DispatchResult {
-		Hrmp::hrmp_accept_open_channel(Self::origin(para), sender.into())
-	}
-
-	fn close_channel(para: u32, channel: hrmp_primitives::ChannelId) -> sp_runtime::DispatchResult {
-		Hrmp::hrmp_close_channel(Self::origin(para), Self::channel(channel))
-	}
-
-	fn cancel_open_request(
-		para: u32,
-		channel: hrmp_primitives::ChannelId,
-		open_requests: u32,
-	) -> sp_runtime::DispatchResult {
-		Hrmp::hrmp_cancel_open_request(Self::origin(para), Self::channel(channel), open_requests)
-	}
-
-	fn establish_channel_with_system(
-		para: u32,
-		target_system_chain: u32,
-	) -> sp_runtime::DispatchResult {
-		Hrmp::establish_channel_with_system(Self::origin(para), target_system_chain.into())
-			.map(|_| ())
-			.map_err(|e| e.error)
-	}
-
-	fn poke_channel_deposits(channel: hrmp_primitives::ChannelId) -> sp_runtime::DispatchResult {
-		Hrmp::do_poke_channel_deposits(channel.sender.into(), channel.recipient.into())
-	}
-
-	fn establish_system_channel(channel: hrmp_primitives::ChannelId) -> sp_runtime::DispatchResult {
-		Hrmp::do_establish_system_channel(channel.sender.into(), channel.recipient.into())
-	}
-}
-
-/// Rations a parachain's HRMP requests with its registrar forwards.
-pub struct RationParaRequests;
-
-impl pallet_hrmp_relay::AdmitRequest for RationParaRequests {
-	fn admit(para: u32) -> bool {
-		pallet_registrar_relay::Pallet::<Runtime>::note_forwarded(para)
 	}
 }

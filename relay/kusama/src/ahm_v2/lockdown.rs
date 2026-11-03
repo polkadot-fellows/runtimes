@@ -18,7 +18,8 @@
 //! that refuses inbound messages once the migration starts.
 
 use crate::{
-	parachains_paras, parachains_slashing, xcm_config::OnlyParachains, ParaId, Runtime, RuntimeCall,
+	parachains_hrmp, parachains_paras, parachains_slashing, xcm_config::OnlyParachains, ParaId,
+	Runtime, RuntimeCall,
 };
 use frame_support::{
 	traits::{Contains, ProcessMessageError},
@@ -26,14 +27,13 @@ use frame_support::{
 };
 use kusama_runtime_constants::system_parachain::{ASSET_HUB_ID, BROKER_ID};
 use pallet_rc2_migrator::RcMigrationStage;
-use polkadot_runtime_common::paras_registrar;
 use xcm::latest::{Instruction, Junction::Parachain, Location};
 use xcm_builder::IsChildSystemParachain;
 use xcm_executor::traits::{DenyExecution, Properties};
 
 /// Refuses every inbound message once the migration starts, except from this chain, the Coretime
 /// chain and Asset Hub. Once the migration is done, ordinary parachains get through again, to reach
-/// `HrmpRelay::relay_request` and the registrar calls that forward to the Coretime chain.
+/// their own HRMP calls.
 pub struct DenyOnceMigrationStarts;
 impl DenyExecution for DenyOnceMigrationStarts {
 	fn deny_execution<RuntimeCall>(
@@ -88,8 +88,8 @@ impl Contains<RuntimeCall> for CallsEnabledAfterMigration {
 ///
 /// Every call a signed account can make is disabled. Enabled are inherents, unsigned validator
 /// reports, calls the Coretime chain and Asset Hub send over XCM, and the migrator itself. After
-/// the migration, the calls a parachain makes for itself open again: they forward to the Coretime
-/// chain, or reach HRMP through `HrmpRelay`.
+/// the migration, the HRMP calls a parachain makes for itself open again; their deposits are held
+/// on the Coretime chain.
 ///
 /// Root skips this filter, so a call only Root can make is `OFF` here and still works.
 pub fn call_allowed_status(call: &RuntimeCall) -> (bool, bool) {
@@ -130,17 +130,16 @@ pub fn call_allowed_status(call: &RuntimeCall) -> (bool, bool) {
 		) => (ON, ON),
 		// Checks its own origins; drives the migration.
 		Rc2Migrator(..) => (ON, ON),
-		// A parachain's own HRMP requests.
-		HrmpRelay(pallet_hrmp_relay::Call::relay_request { .. }) => (OFF, ON),
-		// The Coretime chain's reports, Root, and unsigned code uploads.
+		// The Coretime chain's reports and answers, Root, and unsigned code uploads.
 		RegistrarRelay(..) | HrmpRelay(..) => (ON, ON),
-		// The calls a parachain makes for itself. After the migration they forward to the Coretime
-		// chain.
-		Registrar(
-			paras_registrar::Call::deregister { .. } |
-			paras_registrar::Call::add_lock { .. } |
-			paras_registrar::Call::remove_lock { .. } |
-			paras_registrar::Call::set_current_head { .. },
+		// The HRMP calls a parachain makes for itself. After the migration their deposits are held
+		// on the Coretime chain; the calls themselves stay here.
+		Hrmp(
+			parachains_hrmp::Call::hrmp_init_open_channel { .. } |
+			parachains_hrmp::Call::hrmp_accept_open_channel { .. } |
+			parachains_hrmp::Call::hrmp_close_channel { .. } |
+			parachains_hrmp::Call::hrmp_cancel_open_request { .. } |
+			parachains_hrmp::Call::establish_channel_with_system { .. },
 		) => (OFF, ON),
 
 		// Disabled during and after the migration.
@@ -178,10 +177,13 @@ pub fn call_allowed_status(call: &RuntimeCall) -> (bool, bool) {
 		Paras(..) => (OFF, OFF),
 		// Root only.
 		Configuration(..) | Initializer(..) | ParasDisputes(..) => (OFF, OFF),
-		// Parachains reach HRMP through `HrmpRelay::relay_request`.
+		// Signed callers and the channel manager only.
 		Hrmp(..) => (OFF, OFF),
 		ParasSlashing(..) => (OFF, OFF),
 		OnDemandAssignmentProvider(..) => (OFF, OFF),
+		// TODO(ahm-v2): the calls a parachain makes for itself (`deregister`, `add_lock`,
+		// `remove_lock`, `set_current_head`) have no relay-chain path once the registry is on the
+		// Coretime chain; a para reaches `RegistrarPara` there directly.
 		Registrar(..) => (OFF, OFF),
 		Slots(..) => (OFF, OFF),
 		Auctions(..) => (OFF, OFF),
@@ -281,19 +283,18 @@ mod tests {
 		("Rc2Migrator", "set_unprocessed_msg_buffer"),
 		("RegistrarRelay", "receive"),
 		("RegistrarRelay", "apply_authorized_code"),
-		("RegistrarRelay", "apply_authorized_code_upgrade"),
-		("RegistrarRelay", "force_drop_pending"),
 		("HrmpRelay", "receive"),
+		("HrmpRelay", "force_answer"),
 	];
 
-	/// Every call that opens again once the migration is done: the calls a parachain makes for
-	/// itself.
+	/// Every call that opens again once the migration is done: the HRMP calls a parachain makes
+	/// for itself.
 	const ENABLED_AFTER: &[CallName] = &[
-		("HrmpRelay", "relay_request"),
-		("Registrar", "deregister"),
-		("Registrar", "add_lock"),
-		("Registrar", "remove_lock"),
-		("Registrar", "set_current_head"),
+		("Hrmp", "hrmp_init_open_channel"),
+		("Hrmp", "hrmp_accept_open_channel"),
+		("Hrmp", "hrmp_close_channel"),
+		("Hrmp", "hrmp_cancel_open_request"),
+		("Hrmp", "establish_channel_with_system"),
 	];
 
 	/// Calls the test below cannot build. It builds each call from zero bytes, and these take an

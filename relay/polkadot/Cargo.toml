@@ -249,7 +249,7 @@ runtime-benchmarks = [
 	"pallet-rc-migrator/runtime-benchmarks",
 	"pallet-rc2-migrator/runtime-benchmarks",
 	"registrar-primitives/runtime-benchmarks",
-	"hrmp-primitives/runtime-benchmarks",
+	"pallet-hrmp-relay/runtime-benchmarks",
 
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-election-provider-support/runtime-benchmarks",

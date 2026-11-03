@@ -459,7 +459,7 @@ fn emit_ct_block() {
 			// requests it holds at least one deposit for.
 			"paras": pallet_registrar_para::Paras::<Ct>::iter_keys().count(),
 			"hrmp_channels": pallet_hrmp_para::Deposits::<Ct>::iter_keys()
-				.map(|key| key.channel)
+				.map(|(channel, _)| channel)
 				.collect::<std::collections::BTreeSet<_>>()
 				.len(),
 			"hrmp_deposits": pallet_hrmp_para::Deposits::<Ct>::iter_keys().count(),

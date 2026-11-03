@@ -27,12 +27,10 @@
 //!
 //! Requests go up as `Transact` with `OriginKind::Native`, so they land on the relay chain as
 //! `Origin::Parachain(BROKER_ID)` — the origin its `ParaOrigin` accepts. The relay chain's messages
-//! come back with `OriginKind::Superuser`, landing here as Root, which is what `RelayOrigin`
-//! accepts.
+//! come back with `OriginKind::Superuser`, landing here as Root, which is what both pallets accept.
 
 use crate::{
-	xcm_config::LocationToAccountId, AccountId, Balance, Balances, Runtime, RuntimeEvent,
-	RuntimeHoldReason,
+	xcm_config::LocationToAccountId, AccountId, Balance, Balances, Runtime, RuntimeHoldReason,
 };
 use alloc::{vec, vec::Vec};
 use codec::Encode;
@@ -40,12 +38,11 @@ use cumulus_primitives_core::relay_chain;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, ConstBool, ConstU32, ConstantStoragePrice, EnsureOrigin,
-		LinearStoragePrice,
+		fungible::HoldConsideration, ConstantStoragePrice, EnsureOrigin, Get, LinearStoragePrice,
 	},
 };
 use frame_system::EnsureRoot;
-use pallet_broker::CoreAssignment;
+use polkadot_primitives::AbridgedHostConfiguration;
 use system_parachains_constants::polkadot::currency::{system_para_deposit, CENTS};
 use xcm::latest::prelude::*;
 use xcm_executor::traits::ConvertLocation;
@@ -58,12 +55,9 @@ parameter_types! {
 	/// chain never hands one out.
 	pub const FirstPublicParaId: u32 = 2_000;
 
-	/// Local mirrors of the relay chain's live configuration, used to fail early rather than
-	/// spend a round trip on a request the relay chain would refuse. The relay chain still checks
-	/// the real thing.
+	/// Mirrors the relay chain's `MIN_CODE_SIZE`, used to fail early rather than spend a round
+	/// trip on a request the relay chain would refuse. The relay chain still checks the real thing.
 	pub const MinCodeSize: u32 = 9;
-	pub const MaxCodeSize: u32 = polkadot_primitives::MAX_CODE_SIZE;
-	pub const MaxHeadDataSize: u32 = polkadot_primitives::MAX_HEAD_DATA_SIZE;
 
 	/// How long a manager waits before a request counts as gone quiet. In *relay-chain* blocks,
 	/// since that is what `BlockNumberProvider` measures here — so it keeps its meaning through a
@@ -75,8 +69,6 @@ parameter_types! {
 	pub const ParaDeposit: Balance = 40 * CENTS;
 	/// Per byte of head data plus the largest validation code the relay chain accepts.
 	pub const DataDepositPerByte: Balance = system_para_deposit(0, 1);
-	/// What it costs to skip the rest of a para's upgrade cooldown. Burned, not held.
-	pub const UpgradeCooldownCost: Balance = 100 * CENTS;
 
 	pub const ParaIdReservationHoldReason: RuntimeHoldReason =
 		RuntimeHoldReason::RegistrarPara(pallet_registrar_para::HoldReason::ParaIdReservation);
@@ -97,42 +89,22 @@ impl sp_runtime::traits::Convert<u32, AccountId> for SovereignAccountOf {
 	}
 }
 
-/// Whether a para still holds coretime, and therefore must not be pulled out from under itself.
+/// The relay chain's live configuration, as `parachain_system` last saw it.
 ///
-/// This is what replaces the relay chain's lock-at-first-head. The relay chain locks a para at its
-/// first block because that is the only "in use" signal it has; this chain hosts coretime, so it
-/// can ask the question directly.
-///
-/// Two sources, because a para can hold a core two ways:
-///
-/// - a **legacy lease**, which names the task outright;
-/// - a **workload**, the schedule a core is actually running, where the para appears as
-///   `CoreAssignment::Task`.
-///
-/// Regions are deliberately *not* consulted. A region is owned by an account and confers nothing
-/// until it is assigned to a task, at which point it shows up in the workload — so reading regions
-/// would lock paras that merely have coretime bought on their behalf.
-///
-/// **Known limitation.** The workload scan is linear in the number of cores. That is bounded and
-/// small today, and these are rare governance-ish calls, but a production version should keep a
-/// reverse index rather than scanning. The relay chain is the real backstop either way: it refuses
-/// to deregister anything that is not an idle parathread, whoever asks.
-pub struct CoretimeAssignments;
+/// The registrar prices a registration from it and refuses early what the relay chain would
+/// refuse. `None` until this chain has processed its first relay-chain block.
+pub struct RelayHostConfiguration;
 
-impl pallet_registrar_para::AssignmentChecker for CoretimeAssignments {
-	fn has_assignment(para_id: u32) -> bool {
-		let leased = pallet_broker::Leases::<Runtime>::get()
-			.iter()
-			.any(|lease| lease.task == para_id);
-		if leased {
-			return true;
-		}
+impl Get<Option<AbridgedHostConfiguration>> for RelayHostConfiguration {
+	fn get() -> Option<AbridgedHostConfiguration> {
+		cumulus_pallet_parachain_system::HostConfiguration::<Runtime>::get()
+	}
+}
 
-		pallet_broker::Workload::<Runtime>::iter_values().any(|schedule| {
-			schedule.iter().any(
-				|item| matches!(item.assignment, CoreAssignment::Task(task) if task == para_id),
-			)
-		})
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_registrar_para::BenchmarkHelper for RelayHostConfiguration {
+	fn set_host_configuration(config: AbridgedHostConfiguration) {
+		cumulus_pallet_parachain_system::HostConfiguration::<Runtime>::put(config);
 	}
 }
 
@@ -223,7 +195,7 @@ impl pallet_registrar_para::SendToRelay for RegistrarRequestToRelay {
 	}
 }
 
-/// The HRMP half of the transport: answers to deposit holds.
+/// The HRMP half of the transport: answers to deposit requests.
 pub struct HrmpRequestToRelay;
 
 impl pallet_hrmp_para::SendToRelay for HrmpRequestToRelay {
@@ -246,39 +218,28 @@ impl pallet_registrar_para::Config for Runtime {
 		LinearStoragePrice<frame_support::traits::ConstU128<0>, DataDepositPerByte, Balance>,
 	>;
 	type SendToRelay = RegistrarRequestToRelay;
-	type AssignmentChecker = CoretimeAssignments;
-	// This chain hosts coretime, so it must be able to tell when a para holds a core. The startup
-	// check refuses `NoAssignments` here, which would otherwise leave every live parachain's
-	// manager able to deregister it.
-	type RequireAssignmentLock = ConstBool<true>;
 	// The relay chain reports with `OriginKind::Superuser`, which arrives here as Root.
 	type RelayOrigin = EnsureRoot<AccountId>;
 	type ParachainOrigin = EnsureSiblingPara;
+	type ForceOrigin = EnsureRoot<AccountId>;
 	type FirstPublicParaId = FirstPublicParaId;
 	type MinCodeSize = MinCodeSize;
-	type MaxCodeSize = MaxCodeSize;
-	type MaxHeadDataSize = MaxHeadDataSize;
+	type HostConfiguration = RelayHostConfiguration;
 	type PendingDeadline = PendingDeadline;
 	// Relay-chain blocks, so a deadline keeps its meaning through a stall here.
 	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
-	type Fungible = Balances;
-	type UpgradeCooldownCost = UpgradeCooldownCost;
 	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = RelayHostConfiguration;
 }
 
 impl pallet_hrmp_para::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type RuntimeHoldReason = RuntimeHoldReason;
 	type Currency = Balances;
-	// The relay chain sends with `OriginKind::Superuser`, which arrives here as Root.
-	type RelayOrigin = EnsureRoot<AccountId>;
 	type SendToRelay = HrmpRequestToRelay;
 	// Deposits are held on the para's sovereign account here, which is where the migration lands
 	// them.
 	type SovereignAccountOf = SovereignAccountOf;
 	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
-
-// Referenced only so the `ConstU32` import is used in every feature combination.
-#[allow(unused)]
-type _KeepImports = ConstU32<0>;

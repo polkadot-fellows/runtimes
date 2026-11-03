@@ -25,8 +25,8 @@ use cumulus_primitives_core::{
 };
 use frame_support::{
 	dispatch::GetDispatchInfo,
-	traits::{EnqueueMessage, Get, OnFinalize, OnInitialize, ProcessMessage},
-	weights::Weight,
+	traits::{EnqueueMessage, Get, OnFinalize, OnInitialize, OnPoll, ProcessMessage},
+	weights::{Weight, WeightMeter},
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use polkadot_primitives::UpwardMessage;
@@ -258,12 +258,15 @@ pub async fn load_externalities() -> (TestExternalities, TestExternalities, Test
 ///
 /// Only runs the hooks that the migration and the control plane rely on, in the order the runtime
 /// declares them: `MessageQueue` first (so inbound messages are processed before the migrator
-/// acts), then `Rc2Migrator`, then `HrmpRelay` (which sends queued deposit releases to Coretime).
+/// acts), then `Rc2Migrator`, then `HrmpRelay`'s poll (which sends queued deposit releases to
+/// Coretime).
 pub fn next_block_rc() {
 	next_block::<Polkadot>(LOG_RC, |now| {
 		let mut weight = <network::relay::MessageQueue as OnInitialize<_>>::on_initialize(now);
 		weight += <network::relay::Rc2Migrator as OnInitialize<_>>::on_initialize(now);
-		weight += <network::relay::HrmpRelay as OnInitialize<_>>::on_initialize(now);
+		let mut meter = WeightMeter::new();
+		<network::relay::HrmpRelay as OnPoll<_>>::on_poll(now, &mut meter);
+		weight += meter.consumed();
 		<network::relay::MessageQueue as OnFinalize<_>>::on_finalize(now);
 		<network::relay::Rc2Migrator as OnFinalize<_>>::on_finalize(now);
 		weight

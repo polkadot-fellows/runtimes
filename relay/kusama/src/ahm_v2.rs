@@ -55,7 +55,7 @@ parameter_types! {
 	/// Measured by the `balance_census` test against the 22 Sep 2026 snapshot, which prints the
 	/// exact planck value. Re-measure and update ahead of the real run: this is a one-shot burn,
 	/// and burning more than the chain actually carries is unrecoverable.
-	pub const TiCorrection: u128 = 2_054_657_180_420;
+	pub const TiCorrection: u128 = 2_052_086_889_496;
 	/// Working buffer of free balance that follows a migrated deposit to the Coretime chain.
 	/// One KSM, mirroring Polkadot's one DOT — the two are different amounts of money, and the
 	/// point is a usable buffer on each chain rather than a matching number.

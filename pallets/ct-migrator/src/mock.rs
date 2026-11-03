@@ -186,6 +186,10 @@ impl hrmp_primitives::ReceiveMigratedDeposits for RecordingHrmp {
 		ReceivedDeposits::mutate(|v| v.push((key, amount)));
 		Ok(())
 	}
+
+	fn weight_of_receive_deposit() -> frame_support::weights::Weight {
+		frame_support::weights::Weight::zero()
+	}
 }
 
 /// Records what this chain sends upwards, so the handshake answer can be asserted on.

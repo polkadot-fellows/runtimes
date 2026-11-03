@@ -171,7 +171,6 @@ runtime-benchmarks = [
 	"pallet-registrar-para/runtime-benchmarks",
 	"pallet-hrmp-para/runtime-benchmarks",
 	"registrar-primitives/runtime-benchmarks",
-	"hrmp-primitives/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-weight-reclaim/runtime-benchmarks",

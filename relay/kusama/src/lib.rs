@@ -1554,7 +1554,7 @@ impl parachains_paras::Config for Runtime {
 	type UnsignedPriority = ParasUnsignedPriority;
 	type QueueFootprinter = ParaInclusion;
 	type NextSessionRotation = Babe;
-	type OnNewHead = (Registrar, crate::para_control::NoteFirstHeadToCoretime);
+	type OnNewHead = (Registrar, RegistrarRelay);
 	type AssignCoretime = ParaScheduler;
 	type Fungible = Balances;
 	// Per day the cooldown is removed earlier, it should cost 1000.
@@ -1621,7 +1621,7 @@ parameter_types! {
 
 impl parachains_hrmp::Config for Runtime {
 	// Reserved here until the migration is done, held on Coretime from then on.
-	type ChannelDeposits = crate::para_control::HrmpDeposits;
+	type DepositProvider = crate::para_control::HrmpDeposits;
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
 	type ChannelManager = EitherOfDiverse<
@@ -1730,8 +1730,6 @@ parameter_types! {
 }
 
 impl paras_registrar::Config for Runtime {
-	type ParaRequests = crate::para_control::ForwardToCoretime;
-	type ParaSelfOrigin = crate::para_control::EnsureAnyParaSelf;
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;

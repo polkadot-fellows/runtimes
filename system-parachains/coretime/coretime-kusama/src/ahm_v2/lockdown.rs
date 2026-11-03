@@ -156,9 +156,10 @@ mod tests {
 		];
 		let para_control = [
 			RuntimeCall::RegistrarPara(pallet_registrar_para::Call::reserve {}),
-			RuntimeCall::HrmpPara(pallet_hrmp_para::Call::poke_channel_deposits {
-				sender: 2000,
-				recipient: 2001,
+			RuntimeCall::HrmpPara(pallet_hrmp_para::Call::force_set_deposit {
+				channel: hrmp_primitives::ChannelId { sender: 2000, recipient: 2001 },
+				side: hrmp_primitives::DepositSide::Sender,
+				amount: 0,
 			}),
 		];
 

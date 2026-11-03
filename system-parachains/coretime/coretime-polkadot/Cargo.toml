@@ -182,7 +182,6 @@ runtime-benchmarks = [
 	"pallet-registrar-para/runtime-benchmarks",
 	"pallet-hrmp-para/runtime-benchmarks",
 	"registrar-primitives/runtime-benchmarks",
-	"hrmp-primitives/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
