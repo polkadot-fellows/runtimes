@@ -312,6 +312,11 @@ pub mod pallet {
 			assert!(T::MaxDepositsPerPause::get() > 0, "a pause needs room for its first deposit");
 			assert!(T::MaxPollSteps::get() > 0, "on_poll must be able to make progress");
 		}
+
+		#[cfg(feature = "try-runtime")]
+		fn try_state(_: BlockNumberFor<T>) -> Result<(), sp_runtime::TryRuntimeError> {
+			Self::do_try_state()
+		}
 	}
 
 	#[pallet::call]
@@ -678,4 +683,37 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	/// Checks that the expiry queue, the pauses and the deposits agree with each other.
+	#[cfg(any(feature = "try-runtime", test))]
+	pub(crate) fn do_try_state() -> Result<(), sp_runtime::TryRuntimeError> {
+		let mut queued = 0u32;
+		let mut earliest = None;
+		for (at, target) in Expiries::<T>::iter_keys() {
+			queued += 1;
+			earliest = Some(earliest.map_or(at, |e: BlockNumberOf<T>| e.min(at)));
+			let pause = Pauses::<T>::get(&target).ok_or("queued expiry without a pause")?;
+			ensure!(pause.until == Some(at), "queued expiry doesn't match the pause");
+		}
+		ensure!(ExpiryCount::<T>::get() == queued, "ExpiryCount is off");
+		match (ExpiryCursor::<T>::get(), earliest) {
+			(None, None) => {},
+			(Some(cursor), Some(earliest)) =>
+				ensure!(cursor <= earliest, "the cursor is past a queued expiry"),
+			_ => return Err("the cursor doesn't match the queue".into()),
+		}
+
+		for (target, pause) in Pauses::<T>::iter() {
+			ensure!(T::Pauser::is_paused(target.clone()), "a pause isn't applied");
+			if let Some(until) = pause.until {
+				ensure!(Expiries::<T>::contains_key(until, &target), "a pause isn't queued");
+			}
+			ensure!(pause.forced || !pause.deposits.is_empty(), "a paid pause has no deposits");
+			for id in pause.deposits.iter() {
+				let deposit = Deposits::<T>::get(id).ok_or("a pause lists a missing deposit")?;
+				ensure!(deposit.target == target, "a deposit points at another target");
+				ensure!(deposit.release_at.is_none(), "a running pause has a released deposit");
+			}
+		}
+		Ok(())
+	}
 }

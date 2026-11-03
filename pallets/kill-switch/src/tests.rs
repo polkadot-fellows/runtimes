@@ -164,6 +164,7 @@ fn pause_expires_and_deposit_is_released() {
 			KillSwitch::release_deposit(RuntimeOrigin::signed(3), 0),
 			Error::<Test>::UnknownDeposit
 		);
+		assert_ok!(KillSwitch::do_try_state());
 	});
 }
 
@@ -175,6 +176,7 @@ fn expires_when_relay_block_skips() {
 		run_to_relay(13);
 		assert!(transfer_works());
 		assert!(Pauses::<Test>::get(transfer()).is_none());
+		assert_ok!(KillSwitch::do_try_state());
 	});
 }
 
@@ -201,6 +203,7 @@ fn on_poll_respects_max_steps() {
 		assert_eq!(Pauses::<Test>::iter().count(), 0);
 		assert_eq!(ExpiryCount::<Test>::get(), 0);
 		assert!(ExpiryCursor::<Test>::get().is_none());
+		assert_ok!(KillSwitch::do_try_state());
 	});
 }
 
@@ -215,6 +218,7 @@ fn on_poll_respects_weight_limit() {
 
 		KillSwitch::on_poll(3, &mut WeightMeter::new());
 		assert!(Pauses::<Test>::get(transfer()).is_none());
+		assert_ok!(KillSwitch::do_try_state());
 	});
 }
 
@@ -263,6 +267,7 @@ fn can_extend() {
 		assert!(!transfer_works());
 		run_to_relay(1 + 3 * PAUSE_DURATION);
 		assert!(transfer_works());
+		assert_ok!(KillSwitch::do_try_state());
 	});
 }
 
@@ -388,6 +393,7 @@ fn fellowship_extension_is_capped() {
 			KillSwitch::force_extend(RuntimeOrigin::signed(1), transfer(), until + 2_000),
 			DispatchError::BadOrigin
 		);
+		assert_ok!(KillSwitch::do_try_state());
 	});
 }
 
@@ -483,6 +489,7 @@ fn expiry_queue_is_cleaned_up() {
 		assert_eq!(ExpiryCount::<Test>::get(), 0);
 		assert!(ExpiryCursor::<Test>::get().is_none());
 		assert_eq!(Expiries::<Test>::iter().count(), 0);
+		assert_ok!(KillSwitch::do_try_state());
 	});
 }
 
@@ -502,6 +509,7 @@ fn release_delay_starts_when_pause_runs_out() {
 		);
 		assert_ok!(KillSwitch::slash_deposit(fellowship(), 0));
 		assert_eq!(Balances::free_balance(TREASURY), DEPOSIT);
+		assert_ok!(KillSwitch::do_try_state());
 	});
 }
 
@@ -522,6 +530,7 @@ fn fails_to_extend_pause_that_ran_out() {
 		);
 		// Root can still keep it going.
 		assert_ok!(KillSwitch::force_extend(RuntimeOrigin::root(), transfer(), 20));
+		assert_ok!(KillSwitch::do_try_state());
 	});
 }
 
@@ -541,5 +550,6 @@ fn fellowship_cannot_touch_root_pause() {
 		assert_ok!(KillSwitch::unpause(RuntimeOrigin::root(), transfer(), false));
 		assert!(transfer_works());
 		assert_eq!(Balances::free_balance(1), 1_000);
+		assert_ok!(KillSwitch::do_try_state());
 	});
 }
