@@ -42,6 +42,7 @@ mod tests;
 pub mod xcm_config;
 
 pub mod accounts;
+pub mod sweep;
 
 pub use pallet::*;
 
@@ -473,6 +474,11 @@ pub mod pallet {
 		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
 		/// retry it.
 		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
+		/// A pot was emptied. Its balance is teleported to the sweep beneficiary, with the other
+		/// pots'.
+		PotSwept { who: T::AccountId, amount: u128 },
+		/// A pot could not be emptied and was left as it was. Rewind to `Sweep` to retry it.
+		PotNotSwept { who: T::AccountId, error: DispatchError },
 	}
 
 	#[pallet::hooks]
@@ -766,11 +772,20 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::Sweep => {
-					// TODO(ahm-v2): sweep the pots, `T::SweptAccounts`, to the Asset Hub
-					// beneficiary. The on-demand pot holds revenue only if the Coretime
-					// chain has not claimed it yet.
-					Self::transition(MigrationStage::SweepDust { last_key: None });
-					T::DbWeight::get().reads_writes(1, 1)
+					// TODO(ahm-v2): do not empty the on-demand pot while `on_demand::Revenue`
+					// still records revenue the Coretime chain has not claimed: its next claim
+					// would fail to withdraw it.
+					// Burns and the send commit or roll back together.
+					match with_storage_layer(Self::sweep_pots) {
+						Ok(()) => Self::transition(MigrationStage::SweepDust { last_key: None }),
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "Sweep failed, retrying: {e:?}");
+						},
+					}
+					let pots = T::SweptAccounts::get().len() as u64;
+					T::DbWeight::get()
+						.reads_writes(3, 3)
+						.saturating_add(T::DbWeight::get().reads_writes(6 * pots, 6 * pots))
 				},
 				MigrationStage::SweepDust { .. } => {
 					Self::transition(MigrationStage::TiCorrection);
@@ -841,6 +856,24 @@ pub mod pallet {
 				Self::send_teleport(chunk.to_vec())?;
 			}
 			Ok(last_key)
+		}
+
+		/// The Sweep stage: burn the pots, book what they held as moved to Asset Hub, and teleport
+		/// it to the sweep beneficiary there.
+		///
+		/// The caller runs it in a storage transaction, so an `Err` rolls the burns back too.
+		fn sweep_pots() -> Result<(), DispatchError> {
+			let total = sweep::SweepMigrator::<T>::burn_pots();
+			if total == 0 {
+				return Ok(());
+			}
+			RcMigratedBalance::<T>::mutate(|migrated| {
+				defensive_assert!(migrated.kept >= total, "burned more than is kept");
+				migrated.kept = migrated.kept.saturating_sub(total);
+				migrated.ah_free = migrated.ah_free.saturating_add(total);
+			});
+			Self::send_teleport(vec![(T::SweepBeneficiary::get(), total)])?;
+			Ok(())
 		}
 
 		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.

@@ -358,7 +358,7 @@ ord_parameter_types! {
 }
 
 parameter_types! {
-	pub MockPots: Vec<AccountId> = vec![pallet_account()];
+	pub MockPots: Vec<AccountId> = vec![pallet_account(), other_pot()];
 	pub const SweepBeneficiary: AccountId = SWEEP_BENEFICIARY;
 }
 
@@ -485,6 +485,11 @@ pub fn child_sov(para: u32) -> AccountId {
 /// A pallet (module) account, `modl` + pallet id.
 pub fn pallet_account() -> AccountId {
 	PalletId(*b"mock/pot").into_account_truncating()
+}
+
+/// A second pot, so Sweep has more than one to add up.
+pub fn other_pot() -> AccountId {
+	PalletId(*b"mock/pt2").into_account_truncating()
 }
 
 /// Replicates an account below the existential deposit: the balances pallet refuses to create
