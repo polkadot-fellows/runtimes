@@ -63,12 +63,31 @@ pub struct Expected {
 	all_pure_like: bool,
 }
 
+impl Expected {
+	/// Count `account` towards what lands on `dest`.
+	fn add(map: &mut BTreeMap<AccountId32, Expected>, dest: AccountId32, account: &RcAccount) {
+		let expected = map.entry(dest).or_insert(Expected {
+			total: 0,
+			reserved: 0,
+			all_plain: true,
+			all_pure_like: true,
+		});
+		expected.total += account.total;
+		expected.reserved += account.reserved;
+		expected.all_plain &= account.is_plain();
+		expected.all_pure_like &= account.pure_like;
+	}
+}
+
 /// What the Relay Chain held before the migration.
 #[derive(Clone, Debug)]
 pub struct RcAccountsPre {
 	pub accounts: Vec<(AccountId32, RcAccount)>,
-	/// The migrating accounts, grouped by the account they land on.
-	pub destinations: BTreeMap<AccountId32, Expected>,
+	/// The migrating accounts, grouped by the account they land on on the Coretime chain.
+	pub ct_destinations: BTreeMap<AccountId32, Expected>,
+	/// The same, on Asset Hub. Differs from `ct_destinations` only for Asset Hub's own
+	/// sovereign, whose free balance goes to the sweep beneficiary.
+	pub ah_destinations: BTreeMap<AccountId32, Expected>,
 	pub total_issuance: u128,
 }
 
@@ -101,7 +120,8 @@ impl RcMigrationCheck for AccountsChecker {
 
 	fn pre_check() -> Self::RcPrePayload {
 		let manager = pallet_rc2_migrator::Manager::<Rc>::get();
-		let mut destinations: BTreeMap<AccountId32, Expected> = BTreeMap::new();
+		let mut ct_destinations = BTreeMap::new();
+		let mut ah_destinations = BTreeMap::new();
 		let accounts = frame_system::Account::<Rc>::iter()
 			.map(|(who, info)| {
 				let account = RcAccount {
@@ -111,17 +131,12 @@ impl RcMigrationCheck for AccountsChecker {
 					pure_like: AccountsMigrator::<Rc>::is_pure_proxy(&who, &info),
 				};
 				if !account.deferred {
-					let dest =
-						destinations.entry(translate_destination(&who)).or_insert(Expected {
-							total: 0,
-							reserved: 0,
-							all_plain: true,
-							all_pure_like: true,
-						});
-					dest.total += account.total;
-					dest.reserved += account.reserved;
-					dest.all_plain &= account.is_plain();
-					dest.all_pure_like &= account.pure_like;
+					Expected::add(&mut ct_destinations, translate_destination(&who), &account);
+					Expected::add(
+						&mut ah_destinations,
+						AccountsMigrator::<Rc>::ah_destination(&who),
+						&account,
+					);
 				}
 				(who, account)
 			})
@@ -129,7 +144,8 @@ impl RcMigrationCheck for AccountsChecker {
 
 		RcAccountsPre {
 			accounts,
-			destinations,
+			ct_destinations,
+			ah_destinations,
 			total_issuance: pallet_balances::TotalIssuance::<Rc>::get(),
 		}
 	}
@@ -186,7 +202,7 @@ impl ParaMigrationCheck<CoretimePara> for AccountsChecker {
 	fn pre_check(rc_pre: &Self::RcPrePayload) -> Self::PrePayload {
 		assert_eq!(pallet_ct_migrator::CtMintedTotal::<Ct>::get(), 0);
 		let balances = rc_pre
-			.destinations
+			.ct_destinations
 			.keys()
 			.map(|dest| (dest.clone(), account_data::<Ct>(dest)))
 			.collect();
@@ -209,7 +225,7 @@ impl ParaMigrationCheck<CoretimePara> for AccountsChecker {
 
 		let mut arrived = 0u128;
 		let (mut unattributed_count, mut unattributed_sum) = (0u32, 0u128);
-		for (dest, expected) in &rc_pre.destinations {
+		for (dest, expected) in &rc_pre.ct_destinations {
 			let before = &ct_pre.balances[dest];
 			let data = account_data::<Ct>(dest);
 			let delta = grown(dest, before.total(), data.total());
@@ -273,7 +289,7 @@ impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
 
 	fn pre_check(rc_pre: &Self::RcPrePayload) -> Self::PrePayload {
 		let balances = rc_pre
-			.destinations
+			.ah_destinations
 			.keys()
 			.map(|dest| (dest.clone(), account_data::<Ah>(dest).total()))
 			.collect();
@@ -293,7 +309,7 @@ impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
 		assert_eq!(pallet_balances::TotalIssuance::<Ah>::get(), ah_pre.total_issuance);
 
 		let mut arrived = 0u128;
-		for (dest, expected) in &rc_pre.destinations {
+		for (dest, expected) in &rc_pre.ah_destinations {
 			let delta = grown(dest, ah_pre.balances[dest], account_data::<Ah>(dest).total());
 			arrived += delta;
 

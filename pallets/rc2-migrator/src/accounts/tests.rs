@@ -114,6 +114,9 @@ fn migrate_one_account_per_case() {
 		fund(&DAVE, 100); // the manager
 		let para = child_sov(FRANKS_PARA); // para sovereign
 		fund(&para, 100);
+		let ah_sov = child_sov(AH_PARA_ID); // Asset Hub's own sovereign, with a stray reserve
+		fund(&ah_sov, 500);
+		reserve(&ah_sov, 40);
 		let sibl: AccountId = sibling_account(3000); // sibling-format account
 		fund(&sibl, 100);
 		fund(&EVE, 100); // referenced by another pallet
@@ -157,9 +160,11 @@ fn migrate_one_account_per_case() {
 		let mut expected = vec![
 			(ALICE.clone(), 100),                // free balance
 			(sibling_account(FRANKS_PARA), 100), // para sovereign, translated
-			(sibl.clone(), 100),                 // sibling-format, as is
-			(EVE.clone(), 100),                  // referenced, drained to a shell
-			(FRANK.clone(), 600),                // what is left after the deposit and the buffer
+			// Asset Hub's sovereign: not to itself on Asset Hub, to the beneficiary
+			(SWEEP_BENEFICIARY, 500 - 40 - CT_FREE_BUFFER),
+			(sibl.clone(), 100),  // sibling-format, as is
+			(EVE.clone(), 100),   // referenced, drained to a shell
+			(FRANK.clone(), 600), // what is left after the deposit and the buffer
 			(GRACE.clone(), 500 - PROXY_DEPOSIT - CT_FREE_BUFFER),
 			(HEIDI.clone(), 500), // the deposit was refunded
 			(IVAN.clone(), 500 - PROXY_DEPOSIT - CT_FREE_BUFFER),
@@ -172,7 +177,7 @@ fn migrate_one_account_per_case() {
 		expected.sort();
 		assert_eq!(to_ah, expected);
 		// deposit holders: the deposit as a hold, the free part (here only the ED) with it
-		assert_eq!(out.to_ct.len(), 9);
+		assert_eq!(out.to_ct.len(), 10);
 		let frank_ct = to_ct(&out, &FRANK);
 		assert_eq!(frank_ct.free, CT_FREE_BUFFER);
 		assert_eq!(holds(frank_ct), vec![(PortableHoldReason::RegistrarDeposit, PARA_DEPOSIT)]);
@@ -205,10 +210,14 @@ fn migrate_one_account_per_case() {
 		assert_eq!(bob_ct.free, CT_FREE_BUFFER);
 		assert_eq!(holds(bob_ct), vec![(PortableHoldReason::UnattributedReserve, 40)]);
 		System::assert_has_event(Event::UnattributedReserve { who: BOB, amount: 40 }.into());
+		// Asset Hub's sovereign keeps its sibling account on Coretime, which Asset Hub controls
+		let ah_sov_ct = to_ct(&out, &sibling_account(AH_PARA_ID));
+		assert_eq!(ah_sov_ct.free, CT_FREE_BUFFER);
+		assert_eq!(holds(ah_sov_ct), vec![(PortableHoldReason::UnattributedReserve, 40)]);
 		// the pure goes to Coretime whole, where its delegate keeps control
 		let pure_ct = to_ct(&out, &pure);
 		assert_eq!((pure_ct.free, holds(pure_ct)), (200, vec![]));
-		for who in [&ALICE, &para, &sibl, &FRANK] {
+		for who in [&ALICE, &para, &ah_sov, &sibl, &FRANK] {
 			assert!(!frame_system::Account::<Test>::contains_key(who), "{who:?} is reaped");
 		}
 		let shell = frame_system::Account::<Test>::get(&EVE);

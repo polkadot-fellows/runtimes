@@ -36,7 +36,7 @@ use frame_support::{
 use migrator_types::{
 	MaxPortableHolds, PortableAccount, PortableHold, PortableHoldReason, PortableProxyType,
 };
-use polkadot_parachain_primitives::primitives::IsSystem;
+use polkadot_parachain_primitives::primitives::{Id as ParaId, IsSystem};
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::{configuration, hrmp};
 use scale_info::TypeInfo;
@@ -399,16 +399,29 @@ impl<T: Config> AccountsMigrator<T> {
 			ah_free = 0;
 		}
 
-		// TODO(ahm-v2): Asset Hub's own sovereign lands on `sibl` + 1000 on Asset Hub, which
-		// nothing there controls. Send it to the sweep beneficiary instead.
-		let dest = migrator_types::translate_destination(who);
 		let to_ct = (!holds.is_empty() || !ct_free.is_zero()).then(|| PortableAccount {
-			who: dest.clone(),
+			who: migrator_types::translate_destination(who),
 			free: ct_free,
 			holds,
 		});
-		let to_ah = (!ah_free.is_zero()).then_some((dest, ah_free));
+		let to_ah = (!ah_free.is_zero()).then(|| (Self::ah_destination(who), ah_free));
 		Withdrawal { to_ct, to_ah }
+	}
+
+	/// Where `who`'s free balance lands on Asset Hub: the same account, translated by
+	/// [`migrator_types::translate_destination`].
+	///
+	/// Asset Hub's own sovereign is the exception. Translated, it is Asset Hub's sibling account
+	/// on Asset Hub itself, which nothing there controls, so it goes to
+	/// [`Config::SweepBeneficiary`]. What it sends to the Coretime chain is not affected: Asset
+	/// Hub controls its sibling account there over XCM.
+	pub fn ah_destination(who: &T::AccountId) -> T::AccountId {
+		let ah_sovereign: T::AccountId = ParaId::from(T::AhParaId::get()).into_account_truncating();
+		if *who == ah_sovereign {
+			T::SweepBeneficiary::get()
+		} else {
+			migrator_types::translate_destination(who)
+		}
 	}
 
 	/// Release `who`'s reserve and attribute it to the deposits recorded for the account.

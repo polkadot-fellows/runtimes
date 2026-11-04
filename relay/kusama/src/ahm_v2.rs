@@ -42,6 +42,9 @@ use sp_runtime::traits::AccountIdConversion;
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
 	pub const CtFreeBuffer: u128 = UNITS;
+	/// The treasury on Asset Hub. Its pallet id is the same there, `py/trsry`, so this is also
+	/// the address of this chain's own treasury pot.
+	pub SweepBeneficiary: AccountId = TreasuryPalletId::get().into_account_truncating();
 }
 
 /// The pots of this chain, left for Sweep.
@@ -77,6 +80,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
 	type PostMigrationCalls = lockdown::CallsEnabledAfterMigration;
 	type SweptAccounts = SweptAccounts;
+	type SweepBeneficiary = SweepBeneficiary;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so

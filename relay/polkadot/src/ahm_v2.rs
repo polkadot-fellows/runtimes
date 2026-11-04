@@ -47,6 +47,16 @@ parameter_types! {
 	/// satellite's id was renamed to `acf/dott` in paritytech/polkadot-sdk#11881, so this is the
 	/// old id, not a typo for the new one.
 	pub const DapSatellitePalletId: PalletId = PalletId(*b"dap/satl");
+	/// The DAP staging account on Asset Hub, derived like `DapStagingLocation` in the system
+	/// parachain constants.
+	///
+	/// The DAP has two accounts: staging, where funds arrive, and the buffer, where they are
+	/// kept. `pallet-dap` moves funds from staging into the buffer and marks them inactive on the
+	/// way, so they are left out of the active issuance that referendum support is measured
+	/// against. Funds deposited straight into the buffer are never marked inactive. This is why
+	/// the swept balance goes to staging and not to the buffer.
+	pub SweepBeneficiary: AccountId =
+		sp_dap::DAP_PALLET_ID.into_sub_account_truncating(sp_dap::DAP_STAGING_ACCOUNT_ID);
 }
 
 /// The pots of this chain, left for Sweep.
@@ -81,6 +91,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
 	type PostMigrationCalls = lockdown::CallsEnabledAfterMigration;
 	type SweptAccounts = SweptAccounts;
+	type SweepBeneficiary = SweepBeneficiary;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so

@@ -342,6 +342,10 @@ pub mod pallet {
 		/// The chain's pots. The accounts stage leaves them alone and Sweep empties them, one by
 		/// one, so this is a list rather than a membership check.
 		type SweptAccounts: Get<Vec<Self::AccountId>>;
+
+		/// The account on Asset Hub that receives balance with no owner there: what Sweep empties
+		/// out of the pots, and the free balance of Asset Hub's own sovereign.
+		type SweepBeneficiary: Get<Self::AccountId>;
 	}
 
 	#[pallet::pallet]

@@ -14023,6 +14023,7 @@ dependencies = [
  "sp-consensus-babe",
  "sp-consensus-beefy",
  "sp-core 43.0.0",
+ "sp-dap",
  "sp-debug-derive 15.0.0",
  "sp-genesis-builder 0.24.0",
  "sp-inherents 43.0.0",

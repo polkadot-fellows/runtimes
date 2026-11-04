@@ -289,6 +289,8 @@ pub const NIAJ: AccountId = AccountId32::new([15; 32]);
 
 /// The account behind the admin origin.
 pub const ADMIN: AccountId = AccountId32::new([2; 32]);
+/// The account on Asset Hub that receives what has no owner there.
+pub const SWEEP_BENEFICIARY: AccountId = AccountId32::new([16; 32]);
 
 pub const CT_PARA_ID: u32 = 1005;
 pub const AH_PARA_ID: u32 = 1000;
@@ -357,6 +359,7 @@ ord_parameter_types! {
 
 parameter_types! {
 	pub MockPots: Vec<AccountId> = vec![pallet_account()];
+	pub const SweepBeneficiary: AccountId = SWEEP_BENEFICIARY;
 }
 
 impl pallet_rc2_migrator::Config for Test {
@@ -372,6 +375,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type IntraMigrationCalls = TaggedRemark<INTRA_MIGRATION>;
 	type PostMigrationCalls = TaggedRemark<POST_MIGRATION>;
 	type SweptAccounts = MockPots;
+	type SweepBeneficiary = SweepBeneficiary;
 }
 
 /// Tags for [`TaggedRemark`], one per call set.
