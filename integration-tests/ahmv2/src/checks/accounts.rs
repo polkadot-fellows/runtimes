@@ -270,10 +270,13 @@ impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
 	fn post_check(rc_pre: &Self::RcPrePayload, _: &Self::RcPostPayload, ah_pre: Self::PrePayload) {
 		// What arrives in total is `IssuanceChecker`'s: other stages pay out on Asset Hub too, to
 		// accounts this stage does not know.
+		// The sweep beneficiary also receives what Sweep empties, so its growth is checked by
+		// `SweepChecker`, not here.
+		let beneficiary = <Rc as pallet_rc2_migrator::Config>::SweepBeneficiary::get();
 		for (dest, expected) in &rc_pre.ah_destinations {
 			let delta = grown(dest, ah_pre.balances[dest], account_data::<Ah>(dest).total());
 
-			if expected.all_plain {
+			if expected.all_plain && *dest != beneficiary {
 				assert_eq!(delta, expected.total, "plain account {dest:?} must land on AH whole");
 			}
 			if expected.all_pure_like {

@@ -14,12 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-//! Checks of the total issuance on all three chains against what the Relay Chain booked.
+//! Checks of the total issuance on all three chains against what the Relay Chain recorded.
 //!
-//! Every stage books what it burns on the Relay Chain in `RcMigratedBalance`, by destination.
-//! These checks hold over the whole migration whatever the stages are: the Relay Chain's issuance
-//! fell by exactly what was booked as leaving, and each receiving chain took in exactly what was
-//! booked for it. The per-stage checkers check where it went.
+//! The migrator records everything it burns on the Relay Chain in `RcMigratedBalance`, by
+//! destination. These checks hold whatever the stages are: the balance it records as kept on the
+//! Relay Chain is the Relay Chain's total issuance, and each receiving chain took in exactly what
+//! was recorded for it. The per-stage checkers check where it went.
+//!
+//! The Relay Chain check starts from `AccountsInit`, where the record starts, not from the
+//! snapshot: the migrator's balance invariant only holds from there.
 
 use crate::{
 	checks::{ParaMigrationCheck, RcMigrationCheck},
@@ -30,9 +33,6 @@ use pallet_rc2_migrator::{MigratedBalances, RcMigratedBalance};
 type Rc = network::relay::Runtime;
 type Ct = network::ct::Runtime;
 type Ah = network::ah::Runtime;
-
-/// The Relay Chain's issuance before the migration.
-pub type RcIssuancePre = u128;
 
 /// Asset Hub's issuance and checking account before the migration.
 #[derive(Clone, Debug)]
@@ -50,29 +50,25 @@ fn ah_checking_account() -> u128 {
 pub struct IssuanceChecker;
 
 impl RcMigrationCheck for IssuanceChecker {
-	type RcPrePayload = RcIssuancePre;
+	type RcPrePayload = ();
 	type RcPostPayload = MigratedBalances;
 
-	fn pre_check() -> Self::RcPrePayload {
-		pallet_balances::TotalIssuance::<Rc>::get()
-	}
+	fn pre_check() -> Self::RcPrePayload {}
 
-	fn post_check(rc_pre: &Self::RcPrePayload) -> Self::RcPostPayload {
+	fn post_check(_: &Self::RcPrePayload) -> Self::RcPostPayload {
 		let booked = RcMigratedBalance::<Rc>::get();
-		let issuance = pallet_balances::TotalIssuance::<Rc>::get();
-
-		// Nothing changed the issuance without booking it.
-		assert_eq!(booked.kept, issuance, "the booked balance kept here is not the issuance");
-		// What left is exactly what was booked as leaving.
-		let left = booked.ct_reserved + booked.ct_free + booked.ah_free + booked.ti_corrected;
-		assert_eq!(rc_pre - issuance, left, "the issuance fell by other than what was booked");
-
+		// Nothing minted or burned balance here without the migrator recording it.
+		assert_eq!(
+			booked.kept,
+			pallet_balances::TotalIssuance::<Rc>::get(),
+			"the balance recorded as kept here is not the total issuance"
+		);
 		booked
 	}
 }
 
 impl ParaMigrationCheck<CoretimePara> for IssuanceChecker {
-	type RcPrePayload = RcIssuancePre;
+	type RcPrePayload = ();
 	type RcPostPayload = MigratedBalances;
 	type PrePayload = u128;
 
@@ -91,7 +87,7 @@ impl ParaMigrationCheck<CoretimePara> for IssuanceChecker {
 }
 
 impl ParaMigrationCheck<AssetHubPara> for IssuanceChecker {
-	type RcPrePayload = RcIssuancePre;
+	type RcPrePayload = ();
 	type RcPostPayload = MigratedBalances;
 	type PrePayload = AhIssuancePre;
 

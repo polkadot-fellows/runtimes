@@ -27,7 +27,8 @@ just test                 # Polkadot
 NETWORK=kusama just test  # same suite against Kusama
 ```
 
-That is all: it creates any missing snapshot and runs the test suite. Extra arguments are passed
+That is all: it creates any missing snapshot and runs the test suite. It sets
+`SKIP_WASM_BUILD=1`, since the suite runs the runtimes' native code only. Extra arguments are passed
 through to `cargo test` (e.g. `just test rc_and_coretime`). Snapshot creation needs the
 [try-runtime CLI](https://github.com/paritytech/try-runtime-cli).
 
@@ -48,6 +49,23 @@ SNAP_RC=... SNAP_CT=... SNAP_AH=... cargo test -p polkadot-integration-tests-ahm
 
 Snapshots are cached in memory per test process and re-hydrated per test, so each test gets fresh
 externalities without reloading from disk.
+
+## What the harness does not run
+
+It runs only the hooks that move the migration and its messages. On the Relay Chain that is
+`MessageQueue` and `Rc2Migrator`; on the Coretime chain and Asset Hub it is `MessageQueue`.
+Every other pallet's hooks stay idle, so what they would do while the migration runs does not
+happen here. Among them:
+
+- on the Relay Chain, the treasury, on-demand, session and parachain hooks;
+- on the Coretime chain, the broker, so nothing claims on-demand revenue;
+- on Asset Hub, the DAP and the treasury, which mark incoming balance inactive.
+  `SweepChecker` runs them once at the end to check that.
+
+There are also no transaction fees: calls are dispatched directly, not applied as transactions.
+The clock jumps over the warm-up and the time it may wait for on-demand revenue to be claimed.
+A test passing here does not show that these leave the migration alone; the migrator's own
+checks, such as its per-block issuance check, cover that on chain.
 
 Every produced block asserts that consumed weight stays below 80% of the block limit and, unless
 a test opts out to judge one message itself, that no `MessageQueue` failure event was emitted. Every shuttled message is decoded

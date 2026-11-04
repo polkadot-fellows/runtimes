@@ -22,8 +22,9 @@ ah " + ah_uri + "
 default: test
 
 # Run the suite. Extra args go to `cargo test`, e.g. `just test rc_and_coretime`.
+# The suite runs native code only, so the runtimes' wasm is not built, as in CI.
 test *args: snapshots
-	{{ snap_env }} cargo test -p polkadot-integration-tests-ahmv2 {{ features }} {{ args }}
+	{{ snap_env }} SKIP_WASM_BUILD=1 cargo test -p polkadot-integration-tests-ahmv2 {{ features }} {{ args }}
 
 # Needs the try-runtime CLI: https://github.com/paritytech/try-runtime-cli.
 #
