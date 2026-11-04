@@ -27,6 +27,7 @@
 pub mod accounts;
 pub mod issuance;
 pub mod session;
+pub mod sweep;
 
 use crate::mock::Para;
 use frame_support::hypothetically;
