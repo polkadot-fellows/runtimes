@@ -1412,7 +1412,7 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
-				WhitelistedCaller,
+				EnsureXcm<IsFellowshipVoice<FellowshipLocation>>,
 			>::ensure_origin(origin.clone())
 			.map(|_success| ()),
 		}
@@ -3671,6 +3671,35 @@ mod tests {
 			}
 			// A governance origin the router accepts for another module.
 			assert!(DynamicParameterOrigin::try_origin(StakingAdmin.into(), key).is_err());
+		}
+	}
+
+	#[test]
+	fn only_root_or_fellowship_sets_scheduler_and_message_queue_parameters() {
+		use dynamic_params::{message_queue::*, scheduler::*};
+		use frame_support::traits::EnsureOriginWithArg;
+		use pallet_custom_origins::Origin::{StakingAdmin, WhitelistedCaller};
+		use xcm::latest::prelude::*;
+
+		let keys = [
+			RuntimeParametersKey::Scheduler(MaxScheduledPerBlock.into()),
+			RuntimeParametersKey::Scheduler(MaximumWeight.into()),
+			RuntimeParametersKey::MessageQueue(MaxOnInitWeight.into()),
+			RuntimeParametersKey::MessageQueue(MaxOnIdleWeight.into()),
+		];
+		let fellowship_voice = FellowshipLocation::get()
+			.pushed_with_interior(Plurality { id: BodyId::Technical, part: BodyPart::Voice })
+			.unwrap();
+
+		for key in &keys {
+			for origin in
+				[RuntimeOrigin::root(), pallet_xcm::Origin::Xcm(fellowship_voice.clone()).into()]
+			{
+				assert!(DynamicParameterOrigin::try_origin(origin, key).is_ok());
+			}
+			for origin in [WhitelistedCaller.into(), StakingAdmin.into()] {
+				assert!(DynamicParameterOrigin::try_origin(origin, key).is_err());
+			}
 		}
 	}
 }
