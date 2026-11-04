@@ -32,6 +32,7 @@ use alloc::vec::Vec;
 use frame_support::{
 	parameter_types,
 	traits::{Equals, Get},
+	PalletId,
 };
 use frame_system::EnsureRoot;
 use migrator_types::PortableProxyType;
@@ -42,6 +43,10 @@ use sp_runtime::traits::AccountIdConversion;
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
 	pub const CtFreeBuffer: u128 = UNITS;
+	/// The pot of the retired `pallet-dap-satellite`. Nothing in the runtime names it anymore: the
+	/// satellite's id was renamed to `acf/dott` in paritytech/polkadot-sdk#11881, so this is the
+	/// old id, not a typo for the new one.
+	pub const DapSatellitePalletId: PalletId = PalletId(*b"dap/satl");
 }
 
 /// The pots of this chain, left for Sweep.
@@ -50,6 +55,7 @@ impl Get<Vec<AccountId>> for SweptAccounts {
 	fn get() -> Vec<AccountId> {
 		[
 			TreasuryPalletId::get(),
+			DapSatellitePalletId::get(),
 			BrokerPalletId::get(),
 			OnDemandPalletId::get(),
 			CrowdloanId::get(),
