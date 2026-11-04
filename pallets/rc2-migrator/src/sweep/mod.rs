@@ -43,7 +43,7 @@ type NativeCurrency<T> = pallet_balances::Pallet<T>;
 pub struct SweepMigrator<T>(PhantomData<T>);
 
 impl<T: Config> SweepMigrator<T> {
-	/// Burn every pot that holds something. Returns the total burned, for the caller to book and
+	/// Burn every pot that holds something. Returns the total burned, for the caller to record and
 	/// teleport.
 	///
 	/// Each pot is burned in a storage transaction of its own, so one that fails is left as it
@@ -113,7 +113,7 @@ impl<T: Config> SweepMigrator<T> {
 		Ok(total)
 	}
 
-	/// Undo the treasury's inactive-issuance bookkeeping, now that its pot is burned.
+	/// Undo the treasury's inactive-issuance record, now that its pot is burned.
 	///
 	/// The treasury marks its pot as inactive issuance, so that it does not count towards
 	/// governance turnout, and records the amount it marked in `Deactivated`. Its hook keeps the

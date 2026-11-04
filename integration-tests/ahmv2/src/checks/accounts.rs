@@ -112,8 +112,8 @@ where
 /// the split rule sends it: plain accounts on Asset Hub, pure-like accounts on the Coretime chain,
 /// deposit holders on both.
 ///
-/// The totals, what was booked against what the issuance did, are `IssuanceChecker`'s: they span
-/// every stage, not just this one.
+/// The totals, what the Relay Chain recorded against what the issuance did, are
+/// `IssuanceChecker`'s: they span every stage, not just this one.
 pub struct AccountsChecker;
 
 impl RcMigrationCheck for AccountsChecker {

@@ -64,8 +64,9 @@ happen here. Among them:
 
 There are also no transaction fees: calls are dispatched directly, not applied as transactions.
 The clock jumps over the warm-up and the time it may wait for on-demand revenue to be claimed.
-A test passing here does not show that these leave the migration alone; the migrator's own
-checks, such as its per-block issuance check, cover that on chain.
+A test passing here does not show that these leave the migration alone. On chain, the
+migrator's per-block issuance check reports part of it: a change to the total issuance, though
+not a transfer between accounts.
 
 Every produced block asserts that consumed weight stays below 80% of the block limit and, unless
 a test opts out to judge one message itself, that no `MessageQueue` failure event was emitted. Every shuttled message is decoded

@@ -313,7 +313,8 @@ pub mod pallet {
 			ProxyType: TryInto<PortableProxyType>,
 		> + pallet_multisig::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_preimage::Config
-		// Sweep undoes the treasury's inactive-issuance bookkeeping when it burns the pot.
+		// `AccountsInit` stops the treasury spending, and Sweep clears its inactive-issuance record
+		// when it burns the pot.
 		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>>
 	{
 		/// The overarching event type.
@@ -705,7 +706,7 @@ pub mod pallet {
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
 			let stage = RcMigrationStage::<T>::get();
 			if stage.is_ongoing() {
-				Self::check_issuance_booked();
+				Self::check_kept_equals_issuance();
 			}
 			if Paused::<T>::get() {
 				return T::DbWeight::get().reads(4);
@@ -748,7 +749,7 @@ pub mod pallet {
 				// and to the block author, whose account may already have been emptied. Once Sweep
 				// has removed the treasury account, a fee share below the existential deposit is
 				// burned without being recorded. Tips are charged even on calls that waive their
-				// fee. For now, `check_issuance_booked` reports any effect on the total
+				// fee. For now, `check_kept_equals_issuance` reports any effect on the total
 				// issuance. To fix it, refuse signed transactions during the migration, except
 				// the manager's, and make the manager's calls free.
 				MigrationStage::AccountsInit => {
@@ -941,15 +942,17 @@ pub mod pallet {
 			)
 		}
 
-		/// Clear the on-demand revenue no claim collected, so none can be claimed once the
-		/// bookkeeping has started. Only the record changes; what the on-demand pot holds stays,
-		/// for Sweep.
-		// TODO(ahm-v2): nothing keeps the record backed by the pot. An order paid with credits
-		// adds its price to the record, but the credits were paid for on the Coretime chain, so
-		// nothing reaches the pot; a claim then fails whole, and the record keeps that revenue for
-		// good. Report it upstream. Revenue the pot can pay that is still unclaimed here goes to
-		// the sweep beneficiary with the pot, not to the broker; the warm-up waits to keep that
-		// rare.
+		/// Clear the on-demand revenue no claim collected, so none can be claimed after
+		/// `RcMigratedBalance` is set up. Only the record changes; what the on-demand pot holds
+		/// stays, for Sweep.
+		// TODO(ahm-v2): should revenue the pot can pay, but that nobody claimed, go to the broker
+		// instead of the sweep beneficiary? And should the Coretime chain be told what is
+		// cleared? Nothing keeps the record backed by the pot: an order paid with credits adds its
+		// price to the record, but the credits were paid for on the Coretime chain, so nothing
+		// reaches the pot, and a claim of it fails whole. Picked for now: clear the record here and
+		// report it with `OnDemandRevenueCleared`; Sweep sends the pot to the beneficiary, and the
+		// warm-up waits for claims the pot can pay to keep that rare. The failing claim is to be
+		// reported upstream.
 		fn clear_on_demand_revenue(now: BlockNumberFor<T>) {
 			let amount = runtime_parachains::on_demand::Pallet::<T>::claim_revenue_until(
 				now.saturating_add(1u32.into()),
@@ -967,16 +970,19 @@ pub mod pallet {
 		/// `progress_migration`: `RcMigratedBalance::kept` must equal the total issuance. If they
 		/// differ, something other than this pallet minted or burned balance after `AccountsInit`.
 		/// This only reports it. It cannot tell what changed, so it cannot fix it.
-		fn check_issuance_booked() {
+		fn check_kept_equals_issuance() {
 			let Ok(migrated) = RcMigratedBalance::<T>::try_get() else { return };
 			let issuance = pallet_balances::TotalIssuance::<T>::get();
 			if migrated.kept != issuance {
 				log::error!(
 					target: LOG_TARGET,
-					"Issuance changed without being booked: kept {}, total issuance {issuance}",
+					"Total issuance changed without this pallet recording it: kept {}, total \
+					 issuance {issuance}",
 					migrated.kept
 				);
-				frame_support::defensive!("issuance changed without being booked");
+				frame_support::defensive!(
+					"total issuance changed without this pallet recording it"
+				);
 			}
 		}
 
@@ -985,25 +991,26 @@ pub mod pallet {
 		/// Whenever a whole spend period has passed since `pallet_treasury::LastSpendPeriod`, the
 		/// treasury's hook spends: it burns the runtime's `Burn` share of the pot, funds approved
 		/// bounties and pays out approved proposals. Each moves balance out of the pot without
-		/// this pallet booking it, so `kept` would end above the total issuance or balance would
-		/// land on accounts already migrated. The hook measures spend periods from
-		/// `LastSpendPeriod`, so setting it to the highest block number means none passes again.
-		/// The rest of the hook keeps running, the inactive-issuance bookkeeping (`Deactivated`)
-		/// that Sweep relies on included.
+		/// this pallet recording it in `RcMigratedBalance`, so `kept` would end above the total
+		/// issuance or balance would land on accounts already migrated. The hook measures spend
+		/// periods from `LastSpendPeriod`, so setting it to the highest block number means none
+		/// passes again. Removing the value would not work: the hook sets it again when it is
+		/// missing. The rest of the hook keeps running, including the inactive-issuance record
+		/// (`Deactivated`) that Sweep relies on.
 		///
-		/// It is not set back once the migration ends, on purpose. The treasury and everything it
-		/// pays out moved to Asset Hub in AHM v1, Sweep empties its pot here, and the runtime
-		/// keeps the treasury's calls closed after the migration, so there is nothing left for it
-		/// to spend or to spend on. Setting it back would only let a later spend period burn or
-		/// move whatever reaches the pot afterwards, outside any bookkeeping.
+		/// It is not set back once the migration ends, on purpose. AHM v1 moved the treasury's
+		/// proposals, spends and bounties to Asset Hub, and the runtime's `PostAhmFilter` closes
+		/// the Treasury and Bounties calls, so the treasury has nothing left to pay out. Sweep then
+		/// empties its pot here. Setting it back would only let a later spend period burn or move
+		/// whatever reaches the pot afterwards, without anything recording it.
 		fn stop_treasury_spending() {
 			pallet_treasury::LastSpendPeriod::<T>::put(
 				<pallet_treasury::BlockNumberFor<T> as Bounded>::max_value(),
 			);
 		}
 
-		/// The Sweep stage: burn the pots, book what they held as moved to Asset Hub, and teleport
-		/// it to the sweep beneficiary there.
+		/// The Sweep stage: burn the pots, record what they held as moved to Asset Hub, and
+		/// teleport it to the sweep beneficiary there.
 		///
 		/// The caller runs it in a storage transaction, so an `Err` rolls the burns back too.
 		fn sweep_pots() -> Result<(), DispatchError> {

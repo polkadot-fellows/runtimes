@@ -73,7 +73,7 @@ fn sweep_burns_the_pots_and_teleports_the_total() {
 		}
 		assert_eq!(total_issuance(), 0);
 		assert_eq!(swept_events(), vec![(pallet_account(), 100), (other_pot(), 250)]);
-		// AND one teleport pays the total to the beneficiary, booked as moved to Asset Hub.
+		// AND one teleport pays the total to the beneficiary, recorded as moved to Asset Hub.
 		assert_eq!(sent(), vec![teleport_to_beneficiary(350)]);
 		assert_eq!(
 			RcMigratedBalance::<Test>::get(),
@@ -91,7 +91,7 @@ fn sweep_with_nothing_in_the_pots_sends_nothing() {
 		at_sweep();
 		let migrated = RcMigratedBalance::<Test>::get();
 
-		// WHEN the stage runs. THEN it moves on without sending or booking anything.
+		// WHEN the stage runs. THEN it moves on without sending or recording anything.
 		run_blocks(1);
 		assert_stage(Stage::SweepDust { last_key: None });
 		assert!(sent().is_empty());

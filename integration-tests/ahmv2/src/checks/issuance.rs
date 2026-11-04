@@ -17,9 +17,9 @@
 //! Checks of the total issuance on all three chains against what the Relay Chain recorded.
 //!
 //! The migrator records everything it burns on the Relay Chain in `RcMigratedBalance`, by
-//! destination. These checks hold whatever the stages are: the balance it records as kept on the
-//! Relay Chain is the Relay Chain's total issuance, and each receiving chain took in exactly what
-//! was recorded for it. The per-stage checkers check where it went.
+//! destination. These checks run at the end of the migration. On the Relay Chain, the balance
+//! recorded as kept must be the total issuance. Each receiving chain must have taken in exactly
+//! what was recorded for it. The per-stage checkers check where the balance went.
 //!
 //! The Relay Chain check starts from `AccountsInit`, where the record starts, not from the
 //! snapshot: the migrator's balance invariant only holds from there.
@@ -46,7 +46,7 @@ fn ah_checking_account() -> u128 {
 	frame_system::Account::<Ah>::get(checking).data.total()
 }
 
-/// Issuance moves only as the Relay Chain booked it.
+/// Issuance moves only as the Relay Chain recorded it.
 pub struct IssuanceChecker;
 
 impl RcMigrationCheck for IssuanceChecker {
@@ -56,14 +56,14 @@ impl RcMigrationCheck for IssuanceChecker {
 	fn pre_check() -> Self::RcPrePayload {}
 
 	fn post_check(_: &Self::RcPrePayload) -> Self::RcPostPayload {
-		let booked = RcMigratedBalance::<Rc>::get();
+		let recorded = RcMigratedBalance::<Rc>::get();
 		// Nothing minted or burned balance here without the migrator recording it.
 		assert_eq!(
-			booked.kept,
+			recorded.kept,
 			pallet_balances::TotalIssuance::<Rc>::get(),
 			"the balance recorded as kept here is not the total issuance"
 		);
-		booked
+		recorded
 	}
 }
 
@@ -78,7 +78,7 @@ impl ParaMigrationCheck<CoretimePara> for IssuanceChecker {
 	}
 
 	fn post_check(_: &Self::RcPrePayload, rc_post: &Self::RcPostPayload, ct_pre: Self::PrePayload) {
-		// Minted exactly what the Relay Chain booked for here, and nothing else changed the
+		// Minted exactly what the Relay Chain recorded for here, and nothing else changed the
 		// issuance.
 		let minted = pallet_ct_migrator::CtMintedTotal::<Ct>::get();
 		assert_eq!(minted, rc_post.ct_reserved + rc_post.ct_free);
@@ -101,7 +101,7 @@ impl ParaMigrationCheck<AssetHubPara> for IssuanceChecker {
 	fn post_check(_: &Self::RcPrePayload, rc_post: &Self::RcPostPayload, ah_pre: Self::PrePayload) {
 		// A teleport in moves balance out of the checking account; it mints nothing.
 		assert_eq!(pallet_balances::TotalIssuance::<Ah>::get(), ah_pre.total_issuance);
-		// The checking account paid out exactly what the Relay Chain booked for here.
+		// The checking account paid out exactly what the Relay Chain recorded for here.
 		let paid = ah_pre.checking - ah_checking_account();
 		assert_eq!(paid, rc_post.ah_free);
 	}

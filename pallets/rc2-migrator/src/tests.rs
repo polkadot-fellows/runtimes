@@ -910,7 +910,7 @@ fn the_warm_up_waits_for_revenue_the_pot_can_pay_until_it_is_claimed() {
 		let end_at = System::block_number() + 2;
 		set_stage(Stage::WarmUp { end_at });
 
-		// WHEN its end passes. THEN it keeps warming up, and the bookkeeping has not started.
+		// WHEN its end passes. THEN it keeps warming up, and `RcMigratedBalance` is not set up yet.
 		run_blocks(5);
 		assert_stage(Stage::WarmUp { end_at });
 		assert!(!crate::RcMigratedBalance::<Test>::exists());
@@ -919,7 +919,8 @@ fn the_warm_up_waits_for_revenue_the_pot_can_pay_until_it_is_claimed() {
 		assert_eq!(OnDemand::claim_revenue_until(System::block_number() + 1), 30);
 		fund(&pot, 0);
 
-		// THEN the warm-up ends, and the bookkeeping starts from the issuance after the claim.
+		// THEN the warm-up ends, and `RcMigratedBalance` starts from the issuance after the
+		// claim.
 		run_blocks(1);
 		assert_stage(Stage::AccountsInit);
 		run_blocks(1);
@@ -956,8 +957,8 @@ fn the_warm_up_does_not_wait_for_revenue_the_pot_cannot_pay() {
 		run_blocks(2);
 		assert_stage(Stage::AccountsInit);
 
-		// WHEN the accounts stage starts. THEN the record is cleared before the bookkeeping, the
-		// pot is left for Sweep, and the issuance did not move.
+		// WHEN the accounts stage starts. THEN the revenue record is cleared before
+		// `RcMigratedBalance` is set up, the pot is left for Sweep, and the issuance did not move.
 		run_blocks(1);
 		assert_eq!(cleared_revenue_events(), vec![(30, 10)]);
 		assert_eq!(OnDemand::claim_revenue_until(System::block_number() + 1), 0);
@@ -1002,7 +1003,7 @@ fn treasury_hook_at(n: u64) {
 }
 
 #[test]
-fn the_treasury_stops_spending_once_the_bookkeeping_starts() {
+fn the_treasury_stops_spending_once_the_accounts_stage_starts() {
 	new_test_ext().execute_with(|| {
 		// GIVEN a funded treasury whose spend periods burn a share of its pot.
 		let pot = TreasuryAccount::get();
@@ -1030,10 +1031,10 @@ fn the_treasury_stops_spending_once_the_bookkeeping_starts() {
 }
 
 #[test]
-#[should_panic(expected = "issuance changed without being booked")]
-fn an_issuance_change_the_migration_did_not_book_is_reported() {
+#[should_panic(expected = "total issuance changed without this pallet recording it")]
+fn an_issuance_change_this_pallet_did_not_record_is_reported() {
 	new_test_ext().execute_with(|| {
-		// GIVEN the bookkeeping has started.
+		// GIVEN `RcMigratedBalance` is set up.
 		fund(&ALICE, 500);
 		set_stage(Stage::AccountsInit);
 		run_blocks(1);
