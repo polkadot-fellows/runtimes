@@ -339,8 +339,9 @@ pub mod pallet {
 		/// Calls that are allowed after the migration finished.
 		type PostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
-		/// Accounts the accounts stage leaves alone for Sweep to empty: the chain's pots.
-		type SweptAccounts: Contains<Self::AccountId>;
+		/// The chain's pots. The accounts stage leaves them alone and Sweep empties them, one by
+		/// one, so this is a list rather than a membership check.
+		type SweptAccounts: Get<Vec<Self::AccountId>>;
 	}
 
 	#[pallet::pallet]

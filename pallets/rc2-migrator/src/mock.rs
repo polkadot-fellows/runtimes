@@ -22,8 +22,8 @@ use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
 		fungible::{HoldConsideration, InspectHold, Mutate, MutateHold},
-		ConstU128, ConstU32, Contains, Equals, InstanceFilter, LinearStoragePrice,
-		LockableCurrency, OnInitialize, ReservableCurrency, Time, WithdrawReasons,
+		ConstU128, ConstU32, Contains, InstanceFilter, LinearStoragePrice, LockableCurrency,
+		OnInitialize, ReservableCurrency, Time, WithdrawReasons,
 	},
 	weights::Weight,
 	PalletId,
@@ -356,7 +356,7 @@ ord_parameter_types! {
 }
 
 parameter_types! {
-	pub MockPot: AccountId = pallet_account();
+	pub MockPots: Vec<AccountId> = vec![pallet_account()];
 }
 
 impl pallet_rc2_migrator::Config for Test {
@@ -371,7 +371,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type PreMigrationCalls = TaggedRemark<PRE_MIGRATION>;
 	type IntraMigrationCalls = TaggedRemark<INTRA_MIGRATION>;
 	type PostMigrationCalls = TaggedRemark<POST_MIGRATION>;
-	type SweptAccounts = Equals<MockPot>;
+	type SweptAccounts = MockPots;
 }
 
 /// Tags for [`TaggedRemark`], one per call set.

@@ -28,9 +28,10 @@ use crate::{
 	PoolsPalletId, ProxyType, Runtime, RuntimeEvent, SocietyPalletId, Timestamp,
 	TransparentProxyType, TreasuryPalletId,
 };
+use alloc::vec::Vec;
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Equals},
+	traits::{Equals, Get},
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
@@ -45,8 +46,8 @@ parameter_types! {
 
 /// The pots of this chain, left for Sweep.
 pub struct SweptAccounts;
-impl Contains<AccountId> for SweptAccounts {
-	fn contains(who: &AccountId) -> bool {
+impl Get<Vec<AccountId>> for SweptAccounts {
+	fn get() -> Vec<AccountId> {
 		[
 			TreasuryPalletId::get(),
 			SocietyPalletId::get(),
@@ -56,8 +57,9 @@ impl Contains<AccountId> for SweptAccounts {
 			PoolsPalletId::get(),
 			DelegatedStakingPalletId::get(),
 		]
-		.into_iter()
-		.any(|id| AccountIdConversion::<AccountId>::into_account_truncating(&id) == *who)
+		.iter()
+		.map(AccountIdConversion::<AccountId>::into_account_truncating)
+		.collect()
 	}
 }
 

@@ -29,7 +29,7 @@ use frame_support::{
 	traits::{
 		fungible::{Inspect, Mutate, MutateFreeze, MutateHold},
 		tokens::{Fortitude, Precision, Preservation},
-		Contains, Get, LockableCurrency, ReservableCurrency, StorePreimage,
+		Get, LockableCurrency, ReservableCurrency, StorePreimage,
 	},
 	BoundedVec,
 };
@@ -514,6 +514,6 @@ impl<T: Config> AccountsMigrator<T> {
 
 	/// Whether Sweep empties `who`, [`Config::SweptAccounts`].
 	pub fn is_swept(who: &T::AccountId) -> bool {
-		T::SweptAccounts::contains(who)
+		T::SweptAccounts::get().contains(who)
 	}
 }
