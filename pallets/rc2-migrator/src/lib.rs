@@ -302,6 +302,8 @@ pub mod pallet {
 			ProxyType: TryInto<PortableProxyType>,
 		> + pallet_multisig::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_preimage::Config
+		// Sweep undoes the treasury's inactive-issuance bookkeeping when it burns the pot.
+		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>>
 	{
 		/// The overarching event type.
 		#[allow(deprecated)]

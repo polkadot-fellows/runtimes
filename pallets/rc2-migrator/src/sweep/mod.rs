@@ -31,7 +31,7 @@ use frame_support::{
 	defensive_assert, ensure,
 	storage::with_storage_layer,
 	traits::{
-		fungible::Mutate,
+		fungible::{Mutate, Unbalanced},
 		tokens::{Fortitude, Precision, Preservation},
 		Get, ReservableCurrency,
 	},
@@ -91,9 +91,8 @@ impl<T: Config> SweepMigrator<T> {
 		);
 		let total = account.data.free;
 		if total.is_zero() {
-			return Ok(0);
-		}
-		if account.consumers != 0 {
+			// nothing to burn
+		} else if account.consumers != 0 {
 			AccountsMigrator::<T>::drain_to_shell(pot, total);
 		} else {
 			NativeCurrency::<T>::burn_from(
@@ -104,6 +103,24 @@ impl<T: Config> SweepMigrator<T> {
 				Fortitude::Polite,
 			)?;
 		}
+
+		// the pot is empty now
+		if *pot == pallet_treasury::Pallet::<T>::account_id() {
+			Self::reactivate_treasury();
+		}
 		Ok(total)
+	}
+
+	/// Undo the treasury's inactive-issuance bookkeeping, now that its pot is burned.
+	///
+	/// The treasury marks its pot as inactive issuance, so that it does not count towards
+	/// governance turnout, and records the amount it marked in `Deactivated`. Its hook keeps the
+	/// two in step every block by reactivating the recorded amount and deactivating the pot again.
+	/// Reactivating the recorded amount here and clearing the record leaves that hook nothing to
+	/// undo: it finds an empty pot and nothing recorded. Reactivating the burned amount instead
+	/// would be undone twice, once here and once by the hook.
+	fn reactivate_treasury() {
+		let deactivated = pallet_treasury::Deactivated::<T>::take();
+		<NativeCurrency<T> as Unbalanced<T::AccountId>>::reactivate(deactivated);
 	}
 }

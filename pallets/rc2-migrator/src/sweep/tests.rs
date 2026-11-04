@@ -15,6 +15,7 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{mock::*, Event, MigratedBalances, RcMigratedBalance, RcMigrationStage};
+use frame_support::traits::{fungible::Unbalanced, OnInitialize};
 use xcm::prelude::*;
 
 /// Put the machine at the Sweep stage, with the ledger holding what is on chain, as the accounts
@@ -171,5 +172,73 @@ fn a_referenced_pot_is_drained_to_an_empty_record() {
 			MigratedBalances { kept: 0, ah_free: 350, ..Default::default() }
 		);
 		assert_eq!(total_issuance(), 0);
+	});
+}
+
+/// Run the treasury's hook, which keeps its inactive-issuance record in step with its pot.
+fn treasury_hook() {
+	<Treasury as OnInitialize<u64>>::on_initialize(System::block_number());
+}
+
+fn inactive_issuance() -> u128 {
+	pallet_balances::InactiveIssuance::<Test>::get()
+}
+
+/// A treasury pot of 1,000, marked inactive by its hook, next to 50 of inactive issuance that is
+/// not the treasury's.
+fn inactive_treasury() {
+	fund(&TreasuryAccount::get(), 1_000);
+	// inactive issuance is capped at the total, so there has to be more than the treasury's
+	fund(&ALICE, 500);
+	<Balances as Unbalanced<AccountId>>::deactivate(50);
+	treasury_hook();
+	// the treasury marks its pot minus the existential deposit
+	assert_eq!(pallet_treasury::Deactivated::<Test>::get(), 1_000 - ED);
+	assert_eq!(inactive_issuance(), 1_000 - ED + 50);
+}
+
+#[test]
+fn sweeping_the_treasury_reactivates_what_it_marked_inactive() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a treasury pot its hook marked inactive, and other inactive issuance.
+		inactive_treasury();
+		at_sweep();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN the pot is swept, the treasury's mark is undone and its record cleared, and the
+		// other inactive issuance is untouched.
+		assert_stage(Stage::SweepDust { last_key: None });
+		assert_eq!(sent(), vec![teleport_to_beneficiary(1_000)]);
+		assert_eq!(pallet_treasury::Deactivated::<Test>::get(), 0);
+		assert_eq!(inactive_issuance(), 50);
+
+		// AND the treasury's hook finds nothing left to undo.
+		treasury_hook();
+		assert_eq!(pallet_treasury::Deactivated::<Test>::get(), 0);
+		assert_eq!(inactive_issuance(), 50);
+	});
+}
+
+#[test]
+fn a_failed_send_leaves_the_treasury_mark_in_place() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a treasury pot its hook marked inactive, and a router that refuses everything.
+		inactive_treasury();
+		at_sweep();
+		SendFails::set(true);
+
+		// WHEN the stage runs. THEN the mark is rolled back with the burn.
+		run_blocks(1);
+		assert_stage(Stage::Sweep);
+		assert_eq!(pallet_treasury::Deactivated::<Test>::get(), 1_000 - ED);
+		assert_eq!(inactive_issuance(), 1_000 - ED + 50);
+
+		// WHEN the router recovers. THEN the next block sweeps it and undoes the mark.
+		SendFails::set(false);
+		run_blocks(1);
+		assert_stage(Stage::SweepDust { last_key: None });
+		assert_eq!(inactive_issuance(), 50);
 	});
 }

@@ -22,8 +22,10 @@ use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
 		fungible::{HoldConsideration, InspectHold, Mutate, MutateHold},
-		ConstU128, ConstU32, Contains, InstanceFilter, LinearStoragePrice, LockableCurrency,
-		OnInitialize, ReservableCurrency, Time, WithdrawReasons,
+		tokens::{PayFromAccount, UnityAssetBalanceConversion},
+		ConstU128, ConstU32, ConstU64, Contains, InstanceFilter, LinearStoragePrice,
+		LockableCurrency, NeverEnsureOrigin, OnInitialize, ReservableCurrency, Time,
+		WithdrawReasons,
 	},
 	weights::Weight,
 	PalletId,
@@ -63,6 +65,7 @@ frame_support::construct_runtime! {
 		Proxy: pallet_proxy,
 		Multisig: pallet_multisig,
 		Preimage: pallet_preimage,
+		Treasury: pallet_treasury,
 		Rc2Migrator: pallet_rc2_migrator,
 	}
 }
@@ -251,6 +254,35 @@ impl pallet_preimage::Config for Test {
 	>;
 }
 
+parameter_types! {
+	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
+	pub TreasuryAccount: AccountId = Treasury::account_id();
+}
+
+/// A treasury that never spends: the tests only need its pot and its inactive-issuance hook.
+impl pallet_treasury::Config for Test {
+	type PalletId = TreasuryPalletId;
+	type Currency = Balances;
+	type RejectOrigin = EnsureRoot<AccountId>;
+	type RuntimeEvent = RuntimeEvent;
+	type SpendPeriod = ConstU64<1_000>;
+	type Burn = ();
+	type BurnDestination = ();
+	type WeightInfo = ();
+	type SpendFunds = ();
+	type MaxApprovals = ConstU32<1>;
+	type SpendOrigin = NeverEnsureOrigin<u128>;
+	type AssetKind = ();
+	type Beneficiary = AccountId;
+	type BeneficiaryLookup = IdentityLookup<AccountId>;
+	type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
+	type BalanceConverter = UnityAssetBalanceConversion;
+	type PayoutPeriod = ConstU64<10>;
+	type BlockNumberProvider = System;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
+}
+
 /// What the active configuration makes a recipient reserve when it accepts a channel request.
 pub const HRMP_RECIPIENT_DEPOSIT: u128 = 20;
 
@@ -358,7 +390,7 @@ ord_parameter_types! {
 }
 
 parameter_types! {
-	pub MockPots: Vec<AccountId> = vec![pallet_account(), other_pot()];
+	pub MockPots: Vec<AccountId> = vec![pallet_account(), other_pot(), TreasuryAccount::get()];
 	pub const SweepBeneficiary: AccountId = SWEEP_BENEFICIARY;
 }
 

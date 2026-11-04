@@ -12303,6 +12303,7 @@ dependencies = [
  "pallet-multisig",
  "pallet-preimage",
  "pallet-proxy",
+ "pallet-treasury",
  "parity-scale-codec",
  "polkadot-parachain-primitives",
  "polkadot-runtime-common 33.0.0",
