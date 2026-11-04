@@ -69,8 +69,10 @@ impl<T: Config> SweepMigrator<T> {
 	/// Burn everything `pot` holds and return the amount. Holds, reserves, locks and freezes are
 	/// released first, so whatever form the balance is in, all of it is burned.
 	///
-	/// The account is reaped, unless something still references it once everything is released.
-	/// Then it stays as a zero-balance record, like a validator's account in the accounts stage.
+	/// The empty account is removed, unless something keeps it alive. Two things can: a consumer
+	/// reference still left after the releases, which leaves it as a zero-balance record like a
+	/// validator's account in the accounts stage; or a provider reference held by its pallet, as
+	/// the on-demand pallet holds on its pot.
 	fn burn_pot(pot: &T::AccountId) -> Result<u128, DispatchError> {
 		// TODO(ahm-v2): decide how a pot's held and frozen balance (reserves, holds, locks and
 		// freezes) should be handled. Picked for now: release all of it and teleport it to the

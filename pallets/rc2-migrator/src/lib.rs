@@ -218,8 +218,10 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		last_key: Option<HrmpChannelId>,
 	},
 	HrmpDone,
-	/// Empty the pots whose balance has no owning account to migrate it with, such as the
-	/// treasury's.
+	/// Empty every pot in [`Config::SweptAccounts`] and teleport what they held, in one message,
+	/// to [`Config::SweepBeneficiary`] on Asset Hub. A pot belongs to a pallet, so it has no owner
+	/// there to migrate it to. Its held, reserved and frozen balance is released and swept with
+	/// the rest.
 	Sweep,
 	/// Reap the accounts left below the existential deposit, and the zero-balance husks.
 	///
@@ -1028,9 +1030,12 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Teleport free balances to their owners on Asset Hub. Every amount is at least the
-		/// existential deposit here, which is above Asset Hub's, so each deposit endows its
-		/// account.
+		/// Teleport balances to their owners on Asset Hub, one deposit per owner.
+		///
+		/// In the accounts stage every amount is at least this chain's existential deposit, which
+		/// is above Asset Hub's, so each deposit can create its account there. Sweep's total has no
+		/// such floor, because a pot can hold less than the existential deposit. A deposit below
+		/// Asset Hub's existential deposit only lands if the account already exists there.
 		fn send_teleport(beneficiaries: Vec<(T::AccountId, u128)>) -> Result<(), Error<T>> {
 			// the native token, as Asset Hub names it
 			let native = |amount: u128| Asset {
