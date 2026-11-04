@@ -994,3 +994,37 @@ fn the_warm_up_stops_waiting_for_a_claim_that_never_comes() {
 		assert_eq!(free(&pot), 0);
 	});
 }
+
+/// Run the treasury's hook at block `n`, as the runtime does before this pallet's.
+fn treasury_hook_at(n: u64) {
+	System::set_block_number(n);
+	<Treasury as frame_support::traits::OnInitialize<u64>>::on_initialize(n);
+}
+
+#[test]
+fn the_treasury_stops_spending_once_the_bookkeeping_starts() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a funded treasury whose spend periods burn a share of its pot.
+		let pot = TreasuryAccount::get();
+		fund(&pot, 1_000);
+		fund(&ALICE, 500);
+		treasury_hook_at(1);
+		// Left alone, the next spend period burns from the pot, and the issuance falls with it.
+		frame_support::hypothetically!({
+			treasury_hook_at(2_000);
+			assert!(free(&pot) < 1_000);
+			assert!(total_issuance() < 1_500);
+		});
+
+		// WHEN the accounts stage starts.
+		set_stage(Stage::AccountsInit);
+		run_blocks(1);
+
+		// THEN no spend period ever passes again: the pot and the issuance stay as they were.
+		for n in [2_000, 10_000, u32::MAX as u64] {
+			treasury_hook_at(n);
+		}
+		assert_eq!(free(&pot), 1_000);
+		assert_eq!(total_issuance(), 1_500);
+	});
+}

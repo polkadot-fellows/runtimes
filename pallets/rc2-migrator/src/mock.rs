@@ -42,7 +42,7 @@ use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, BlakeTwo256, Hash, IdentityLookup},
 	transaction_validity::TransactionPriority,
-	AccountId32, BuildStorage, FixedU128,
+	AccountId32, BuildStorage, FixedU128, Permill,
 };
 use xcm::prelude::*;
 
@@ -259,16 +259,18 @@ impl pallet_preimage::Config for Test {
 parameter_types! {
 	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
 	pub TreasuryAccount: AccountId = Treasury::account_id();
+	/// What a spend period burns, so a spend shows in the pot and the issuance.
+	pub const TreasuryBurn: Permill = Permill::from_percent(10);
 }
 
-/// A treasury that never spends: the tests only need its pot and its inactive-issuance hook.
+/// A treasury with nothing to spend on, but which burns a share of its pot every spend period.
 impl pallet_treasury::Config for Test {
 	type PalletId = TreasuryPalletId;
 	type Currency = Balances;
 	type RejectOrigin = EnsureRoot<AccountId>;
 	type RuntimeEvent = RuntimeEvent;
 	type SpendPeriod = ConstU64<1_000>;
-	type Burn = ();
+	type Burn = TreasuryBurn;
 	type BurnDestination = ();
 	type WeightInfo = ();
 	type SpendFunds = ();

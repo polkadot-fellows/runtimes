@@ -62,7 +62,7 @@ use frame_system::pallet_prelude::*;
 use migrator_types::{PortableAccount, PortableProxyType};
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
-use sp_runtime::AccountId32;
+use sp_runtime::{traits::Bounded, AccountId32};
 use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::rc2-migrator";
@@ -735,10 +735,14 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(4, 1)
 				},
 				MigrationStage::AccountsInit => {
-					// A claim that landed after `kept` is set would burn from the on-demand pot
-					// without being booked. Clear what is left first; nothing adds revenue once the
-					// migration has started.
+					// Clear the on-demand revenue record before `kept` is set. Otherwise a later
+					// claim could withdraw from the on-demand pot without this pallet recording it.
+					// Nothing can add revenue once the migration has started.
 					Self::clear_on_demand_revenue(now);
+					// Stop the treasury from spending, for the same reason. The treasury's hook
+					// runs before this pallet's, so a spend in this block already happened
+					// before `kept` is set.
+					Self::stop_treasury_spending();
 					// Set once: a rewind to this stage keeps what was booked so far.
 					if !RcMigratedBalance::<T>::exists() {
 						RcMigratedBalance::<T>::put(MigratedBalances {
@@ -748,7 +752,7 @@ pub mod pallet {
 					}
 					let records = accounts::AccountsMigrator::<T>::init();
 					Self::transition(MigrationStage::AccountsOngoing { last_key: None });
-					T::DbWeight::get().reads_writes(4, 3).saturating_add(
+					T::DbWeight::get().reads_writes(4, 4).saturating_add(
 						T::DbWeight::get().reads_writes(records.into(), records.into()),
 					)
 				},
@@ -940,6 +944,28 @@ pub mod pallet {
 				log::warn!(target: LOG_TARGET, "Cleared {amount} of unclaimed on-demand revenue");
 				Self::deposit_event(Event::OnDemandRevenueCleared { amount, pot });
 			}
+		}
+
+		/// Stop the treasury on this chain from ever spending out of its pot again.
+		///
+		/// Whenever a whole spend period has passed since `pallet_treasury::LastSpendPeriod`, the
+		/// treasury's hook spends: it burns the runtime's `Burn` share of the pot, funds approved
+		/// bounties and pays out approved proposals. Each moves balance out of the pot without
+		/// this pallet booking it, so `kept` would end above the total issuance or balance would
+		/// land on accounts already migrated. The hook measures spend periods from
+		/// `LastSpendPeriod`, so setting it to the highest block number means none passes again.
+		/// The rest of the hook keeps running, the inactive-issuance bookkeeping (`Deactivated`)
+		/// that Sweep relies on included.
+		///
+		/// It is not set back once the migration ends, on purpose. The treasury and everything it
+		/// pays out moved to Asset Hub in AHM v1, Sweep empties its pot here, and the runtime
+		/// keeps the treasury's calls closed after the migration, so there is nothing left for it
+		/// to spend or to spend on. Setting it back would only let a later spend period burn or
+		/// move whatever reaches the pot afterwards, outside any bookkeeping.
+		fn stop_treasury_spending() {
+			pallet_treasury::LastSpendPeriod::<T>::put(
+				<pallet_treasury::BlockNumberFor<T> as Bounded>::max_value(),
+			);
 		}
 
 		/// The Sweep stage: burn the pots, book what they held as moved to Asset Hub, and teleport
