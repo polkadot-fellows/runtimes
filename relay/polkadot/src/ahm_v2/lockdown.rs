@@ -28,8 +28,8 @@ use xcm::latest::{Instruction, Junction::Parachain, Location};
 use xcm_executor::traits::{DenyExecution, Properties};
 
 /// Refuses every inbound message once the data migration starts, except from this chain, the
-/// Coretime chain and Asset Hub. Messages still execute during the warm-up so the queues drain.
-/// A `Transact` the barrier admits still dispatches through the call filter.
+/// Coretime chain and Asset Hub. Until then every message executes, from any chain, so what is in
+/// flight lands before accounts move.
 pub struct DenyOnceDataMigrationStarts;
 impl DenyExecution for DenyOnceDataMigrationStarts {
 	fn deny_execution<RuntimeCall>(
