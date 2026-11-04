@@ -21,7 +21,7 @@ use crate::{
 	mock::{network, AssetHubPara, CoretimePara},
 };
 use migrator_types::translate_destination;
-use pallet_rc2_migrator::{accounts::AccountsMigrator, MigratedBalances};
+use pallet_rc2_migrator::accounts::AccountsMigrator;
 use sp_runtime::AccountId32;
 use std::collections::BTreeMap;
 
@@ -88,7 +88,6 @@ pub struct RcAccountsPre {
 	/// The same, on Asset Hub. Differs from `ct_destinations` only for Asset Hub's own
 	/// sovereign, whose free balance goes to the sweep beneficiary.
 	pub ah_destinations: BTreeMap<AccountId32, Expected>,
-	pub total_issuance: u128,
 }
 
 /// How much `who`'s balance grew from `before` to `after`. Panics if it shrank, which no step of
@@ -112,11 +111,14 @@ where
 /// Every account leaves the Relay Chain whole or is left for a later stage, and each lands where
 /// the split rule sends it: plain accounts on Asset Hub, pure-like accounts on the Coretime chain,
 /// deposit holders on both.
+///
+/// The totals, what was booked against what the issuance did, are `IssuanceChecker`'s: they span
+/// every stage, not just this one.
 pub struct AccountsChecker;
 
 impl RcMigrationCheck for AccountsChecker {
 	type RcPrePayload = RcAccountsPre;
-	type RcPostPayload = MigratedBalances;
+	type RcPostPayload = ();
 
 	fn pre_check() -> Self::RcPrePayload {
 		let manager = pallet_rc2_migrator::Manager::<Rc>::get();
@@ -142,19 +144,17 @@ impl RcMigrationCheck for AccountsChecker {
 			})
 			.collect();
 
-		RcAccountsPre {
-			accounts,
-			ct_destinations,
-			ah_destinations,
-			total_issuance: pallet_balances::TotalIssuance::<Rc>::get(),
-		}
+		RcAccountsPre { accounts, ct_destinations, ah_destinations }
 	}
 
 	fn post_check(rc_pre: &Self::RcPrePayload) -> Self::RcPostPayload {
-		let mut migrated = 0u128;
 		for (who, account) in &rc_pre.accounts {
 			let data = account_data::<Rc>(who);
 			if account.deferred {
+				// Sweep empties the pots; its checker checks them.
+				if AccountsMigrator::<Rc>::is_swept(who) {
+					continue;
+				}
 				assert_eq!(
 					data.total(),
 					account.total,
@@ -167,62 +167,40 @@ impl RcMigrationCheck for AccountsChecker {
 					(0, 0),
 					"account {who:?} should have left the Relay Chain whole"
 				);
-				migrated += account.total;
 			}
 		}
-
-		// Everything the accounts left with is booked, split by destination, and the issuance
-		// fell by exactly that.
-		let booked = pallet_rc2_migrator::RcMigratedBalance::<Rc>::get();
-		assert_eq!(booked.ct_reserved + booked.ct_free + booked.ah_free, migrated);
-		let issuance = pallet_balances::TotalIssuance::<Rc>::get();
-		assert_eq!(issuance, rc_pre.total_issuance - migrated);
-		assert_eq!(booked.kept, issuance);
 
 		// No preimage deposit survives the stage's init.
 		let preimage_deposits = AccountsMigrator::<Rc>::preimage_deposits();
 		assert!(preimage_deposits.is_empty(), "preimage deposits left: {preimage_deposits:?}");
-
-		booked
 	}
 }
 
-/// Coretime balances of every destination, and the chain's issuance, before the migration.
+/// Coretime balances of every destination before the migration.
 #[derive(Clone, Debug)]
 pub struct CtAccountsPre {
 	pub balances: BTreeMap<AccountId32, pallet_balances::AccountData<u128>>,
-	pub total_issuance: u128,
 }
 
 impl ParaMigrationCheck<CoretimePara> for AccountsChecker {
 	type RcPrePayload = RcAccountsPre;
-	type RcPostPayload = MigratedBalances;
+	type RcPostPayload = ();
 	type PrePayload = CtAccountsPre;
 
 	fn pre_check(rc_pre: &Self::RcPrePayload) -> Self::PrePayload {
-		assert_eq!(pallet_ct_migrator::CtMintedTotal::<Ct>::get(), 0);
 		let balances = rc_pre
 			.ct_destinations
 			.keys()
 			.map(|dest| (dest.clone(), account_data::<Ct>(dest)))
 			.collect();
-		CtAccountsPre { balances, total_issuance: pallet_balances::TotalIssuance::<Ct>::get() }
+		CtAccountsPre { balances }
 	}
 
-	fn post_check(
-		rc_pre: &Self::RcPrePayload,
-		rc_post: &Self::RcPostPayload,
-		ct_pre: Self::PrePayload,
-	) {
+	fn post_check(rc_pre: &Self::RcPrePayload, _: &Self::RcPostPayload, ct_pre: Self::PrePayload) {
 		let failed: Vec<_> = pallet_ct_migrator::FailedAccounts::<Ct>::iter_keys().collect();
 		assert!(failed.is_empty(), "accounts failed to integrate: {failed:?}");
 
-		// Minted exactly what the Relay Chain booked for here, and nothing else changed the
-		// issuance.
 		let minted = pallet_ct_migrator::CtMintedTotal::<Ct>::get();
-		assert_eq!(minted, rc_post.ct_reserved + rc_post.ct_free);
-		assert_eq!(pallet_balances::TotalIssuance::<Ct>::get(), ct_pre.total_issuance + minted);
-
 		let mut arrived = 0u128;
 		let (mut unattributed_count, mut unattributed_sum) = (0u32, 0u128);
 		for (dest, expected) in &rc_pre.ct_destinations {
@@ -269,22 +247,15 @@ fn unattributed_hold(who: &AccountId32) -> Option<u128> {
 		.map(|hold| hold.amount)
 }
 
-/// Asset Hub balances of every destination, its issuance and its checking account, before the
-/// migration.
+/// Asset Hub balances of every destination before the migration.
 #[derive(Clone, Debug)]
 pub struct AhAccountsPre {
 	pub balances: BTreeMap<AccountId32, u128>,
-	pub total_issuance: u128,
-	pub checking: u128,
-}
-
-fn ah_checking_account() -> u128 {
-	account_data::<Ah>(&pallet_xcm::Pallet::<Ah>::check_account()).total()
 }
 
 impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
 	type RcPrePayload = RcAccountsPre;
-	type RcPostPayload = MigratedBalances;
+	type RcPostPayload = ();
 	type PrePayload = AhAccountsPre;
 
 	fn pre_check(rc_pre: &Self::RcPrePayload) -> Self::PrePayload {
@@ -293,25 +264,14 @@ impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
 			.keys()
 			.map(|dest| (dest.clone(), account_data::<Ah>(dest).total()))
 			.collect();
-		AhAccountsPre {
-			balances,
-			total_issuance: pallet_balances::TotalIssuance::<Ah>::get(),
-			checking: ah_checking_account(),
-		}
+		AhAccountsPre { balances }
 	}
 
-	fn post_check(
-		rc_pre: &Self::RcPrePayload,
-		rc_post: &Self::RcPostPayload,
-		ah_pre: Self::PrePayload,
-	) {
-		// A teleport in moves balance out of the checking account; it mints nothing.
-		assert_eq!(pallet_balances::TotalIssuance::<Ah>::get(), ah_pre.total_issuance);
-
-		let mut arrived = 0u128;
+	fn post_check(rc_pre: &Self::RcPrePayload, _: &Self::RcPostPayload, ah_pre: Self::PrePayload) {
+		// What arrives in total is `IssuanceChecker`'s: other stages pay out on Asset Hub too, to
+		// accounts this stage does not know.
 		for (dest, expected) in &rc_pre.ah_destinations {
 			let delta = grown(dest, ah_pre.balances[dest], account_data::<Ah>(dest).total());
-			arrived += delta;
 
 			if expected.all_plain {
 				assert_eq!(delta, expected.total, "plain account {dest:?} must land on AH whole");
@@ -320,13 +280,5 @@ impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
 				assert_eq!(delta, 0, "pure-like {dest:?} must not land on AH");
 			}
 		}
-
-		// The checking account paid out exactly what the Relay Chain booked for here.
-		let paid = ah_pre.checking - ah_checking_account();
-		assert_eq!(
-			paid, arrived,
-			"the checking account paid for something other than the migration"
-		);
-		assert_eq!(paid, rc_post.ah_free);
 	}
 }
