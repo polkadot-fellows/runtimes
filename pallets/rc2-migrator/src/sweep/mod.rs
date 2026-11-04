@@ -14,13 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-//! The Sweep stage: empty the chain's pots.
+//! The Sweep stage sends balances from listed Relay Chain pallet accounts to Asset Hub.
 //!
-//! A pot ([`Config::SweptAccounts`]) belongs to a pallet, not to anyone who could claim it on
-//! Asset Hub, so the accounts stage leaves it alone. Sweep burns each one whole here, and the
-//! stage machine teleports the total to [`Config::SweepBeneficiary`] on Asset Hub.
+//! The accounts stage leaves the pots in [`Config::SweptAccounts`] for Sweep. Sweep burns each
+//! pot's balance on the Relay Chain and teleports the total to [`Config::SweepBeneficiary`] on
+//! Asset Hub. If a pot cannot be swept, its changes are rolled back and [`Event::PotNotSwept`]
+//! is emitted. The other pots are still processed.
 //!
-//! Runs in a single block: the pot list is a handful of accounts.
+//! Sweep attempts the whole list in one block. If sending the teleport fails, the entire stage
+//! is rolled back and retried in the next block.
 
 #[cfg(test)]
 mod tests;
@@ -43,11 +45,11 @@ type NativeCurrency<T> = pallet_balances::Pallet<T>;
 pub struct SweepMigrator<T>(PhantomData<T>);
 
 impl<T: Config> SweepMigrator<T> {
-	/// Burn every pot that holds something. Returns the total burned, for the caller to record and
-	/// teleport.
+	/// Attempt to burn the balance of each pot. Return the total burned for the caller to record
+	/// and teleport.
 	///
-	/// Each pot is burned in a storage transaction of its own, so one that fails is left as it
-	/// was, reported with [`Event::PotNotSwept`], and the others go on.
+	/// Each pot is processed in its own storage transaction. A failure leaves the pot unchanged
+	/// and emits [`Event::PotNotSwept`]; the other pots are still processed.
 	pub fn burn_pots() -> u128 {
 		let mut total = 0u128;
 		for pot in T::SweptAccounts::get() {
@@ -66,18 +68,16 @@ impl<T: Config> SweepMigrator<T> {
 		total
 	}
 
-	/// Burn everything `pot` holds and return the amount. Holds, reserves, locks and freezes are
-	/// released first, so whatever form the balance is in, all of it is burned.
+	/// Burn the pot's entire balance and return the amount. First release holds and reserves and
+	/// remove locks and freezes.
 	///
-	/// The empty account is removed, unless something keeps it alive. Two things can: a consumer
-	/// reference still left after the releases, which leaves it as a zero-balance record like a
-	/// validator's account in the accounts stage; or a provider reference held by its pallet, as
-	/// the on-demand pallet holds on its pot.
+	/// The empty account is removed unless it still has a consumer reference, like a validator's
+	/// account in the accounts stage, or a provider reference, like the on-demand pallet's pot.
 	fn burn_pot(pot: &T::AccountId) -> Result<u128, DispatchError> {
-		// TODO(ahm-v2): decide how a pot's held and frozen balance (reserves, holds, locks and
-		// freezes) should be handled. Picked for now: release all of it and teleport it to the
-		// beneficiary with the free balance. The accounts stage instead parks reserve that no
-		// deposit record explains on the Coretime chain, for governance to look at.
+		// TODO(ahm-v2): decide how to handle a pot's reserves, holds, locks and freezes. For now,
+		// Sweep releases or removes them and sends the full balance to the beneficiary. The
+		// accounts stage instead sends reserves without a deposit record to the Coretime chain as
+		// holds for governance to review.
 		// release everything, so the whole balance is free
 		AccountsMigrator::<T>::release_holds(pot)?;
 		let reserved = frame_system::Account::<T>::get(pot).data.reserved;
@@ -113,14 +113,14 @@ impl<T: Config> SweepMigrator<T> {
 		Ok(total)
 	}
 
-	/// Undo the treasury's inactive-issuance record, now that its pot is burned.
+	/// Reactivate the amount recorded by the treasury after burning its pot's balance.
 	///
-	/// The treasury marks its pot as inactive issuance, so that it does not count towards
-	/// governance turnout, and records the amount it marked in `Deactivated`. Its hook keeps the
-	/// two in step every block by reactivating the recorded amount and deactivating the pot again.
-	/// Reactivating the recorded amount here and clearing the record leaves that hook nothing to
-	/// undo: it finds an empty pot and nothing recorded. Reactivating the burned amount instead
-	/// would be undone twice, once here and once by the hook.
+	/// The treasury marks its pot, the free balance less the existential deposit, as inactive
+	/// issuance and records the amount in `Deactivated`. Inactive issuance is excluded from the
+	/// active issuance used to calculate referendum support. When the pot changes, the treasury
+	/// hook reactivates the old amount and deactivates the new one. Clearing the record prevents
+	/// the hook from reactivating it again. The recorded amount can differ from the burned balance,
+	/// which may include the existential deposit.
 	fn reactivate_treasury() {
 		let deactivated = pallet_treasury::Deactivated::<T>::take();
 		<NativeCurrency<T> as Unbalanced<T::AccountId>>::reactivate(deactivated);

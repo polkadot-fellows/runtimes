@@ -519,9 +519,9 @@ pub fn walk_migration(
 		};
 		probe_rc();
 
-		// Past its end, the warm-up may wait for the Coretime chain to claim on-demand revenue,
-		// which no broker runs here to do. Jump past that wait too; the migrator clears the
-		// unclaimed revenue as the accounts stage starts.
+		// After the warm-up, the migrator may wait for the Coretime chain to claim on-demand
+		// revenue. The broker does not run here, so jump past that wait too. The accounts stage
+		// clears any unclaimed revenue from the record.
 		let grace = <RelayRuntime as pallet_rc2_migrator::Config>::RevenueClaimGrace::get();
 		set_block_number_rc(end_at + grace - 1);
 		next_block_rc();

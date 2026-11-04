@@ -16,10 +16,10 @@
 
 //! Checks of the total issuance on all three chains against what the Relay Chain recorded.
 //!
-//! The migrator records everything it burns on the Relay Chain in `RcMigratedBalance`, by
-//! destination. These checks run at the end of the migration. On the Relay Chain, the balance
-//! recorded as kept must be the total issuance. Each receiving chain must have taken in exactly
-//! what was recorded for it. The per-stage checkers check where the balance went.
+//! The migrator records what it burns on the Relay Chain in `RcMigratedBalance`, by destination.
+//! At the end of the migration, these checks compare the recorded balance with Relay Chain
+//! issuance, Coretime minting and Asset Hub's checking account. Per-stage checkers verify
+//! individual destinations.
 //!
 //! The Relay Chain check starts from `AccountsInit`, where the record starts, not from the
 //! snapshot: the migrator's balance invariant only holds from there.
@@ -46,7 +46,7 @@ fn ah_checking_account() -> u128 {
 	frame_system::Account::<Ah>::get(checking).data.total()
 }
 
-/// Issuance moves only as the Relay Chain recorded it.
+/// Compare issuance and Asset Hub's checking account with the amounts recorded on the Relay Chain.
 pub struct IssuanceChecker;
 
 impl RcMigrationCheck for IssuanceChecker {

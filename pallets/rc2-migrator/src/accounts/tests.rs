@@ -160,7 +160,7 @@ fn migrate_one_account_per_case() {
 		let mut expected = vec![
 			(ALICE.clone(), 100),                // free balance
 			(sibling_account(FRANKS_PARA), 100), // para sovereign, translated
-			// Asset Hub's sovereign: not to itself on Asset Hub, to the beneficiary
+			// The Asset Hub portion of its sovereign balance goes to the beneficiary.
 			(SWEEP_BENEFICIARY, 500 - 40 - CT_FREE_BUFFER),
 			(sibl.clone(), 100),  // sibling-format, as is
 			(EVE.clone(), 100),   // referenced, drained to a shell
@@ -210,7 +210,7 @@ fn migrate_one_account_per_case() {
 		assert_eq!(bob_ct.free, CT_FREE_BUFFER);
 		assert_eq!(holds(bob_ct), vec![(PortableHoldReason::UnattributedReserve, 40)]);
 		System::assert_has_event(Event::UnattributedReserve { who: BOB, amount: 40 }.into());
-		// Asset Hub's sovereign keeps its sibling account on Coretime, which Asset Hub controls
+		// Asset Hub controls its sibling account on Coretime.
 		let ah_sov_ct = to_ct(&out, &sibling_account(AH_PARA_ID));
 		assert_eq!(ah_sov_ct.free, CT_FREE_BUFFER);
 		assert_eq!(holds(ah_sov_ct), vec![(PortableHoldReason::UnattributedReserve, 40)]);

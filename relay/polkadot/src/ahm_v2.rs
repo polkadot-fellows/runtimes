@@ -46,11 +46,10 @@ use sp_runtime::traits::AccountIdConversion;
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
 	pub const CtFreeBuffer: u128 = UNITS;
-	/// Two timeslices: the Coretime chain claims on-demand revenue once per timeslice.
+	/// Two timeslices: the Coretime broker requests on-demand revenue once per timeslice.
 	pub const RevenueClaimGrace: BlockNumber = 2 * TIMESLICE_PERIOD;
-	/// The pot of the retired `pallet-dap-satellite`. Nothing in the runtime names it anymore: the
-	/// satellite's id was renamed to `acf/dott` in paritytech/polkadot-sdk#11881, so this is the
-	/// old id, not a typo for the new one.
+	/// The pot of the retired `pallet-dap-satellite`. Its old id is `dap/satl`; the replacement
+	/// uses `acf/dott` as of paritytech/polkadot-sdk#11881.
 	pub const DapSatellitePalletId: PalletId = PalletId(*b"dap/satl");
 	/// The DAP staging account on Asset Hub, derived like `DapStagingLocation` in the system
 	/// parachain constants.

@@ -18,8 +18,7 @@ use crate::{mock::*, Event, MigratedBalances, RcMigratedBalance, RcMigrationStag
 use frame_support::traits::{fungible::Unbalanced, OnInitialize};
 use xcm::prelude::*;
 
-/// Put the machine at the Sweep stage, with the ledger holding what is on chain, as the accounts
-/// stage leaves it.
+/// Start Sweep with the recorded balance set to the current Relay Chain issuance.
 fn at_sweep() {
 	RcMigratedBalance::<Test>::put(MigratedBalances {
 		kept: total_issuance(),
@@ -39,7 +38,7 @@ fn swept_events() -> Vec<(AccountId, u128)> {
 		.collect()
 }
 
-/// The teleport that pays `amount` to the sweep beneficiary on Asset Hub.
+/// The expected teleport message to the sweep beneficiary on Asset Hub.
 fn teleport_to_beneficiary(amount: u128) -> (Location, Xcm<()>) {
 	let message = Xcm(vec![
 		UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
@@ -66,7 +65,7 @@ fn sweep_burns_the_pots_and_teleports_the_total() {
 		// WHEN the stage runs.
 		run_blocks(1);
 
-		// THEN both pots are burned and reaped, and the stage moves on.
+		// THEN both balances are burned, the accounts are reaped, and the stage moves on.
 		assert_stage(Stage::SweepDust { last_key: None });
 		for pot in [pallet_account(), other_pot()] {
 			assert!(!frame_system::Account::<Test>::contains_key(&pot), "{pot:?} is reaped");
@@ -142,7 +141,7 @@ fn a_pot_is_swept_whole_whatever_form_its_balance_is_in() {
 		// WHEN the stage runs.
 		run_blocks(1);
 
-		// THEN all of it is released and burned, the pot is reaped, and all of it is teleported.
+		// THEN the entire balance is burned and teleported, and the pot is reaped.
 		assert_stage(Stage::SweepDust { last_key: None });
 		assert!(!frame_system::Account::<Test>::contains_key(&pot), "the pot is reaped");
 		assert_eq!(swept_events(), vec![(pot, 500)]);
@@ -163,7 +162,8 @@ fn a_referenced_pot_is_drained_to_an_empty_record() {
 		// WHEN the stage runs.
 		run_blocks(1);
 
-		// THEN the referenced pot is emptied but its record stays, and both are teleported.
+		// THEN the referenced pot is emptied but its record stays, and both balances are
+		// teleported.
 		assert_stage(Stage::SweepDust { last_key: None });
 		let record = frame_system::Account::<Test>::get(pallet_account());
 		assert_eq!((record.data.free, record.consumers), (0, 1), "the record stays, empty");
@@ -186,8 +186,7 @@ fn inactive_issuance() -> u128 {
 	pallet_balances::InactiveIssuance::<Test>::get()
 }
 
-/// A treasury pot of 1,000, marked inactive by its hook, next to 50 of inactive issuance that is
-/// not the treasury's.
+/// A treasury account with 1,000 units and 50 units of unrelated inactive issuance.
 fn inactive_treasury() {
 	fund(&TreasuryAccount::get(), 1_000);
 	// inactive issuance is capped at the total, so there has to be more than the treasury's

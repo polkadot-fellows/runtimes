@@ -178,13 +178,13 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// to receive the migration data.
 	WaitingForCt,
 	WarmUp {
-		/// The earliest block at which the warm-up ends. It is absolute: a pause does not move
-		/// it, so a pause that outlasts it ends the warm-up as soon as the migration resumes.
+		/// The earliest block at which the warm-up can end. A pause does not change it.
 		///
-		/// Past it, the warm-up also waits for the Coretime chain to claim the on-demand revenue
-		/// recorded here, for as long as the on-demand pot can pay it and for at most
-		/// [`Config::RevenueClaimGrace`]. Once it ends, the Relay Chain starts to send the
-		/// migration data to the Coretime chain.
+		/// At or after this block, the warm-up waits for the Coretime chain to claim the recorded
+		/// on-demand revenue if the pot can pay the full amount. It waits at most
+		/// [`Config::RevenueClaimGrace`] blocks past this block; a pause does not extend that
+		/// deadline. Once the warm-up ends, the Relay Chain starts sending migration data to the
+		/// Coretime chain.
 		end_at: BlockNumber,
 	},
 	/// Initializing the account migration process.
@@ -218,10 +218,11 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		last_key: Option<HrmpChannelId>,
 	},
 	HrmpDone,
-	/// Empty every pot in [`Config::SweptAccounts`] and teleport what they held, in one message,
-	/// to [`Config::SweepBeneficiary`] on Asset Hub. A pot belongs to a pallet, so it has no owner
-	/// there to migrate it to. Its held, reserved and frozen balance is released and swept with
-	/// the rest.
+	/// Sweep the pallet accounts in [`Config::SweptAccounts`]. Release their holds and reserves,
+	/// remove their locks and freezes, and teleport their balances to [`Config::SweepBeneficiary`]
+	/// on Asset Hub in one message. A pot that cannot be swept is left unchanged and reported with
+	/// [`Event::PotNotSwept`]. A failed send rolls back the stage and is retried in the next
+	/// block.
 	Sweep,
 	/// Reap the accounts left below the existential deposit, and the zero-balance husks.
 	///
@@ -314,7 +315,7 @@ pub mod pallet {
 		> + pallet_multisig::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_preimage::Config
 		// `AccountsInit` stops the treasury spending, and Sweep clears its inactive-issuance record
-		// when it burns the pot.
+		// when it burns the pot's balance.
 		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>>
 	{
 		/// The overarching event type.
@@ -354,18 +355,17 @@ pub mod pallet {
 		/// Calls that are allowed after the migration finished.
 		type PostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
-		/// The chain's pots. The accounts stage leaves them alone and Sweep empties them, one by
-		/// one, so this is a list rather than a membership check.
+		/// The chain's pots. The accounts stage leaves them alone; Sweep attempts each one in turn.
 		type SweptAccounts: Get<Vec<Self::AccountId>>;
 
-		/// The account on Asset Hub that receives balance with no owner there: what Sweep empties
-		/// out of the pots, and the free balance of Asset Hub's own sovereign.
+		/// The account on Asset Hub that receives swept pot balances and the portion of Asset Hub's
+		/// Relay Chain sovereign balance destined for Asset Hub.
 		type SweepBeneficiary: Get<Self::AccountId>;
 
-		/// How long past its end the warm-up waits for the Coretime chain to claim on-demand
-		/// revenue the on-demand pot can pay. The Coretime chain claims once per timeslice, so a
-		/// couple of timeslices gives it more than one try. What is still unclaimed after that is
-		/// cleared by `AccountsInit`.
+		/// The maximum extra time, in blocks, that the warm-up waits for the Coretime chain to
+		/// claim on-demand revenue the pot can pay. The Coretime broker requests revenue once per
+		/// timeslice, so two timeslices allow more than one attempt. `AccountsInit` clears any
+		/// unclaimed revenue from the record.
 		type RevenueClaimGrace: Get<BlockNumberFor<Self>>;
 	}
 
@@ -494,13 +494,13 @@ pub mod pallet {
 		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
 		/// retry it.
 		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
-		/// A pot was emptied. Its balance is teleported to the sweep beneficiary, with the other
-		/// pots'.
+		/// A pot was emptied. Its balance is sent to the sweep beneficiary with the other swept
+		/// balances.
 		PotSwept { who: T::AccountId, amount: u128 },
 		/// A pot could not be emptied and was left as it was. Rewind to `Sweep` to retry it.
 		PotNotSwept { who: T::AccountId, error: DispatchError },
-		/// On-demand revenue no claim collected was cleared from the on-demand pallet's record.
-		/// `pot` is what the on-demand pot held then; Sweep empties it.
+		/// Unclaimed on-demand revenue was cleared from the on-demand pallet's record. `pot` is
+		/// the pot's balance at that point; Sweep attempts to empty it later.
 		OnDemandRevenueCleared { amount: u128, pot: u128 },
 	}
 
@@ -521,8 +521,8 @@ pub mod pallet {
 		///   during this period. It is intended to give enough time for UMP and DMP queues to
 		///   empty. Counted from the transition to the warm-up stage. Should be longer than one
 		///   Coretime timeslice: on-demand orders close at the start, and the Coretime chain claims
-		///   the revenue earned before it at its next timeslice boundary. Revenue the on-demand pot
-		///   can pay is waited for, up to [`Config::RevenueClaimGrace`] past the warm-up's end.
+		///   the revenue earned before it at its next timeslice boundary. If the pot can pay the
+		///   unclaimed revenue, the warm-up may extend by up to [`Config::RevenueClaimGrace`].
 		/// - `cool_off`: Duration in blocks of the post migration cool-off period. Counted from the
 		///   transition to the cool-off stage.
 		///
@@ -752,6 +752,9 @@ pub mod pallet {
 				// fee. For now, `check_kept_equals_issuance` reports any effect on the total
 				// issuance. To fix it, refuse signed transactions during the migration, except
 				// the manager's, and make the manager's calls free.
+				// TODO(ahm-v2): We currently have some deposits locked for AH HRMP channels which
+				// were opened before we made channel opening free for system parachains. Do we want
+				// to poke these channels here to free up to reclaim these deposits?
 				MigrationStage::AccountsInit => {
 					// Clear the on-demand revenue record before `kept` is set. Otherwise a later
 					// claim could withdraw from the on-demand pot without this pallet recording it.
@@ -921,9 +924,9 @@ pub mod pallet {
 
 		/// On-demand revenue recorded on this chain that the Coretime chain has not claimed yet.
 		///
-		/// The record is private to the on-demand pallet, and the only way to read it is the claim
-		/// itself, which also clears it. So the claim runs hypothetically: its change is thrown
-		/// away and only the amount is kept. Claiming until `now + 1` covers every recorded block.
+		/// The on-demand pallet's revenue record is private. A hypothetical claim reads the amount
+		/// and rolls back the claim's changes. Claiming until `now + 1` covers every recorded
+		/// block.
 		fn unclaimed_on_demand_revenue(now: BlockNumberFor<T>) -> u128 {
 			frame_support::hypothetically!(
 				runtime_parachains::on_demand::Pallet::<T>::claim_revenue_until(
@@ -942,9 +945,8 @@ pub mod pallet {
 			)
 		}
 
-		/// Clear the on-demand revenue no claim collected, so none can be claimed after
-		/// `RcMigratedBalance` is set up. Only the record changes; what the on-demand pot holds
-		/// stays, for Sweep.
+		/// Clear unclaimed on-demand revenue from the record before `RcMigratedBalance` is set up.
+		/// The pot's balance stays on the Relay Chain for Sweep.
 		// TODO(ahm-v2): should revenue the pot can pay, but that nobody claimed, go to the broker
 		// instead of the sweep beneficiary? And should the Coretime chain be told what is
 		// cleared? Nothing keeps the record backed by the pot: an order paid with credits adds its
@@ -966,10 +968,9 @@ pub mod pallet {
 			}
 		}
 
-		/// Check the balance invariant explained at the `AccountsInit` arm of
-		/// `progress_migration`: `RcMigratedBalance::kept` must equal the total issuance. If they
-		/// differ, something other than this pallet minted or burned balance after `AccountsInit`.
-		/// This only reports it. It cannot tell what changed, so it cannot fix it.
+		/// Check that `RcMigratedBalance::kept` equals total issuance, as required by the invariant
+		/// at the `AccountsInit` arm of `progress_migration`. A mismatch is logged and triggers a
+		/// debug assertion. The check cannot identify or fix its cause.
 		fn check_kept_equals_issuance() {
 			let Ok(migrated) = RcMigratedBalance::<T>::try_get() else { return };
 			let issuance = pallet_balances::TotalIssuance::<T>::get();
@@ -986,31 +987,29 @@ pub mod pallet {
 			}
 		}
 
-		/// Stop the treasury on this chain from ever spending out of its pot again.
+		/// Stop this chain's treasury hook from spending out of its pot.
 		///
-		/// Whenever a whole spend period has passed since `pallet_treasury::LastSpendPeriod`, the
-		/// treasury's hook spends: it burns the runtime's `Burn` share of the pot, funds approved
-		/// bounties and pays out approved proposals. Each moves balance out of the pot without
-		/// this pallet recording it in `RcMigratedBalance`, so `kept` would end above the total
-		/// issuance or balance would land on accounts already migrated. The hook measures spend
-		/// periods from `LastSpendPeriod`, so setting it to the highest block number means none
-		/// passes again. Removing the value would not work: the hook sets it again when it is
-		/// missing. The rest of the hook keeps running, including the inactive-issuance record
-		/// (`Deactivated`) that Sweep relies on.
+		/// Once a whole spend period has passed since `pallet_treasury::LastSpendPeriod`, the
+		/// treasury hook may fund approved bounties and proposals or burn or redirect a share of
+		/// the pot. These actions move balance without this pallet recording it in
+		/// `RcMigratedBalance`, so `kept` could exceed total issuance or balance could reach
+		/// accounts already migrated. Setting `LastSpendPeriod` to the highest block number stops
+		/// further spend periods unless the value is changed again. Removing it would not work:
+		/// the hook sets it again when missing. The rest of the hook keeps running, including the
+		/// inactive-issuance record (`Deactivated`) that Sweep relies on.
 		///
-		/// It is not set back once the migration ends, on purpose. AHM v1 moved the treasury's
-		/// proposals, spends and bounties to Asset Hub, and the runtime's `PostAhmFilter` closes
-		/// the Treasury and Bounties calls, so the treasury has nothing left to pay out. Sweep then
-		/// empties its pot here. Setting it back would only let a later spend period burn or move
-		/// whatever reaches the pot afterwards, without anything recording it.
+		/// The migration does not restore the value afterwards. AHM v1 moved the treasury's
+		/// proposals, spends and bounties to Asset Hub, and the runtime's `PostAhmFilter` blocks
+		/// ordinary Treasury and Bounties calls. Sweep also attempts to empty the pot. Restoring
+		/// the value would allow a later spend period to burn or move any funds that reach it.
 		fn stop_treasury_spending() {
 			pallet_treasury::LastSpendPeriod::<T>::put(
 				<pallet_treasury::BlockNumberFor<T> as Bounded>::max_value(),
 			);
 		}
 
-		/// The Sweep stage: burn the pots, record what they held as moved to Asset Hub, and
-		/// teleport it to the sweep beneficiary there.
+		/// Burn the sweepable pot balances, record the total as moved to Asset Hub, and send it to
+		/// the sweep beneficiary there. Failed pots remain unchanged and are reported separately.
 		///
 		/// The caller runs it in a storage transaction, so an `Err` rolls the burns back too.
 		fn sweep_pots() -> Result<(), DispatchError> {
@@ -1037,7 +1036,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Teleport balances to their owners on Asset Hub, one deposit per owner.
+		/// Teleport balances to Asset Hub, with one deposit per beneficiary.
 		///
 		/// In the accounts stage every amount is at least this chain's existential deposit, which
 		/// is above Asset Hub's, so each deposit can create its account there. Sweep's total has no

@@ -45,7 +45,7 @@ use sp_runtime::traits::AccountIdConversion;
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
 	pub const CtFreeBuffer: u128 = UNITS;
-	/// Two timeslices: the Coretime chain claims on-demand revenue once per timeslice.
+	/// Two timeslices: the Coretime broker requests on-demand revenue once per timeslice.
 	pub const RevenueClaimGrace: BlockNumber = 2 * TIMESLICE_PERIOD;
 	/// The treasury on Asset Hub. Its pallet id is the same there, `py/trsry`, so this is also
 	/// the address of this chain's own treasury pot.

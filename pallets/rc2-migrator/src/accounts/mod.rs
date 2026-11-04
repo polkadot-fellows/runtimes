@@ -399,22 +399,29 @@ impl<T: Config> AccountsMigrator<T> {
 			ah_free = 0;
 		}
 
-		let to_ct = (!holds.is_empty() || !ct_free.is_zero()).then(|| PortableAccount {
+		let has_holds = !holds.is_empty();
+		let has_assets_for_ah = !ah_free.is_zero();
+		let has_assets_for_ct = !ct_free.is_zero();
+
+		let migrate_to_ct = has_assets_for_ct || has_holds;
+		let migrate_to_ah = has_assets_for_ah;
+
+		let info_for_ct = migrate_to_ct.then(|| PortableAccount {
 			who: migrator_types::translate_destination(who),
 			free: ct_free,
 			holds,
 		});
-		let to_ah = (!ah_free.is_zero()).then(|| (Self::ah_destination(who), ah_free));
-		Withdrawal { to_ct, to_ah }
+		let info_for_ah = migrate_to_ah.then(|| (Self::ah_destination(who), ah_free));
+		Withdrawal { to_ct: info_for_ct, to_ah: info_for_ah }
 	}
 
-	/// Where `who`'s free balance lands on Asset Hub: the same account, translated by
-	/// [`migrator_types::translate_destination`].
+	/// Return the destination for `who`'s Asset Hub balance, using
+	/// [`migrator_types::translate_destination`] unless `who` is Asset Hub's sovereign account.
 	///
-	/// Asset Hub's own sovereign is the exception. Translated, it is Asset Hub's sibling account
-	/// on Asset Hub itself, which nothing there controls, so it goes to
-	/// [`Config::SweepBeneficiary`]. What it sends to the Coretime chain is not affected: Asset
-	/// Hub controls its sibling account there over XCM.
+	/// Translating Asset Hub's sovereign account would produce its sibling account on Asset Hub
+	/// itself, which Asset Hub cannot control as a sibling. Its balance goes to
+	/// [`Config::SweepBeneficiary`] instead. Its Coretime balance still goes to its sibling account
+	/// there, which Asset Hub controls over XCM.
 	pub fn ah_destination(who: &T::AccountId) -> T::AccountId {
 		let ah_sovereign: T::AccountId = ParaId::from(T::AhParaId::get()).into_account_truncating();
 		if *who == ah_sovereign {

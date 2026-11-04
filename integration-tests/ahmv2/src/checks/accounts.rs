@@ -83,10 +83,10 @@ impl Expected {
 #[derive(Clone, Debug)]
 pub struct RcAccountsPre {
 	pub accounts: Vec<(AccountId32, RcAccount)>,
-	/// The migrating accounts, grouped by the account they land on on the Coretime chain.
+	/// Non-deferred Relay Chain accounts, grouped by their translated destination on Coretime.
 	pub ct_destinations: BTreeMap<AccountId32, Expected>,
-	/// The same, on Asset Hub. Differs from `ct_destinations` only for Asset Hub's own
-	/// sovereign, whose free balance goes to the sweep beneficiary.
+	/// The same accounts grouped by destination on Asset Hub. This differs for Asset Hub's own
+	/// sovereign account, whose free balance goes to the sweep beneficiary.
 	pub ah_destinations: BTreeMap<AccountId32, Expected>,
 }
 
@@ -112,8 +112,8 @@ where
 /// the split rule sends it: plain accounts on Asset Hub, pure-like accounts on the Coretime chain,
 /// deposit holders on both.
 ///
-/// The totals, what the Relay Chain recorded against what the issuance did, are
-/// `IssuanceChecker`'s: they span every stage, not just this one.
+/// `IssuanceChecker` compares the totals recorded on the Relay Chain with issuance across all
+/// stages.
 pub struct AccountsChecker;
 
 impl RcMigrationCheck for AccountsChecker {
@@ -268,10 +268,8 @@ impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
 	}
 
 	fn post_check(rc_pre: &Self::RcPrePayload, _: &Self::RcPostPayload, ah_pre: Self::PrePayload) {
-		// What arrives in total is `IssuanceChecker`'s: other stages pay out on Asset Hub too, to
-		// accounts this stage does not know.
-		// The sweep beneficiary also receives what Sweep empties, so its growth is checked by
-		// `SweepChecker`, not here.
+		// `IssuanceChecker` checks the total received by Asset Hub, including other stages. The
+		// sweep beneficiary also receives pot balances, so `SweepChecker` checks its growth.
 		let beneficiary = <Rc as pallet_rc2_migrator::Config>::SweepBeneficiary::get();
 		for (dest, expected) in &rc_pre.ah_destinations {
 			let delta = grown(dest, ah_pre.balances[dest], account_data::<Ah>(dest).total());

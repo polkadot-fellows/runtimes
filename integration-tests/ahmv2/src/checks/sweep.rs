@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-//! Checks of the Sweep stage: the pots end empty here, and what they held reaches the sweep
-//! beneficiary on Asset Hub, where its owner marks it inactive again.
+//! Checks of the Sweep stage: the Relay Chain pots end empty, the beneficiary's balance matches
+//! the expected range, and inactive issuance changes as expected on both chains.
 
 use crate::{
 	checks::{ParaMigrationCheck, RcMigrationCheck},
@@ -53,8 +53,7 @@ where
 	frame_system::Account::<T>::get(who).data.total()
 }
 
-/// Every pot ends empty, all of it reaches the beneficiary on Asset Hub, and the treasury's
-/// inactive mark leaves with the treasury's pot.
+/// Check the pots, the beneficiary's balance and the change in inactive issuance.
 pub struct SweepChecker;
 
 impl RcMigrationCheck for SweepChecker {
@@ -113,7 +112,7 @@ impl ParaMigrationCheck<CoretimePara> for SweepChecker {
 	fn post_check(_: &Self::RcPrePayload, _: &Self::RcPostPayload, _: Self::PrePayload) {}
 }
 
-/// Run the hook of the pallet that owns the beneficiary, which marks what arrived as inactive.
+/// Run the DAP hook that moves staging funds to the buffer and marks them inactive.
 #[cfg(feature = "polkadot")]
 fn mark_beneficiary_inactive() {
 	use frame_support::{traits::OnIdle, weights::Weight};
@@ -124,7 +123,7 @@ fn mark_beneficiary_inactive() {
 	);
 }
 
-/// Run the hook of the pallet that owns the beneficiary, which marks what arrived as inactive.
+/// Run the treasury hook that marks the pot's spendable balance inactive.
 #[cfg(feature = "kusama")]
 fn mark_beneficiary_inactive() {
 	use frame_support::traits::OnInitialize;
@@ -149,8 +148,8 @@ impl ParaMigrationCheck<AssetHubPara> for SweepChecker {
 		swept: &Self::RcPostPayload,
 		ah_pre: Self::PrePayload,
 	) {
-		// All of it arrived. Asset Hub's own sovereign sends the beneficiary its free balance in
-		// the accounts stage; how that one splits is the accounts checker's.
+		// The beneficiary must gain at least the pots' snapshot balance. It may also receive free
+		// balance from Asset Hub's own sovereign account in the accounts stage.
 		let arrived = total::<Ah>(&rc_pre.beneficiary)
 			.checked_sub(ah_pre)
 			.expect("the beneficiary did not shrink");
@@ -160,7 +159,8 @@ impl ParaMigrationCheck<AssetHubPara> for SweepChecker {
 			"the beneficiary got {arrived}, more than the {swept} swept and Asset Hub's sovereign"
 		);
 
-		// Its owner marks it inactive. The account keeps its existential deposit.
+		// The beneficiary's pallet must mark at least the swept amount inactive, allowing for one
+		// existential deposit to remain active.
 		let before = pallet_balances::InactiveIssuance::<Ah>::get();
 		mark_beneficiary_inactive();
 		let marked = pallet_balances::InactiveIssuance::<Ah>::get() - before;

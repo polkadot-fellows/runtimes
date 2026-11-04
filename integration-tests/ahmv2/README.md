@@ -52,21 +52,19 @@ externalities without reloading from disk.
 
 ## What the harness does not run
 
-It runs only the hooks that move the migration and its messages. On the Relay Chain that is
-`MessageQueue` and `Rc2Migrator`; on the Coretime chain and Asset Hub it is `MessageQueue`.
-Every other pallet's hooks stay idle, so what they would do while the migration runs does not
-happen here. Among them:
+During simulated blocks, the harness runs `MessageQueue` and `Rc2Migrator` hooks on the Relay
+Chain, and `MessageQueue` hooks on the Coretime chain and Asset Hub. Other pallet hooks do not
+run during those blocks, including:
 
-- on the Relay Chain, the treasury, on-demand, session and parachain hooks;
-- on the Coretime chain, the broker, so nothing claims on-demand revenue;
-- on Asset Hub, the DAP and the treasury, which mark incoming balance inactive.
-  `SweepChecker` runs them once at the end to check that.
+- the treasury, on-demand, session and parachain hooks on the Relay Chain;
+- the broker hook on the Coretime chain, so nothing claims on-demand revenue;
+- the DAP and treasury hooks on Asset Hub. `SweepChecker` runs the DAP hook on Polkadot or the
+  treasury hook on Kusama once at the end to check inactive issuance.
 
-There are also no transaction fees: calls are dispatched directly, not applied as transactions.
-The clock jumps over the warm-up and the time it may wait for on-demand revenue to be claimed.
-A test passing here does not show that these leave the migration alone. On chain, the
-migrator's per-block issuance check reports part of it: a change to the total issuance, though
-not a transfer between accounts.
+Calls are dispatched directly, so there are no transaction fees. The block number jumps over the
+warm-up and any wait for on-demand revenue claims. A passing test does not show how omitted hooks
+or fees affect the migration. On chain, the migrator's per-block check reports a mismatch between
+the recorded remaining balance and total issuance, but cannot detect transfers between accounts.
 
 Every produced block asserts that consumed weight stays below 80% of the block limit and, unless
 a test opts out to judge one message itself, that no `MessageQueue` failure event was emitted. Every shuttled message is decoded
