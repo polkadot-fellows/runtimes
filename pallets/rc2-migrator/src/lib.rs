@@ -52,7 +52,11 @@ use frame_support::{
 	pallet_prelude::*,
 	sp_runtime::traits::Saturating,
 	storage::with_storage_layer,
-	traits::{Contains, EnsureOrigin, GetCallMetadata, Time},
+	traits::{
+		fungible::Inspect,
+		tokens::{Fortitude, Preservation},
+		Contains, EnsureOrigin, GetCallMetadata, Time,
+	},
 };
 use frame_system::pallet_prelude::*;
 use migrator_types::{PortableAccount, PortableProxyType};
@@ -174,11 +178,13 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// to receive the migration data.
 	WaitingForCt,
 	WarmUp {
-		/// The block number at which the warm-up period will end. It is absolute and a pause
-		/// does not move it.
+		/// The earliest block at which the warm-up ends. It is absolute: a pause does not move
+		/// it, so a pause that outlasts it ends the warm-up as soon as the migration resumes.
 		///
-		/// After the warm-up period ends, the Relay Chain will start to send the migration data
-		/// to the Coretime chain.
+		/// Past it, the warm-up also waits for the Coretime chain to claim the on-demand revenue
+		/// recorded here, for as long as the on-demand pot can pay it and for at most
+		/// [`Config::RevenueClaimGrace`]. Once it ends, the Relay Chain starts to send the
+		/// migration data to the Coretime chain.
 		end_at: BlockNumber,
 	},
 	/// Initializing the account migration process.
@@ -296,6 +302,9 @@ pub mod pallet {
 		> + pallet_balances::Config<Balance = u128>
 		+ paras_registrar::Config<Currency = pallet_balances::Pallet<Self>>
 		+ runtime_parachains::hrmp::Config
+		// The warm-up waits for the Coretime chain to claim on-demand revenue the pot can pay, and
+		// `AccountsInit` clears what is left of the record.
+		+ runtime_parachains::on_demand::Config<Currency = pallet_balances::Pallet<Self>>
 		// The runtime says which proxy permissions have a meaning on the Coretime chain.
 		+ pallet_proxy::Config<
 			Currency = pallet_balances::Pallet<Self>,
@@ -349,6 +358,12 @@ pub mod pallet {
 		/// The account on Asset Hub that receives balance with no owner there: what Sweep empties
 		/// out of the pots, and the free balance of Asset Hub's own sovereign.
 		type SweepBeneficiary: Get<Self::AccountId>;
+
+		/// How long past its end the warm-up waits for the Coretime chain to claim on-demand
+		/// revenue the on-demand pot can pay. The Coretime chain claims once per timeslice, so a
+		/// couple of timeslices gives it more than one try. What is still unclaimed after that is
+		/// cleared by `AccountsInit`.
+		type RevenueClaimGrace: Get<BlockNumberFor<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -481,6 +496,9 @@ pub mod pallet {
 		PotSwept { who: T::AccountId, amount: u128 },
 		/// A pot could not be emptied and was left as it was. Rewind to `Sweep` to retry it.
 		PotNotSwept { who: T::AccountId, error: DispatchError },
+		/// On-demand revenue no claim collected was cleared from the on-demand pallet's record.
+		/// `pot` is what the on-demand pot held then; Sweep empties it.
+		OnDemandRevenueCleared { amount: u128, pot: u128 },
 	}
 
 	#[pallet::hooks]
@@ -498,9 +516,10 @@ pub mod pallet {
 		/// - `start`: The wall-clock time at which the migration will start.
 		/// - `warm_up`: Duration in blocks used to prepare for the migration. Calls are filtered
 		///   during this period. It is intended to give enough time for UMP and DMP queues to
-		///   empty. Counted from the transition to the warm-up stage. Must be longer than one
+		///   empty. Counted from the transition to the warm-up stage. Should be longer than one
 		///   Coretime timeslice: on-demand orders close at the start, and the Coretime chain claims
-		///   the revenue earned before it at its next timeslice boundary.
+		///   the revenue earned before it at its next timeslice boundary. Revenue the on-demand pot
+		///   can pay is waited for, up to [`Config::RevenueClaimGrace`] past the warm-up's end.
 		/// - `cool_off`: Duration in blocks of the post migration cool-off period. Counted from the
 		///   transition to the cool-off stage.
 		///
@@ -697,10 +716,29 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(3, 3)
 				},
 				MigrationStage::WarmUp { end_at } if now >= end_at => {
+					// Give the Coretime chain time to claim the on-demand revenue, so it reaches
+					// the broker. A claim takes it out of the on-demand pot and fails whole if the
+					// pot cannot pay it, so only revenue the pot can pay is worth waiting for, and
+					// only for a while: the Coretime chain might never claim. `AccountsInit` clears
+					// whatever is left.
+					let unclaimed = Self::unclaimed_on_demand_revenue(now);
+					let payable = unclaimed != 0 && unclaimed <= Self::on_demand_pot_reducible();
+					let waited_enough = now >= end_at.saturating_add(T::RevenueClaimGrace::get());
+					if payable && !waited_enough {
+						log::info!(
+							target: LOG_TARGET,
+							"Warm-up waits for {unclaimed} of on-demand revenue to be claimed"
+						);
+						return T::DbWeight::get().reads_writes(4, 0);
+					}
 					Self::transition(MigrationStage::AccountsInit);
-					T::DbWeight::get().reads_writes(1, 1)
+					T::DbWeight::get().reads_writes(4, 1)
 				},
 				MigrationStage::AccountsInit => {
+					// A claim that landed after `kept` is set would burn from the on-demand pot
+					// without being booked. Clear what is left first; nothing adds revenue once the
+					// migration has started.
+					Self::clear_on_demand_revenue(now);
 					// Set once: a rewind to this stage keeps what was booked so far.
 					if !RcMigratedBalance::<T>::exists() {
 						RcMigratedBalance::<T>::put(MigratedBalances {
@@ -710,7 +748,7 @@ pub mod pallet {
 					}
 					let records = accounts::AccountsMigrator::<T>::init();
 					Self::transition(MigrationStage::AccountsOngoing { last_key: None });
-					T::DbWeight::get().reads_writes(2, 2).saturating_add(
+					T::DbWeight::get().reads_writes(4, 3).saturating_add(
 						T::DbWeight::get().reads_writes(records.into(), records.into()),
 					)
 				},
@@ -774,9 +812,8 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::Sweep => {
-					// TODO(ahm-v2): do not empty the on-demand pot while `on_demand::Revenue`
-					// still records revenue the Coretime chain has not claimed: its next claim
-					// would fail to withdraw it.
+					// `AccountsInit` cleared the on-demand revenue record, so no claim can take
+					// anything out of the on-demand pot once it is burned here.
 					// Burns and the send commit or roll back together.
 					match with_storage_layer(Self::sweep_pots) {
 						Ok(()) => Self::transition(MigrationStage::SweepDust { last_key: None }),
@@ -858,6 +895,51 @@ pub mod pallet {
 				Self::send_teleport(chunk.to_vec())?;
 			}
 			Ok(last_key)
+		}
+
+		/// On-demand revenue recorded on this chain that the Coretime chain has not claimed yet.
+		///
+		/// The record is private to the on-demand pallet, and the only way to read it is the claim
+		/// itself, which also clears it. So the claim runs hypothetically: its change is thrown
+		/// away and only the amount is kept. Claiming until `now + 1` covers every recorded block.
+		fn unclaimed_on_demand_revenue(now: BlockNumberFor<T>) -> u128 {
+			frame_support::hypothetically!(
+				runtime_parachains::on_demand::Pallet::<T>::claim_revenue_until(
+					now.saturating_add(1u32.into())
+				)
+			)
+		}
+
+		/// What a claim could take out of the on-demand pot: it withdraws the way the XCM
+		/// fungible adapter does, expendable and polite.
+		fn on_demand_pot_reducible() -> u128 {
+			<pallet_balances::Pallet<T> as Inspect<T::AccountId>>::reducible_balance(
+				&runtime_parachains::on_demand::Pallet::<T>::account_id(),
+				Preservation::Expendable,
+				Fortitude::Polite,
+			)
+		}
+
+		/// Clear the on-demand revenue no claim collected, so none can be claimed once the
+		/// bookkeeping has started. Only the record changes; what the on-demand pot holds stays,
+		/// for Sweep.
+		// TODO(ahm-v2): nothing keeps the record backed by the pot. An order paid with credits
+		// adds its price to the record, but the credits were paid for on the Coretime chain, so
+		// nothing reaches the pot; a claim then fails whole, and the record keeps that revenue for
+		// good. Report it upstream. Revenue the pot can pay that is still unclaimed here goes to
+		// the sweep beneficiary with the pot, not to the broker; the warm-up waits to keep that
+		// rare.
+		fn clear_on_demand_revenue(now: BlockNumberFor<T>) {
+			let amount = runtime_parachains::on_demand::Pallet::<T>::claim_revenue_until(
+				now.saturating_add(1u32.into()),
+			);
+			if amount != 0 {
+				let pot = <pallet_balances::Pallet<T> as Inspect<T::AccountId>>::total_balance(
+					&runtime_parachains::on_demand::Pallet::<T>::account_id(),
+				);
+				log::warn!(target: LOG_TARGET, "Cleared {amount} of unclaimed on-demand revenue");
+				Self::deposit_event(Event::OnDemandRevenueCleared { amount, pot });
+			}
 		}
 
 		/// The Sweep stage: burn the pots, book what they held as moved to Asset Hub, and teleport

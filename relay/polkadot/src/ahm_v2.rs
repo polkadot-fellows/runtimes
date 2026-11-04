@@ -24,9 +24,9 @@ pub mod lockdown;
 
 use crate::{
 	xcm_config::{CoretimeLocation, XcmRouter},
-	AccountId, BrokerId, BrokerPalletId, CrowdloanId, DelegatedStakingPalletId, OnDemandPalletId,
-	PoolsPalletId, ProxyType, Runtime, RuntimeEvent, Timestamp, TransparentProxyType,
-	TreasuryPalletId,
+	AccountId, BlockNumber, BrokerId, BrokerPalletId, CrowdloanId, DelegatedStakingPalletId,
+	OnDemandPalletId, PoolsPalletId, ProxyType, Runtime, RuntimeEvent, Timestamp,
+	TransparentProxyType, TreasuryPalletId,
 };
 use alloc::vec::Vec;
 use frame_support::{
@@ -37,12 +37,17 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use migrator_types::PortableProxyType;
 use pallet_xcm::EnsureXcm;
-use polkadot_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
+use polkadot_runtime_constants::{
+	currency::UNITS,
+	system_parachain::{coretime::TIMESLICE_PERIOD, ASSET_HUB_ID},
+};
 use sp_runtime::traits::AccountIdConversion;
 
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
 	pub const CtFreeBuffer: u128 = UNITS;
+	/// Two timeslices: the Coretime chain claims on-demand revenue once per timeslice.
+	pub const RevenueClaimGrace: BlockNumber = 2 * TIMESLICE_PERIOD;
 	/// The pot of the retired `pallet-dap-satellite`. Nothing in the runtime names it anymore: the
 	/// satellite's id was renamed to `acf/dott` in paritytech/polkadot-sdk#11881, so this is the
 	/// old id, not a typo for the new one.
@@ -92,6 +97,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type PostMigrationCalls = lockdown::CallsEnabledAfterMigration;
 	type SweptAccounts = SweptAccounts;
 	type SweepBeneficiary = SweepBeneficiary;
+	type RevenueClaimGrace = RevenueClaimGrace;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so

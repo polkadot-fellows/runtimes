@@ -35,13 +35,14 @@ use migrator_types::PortableProxyType;
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::{
-	configuration, dmp, hrmp as parachains_hrmp, origin as parachains_origin, paras, shared,
+	configuration, dmp, hrmp as parachains_hrmp, on_demand, origin as parachains_origin, paras,
+	shared,
 };
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, BlakeTwo256, Hash, IdentityLookup},
 	transaction_validity::TransactionPriority,
-	AccountId32, BuildStorage,
+	AccountId32, BuildStorage, FixedU128,
 };
 use xcm::prelude::*;
 
@@ -66,6 +67,7 @@ frame_support::construct_runtime! {
 		Multisig: pallet_multisig,
 		Preimage: pallet_preimage,
 		Treasury: pallet_treasury,
+		OnDemand: on_demand,
 		Rc2Migrator: pallet_rc2_migrator,
 	}
 }
@@ -283,6 +285,22 @@ impl pallet_treasury::Config for Test {
 	type BenchmarkHelper = ();
 }
 
+parameter_types! {
+	pub const OnDemandTrafficDefaultValue: FixedU128 = FixedU128::from_u32(1);
+	pub const MaxHistoricalRevenue: u32 = 10;
+	pub const OnDemandPalletId: PalletId = PalletId(*b"py/ondmd");
+}
+
+/// The on-demand pallet, for the revenue the Coretime chain still has to claim.
+impl on_demand::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type TrafficDefaultValue = OnDemandTrafficDefaultValue;
+	type WeightInfo = on_demand::TestWeightInfo;
+	type MaxHistoricalRevenue = MaxHistoricalRevenue;
+	type PalletId = OnDemandPalletId;
+}
+
 /// What the active configuration makes a recipient reserve when it accepts a channel request.
 pub const HRMP_RECIPIENT_DEPOSIT: u128 = 20;
 
@@ -330,6 +348,8 @@ pub const AH_PARA_ID: u32 = 1000;
 pub const CT_FREE_BUFFER: u128 = 100;
 pub const WARM_UP: u64 = 4;
 pub const COOL_OFF: u64 = 10;
+/// How long past its end the warm-up waits for on-demand revenue the pot can pay.
+pub const REVENUE_CLAIM_GRACE: u64 = 8;
 /// Relay-chain block time
 pub const BLOCK_TIME_MS: u64 = 6_000;
 
@@ -390,8 +410,10 @@ ord_parameter_types! {
 }
 
 parameter_types! {
-	pub MockPots: Vec<AccountId> = vec![pallet_account(), other_pot(), TreasuryAccount::get()];
+	pub MockPots: Vec<AccountId> =
+		vec![pallet_account(), other_pot(), TreasuryAccount::get(), OnDemand::account_id()];
 	pub const SweepBeneficiary: AccountId = SWEEP_BENEFICIARY;
+	pub const RevenueClaimGrace: u64 = REVENUE_CLAIM_GRACE;
 }
 
 impl pallet_rc2_migrator::Config for Test {
@@ -408,6 +430,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type PostMigrationCalls = TaggedRemark<POST_MIGRATION>;
 	type SweptAccounts = MockPots;
 	type SweepBeneficiary = SweepBeneficiary;
+	type RevenueClaimGrace = RevenueClaimGrace;
 }
 
 /// Tags for [`TaggedRemark`], one per call set.
@@ -688,4 +711,11 @@ pub fn lock(who: &AccountId, amount: u128) {
 /// their deposits on the Relay Chain: an unnamed reserve.
 pub fn reserve(who: &AccountId, amount: u128) {
 	<Balances as ReservableCurrency<AccountId>>::reserve(who, amount).unwrap();
+}
+
+/// Record on-demand revenue for the Coretime chain to claim, newest block first, as the on-demand
+/// pallet keeps it. Its storage is private to that pallet, so it is written raw.
+pub fn record_on_demand_revenue(per_block: Vec<u128>) {
+	let key = frame_support::storage::storage_prefix(b"OnDemand", b"Revenue");
+	frame_support::storage::unhashed::put(&key, &per_block);
 }

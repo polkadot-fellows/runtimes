@@ -898,3 +898,99 @@ fn teleport_trust_ends_when_the_migration_starts() {
 		}
 	});
 }
+
+#[test]
+fn the_warm_up_waits_for_revenue_the_pot_can_pay_until_it_is_claimed() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a warm-up about to end, with on-demand revenue the Coretime chain has not claimed.
+		fund(&ALICE, 500);
+		let pot = OnDemand::account_id();
+		fund(&pot, 30);
+		record_on_demand_revenue(vec![0, 30]);
+		let end_at = System::block_number() + 2;
+		set_stage(Stage::WarmUp { end_at });
+
+		// WHEN its end passes. THEN it keeps warming up, and the bookkeeping has not started.
+		run_blocks(5);
+		assert_stage(Stage::WarmUp { end_at });
+		assert!(!crate::RcMigratedBalance::<Test>::exists());
+
+		// WHEN the Coretime chain claims it, which takes it out of the pot.
+		assert_eq!(OnDemand::claim_revenue_until(System::block_number() + 1), 30);
+		fund(&pot, 0);
+
+		// THEN the warm-up ends, and the bookkeeping starts from the issuance after the claim.
+		run_blocks(1);
+		assert_stage(Stage::AccountsInit);
+		run_blocks(1);
+		assert_eq!(crate::RcMigratedBalance::<Test>::get().kept, 500);
+		assert_eq!(total_issuance(), 500);
+	});
+}
+
+/// `(amount, pot)` of every `OnDemandRevenueCleared` event so far.
+fn cleared_revenue_events() -> Vec<(u128, u128)> {
+	System::events()
+		.into_iter()
+		.filter_map(|record| match record.event {
+			RuntimeEvent::Rc2Migrator(Event::OnDemandRevenueCleared { amount, pot }) =>
+				Some((amount, pot)),
+			_ => None,
+		})
+		.collect()
+}
+
+#[test]
+fn the_warm_up_does_not_wait_for_revenue_the_pot_cannot_pay() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a warm-up about to end, and on-demand revenue recorded that the pot cannot pay,
+		// so no claim of it can ever succeed.
+		fund(&ALICE, 500);
+		let pot = OnDemand::account_id();
+		fund(&pot, 10);
+		record_on_demand_revenue(vec![0, 30]);
+		let end_at = System::block_number() + 2;
+		set_stage(Stage::WarmUp { end_at });
+
+		// WHEN its end passes. THEN it ends on time.
+		run_blocks(2);
+		assert_stage(Stage::AccountsInit);
+
+		// WHEN the accounts stage starts. THEN the record is cleared before the bookkeeping, the
+		// pot is left for Sweep, and the issuance did not move.
+		run_blocks(1);
+		assert_eq!(cleared_revenue_events(), vec![(30, 10)]);
+		assert_eq!(OnDemand::claim_revenue_until(System::block_number() + 1), 0);
+		assert_eq!(free(&pot), 10);
+		assert_eq!(crate::RcMigratedBalance::<Test>::get().kept, 510);
+	});
+}
+
+#[test]
+fn the_warm_up_stops_waiting_for_a_claim_that_never_comes() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a warm-up about to end, and on-demand revenue the pot can pay but that the
+		// Coretime chain never claims.
+		let pot = OnDemand::account_id();
+		fund(&pot, 30);
+		record_on_demand_revenue(vec![0, 30]);
+		let end_at = System::block_number() + 2;
+		set_stage(Stage::WarmUp { end_at });
+
+		// WHEN its end passes. THEN it waits for the claim, up to the grace period.
+		run_blocks(2 + REVENUE_CLAIM_GRACE - 1);
+		assert_stage(Stage::WarmUp { end_at });
+
+		// WHEN the grace period is over. THEN it ends, and the accounts stage clears the record.
+		run_blocks(1);
+		assert_stage(Stage::AccountsInit);
+		run_blocks(1);
+		assert_eq!(cleared_revenue_events(), vec![(30, 30)]);
+
+		// AND Sweep empties the pot to the beneficiary like any other.
+		set_stage(Stage::Sweep);
+		run_blocks(1);
+		assert_stage(Stage::SweepDust { last_key: None });
+		assert_eq!(free(&pot), 0);
+	});
+}
