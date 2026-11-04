@@ -21,7 +21,7 @@ use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
-		fungible::{HoldConsideration, InspectHold, Mutate, MutateHold},
+		fungible::{HoldConsideration, InspectHold, Mutate, MutateFreeze, MutateHold},
 		tokens::{PayFromAccount, UnityAssetBalanceConversion},
 		ConstU128, ConstU32, ConstU64, Contains, InstanceFilter, LinearStoragePrice,
 		LockableCurrency, NeverEnsureOrigin, OnInitialize, ReservableCurrency, Time,
@@ -106,6 +106,9 @@ impl pallet_balances::Config for Test {
 	type Balance = u128;
 	type AccountStore = System;
 	type ExistentialDeposit = ConstU128<ED>;
+	// No pallet here freezes balance, so freezes get an identifier of their own.
+	type FreezeIdentifier = [u8; 8];
+	type MaxFreezes = ConstU32<2>;
 }
 
 // `paras_registrar` is what the tests need; it requires `paras`, which requires the rest.
@@ -697,6 +700,12 @@ pub fn held(who: &AccountId) -> u128 {
 
 pub fn free(who: &AccountId) -> u128 {
 	pallet_balances::Pallet::<Test>::free_balance(who)
+}
+
+/// Freeze part of `who`'s balance, as the relay chain's staking pallets do.
+pub fn freeze(who: &AccountId, amount: u128) {
+	<Balances as MutateFreeze<AccountId>>::set_freeze(b"testfrze", who, amount)
+		.expect("can freeze");
 }
 
 /// Lock part of `who`'s balance, as staking and vesting did before they left the Relay Chain.

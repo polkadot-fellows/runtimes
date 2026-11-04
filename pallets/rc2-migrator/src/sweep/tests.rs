@@ -129,12 +129,14 @@ fn sweep_retries_when_the_send_fails() {
 #[test]
 fn a_pot_is_swept_whole_whatever_form_its_balance_is_in() {
 	new_test_ext().execute_with(|| {
-		// GIVEN a pot with free balance, a reserve, a named hold and a lock.
+		// GIVEN a pot with free balance, a reserve, a named hold, a lock and a freeze. The freeze
+		// is the larger of the two, so it alone keeps balance frozen if it is not released.
 		let pot = pallet_account();
 		fund(&pot, 500);
 		reserve(&pot, 40);
 		stray_hold(&pot, 7);
 		lock(&pot, 30);
+		freeze(&pot, 60);
 		at_sweep();
 
 		// WHEN the stage runs.
@@ -240,5 +242,39 @@ fn a_failed_send_leaves_the_treasury_mark_in_place() {
 		run_blocks(1);
 		assert_stage(Stage::SweepDust { last_key: None });
 		assert_eq!(inactive_issuance(), 50);
+	});
+}
+
+#[test]
+fn a_pot_that_cannot_be_emptied_is_left_as_it_was_and_reported() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a pot whose hold record says more than it has reserved, so the hold cannot be
+		// released, and a pot that can be emptied.
+		let stuck = pallet_account();
+		fund(&stuck, 100);
+		stray_hold(&stuck, 7);
+		pallet_balances::Holds::<Test>::mutate(&stuck, |holds| holds[0].amount = 50);
+		fund(&other_pot(), 250);
+		at_sweep();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN the stuck pot is left exactly as it was and reported, and the other one is swept.
+		assert_stage(Stage::SweepDust { last_key: None });
+		assert_eq!(frame_system::Account::<Test>::get(&stuck).data.total(), 100);
+		assert_eq!(pallet_balances::Holds::<Test>::get(&stuck)[0].amount, 50);
+		assert!(System::events().iter().any(|record| matches!(
+			&record.event,
+			RuntimeEvent::Rc2Migrator(Event::PotNotSwept { who, .. }) if *who == stuck
+		)));
+		assert_eq!(swept_events(), vec![(other_pot(), 250)]);
+		assert_eq!(sent(), vec![teleport_to_beneficiary(250)]);
+		// AND what the stuck pot holds is still counted as kept here.
+		assert_eq!(
+			RcMigratedBalance::<Test>::get(),
+			MigratedBalances { kept: 100, ah_free: 250, ..Default::default() }
+		);
+		assert_eq!(total_issuance(), 100);
 	});
 }
