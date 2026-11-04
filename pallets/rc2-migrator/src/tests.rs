@@ -1028,3 +1028,27 @@ fn the_treasury_stops_spending_once_the_bookkeeping_starts() {
 		assert_eq!(total_issuance(), 1_500);
 	});
 }
+
+#[test]
+#[should_panic(expected = "issuance changed without being booked")]
+fn an_issuance_change_the_migration_did_not_book_is_reported() {
+	new_test_ext().execute_with(|| {
+		// GIVEN the bookkeeping has started.
+		fund(&ALICE, 500);
+		set_stage(Stage::AccountsInit);
+		run_blocks(1);
+
+		// WHEN something other than the migration burns balance.
+		<Balances as frame_support::traits::fungible::Mutate<AccountId>>::burn_from(
+			&ALICE,
+			1,
+			frame_support::traits::tokens::Preservation::Expendable,
+			frame_support::traits::tokens::Precision::Exact,
+			frame_support::traits::tokens::Fortitude::Polite,
+		)
+		.unwrap();
+
+		// THEN the next block reports it.
+		run_blocks(1);
+	});
+}

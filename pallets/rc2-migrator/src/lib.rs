@@ -701,10 +701,14 @@ pub mod pallet {
 		/// Execute one block of the stage machine.
 		// TODO(ahm-v2): proper benchmark
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
-			if Paused::<T>::get() {
-				return T::DbWeight::get().reads(1);
+			let stage = RcMigrationStage::<T>::get();
+			if stage.is_ongoing() {
+				Self::check_issuance_booked();
 			}
-			match RcMigrationStage::<T>::get() {
+			if Paused::<T>::get() {
+				return T::DbWeight::get().reads(4);
+			}
+			match stage {
 				// The scheduled start is compared against the clock, which at `on_initialize` still
 				// holds the previous block's timestamp -- so the migration begins on the first
 				// block after the one whose timestamp passed `start`.
@@ -734,6 +738,17 @@ pub mod pallet {
 					Self::transition(MigrationStage::AccountsInit);
 					T::DbWeight::get().reads_writes(4, 1)
 				},
+				// Explicit invariant, from here until `MigrationDone`: only this pallet transfers
+				// balance between accounts or changes the total issuance.
+				// TODO(ahm-v2): transaction fees break the invariant. Any account can submit a call
+				// to this pallet, because its calls check their origin themselves, and a signed
+				// transaction pays its fee even if the call fails. The fee goes to the treasury pot
+				// and to the block author, whose account may already have been emptied. Once Sweep
+				// has removed the treasury account, a fee share below the existential deposit is
+				// burned without being recorded. Tips are charged even on calls that waive their
+				// fee. For now, `check_issuance_booked` reports any effect on the total
+				// issuance. To fix it, refuse signed transactions during the migration, except
+				// the manager's, and make the manager's calls free.
 				MigrationStage::AccountsInit => {
 					// Clear the on-demand revenue record before `kept` is set. Otherwise a later
 					// claim could withdraw from the on-demand pot without this pallet recording it.
@@ -943,6 +958,23 @@ pub mod pallet {
 				);
 				log::warn!(target: LOG_TARGET, "Cleared {amount} of unclaimed on-demand revenue");
 				Self::deposit_event(Event::OnDemandRevenueCleared { amount, pot });
+			}
+		}
+
+		/// Check the balance invariant explained at the `AccountsInit` arm of
+		/// `progress_migration`: `RcMigratedBalance::kept` must equal the total issuance. If they
+		/// differ, something other than this pallet minted or burned balance after `AccountsInit`.
+		/// This only reports it. It cannot tell what changed, so it cannot fix it.
+		fn check_issuance_booked() {
+			let Ok(migrated) = RcMigratedBalance::<T>::try_get() else { return };
+			let issuance = pallet_balances::TotalIssuance::<T>::get();
+			if migrated.kept != issuance {
+				log::error!(
+					target: LOG_TARGET,
+					"Issuance changed without being booked: kept {}, total issuance {issuance}",
+					migrated.kept
+				);
+				frame_support::defensive!("issuance changed without being booked");
 			}
 		}
 
