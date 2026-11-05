@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Removed
+
+- Remove the unused `pallet-state-trie-migration` dependency left over after the pallet was removed from the runtimes ([#1040](https://github.com/polkadot-fellows/runtimes/pull/1040)).
+
 ### Changed
 
 - Asset Hub Polkadot and Kusama: the Fellowship controls the `Scheduler` and `MessageQueue` technical parameters ([#1346](https://github.com/polkadot-fellows/runtimes/pull/1346)).
@@ -619,10 +623,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Enable Async Backing for Kusama Asset Hub ([polkadot-fellows/runtimes/pull/659](https://github.com/polkadot-fellows/runtimes/pull/659))
 
 ## [1.4.3] 14.04.2025
-
-### Removed
-
-- Remove StateTrieMigration pallet from Polkadot relay chain, Asset Hub Polkadot, and Asset Hub Kusama - V0→V1 state trie migration complete ([polkadot-fellows/runtimes#1040](https://github.com/polkadot-fellows/runtimes/pull/1040))
 
 ### Changed
 
