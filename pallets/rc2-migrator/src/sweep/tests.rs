@@ -15,7 +15,11 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{mock::*, Event, MigratedBalances, RcMigratedBalance, RcMigrationStage};
-use frame_support::traits::{fungible::Unbalanced, OnInitialize};
+use frame_support::traits::{
+	fungible::{Mutate, MutateHold},
+	tokens::{Fortitude, Precision, Preservation},
+	ReservableCurrency,
+};
 use xcm::prelude::*;
 
 /// Start Sweep with the recorded balance set to the current Relay Chain issuance.
@@ -90,11 +94,12 @@ fn sweep_with_nothing_in_the_pots_sends_nothing() {
 		at_sweep();
 		let migrated = RcMigratedBalance::<Test>::get();
 
-		// WHEN the stage runs. THEN it moves on without sending or recording anything.
+		// WHEN the stage runs. THEN it moves on without sending or recording anything. Only the
+		// pot that exists is reported, with nothing swept.
 		run_blocks(1);
 		assert_stage(Stage::SweepDust { last_key: None });
 		assert!(sent().is_empty());
-		assert!(swept_events().is_empty());
+		assert_eq!(swept_events(), vec![(other_pot(), 0)]);
 		assert_eq!(RcMigratedBalance::<Test>::get(), migrated);
 	});
 }
@@ -141,9 +146,13 @@ fn a_pot_is_swept_whole_whatever_form_its_balance_is_in() {
 		// WHEN the stage runs.
 		run_blocks(1);
 
-		// THEN the entire balance is burned and teleported, and the pot is reaped.
+		// THEN the entire balance is burned and teleported, and the pot is reaped with all its
+		// balance records.
 		assert_stage(Stage::SweepDust { last_key: None });
 		assert!(!frame_system::Account::<Test>::contains_key(&pot), "the pot is reaped");
+		assert!(pallet_balances::Holds::<Test>::get(&pot).is_empty());
+		assert!(pallet_balances::Locks::<Test>::get(&pot).is_empty());
+		assert!(pallet_balances::Freezes::<Test>::get(&pot).is_empty());
 		assert_eq!(swept_events(), vec![(pot, 500)]);
 		assert_eq!(sent(), vec![teleport_to_beneficiary(500)]);
 		assert_eq!(total_issuance(), 0);
@@ -177,103 +186,136 @@ fn a_referenced_pot_is_drained_to_an_empty_record() {
 	});
 }
 
-/// Run the treasury's hook, which keeps its inactive-issuance record in step with its pot.
-fn treasury_hook() {
-	<Treasury as OnInitialize<u64>>::on_initialize(System::block_number());
-}
-
-fn inactive_issuance() -> u128 {
-	pallet_balances::InactiveIssuance::<Test>::get()
-}
-
-/// A treasury account with 1,000 units and 50 units of unrelated inactive issuance.
-fn inactive_treasury() {
-	fund(&TreasuryAccount::get(), 1_000);
-	// inactive issuance is capped at the total, so there has to be more than the treasury's
-	fund(&ALICE, 500);
-	<Balances as Unbalanced<AccountId>>::deactivate(50);
-	treasury_hook();
-	// the treasury marks its pot minus the existential deposit
-	assert_eq!(pallet_treasury::Deactivated::<Test>::get(), 1_000 - ED);
-	assert_eq!(inactive_issuance(), 1_000 - ED + 50);
-}
-
 #[test]
-fn sweeping_the_treasury_reactivates_what_it_marked_inactive() {
+fn a_pot_whose_hold_record_disagrees_with_its_balance_is_still_emptied() {
 	new_test_ext().execute_with(|| {
-		// GIVEN a treasury pot its hook marked inactive, and other inactive issuance.
-		inactive_treasury();
-		at_sweep();
-
-		// WHEN the stage runs.
-		run_blocks(1);
-
-		// THEN the pot is swept, the treasury's mark is undone and its record cleared, and the
-		// other inactive issuance is untouched.
-		assert_stage(Stage::SweepDust { last_key: None });
-		assert_eq!(sent(), vec![teleport_to_beneficiary(1_000)]);
-		assert_eq!(pallet_treasury::Deactivated::<Test>::get(), 0);
-		assert_eq!(inactive_issuance(), 50);
-
-		// AND the treasury's hook finds nothing left to undo.
-		treasury_hook();
-		assert_eq!(pallet_treasury::Deactivated::<Test>::get(), 0);
-		assert_eq!(inactive_issuance(), 50);
-	});
-}
-
-#[test]
-fn a_failed_send_leaves_the_treasury_mark_in_place() {
-	new_test_ext().execute_with(|| {
-		// GIVEN a treasury pot its hook marked inactive, and a router that refuses everything.
-		inactive_treasury();
-		at_sweep();
-		SendFails::set(true);
-
-		// WHEN the stage runs. THEN the mark is rolled back with the burn.
-		run_blocks(1);
-		assert_stage(Stage::Sweep);
-		assert_eq!(pallet_treasury::Deactivated::<Test>::get(), 1_000 - ED);
-		assert_eq!(inactive_issuance(), 1_000 - ED + 50);
-
-		// WHEN the router recovers. THEN the next block sweeps it and undoes the mark.
-		SendFails::set(false);
-		run_blocks(1);
-		assert_stage(Stage::SweepDust { last_key: None });
-		assert_eq!(inactive_issuance(), 50);
-	});
-}
-
-#[test]
-fn a_pot_that_cannot_be_emptied_is_left_as_it_was_and_reported() {
-	new_test_ext().execute_with(|| {
-		// GIVEN a pot whose hold record says more than it has reserved, so the hold cannot be
-		// released, and a pot that can be emptied.
-		let stuck = pallet_account();
-		fund(&stuck, 100);
-		stray_hold(&stuck, 7);
-		pallet_balances::Holds::<Test>::mutate(&stuck, |holds| holds[0].amount = 50);
+		// GIVEN a pot whose hold record says more than it has reserved, and a plain pot.
+		let pot = pallet_account();
+		fund(&pot, 100);
+		stray_hold(&pot, 7);
+		pallet_balances::Holds::<Test>::mutate(&pot, |holds| holds[0].amount = 50);
 		fund(&other_pot(), 250);
 		at_sweep();
 
 		// WHEN the stage runs.
 		run_blocks(1);
 
-		// THEN the stuck pot is left exactly as it was and reported, and the other one is swept.
+		// THEN both are emptied. What the pot's balance says it holds is burned, and the wrong
+		// hold record is removed with it.
 		assert_stage(Stage::SweepDust { last_key: None });
-		assert_eq!(frame_system::Account::<Test>::get(&stuck).data.total(), 100);
-		assert_eq!(pallet_balances::Holds::<Test>::get(&stuck)[0].amount, 50);
-		assert!(System::events().iter().any(|record| matches!(
-			&record.event,
-			RuntimeEvent::Rc2Migrator(Event::PotNotSwept { who, .. }) if *who == stuck
-		)));
-		assert_eq!(swept_events(), vec![(other_pot(), 250)]);
-		assert_eq!(sent(), vec![teleport_to_beneficiary(250)]);
-		// AND what the stuck pot holds is still counted as kept here.
+		assert_eq!(swept_events(), vec![(pot.clone(), 100), (other_pot(), 250)]);
+		assert!(!frame_system::Account::<Test>::contains_key(&pot), "the pot is reaped");
+		assert!(pallet_balances::Holds::<Test>::get(&pot).is_empty());
+		assert_eq!(sent(), vec![teleport_to_beneficiary(350)]);
 		assert_eq!(
 			RcMigratedBalance::<Test>::get(),
-			MigratedBalances { kept: 100, ah_free: 250, ..Default::default() }
+			MigratedBalances { kept: 0, ah_free: 350, ..Default::default() }
 		);
-		assert_eq!(total_issuance(), 100);
+		assert_eq!(total_issuance(), 0);
+	});
+}
+
+/// Give `who` two provider references from other pallets, as the on-demand pallet gives its pot
+/// one. With them, the balances pallet lets the free balance fall below the existential deposit
+/// while something is held or reserved.
+fn kept_alive_by_other_pallets(who: &AccountId) {
+	frame_system::Pallet::<Test>::inc_providers(who);
+	frame_system::Pallet::<Test>::inc_providers(who);
+}
+
+/// Burn `amount` of `who`'s free balance through the balances pallet.
+fn spend(who: &AccountId, amount: u128) {
+	<Balances as Mutate<AccountId>>::burn_from(
+		who,
+		amount,
+		Preservation::Expendable,
+		Precision::Exact,
+		Fortitude::Polite,
+	)
+	.expect("can spend");
+}
+
+/// `(free, reserved, frozen)` of `who`, and its `(providers, consumers)`.
+fn balance_and_refs(who: &AccountId) -> ((u128, u128, u128), (u32, u32)) {
+	let account = frame_system::Account::<Test>::get(who);
+	(
+		(account.data.free, account.data.reserved, account.data.frozen),
+		(account.providers, account.consumers),
+	)
+}
+
+#[test]
+fn a_pot_whose_hold_the_balances_pallet_will_not_release_is_still_emptied() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a pot with nothing free and less than the existential deposit on hold.
+		let pot = pallet_account();
+		kept_alive_by_other_pallets(&pot);
+		fund(&pot, 18);
+		stray_hold(&pot, 8);
+		spend(&pot, 10);
+		assert_eq!((free(&pot), held(&pot)), (0, 8));
+		// AND the balances pallet refuses to release that hold, because the free balance would
+		// stay below the existential deposit.
+		assert!(frame_support::hypothetically!(<Balances as MutateHold<AccountId>>::release(
+			&PreimageHoldReason::get(),
+			&pot,
+			8,
+			Precision::Exact,
+		))
+		.is_err());
+		at_sweep();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN the pot is emptied, and all of it is recorded and teleported.
+		assert_stage(Stage::SweepDust { last_key: None });
+		assert_eq!(swept_events(), vec![(pot.clone(), 8)]);
+		assert_eq!(sent(), vec![teleport_to_beneficiary(8)]);
+		assert!(pallet_balances::Holds::<Test>::get(&pot).is_empty());
+		assert_eq!(
+			RcMigratedBalance::<Test>::get(),
+			MigratedBalances { kept: 0, ah_free: 8, ..Default::default() }
+		);
+		assert_eq!(total_issuance(), 0);
+		// AND the record stays for the other pallets, without the balances pallet's reference.
+		assert_eq!(balance_and_refs(&pot), ((0, 0, 0), (2, 0)));
+	});
+}
+
+#[test]
+fn a_pot_below_the_existential_deposit_is_swept_not_lost_as_dust() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a pot whose free balance and reserve add up to less than the existential deposit.
+		let pot = pallet_account();
+		kept_alive_by_other_pallets(&pot);
+		fund(&pot, 15);
+		<Balances as ReservableCurrency<AccountId>>::reserve(&pot, 8).unwrap();
+		spend(&pot, 6);
+		assert_eq!(balance_and_refs(&pot).0, (1, 8, 0));
+		// AND unreserving through the balances pallet would destroy all of it as dust, without
+		// this pallet recording it.
+		assert_eq!(
+			frame_support::hypothetically!({
+				<Balances as ReservableCurrency<AccountId>>::unreserve(&pot, 8);
+				total_issuance()
+			}),
+			0
+		);
+		at_sweep();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN all of it is recorded and teleported.
+		assert_stage(Stage::SweepDust { last_key: None });
+		assert_eq!(swept_events(), vec![(pot.clone(), 9)]);
+		assert_eq!(sent(), vec![teleport_to_beneficiary(9)]);
+		assert_eq!(
+			RcMigratedBalance::<Test>::get(),
+			MigratedBalances { kept: 0, ah_free: 9, ..Default::default() }
+		);
+		assert_eq!(total_issuance(), 0);
+		assert_eq!(balance_and_refs(&pot), ((0, 0, 0), (2, 0)));
 	});
 }

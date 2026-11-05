@@ -250,6 +250,8 @@ fn next_block_rc_with(inbound: InboundMessages) {
 		let weight = <network::relay::MessageQueue as OnInitialize<_>>::on_initialize(now);
 		let weight = weight
 			.saturating_add(<network::relay::Rc2Migrator as OnInitialize<_>>::on_initialize(now));
+		let weight = weight
+			.saturating_add(<network::relay::Treasury as OnInitialize<_>>::on_initialize(now));
 		<network::relay::MessageQueue as OnFinalize<_>>::on_finalize(now);
 		// The timestamp inherent is an extrinsic, so it lands after `on_initialize`: a block's
 		// hooks see the previous block's clock.

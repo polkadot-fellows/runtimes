@@ -218,11 +218,10 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		last_key: Option<HrmpChannelId>,
 	},
 	HrmpDone,
-	/// Sweep the pallet accounts in [`Config::SweptAccounts`]. Release their holds and reserves,
-	/// remove their locks and freezes, and teleport their balances to [`Config::SweepBeneficiary`]
-	/// on Asset Hub in one message. A pot that cannot be swept is left unchanged and reported with
-	/// [`Event::PotNotSwept`]. A failed send rolls back the stage and is retried in the next
-	/// block.
+	/// Sweep the pallet accounts in [`Config::SweptAccounts`]. Burn everything each one holds,
+	/// including its holds, reserves, locks and freezes, and teleport the total to
+	/// [`Config::SweepBeneficiary`] on Asset Hub in one message. A failed send rolls back the
+	/// stage and is retried in the next block.
 	Sweep,
 	/// Reap the accounts left below the existential deposit, and the zero-balance husks.
 	///
@@ -314,8 +313,7 @@ pub mod pallet {
 			ProxyType: TryInto<PortableProxyType>,
 		> + pallet_multisig::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_preimage::Config
-		// `AccountsInit` stops the treasury spending, and Sweep clears its inactive-issuance record
-		// when it burns the pot's balance.
+		// `AccountsInit` stops the treasury spending.
 		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>>
 	{
 		/// The overarching event type.
@@ -355,7 +353,7 @@ pub mod pallet {
 		/// Calls that are allowed after the migration finished.
 		type PostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
-		/// The chain's pots. The accounts stage leaves them alone; Sweep attempts each one in turn.
+		/// The chain's pots. The accounts stage leaves them alone; Sweep empties each one in turn.
 		type SweptAccounts: Get<Vec<Self::AccountId>>;
 
 		/// The account on Asset Hub that receives swept pot balances and the portion of Asset Hub's
@@ -497,10 +495,8 @@ pub mod pallet {
 		/// A pot was emptied. Its balance is sent to the sweep beneficiary with the other swept
 		/// balances.
 		PotSwept { who: T::AccountId, amount: u128 },
-		/// A pot could not be emptied and was left as it was. Rewind to `Sweep` to retry it.
-		PotNotSwept { who: T::AccountId, error: DispatchError },
 		/// Unclaimed on-demand revenue was cleared from the on-demand pallet's record. `pot` is
-		/// the pot's balance at that point; Sweep attempts to empty it later.
+		/// the pot's balance at that point; Sweep empties it later.
 		OnDemandRevenueCleared { amount: u128, pot: u128 },
 	}
 
@@ -995,12 +991,11 @@ pub mod pallet {
 		/// `RcMigratedBalance`, so `kept` could exceed total issuance or balance could reach
 		/// accounts already migrated. Setting `LastSpendPeriod` to the highest block number stops
 		/// further spend periods unless the value is changed again. Removing it would not work:
-		/// the hook sets it again when missing. The rest of the hook keeps running, including the
-		/// inactive-issuance record (`Deactivated`) that Sweep relies on.
+		/// the hook sets it again when missing. The rest of the hook keeps running.
 		///
 		/// The migration does not restore the value afterwards. AHM v1 moved the treasury's
 		/// proposals, spends and bounties to Asset Hub, and the runtime's `PostAhmFilter` blocks
-		/// ordinary Treasury and Bounties calls. Sweep also attempts to empty the pot. Restoring
+		/// ordinary Treasury and Bounties calls. Sweep also empties the pot. Restoring
 		/// the value would allow a later spend period to burn or move any funds that reach it.
 		fn stop_treasury_spending() {
 			pallet_treasury::LastSpendPeriod::<T>::put(
@@ -1008,8 +1003,8 @@ pub mod pallet {
 			);
 		}
 
-		/// Burn the sweepable pot balances, record the total as moved to Asset Hub, and send it to
-		/// the sweep beneficiary there. Failed pots remain unchanged and are reported separately.
+		/// Burn the pots, record the total as moved to Asset Hub, and send it to the sweep
+		/// beneficiary there.
 		///
 		/// The caller runs it in a storage transaction, so an `Err` rolls the burns back too.
 		fn sweep_pots() -> Result<(), DispatchError> {

@@ -18,110 +18,84 @@
 //!
 //! The accounts stage leaves the pots in [`Config::SweptAccounts`] for Sweep. Sweep burns each
 //! pot's balance on the Relay Chain and teleports the total to [`Config::SweepBeneficiary`] on
-//! Asset Hub. If a pot cannot be swept, its changes are rolled back and [`Event::PotNotSwept`]
-//! is emitted. The other pots are still processed.
+//! Asset Hub. Burning a pot cannot fail, so every pot ends empty.
 //!
-//! Sweep attempts the whole list in one block. If sending the teleport fails, the entire stage
+//! Sweep handles the whole list in one block. If sending the teleport fails, the entire stage
 //! is rolled back and retried in the next block.
 
 #[cfg(test)]
 mod tests;
 
-use crate::{accounts::AccountsMigrator, Config, Error, Event, Pallet, LOG_TARGET};
+use crate::{Config, Event, Pallet};
 use core::marker::PhantomData;
-use frame_support::{
-	defensive_assert, ensure,
-	storage::with_storage_layer,
-	traits::{
-		fungible::{Mutate, Unbalanced},
-		tokens::{Fortitude, Precision, Preservation},
-		Get, ReservableCurrency,
-	},
-};
-use sp_runtime::{traits::Zero, DispatchError};
+use frame_support::traits::{fungible::Inspect, Get};
+use sp_runtime::traits::Zero;
 
 type NativeCurrency<T> = pallet_balances::Pallet<T>;
 
 pub struct SweepMigrator<T>(PhantomData<T>);
 
 impl<T: Config> SweepMigrator<T> {
-	/// Attempt to burn the balance of each pot. Return the total burned for the caller to record
-	/// and teleport.
-	///
-	/// Each pot is processed in its own storage transaction. A failure leaves the pot unchanged
-	/// and emits [`Event::PotNotSwept`]; the other pots are still processed.
+	/// Burn every pot. Return the total burned for the caller to record and teleport.
 	pub fn burn_pots() -> u128 {
-		let mut total = 0u128;
-		for pot in T::SweptAccounts::get() {
-			match with_storage_layer(|| Self::burn_pot(&pot)) {
-				Ok(amount) if amount.is_zero() => (),
-				Ok(amount) => {
-					total = total.saturating_add(amount);
-					Pallet::<T>::deposit_event(Event::PotSwept { who: pot, amount });
-				},
-				Err(error) => {
-					log::error!(target: LOG_TARGET, "Pot {pot:?} not swept: {error:?}");
-					Pallet::<T>::deposit_event(Event::PotNotSwept { who: pot, error });
-				},
-			}
+		T::SweptAccounts::get()
+			.iter()
+			.map(Self::burn_pot)
+			.fold(0u128, |total, burned| total.saturating_add(burned))
+	}
+
+	/// Burn everything `pot` holds and return the amount.
+	///
+	/// The pot is emptied by writing its storage directly, not through the balances pallet. The
+	/// balances pallet refuses to release a hold if the free balance would stay below the
+	/// existential deposit, and destroys a balance below it as dust without this pallet recording
+	/// it. Writing the storage directly cannot fail and creates no dust.
+	///
+	/// The empty account is removed, unless another pallet still references it or provides for
+	/// it, as the on-demand pallet does for its pot. It then stays as a record with no balance.
+	fn burn_pot(pot: &T::AccountId) -> u128 {
+		if !frame_system::Account::<T>::contains_key(pot) {
+			return 0;
 		}
+		// All of a pot goes to the beneficiary: its reserves, holds, locks and freezes are burned
+		// with its free balance. They do not go to the Coretime chain as holds, as an account's
+		// deposits do in the accounts stage.
+
+		// The reference counts below follow the balances pallet's current rules. This brings an
+		// account it has not touched since those rules came in up to date. It cannot fail.
+		NativeCurrency::<T>::ensure_upgraded(pot);
+		let balance = frame_system::Account::<T>::get(pot).data;
+		let total = balance.free.saturating_add(balance.reserved);
+		// The balances pallet holds a provider reference while the free balance is at least the
+		// existential deposit, and one consumer reference while anything is reserved or frozen.
+		let balances_provides =
+			balance.free >= <NativeCurrency<T> as Inspect<T::AccountId>>::minimum_balance();
+		let balances_consumes = !balance.reserved.is_zero() || !balance.frozen.is_zero();
+
+		// empty the pot and its balance records, and burn what it held
+		frame_system::Account::<T>::mutate(pot, |account| {
+			account.data.free = Zero::zero();
+			account.data.reserved = Zero::zero();
+			account.data.frozen = Zero::zero();
+		});
+		pallet_balances::Holds::<T>::remove(pot);
+		pallet_balances::Reserves::<T>::remove(pot);
+		pallet_balances::Locks::<T>::remove(pot);
+		pallet_balances::Freezes::<T>::remove(pot);
+		pallet_balances::TotalIssuance::<T>::mutate(|issuance| {
+			*issuance = issuance.saturating_sub(total)
+		});
+
+		// drop the balances pallet's references; dropping the last provider removes the account
+		if balances_consumes {
+			frame_system::Pallet::<T>::dec_consumers(pot);
+		}
+		if balances_provides {
+			// fails only if another pallet still references the account, which then stays
+			let _ = frame_system::Pallet::<T>::dec_providers(pot);
+		}
+
+		Pallet::<T>::deposit_event(Event::PotSwept { who: pot.clone(), amount: total });
 		total
-	}
-
-	/// Burn the pot's entire balance and return the amount. First release holds and reserves and
-	/// remove locks and freezes.
-	///
-	/// The empty account is removed unless it still has a consumer reference, like a validator's
-	/// account in the accounts stage, or a provider reference, like the on-demand pallet's pot.
-	fn burn_pot(pot: &T::AccountId) -> Result<u128, DispatchError> {
-		// All of a pot goes to the beneficiary: its reserves, holds, locks and freezes are released
-		// and burned with its free balance. They do not go to the Coretime chain as holds, as an
-		// account's deposits do in the accounts stage.
-		// release everything, so the whole balance is free
-		AccountsMigrator::<T>::release_holds(pot)?;
-		let reserved = frame_system::Account::<T>::get(pot).data.reserved;
-		let not_released = NativeCurrency::<T>::unreserve(pot, reserved);
-		ensure!(not_released.is_zero(), Error::<T>::FailedToWithdrawAccount);
-		AccountsMigrator::<T>::release_locks(pot)?;
-
-		// burn; a release may have dropped a consumer ref, so read the account again
-		let account = frame_system::Account::<T>::get(pot);
-		defensive_assert!(
-			account.data.reserved.is_zero() && account.data.frozen.is_zero(),
-			"everything was released"
-		);
-		let total = account.data.free;
-		if total.is_zero() {
-			// nothing to burn
-		} else if account.consumers != 0 {
-			AccountsMigrator::<T>::drain_to_shell(pot, total);
-		} else {
-			NativeCurrency::<T>::burn_from(
-				pot,
-				total,
-				Preservation::Expendable,
-				Precision::Exact,
-				Fortitude::Polite,
-			)?;
-		}
-
-		// the pot is empty now
-		if *pot == pallet_treasury::Pallet::<T>::account_id() {
-			Self::reactivate_treasury();
-		}
-		Ok(total)
-	}
-
-	/// Reactivate the amount recorded by the treasury after burning its pot's balance.
-	///
-	/// The treasury marks its pot, the free balance less the existential deposit, as inactive
-	/// issuance and records the amount in `Deactivated`. Inactive issuance is excluded from the
-	/// active issuance used to calculate referendum support. When the pot changes, the treasury
-	/// hook reactivates the old amount and deactivates the new one. Clearing the record prevents
-	/// the hook from reactivating it again. The recorded amount can differ from the burned balance,
-	/// which may include the existential deposit.
-	fn reactivate_treasury() {
-		let deactivated = pallet_treasury::Deactivated::<T>::take();
-		<NativeCurrency<T> as Unbalanced<T::AccountId>>::reactivate(deactivated);
 	}
 }

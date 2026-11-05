@@ -85,7 +85,8 @@ impl RcMigrationCheck for SweepChecker {
 			assert_eq!(total::<Rc>(pot), 0, "pot {pot:?} should be empty");
 		}
 
-		// The treasury's mark is undone and its record cleared; no other inactive issuance moved.
+		// Once its pot is empty, the treasury's hook undoes its mark and clears its record. No
+		// other inactive issuance moved.
 		assert_eq!(pallet_treasury::Deactivated::<Rc>::get(), 0);
 		assert_eq!(
 			pallet_balances::InactiveIssuance::<Rc>::get(),

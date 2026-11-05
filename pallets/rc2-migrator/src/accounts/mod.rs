@@ -494,7 +494,7 @@ impl<T: Config> AccountsMigrator<T> {
 
 	/// Release every named hold on `who`. Preimage deposits went through their pallet when the
 	/// stage started; anything else is a leftover of AHM v1 and leaves as free balance.
-	pub(crate) fn release_holds(who: &T::AccountId) -> DispatchResult {
+	fn release_holds(who: &T::AccountId) -> DispatchResult {
 		for hold in pallet_balances::Holds::<T>::get(who) {
 			NativeCurrency::<T>::release(&hold.id, who, hold.amount, Precision::Exact)?;
 		}
@@ -503,7 +503,7 @@ impl<T: Config> AccountsMigrator<T> {
 
 	/// Release every lock and freeze on `who`. The pallets that set them left in AHM v1; the
 	/// balance leaves as free.
-	pub(crate) fn release_locks(who: &T::AccountId) -> DispatchResult {
+	fn release_locks(who: &T::AccountId) -> DispatchResult {
 		for lock in pallet_balances::Locks::<T>::get(who) {
 			NativeCurrency::<T>::remove_lock(lock.id, who);
 		}
@@ -516,7 +516,7 @@ impl<T: Config> AccountsMigrator<T> {
 	/// An account another pallet references (a validator's session keys): the record stays as a
 	/// zero-balance shell, the balance leaves like any other. The fungible API would keep the
 	/// existential deposit of an account it cannot reap, so the balance is written directly.
-	pub(crate) fn drain_to_shell(who: &T::AccountId, amount: u128) {
+	fn drain_to_shell(who: &T::AccountId, amount: u128) {
 		frame_system::Account::<T>::mutate(who, |a| {
 			defensive_assert!(a.data.free == amount, "drained what the caller read");
 			a.data.free = 0;
