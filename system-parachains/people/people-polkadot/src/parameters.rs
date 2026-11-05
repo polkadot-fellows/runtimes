@@ -14,6 +14,7 @@ use indiv_support::parameters::{
 	AtLeast, AtLeastOne, AtMost, BenchmarkMax, StatementAllowanceGetter,
 };
 use polkadot_runtime_constants::system_parachain::BULLETIN_ID;
+use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::{Location, Parachain};
 
 const SECONDS_PER_DAY: u32 = 24 * 60 * 60;
@@ -99,14 +100,28 @@ pub mod dynamic_params {
 		pub static LitePeopleAllowanceMax: Balance = UNITS;
 		#[codec(index = 3)]
 		pub static LitePeopleAllowanceRecovery: Balance = 3 * MILLICENTS;
+		#[codec(index = 4)]
+		pub static AccountParticipantAllowanceRecovery: Balance = 3 * MILLICENTS;
 	}
 
-	/// Lite-person registration pricing.
+	/// Lite-person registration pricing, cap and throttling.
 	#[dynamic_pallet_params]
 	#[codec(index = 3)]
 	pub mod lite_personhood {
 		#[codec(index = 0)]
 		pub static RegistrationFee: Balance = 75 * UNITS;
+		/// Number of lite people from which paid registrations are throttled.
+		#[codec(index = 1)]
+		pub static PaidRegistrationThreshold: u32 = 20_000;
+		/// Length of a paid registration period in seconds.
+		#[codec(index = 2)]
+		pub static PaidRegistrationPeriod: u32 = SECONDS_PER_DAY;
+		/// Number of paid registrations accepted per period once the threshold is reached.
+		#[codec(index = 3)]
+		pub static PaidRegistrationsPerPeriod: u32 = 10;
+		/// Maximum number of lite people, attested and paid together.
+		#[codec(index = 4)]
+		pub static MaxLitePeople: u32 = 100_000;
 	}
 
 	/// Coinage deposits, both in DOT.
@@ -118,7 +133,46 @@ pub mod dynamic_params {
 		#[codec(index = 1)]
 		pub static InstanceCreationDeposit: Balance = 10 * UNITS;
 	}
+
+	/// The external asset that score payouts are denominated in.
+	#[dynamic_pallet_params]
+	#[codec(index = 5)]
+	pub mod external_asset {
+		/// Unset by default: no asset has id `Here`, so score payouts fail until governance
+		/// points this at a registered asset. Changing it while the score pot holds funds strands
+		/// those funds in the previous asset.
+		#[codec(index = 0)]
+		pub static AssetLocation: Location = Location::here();
+	}
+
+	/// People airdrop draw funding.
+	#[dynamic_pallet_params]
+	#[codec(index = 6)]
+	pub mod people_airdrops {
+		/// Account funding the prize allocation of scheduled draws. The airdrop pallet records
+		/// the source per draw at scheduling time, so an update only affects draws scheduled
+		/// after it; draws already scheduled refund to the account they were funded from.
+		#[codec(index = 0)]
+		pub static PrizeSource: sp_runtime::AccountId32 =
+			PalletId(*b"pop/pads").into_account_truncating();
+	}
+
+	/// Game airdrop funding.
+	#[dynamic_pallet_params]
+	#[codec(index = 7)]
+	pub mod game {
+		/// Account funding the airdrops of games. The airdrop pallet records the source per
+		/// event at scheduling time, so an update only affects airdrops scheduled after it.
+		#[codec(index = 0)]
+		pub static AirdropSource: sp_runtime::AccountId32 =
+			PalletId(*b"pop/gads").into_account_truncating();
+	}
 }
+
+/// Any account is a valid prize source, so the value is read unclamped.
+pub type PeopleAirdropsPrizeSource = dynamic_params::people_airdrops::PrizeSource;
+/// Any account is a valid airdrop source, so the value is read unclamped.
+pub type GameAirdropSource = dynamic_params::game::AirdropSource;
 
 pub type LitePersonStatementLimit =
 	StatementAllowanceGetter<dynamic_params::statement_storage::LitePersonStatementLimit>;
@@ -193,9 +247,26 @@ pub type LitePeopleAllowanceRecovery = AtLeast<
 	dynamic_params::origin_restriction::LitePeopleAllowanceRecovery,
 	frame_support::traits::ConstU128<1>,
 >;
+pub type AccountParticipantAllowanceRecovery = AtLeast<
+	dynamic_params::origin_restriction::AccountParticipantAllowanceRecovery,
+	frame_support::traits::ConstU128<1>,
+>;
 
 pub type LitePersonRegistrationFee =
 	AtLeast<dynamic_params::lite_personhood::RegistrationFee, ExistentialDeposit>;
+
+/// Maximum number of lite people. Any value is valid; zero stops every lite registration.
+pub type MaxLitePeople = dynamic_params::lite_personhood::MaxLitePeople;
+
+/// Lite people count from which paid registrations are throttled. Any value is valid.
+pub type LitePaidRegistrationThreshold = dynamic_params::lite_personhood::PaidRegistrationThreshold;
+
+/// Paid lite registration period. Zero disables the paid registration throttling.
+pub type LitePaidRegistrationPeriod = dynamic_params::lite_personhood::PaidRegistrationPeriod;
+
+/// Paid lite registrations per period. Zero stops paid registrations beyond the threshold.
+pub type LitePaidRegistrationsPerPeriod =
+	dynamic_params::lite_personhood::PaidRegistrationsPerPeriod;
 
 /// Coinage load deposit price, kept non-zero so sponsored loads always take some collateral (the
 /// pallet's integrity test requires it).
@@ -216,8 +287,10 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		use dynamic_params::{
 			bulletin_storage::ParametersKey as BulletinStorageKey,
 			coinage::ParametersKey as CoinageKey,
+			external_asset::ParametersKey as ExternalAssetKey, game::ParametersKey as GameKey,
 			lite_personhood::ParametersKey as LitePersonhoodKey,
 			origin_restriction::ParametersKey as OriginRestrictionKey,
+			people_airdrops::ParametersKey as PeopleAirdropsKey,
 			statement_storage::ParametersKey as StatementStorageKey,
 		};
 
@@ -244,21 +317,32 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				OriginRestrictionKey::PeopleIdentityAndAliasAllowanceMax(_) |
 				OriginRestrictionKey::PeopleIdentityAndAliasAllowanceRecovery(_) |
 				OriginRestrictionKey::LitePeopleAllowanceMax(_) |
-				OriginRestrictionKey::LitePeopleAllowanceRecovery(_),
+				OriginRestrictionKey::LitePeopleAllowanceRecovery(_) |
+				OriginRestrictionKey::AccountParticipantAllowanceRecovery(_),
 			) |
-			RuntimeParametersKey::LitePersonhood(LitePersonhoodKey::RegistrationFee(_)) =>
-				<RootOrTechnicalMaintenance as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
-					origin.clone(),
-				)
-				.map(|_| ()),
-			// Where the chain sends data, and what coinage costs.
+			RuntimeParametersKey::LitePersonhood(
+				LitePersonhoodKey::RegistrationFee(_) |
+				LitePersonhoodKey::PaidRegistrationThreshold(_) |
+				LitePersonhoodKey::PaidRegistrationPeriod(_) |
+				LitePersonhoodKey::PaidRegistrationsPerPeriod(_) |
+				LitePersonhoodKey::MaxLitePeople(_),
+			) => <RootOrTechnicalMaintenance as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
+				origin.clone(),
+			)
+			.map(|_| ()),
+			// Where the chain sends data, what coinage costs, what score pays out in, and which
+			// account funds airdrop prizes.
 			RuntimeParametersKey::BulletinStorage(
 				BulletinStorageKey::BulletinChainLocation(_) |
 				BulletinStorageKey::BulletinTransactionStoragePalletIndex(_),
 			) |
 			RuntimeParametersKey::Coinage(
 				CoinageKey::LoadDepositPrice(_) | CoinageKey::InstanceCreationDeposit(_),
-			) => frame_system::ensure_root(origin.clone()),
+			) |
+			RuntimeParametersKey::ExternalAsset(ExternalAssetKey::AssetLocation(_)) |
+			RuntimeParametersKey::PeopleAirdrops(PeopleAirdropsKey::PrizeSource(_)) |
+			RuntimeParametersKey::Game(GameKey::AirdropSource(_)) =>
+				frame_system::ensure_root(origin.clone()),
 		}
 		.map_err(|_| origin)
 	}

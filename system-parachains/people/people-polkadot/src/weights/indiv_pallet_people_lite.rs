@@ -305,4 +305,20 @@ impl<T: frame_system::Config> indiv_pallet_people_lite::WeightInfo for WeightInf
 			.saturating_add(Weight::from_parts(0, 1486))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
+	/// Storage: UNKNOWN KEY `0x276fc15f94f88f19ef554a8ff43748554e7b9012096b41c4eb3aaf947f6ea429` (r:1 w:0)
+	/// Proof: UNKNOWN KEY `0x276fc15f94f88f19ef554a8ff43748554e7b9012096b41c4eb3aaf947f6ea429` (r:1 w:0)
+	/// Storage: `PeopleLite::LitePeople` (r:1 w:0)
+	/// Proof: `PeopleLite::LitePeople` (`max_values`: None, `max_size`: Some(113), added: 2588, mode: `MaxEncodedLen`)
+	/// Storage: `PeopleLite::CounterForLitePeople` (r:1 w:1)
+	/// Proof: `PeopleLite::CounterForLitePeople` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	fn migrate_v1_step() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `108`
+		//  Estimated: `3578`
+		// Minimum execution time: 8_129_000 picoseconds.
+		Weight::from_parts(8_787_000, 0)
+			.saturating_add(Weight::from_parts(0, 3578))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }
