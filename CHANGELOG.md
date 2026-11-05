@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Update all runtimes to `polkadot-sdk` `stable2606-5` (PR TBD).
+- Update all runtimes to `polkadot-sdk` `stable2606-5`.
+- Update Individuality pallets from [`e69b079e`](https://github.com/paritytech/individuality-community/commit/e69b079ef93b6b0224ca81b96d4385f6dd4c8e22) to [`sdk-2606-5-3004004`](https://github.com/paritytech/individuality-community/tree/sdk-2606-5-3004004), which updates them to `polkadot-sdk` `stable2606-5`.
 
 ### Fixed
 
