@@ -74,10 +74,9 @@ impl<T: Config> SweepMigrator<T> {
 	/// The empty account is removed unless it still has a consumer reference, like a validator's
 	/// account in the accounts stage, or a provider reference, like the on-demand pallet's pot.
 	fn burn_pot(pot: &T::AccountId) -> Result<u128, DispatchError> {
-		// TODO(ahm-v2): decide how to handle a pot's reserves, holds, locks and freezes. For now,
-		// Sweep releases or removes them and sends the full balance to the beneficiary. The
-		// accounts stage instead sends reserves without a deposit record to the Coretime chain as
-		// holds for governance to review.
+		// All of a pot goes to the beneficiary: its reserves, holds, locks and freezes are released
+		// and burned with its free balance. They do not go to the Coretime chain as holds, as an
+		// account's deposits do in the accounts stage.
 		// release everything, so the whole balance is free
 		AccountsMigrator::<T>::release_holds(pot)?;
 		let reserved = frame_system::Account::<T>::get(pot).data.reserved;
