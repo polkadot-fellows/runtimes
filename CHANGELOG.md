@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Asset Hub Polkadot and Kusama: the Fellowship controls the `Scheduler` and `MessageQueue` technical parameters ([#1346](https://github.com/polkadot-fellows/runtimes/pull/1346)).
+
 ### Fixed
 
 - Asset Hub Polkadot and Kusama: `NonTransfer` proxies can call `CollatorSelection` again, as on the other system parachains. It was unintentionally dropped from the allowlist while `NonTransfer` still claimed to be a superset of `Collator` ([#1341](https://github.com/polkadot-fellows/runtimes/pull/1341)).
