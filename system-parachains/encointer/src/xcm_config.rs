@@ -16,9 +16,9 @@
 //! Almost identical to ../asset-hubs/asset-hub-kusama
 
 use super::{
-	AccountId, Balance, Balances, CollatorSelection, FeeAssetId, ParachainInfo, ParachainSystem,
-	PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
-	ToParentBaseDeliveryFee, TransactionByteFee, WeightToFee, XcmpQueue,
+	AccountId, AccumulateForward, Balance, Balances, CollatorSelection, FeeAssetId, ParachainInfo,
+	ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason,
+	RuntimeOrigin, ToParentBaseDeliveryFee, TransactionByteFee, WeightToFee, XcmpQueue,
 };
 use frame_support::{
 	parameter_types,
@@ -30,11 +30,12 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use pallet_xcm::{AuthorizedAliasers, XcmPassthrough};
 use parachains_common::xcm_config::{
-	AliasAccountId32FromSiblingSystemChain, ConcreteAssetFromSystem, ParentRelayOrSiblingParachains,
+	AliasAccountId32FromSiblingSystemChain, AllSiblingSystemParachains, ConcreteAssetFromSystem,
+	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-
 use sp_core::ConstU32;
+use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -42,10 +43,10 @@ use xcm_builder::{
 	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
 	DescribeAllTerminal, DescribeFamily, DescribeTerminus, EnsureXcmOrigin,
 	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsConcrete,
-	LocationAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId, UsingComponents,
-	WeightInfoBounds, WithComputedOrigin,
+	LocationAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
+	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
+	UsingComponents, WeightInfoBounds, WithComputedOrigin, XcmFeeManagerFromComponents,
 };
 use xcm_executor::XcmExecutor;
 
@@ -54,6 +55,7 @@ pub use system_parachains_constants::kusama::locations::{
 };
 
 parameter_types! {
+	pub const RootLocation: Location = Location::here();
 	pub const KsmLocation: Location = Location::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
@@ -61,7 +63,13 @@ parameter_types! {
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub UniversalLocation: InteriorLocation =
 	[GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into())].into();
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	// TODO: replace this with DAP account (for collecting fees) #1137
+	pub TreasuryAccount: AccountId = parachains_common::TREASURY_PALLET_ID.into_account_truncating();
+	/// The `pallet-accumulate-and-forward` account, as a local location.
+	pub AccumulateForwardLocation: Location =
+		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
 
 /// Type for specifying how a `Location` can be converted into an `AccountId`.
@@ -149,12 +157,17 @@ pub type Barrier = TrailingSetTopicAsId<
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					// Parent, its pluralities (i.e. governance bodies), parent's treasury and
 					// sibling bridge hub get free execution.
-					AllowExplicitUnpaidExecutionFrom<(
-						ParentOrParentsPlurality,
-						// For OpenGov on AH
-						Equals<AssetHubLocation>,
-						AssetHubPlurality,
-					)>,
+					AllowExplicitUnpaidExecutionFrom<
+						(
+							ParentOrParentsPlurality,
+							// For OpenGov on AH
+							Equals<AssetHubLocation>,
+							AssetHubPlurality,
+						),
+						// Barriers run before any fee is taken: this must stay computation-only.
+						// Do not pass `TrustedAliasers` here.
+						CheapTrustedAliasers,
+					>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
 				),
@@ -170,22 +183,38 @@ parameter_types! {
 	pub const KsmRelayLocation: Location = Location::parent();
 }
 
+/// Locations that will not be charged fees in the executor, neither for execution nor delivery. We
+/// only waive fees for system functions, which these locations represent.
+pub type WaivedLocations = (
+	Equals<RootLocation>,
+	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
+	Equals<AccumulateForwardLocation>,
+);
+
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
 /// - KSM with the parent Relay Chain and sibling parachains.
 pub type TrustedTeleporters = ConcreteAssetFromSystem<KsmRelayLocation>;
 
-/// Defines origin aliasing rules for this chain.
+/// Aliasing rules that are pure computation, so the `AllowExplicitUnpaidExecutionFrom` barrier can
+/// evaluate them before any fee is charged.
+///
+/// Do not add storage-reading filters here: the barrier calls this once per `AliasOrigin` (up to 5)
+/// on keys the message chooses, and may then reject the message without taking a fee. That is why
+/// `AuthorizedAliasers` belongs to [`TrustedAliasers`] alone.
 ///
 /// - Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
 /// - Allow same accounts to alias into each other across system chains,
-/// - Allow AssetHub root to alias into anything,
-/// - Allow origins explicitly authorized to alias into target location.
-pub type TrustedAliasers = (
+/// - Allow AssetHub root to alias into anything.
+pub type CheapTrustedAliasers = (
 	AliasChildLocation,
 	AliasAccountId32FromSiblingSystemChain,
 	AliasOriginRootUsingFilter<AssetHubLocation, Everything>,
-	AuthorizedAliasers<Runtime>,
 );
+
+/// Defines origin aliasing rules for this chain, used by `xcm_executor::Config::Aliasers` at
+/// execution time: everything in [`CheapTrustedAliasers`], plus origins explicitly authorized by
+/// the alias target location.
+pub type TrustedAliasers = (CheapTrustedAliasers, AuthorizedAliasers<Runtime>);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -204,7 +233,7 @@ impl xcm_executor::Config for XcmConfig {
 		MaxInstructions,
 	>;
 	type Trader = UsingComponents<
-		WeightToFee,
+		WeightToFee<Runtime>,
 		KsmLocation,
 		AccountId,
 		Balances,
@@ -212,13 +241,15 @@ impl xcm_executor::Config for XcmConfig {
 	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
-	type AssetClaims = PolkadotXcm;
 	type SubscriptionService = PolkadotXcm;
 	type PalletInstancesInfo = crate::AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type AssetLocker = ();
 	type AssetExchanger = ();
-	type FeeManager = ();
+	type FeeManager = XcmFeeManagerFromComponents<
+		WaivedLocations,
+		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
+	>;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
@@ -293,7 +324,7 @@ impl pallet_xcm::Config for Runtime {
 	type UniversalLocation = UniversalLocation;
 	type MaxRemoteLockConsumers = ConstU32<0>;
 	type RemoteLockConsumerIdentifier = ();
-	// xcm_executor::Config::Aliasers uses pallet_xcm::AuthorizedAliasers.
+	// xcm_executor::Config::Aliasers includes pallet_xcm::AuthorizedAliasers.
 	type AuthorizedAliasConsideration = HoldConsideration<
 		AccountId,
 		Balances,

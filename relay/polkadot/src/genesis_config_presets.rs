@@ -90,13 +90,15 @@ fn testnet_accounts() -> Vec<AccountId> {
 }
 
 fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primitives::BlockNumber> {
-	use polkadot_primitives::{MAX_CODE_SIZE, MAX_POV_SIZE};
+	use polkadot_primitives::MAX_POV_SIZE;
 
 	runtime_parachains::configuration::HostConfiguration {
 		validation_upgrade_cooldown: 2u32,
 		validation_upgrade_delay: 2,
 		code_retention_period: 1200,
-		max_code_size: MAX_CODE_SIZE,
+		// Keep below the 5 MiB block length so code-upgrade benchmarks aren't filtered as
+		// oversized. TODO: https://github.com/paritytech/polkadot-sdk/issues/12969
+		max_code_size: 3 * 1024 * 1024,
 		max_pov_size: MAX_POV_SIZE,
 		max_head_data_size: 32 * 1024,
 		max_upward_queue_count: 8,
@@ -119,7 +121,7 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		relay_vrf_modulo_samples: 2,
 		zeroth_delay_tranche_width: 0,
 		minimum_validation_upgrade_delay: 5,
-		scheduler_params: polkadot_primitives::SchedulerParams {
+		scheduler_params: polkadot_primitives::vstaging::SchedulerParams {
 			group_rotation_frequency: 20,
 			paras_availability_period: 4,
 			..Default::default()
@@ -139,6 +141,7 @@ fn default_parachains_host_configuration() -> HostConfiguration<polkadot_primiti
 		max_validators: None,
 		pvf_voting_ttl: 2,
 		approval_voting_params: ApprovalVotingParams { max_approval_coalesce_count: 1 },
+		max_relay_parent_session_age: 0, // to be set via ref
 	}
 }
 

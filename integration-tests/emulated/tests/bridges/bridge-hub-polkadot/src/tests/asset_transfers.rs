@@ -13,15 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::tests::*;
+use crate::{assets_balance_on, tests::*};
 use bp_bridge_hub_polkadot::snowbridge::EthereumNetwork;
 use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
 use xcm_executor::traits::ConvertLocation;
 
 fn send_assets_over_bridge<F: FnOnce()>(send_fn: F) {
-	// fund the PAH's SA on PBH for paying bridge transport fees
-	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), 10_000_000_000_000u128);
-
 	// set XCM versions
 	let local_asset_hub = PenpalB::sibling_location_of(AssetHubPolkadot::para_id());
 	PenpalB::force_xcm_version(local_asset_hub.clone(), XCM_VERSION);
@@ -42,11 +39,11 @@ fn set_up_dot_for_penpal_polkadot_through_pah_to_kah(
 ) -> (Location, Location) {
 	let dot_at_polkadot_parachains = dot_at_ah_polkadot();
 	let dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
-	create_foreign_on_ah_kusama(dot_at_asset_hub_kusama.clone(), true);
-	create_pool_with_native_on!(
+	let reserves = vec![(asset_hub_polkadot_global_location(), false).into()];
+	create_foreign_on_ah_kusama(dot_at_asset_hub_kusama.clone(), true, reserves);
+	create_foreign_pool_with_parent_native_on!(
 		AssetHubKusama,
 		dot_at_asset_hub_kusama.clone(),
-		true,
 		AssetHubKusamaSender::get()
 	);
 
@@ -74,7 +71,7 @@ fn send_assets_from_polkadot_chain_through_polkadot_ah_to_kusama_ah<F: FnOnce()>
 			assert_expected_events!(
 				AssetHubPolkadot,
 				vec![
-					RuntimeEvent::Balances(pallet_balances::Event::Minted { .. }) => {},
+					RuntimeEvent::Balances(pallet_balances::Event::Deposit { .. }) => {},
 					RuntimeEvent::XcmpQueue(
 						cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }
 					) => {},
@@ -99,11 +96,11 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	let dot_at_asset_hub_polkadot_latest: Location = dot_at_ah_polkadot();
 	let bridged_dot_at_asset_hub_kusama = bridged_dot_at_ah_kusama();
 
-	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true);
-	create_pool_with_native_on!(
+	let reserves = vec![(asset_hub_polkadot_global_location(), false).into()];
+	create_foreign_on_ah_kusama(bridged_dot_at_asset_hub_kusama.clone(), true, reserves);
+	create_foreign_pool_with_parent_native_on!(
 		AssetHubKusama,
 		bridged_dot_at_asset_hub_kusama.clone(),
-		true,
 		AssetHubKusamaSender::get()
 	);
 
@@ -142,9 +139,9 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 			AssetHubKusama,
 			vec![
 				// issue DOTs on KAH
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 					asset_id: *asset_id == bridged_dot_at_asset_hub_kusama,
-					owner: *owner == receiver,
+					who: *who == receiver,
 				},
 				// message processed successfully
 				RuntimeEvent::MessageQueue(
@@ -198,11 +195,11 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 		sender.clone(),
 		MIN_ETHER_BALANCE,
 	);
-	create_foreign_on_ah_kusama(bridged_usdt_at_asset_hub_kusama.clone(), true);
-	create_pool_with_native_on!(
+	let reserves = vec![(asset_hub_polkadot_global_location(), false).into()];
+	create_foreign_on_ah_kusama(bridged_usdt_at_asset_hub_kusama.clone(), true, reserves);
+	create_foreign_pool_with_parent_native_on!(
 		AssetHubKusama,
 		bridged_usdt_at_asset_hub_kusama.clone(),
-		true,
 		AssetHubKusamaSender::get()
 	);
 
@@ -224,21 +221,22 @@ fn send_dot_usdt_and_weth_from_asset_hub_polkadot_to_asset_hub_kusama() {
 		assets: Wild(AllCounted(assets.len() as u32)),
 		beneficiary: AccountId32Junction { network: None, id: receiver.clone().into() }.into(),
 	}]);
-	assert_ok!(AssetHubPolkadot::execute_with(|| {
-		<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
-			<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sender),
-			bx!(asset_hub_kusama_location().into()),
-			bx!(assets.into()),
-			bx!(TransferType::LocalReserve),
-			bx!(fee.into()),
-			bx!(TransferType::LocalReserve),
-			bx!(VersionedXcm::from(custom_xcm_on_dest)),
-			WeightLimit::Unlimited,
-		)
-	}));
-	// verify hops (also advances the message through the hops)
-	assert_bridge_hub_polkadot_message_accepted(true);
-	assert_bridge_hub_kusama_message_received();
+	send_assets_over_bridge(|| {
+		assert_ok!(AssetHubPolkadot::execute_with(|| {
+			<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
+				<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(sender),
+				bx!(asset_hub_kusama_location().into()),
+				bx!(assets.into()),
+				bx!(TransferType::LocalReserve),
+				bx!(fee.into()),
+				bx!(TransferType::LocalReserve),
+				bx!(VersionedXcm::from(custom_xcm_on_dest)),
+				WeightLimit::Unlimited,
+			)
+		}));
+	});
+	// Extra BHK block to flush stale XcmpQueue outbound index and deliver the real message
+	BridgeHubKusama::execute_with(|| {});
 	AssetHubKusama::execute_with(|| {
 		AssetHubKusama::assert_xcmp_queue_success(None);
 	});
@@ -265,9 +263,11 @@ fn send_back_ksm_from_asset_hub_polkadot_to_asset_hub_kusama() {
 	let bridged_ksm_at_asset_hub_polkadot_latest: Location =
 		bridged_ksm_at_asset_hub_polkadot.clone();
 	let prefund_accounts = vec![(sender.clone(), prefund_amount)];
+	let reserves = vec![(asset_hub_kusama_location(), false).into()];
 	create_foreign_on_ah_polkadot(
 		bridged_ksm_at_asset_hub_polkadot.clone(),
 		true,
+		reserves,
 		prefund_accounts,
 	);
 
@@ -310,13 +310,13 @@ fn send_back_ksm_from_asset_hub_polkadot_to_asset_hub_kusama() {
 			vec![
 				// KSM is withdrawn from PAH's SA on KAH
 				RuntimeEvent::Balances(
-					pallet_balances::Event::Burned { who, amount }
+					pallet_balances::Event::Withdraw { who, amount }
 				) => {
 					who: *who == sov_pah_on_kah,
 					amount: *amount == amount_to_send,
 				},
 				// KSMs deposited to beneficiary
-				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
+				RuntimeEvent::Balances(pallet_balances::Event::Deposit { who, .. }) => {
 					who: *who == receiver,
 				},
 				// message processed successfully
@@ -351,11 +351,11 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama()
 	let bridged_dot_at_ah_kusama_latest = bridged_dot_at_ah_kusama();
 	let bridged_dot_at_ah_kusama = bridged_dot_at_ah_kusama();
 
-	create_foreign_on_ah_kusama(bridged_dot_at_ah_kusama.clone(), true);
-	create_pool_with_native_on!(
+	let reserves = vec![(asset_hub_polkadot_global_location(), false).into()];
+	create_foreign_on_ah_kusama(bridged_dot_at_ah_kusama.clone(), true, reserves);
+	create_foreign_pool_with_parent_native_on!(
 		AssetHubKusama,
 		bridged_dot_at_ah_kusama.clone(),
-		true,
 		AssetHubKusamaSender::get()
 	);
 
@@ -432,9 +432,9 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama()
 			AssetHubKusama,
 			vec![
 				// issue DOTs on KAH
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 					asset_id: *asset_id == bridged_dot_at_ah_kusama,
-					owner: *owner == receiver.clone(),
+					who: *who == receiver.clone(),
 				},
 				// message processed successfully
 				RuntimeEvent::MessageQueue(
@@ -472,10 +472,8 @@ fn send_dot_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama(
 	);
 	let dot_in_reserve_on_pah_before =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
-	let sender_dot_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(dot_at_polkadot_parachains.clone(), &sender)
-	});
+	let sender_dot_before =
+		assets_balance_on!(PenpalB, dot_at_polkadot_parachains.clone(), &sender);
 	let receiver_dot_before =
 		foreign_balance_on_ah_kusama(dot_at_asset_hub_kusama.clone(), &receiver);
 
@@ -516,9 +514,9 @@ fn send_dot_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama(
 			AssetHubKusama,
 			vec![
 				// issue DOTs on KAH
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 					asset_id: *asset_id == Location::new(2, [GlobalConsensus(Polkadot)]),
-					owner: owner == &receiver,
+					who: who == &receiver,
 				},
 				// message processed successfully
 				RuntimeEvent::MessageQueue(
@@ -528,10 +526,7 @@ fn send_dot_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama(
 		);
 	});
 
-	let sender_dot_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(dot_at_polkadot_parachains, &sender)
-	});
+	let sender_dot_after = assets_balance_on!(PenpalB, dot_at_polkadot_parachains, &sender);
 	let receiver_dot_after = foreign_balance_on_ah_kusama(dot_at_asset_hub_kusama, &receiver);
 	let dot_in_reserve_on_pah_after =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
@@ -573,7 +568,11 @@ fn send_dot_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama_
 			)],
 		));
 	});
-	create_pool_with_native_on!(PenpalA, dot_at_kusama_parachains.clone(), true, asset_owner);
+	create_foreign_pool_with_native_on!(
+		PenpalA,
+		dot_at_kusama_parachains.clone(),
+		asset_owner.clone()
+	);
 
 	let sov_kah_on_pah = AssetHubPolkadot::sovereign_account_of_parachain_on_other_global_consensus(
 		Kusama,
@@ -581,14 +580,10 @@ fn send_dot_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama_
 	);
 	let dot_in_reserve_on_pah_before =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
-	let sender_dot_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(dot_at_polkadot_parachains.clone(), &sender)
-	});
-	let receiver_dot_before = PenpalA::execute_with(|| {
-		type Assets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<Assets as Inspect<_>>::balance(dot_at_kusama_parachains.clone(), &receiver)
-	});
+	let sender_dot_before =
+		assets_balance_on!(PenpalB, dot_at_polkadot_parachains.clone(), &sender);
+	let receiver_dot_before =
+		assets_balance_on!(PenpalA, dot_at_kusama_parachains.clone(), &receiver);
 
 	// Send dot over bridge
 	{
@@ -638,7 +633,7 @@ fn send_dot_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama_
 			AssetHubKusama,
 			vec![
 				// issue dot on KAH
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. }) => {},
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { .. }) => {},
 				// message processed successfully
 				RuntimeEvent::MessageQueue(
 					pallet_message_queue::Event::Processed { success: true, .. }
@@ -650,14 +645,8 @@ fn send_dot_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_kusama_
 		PenpalA::assert_xcmp_queue_success(None);
 	});
 
-	let sender_dot_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(dot_at_polkadot_parachains, &sender)
-	});
-	let receiver_dot_after = PenpalA::execute_with(|| {
-		type Assets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<Assets as Inspect<_>>::balance(dot_at_kusama_parachains, &receiver)
-	});
+	let sender_dot_after = assets_balance_on!(PenpalB, dot_at_polkadot_parachains, &sender);
+	let receiver_dot_after = assets_balance_on!(PenpalA, dot_at_kusama_parachains, &receiver);
 	let dot_in_reserve_on_pah_after =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
 
@@ -680,11 +669,11 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama_t
 	let dot_at_polkadot_parachains = dot_at_ah_polkadot();
 	let dot_at_kusama_parachains = bridged_dot_at_ah_kusama();
 	// create foreign DOT on AH Kusama
-	create_foreign_on_ah_kusama(dot_at_kusama_parachains.clone(), true);
-	create_pool_with_native_on!(
+	let reserves = vec![(asset_hub_polkadot_global_location(), false).into()];
+	create_foreign_on_ah_kusama(dot_at_kusama_parachains.clone(), true, reserves);
+	create_foreign_pool_with_parent_native_on!(
 		AssetHubKusama,
 		dot_at_kusama_parachains.clone(),
-		true,
 		AssetHubKusamaSender::get()
 	);
 	// create foreign DOT on Penpal Kusama
@@ -706,7 +695,11 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama_t
 			)],
 		));
 	});
-	create_pool_with_native_on!(PenpalA, dot_at_kusama_parachains.clone(), true, asset_owner);
+	create_foreign_pool_with_native_on!(
+		PenpalA,
+		dot_at_kusama_parachains.clone(),
+		asset_owner.clone()
+	);
 
 	Polkadot::execute_with(|| {
 		let root_origin = <Polkadot as Chain>::RuntimeOrigin::root();
@@ -729,10 +722,8 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama_t
 	let dot_in_reserve_on_pah_before =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
 	let sender_dot_before = <Polkadot as Chain>::account_data_of(sender.clone()).free;
-	let receiver_dot_before = PenpalA::execute_with(|| {
-		type Assets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<Assets as Inspect<_>>::balance(dot_at_kusama_parachains.clone(), &receiver)
-	});
+	let receiver_dot_before =
+		assets_balance_on!(PenpalA, dot_at_kusama_parachains.clone(), &receiver);
 
 	// Send dot from Polkadot to PAH over bridge to KAH then onto Penpal parachain
 	{
@@ -795,7 +786,7 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama_t
 					AssetHubPolkadot,
 					vec![
 						// Amount deposited in KAH's sovereign account
-						RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
+						RuntimeEvent::Balances(pallet_balances::Event::Deposit { who, .. }) => {
 							who: *who == sov_kah_on_pah.clone(),
 						},
 						RuntimeEvent::XcmpQueue(
@@ -814,7 +805,7 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama_t
 			AssetHubKusama,
 			vec![
 				// issue dot on KAH
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { .. }) => {},
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Deposited { .. }) => {},
 				// message processed successfully
 				RuntimeEvent::MessageQueue(
 					pallet_message_queue::Event::Processed { success: true, .. }
@@ -827,10 +818,7 @@ fn send_dot_from_polkadot_relay_through_asset_hub_polkadot_to_asset_hub_kusama_t
 	});
 
 	let sender_dot_after = <Polkadot as Chain>::account_data_of(sender.clone()).free;
-	let receiver_dot_after = PenpalA::execute_with(|| {
-		type Assets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<Assets as Inspect<_>>::balance(dot_at_kusama_parachains, &receiver)
-	});
+	let receiver_dot_after = assets_balance_on!(PenpalA, dot_at_kusama_parachains, &receiver);
 	let dot_in_reserve_on_pah_after =
 		<AssetHubPolkadot as Chain>::account_data_of(sov_kah_on_pah.clone()).free;
 
@@ -859,7 +847,13 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	let penpal_location = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let sov_penpal_on_kah = AssetHubPolkadot::sovereign_account_id_of(penpal_location);
 	let prefund_accounts = vec![(sov_penpal_on_kah, amount * 2)];
-	create_foreign_on_ah_polkadot(ksm_at_polkadot_parachains.clone(), true, prefund_accounts);
+	let reserves = vec![(asset_hub_kusama_location(), false).into()];
+	create_foreign_on_ah_polkadot(
+		ksm_at_polkadot_parachains.clone(),
+		true,
+		reserves,
+		prefund_accounts,
+	);
 	let asset_owner: AccountId = AssetHubPolkadot::account_id_of(ALICE);
 	PenpalB::force_create_foreign_asset(
 		ksm_at_polkadot_parachains_latest.clone(),
@@ -887,10 +881,8 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	AssetHubKusama::fund_accounts(vec![(sov_pah_on_kah.clone(), amount * 2)]);
 
 	// balances before
-	let sender_ksm_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest.clone(), &sender)
-	});
+	let sender_ksm_before =
+		assets_balance_on!(PenpalB, ksm_at_polkadot_parachains_latest.clone(), &sender);
 	let receiver_ksm_before = <AssetHubKusama as Chain>::account_data_of(receiver.clone()).free;
 
 	// send KSMs over the bridge, DOTs only used to pay fees on local AH, pay with KSM on remote AH
@@ -958,8 +950,6 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 		assert_expected_events!(
 			AssetHubKusama,
 			vec![
-				// issue DOTs on KAH
-				RuntimeEvent::Balances(pallet_balances::Event::Issued { .. }) => {},
 				// message processed successfully
 				RuntimeEvent::MessageQueue(
 					pallet_message_queue::Event::Processed { success: true, .. }
@@ -968,10 +958,7 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 		);
 	});
 
-	let sender_ksm_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains_latest, &sender)
-	});
+	let sender_ksm_after = assets_balance_on!(PenpalB, ksm_at_polkadot_parachains_latest, &sender);
 	let receiver_ksm_after = <AssetHubKusama as Chain>::account_data_of(receiver).free;
 
 	// Sender's balance is reduced by sent "amount"
@@ -994,11 +981,16 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	let penpal_location = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let sov_penpal_on_pah = AssetHubPolkadot::sovereign_account_id_of(penpal_location);
 	let prefund_accounts = vec![(sov_penpal_on_pah.clone(), amount * 2)];
-	create_foreign_on_ah_polkadot(ksm_at_polkadot_parachains.clone(), true, prefund_accounts);
-	create_pool_with_native_on!(
-		AssetHubPolkadot,
+	let reserves = vec![(asset_hub_kusama_location(), false).into()];
+	create_foreign_on_ah_polkadot(
 		ksm_at_polkadot_parachains.clone(),
 		true,
+		reserves,
+		prefund_accounts,
+	);
+	create_foreign_pool_with_parent_native_on!(
+		AssetHubPolkadot,
+		ksm_at_polkadot_parachains.clone(),
 		AssetHubKusamaSender::get()
 	);
 	let asset_owner: AccountId = AssetHubPolkadot::account_id_of(ALICE);
@@ -1036,14 +1028,10 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	AssetHubKusama::fund_accounts(vec![(sov_pah_on_kah.clone(), amount * 2)]);
 
 	// balances before
-	let sender_ksm_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sender)
-	});
-	let receiver_ksm_before = PenpalA::execute_with(|| {
-		type Assets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<Assets as Inspect<_>>::balance(ksm_at_kusama_parachains.clone(), &receiver)
-	});
+	let sender_ksm_before =
+		assets_balance_on!(PenpalB, ksm_at_polkadot_parachains.clone(), &sender);
+	let receiver_ksm_before =
+		assets_balance_on!(PenpalA, ksm_at_kusama_parachains.clone(), &receiver);
 
 	// send KSMs over the bridge, all fees paid with KSM along the way
 	{
@@ -1106,10 +1094,10 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 					vec![
 						// Amount to reserve transfer is withdrawn from Penpal's sovereign account
 						RuntimeEvent::ForeignAssets(
-							pallet_assets::Event::Burned { asset_id, owner, .. }
+							pallet_assets::Event::Withdrawn { asset_id, who, .. }
 						) => {
 							asset_id: asset_id == &ksm_at_polkadot_parachains,
-							owner: owner == &sov_penpal_on_pah,
+							who: who == &sov_penpal_on_pah,
 						},
 						RuntimeEvent::XcmpQueue(
 							cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }
@@ -1132,7 +1120,7 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 			vec![
 				// burn KSMs from PAH's SA on KAH
 				RuntimeEvent::Balances(
-					pallet_balances::Event::Burned { who, .. }
+					pallet_balances::Event::Withdraw { who, .. }
 				) => {
 					who: *who == sov_pah_on_kah.clone(),
 				},
@@ -1151,14 +1139,9 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 		PenpalA::assert_xcmp_queue_success(None);
 	});
 
-	let sender_ksm_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains, &sender)
-	});
-	let receiver_ksm_after = PenpalA::execute_with(|| {
-		type Assets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<Assets as Inspect<_>>::balance(ksm_at_kusama_parachains.clone(), &receiver)
-	});
+	let sender_ksm_after = assets_balance_on!(PenpalB, ksm_at_polkadot_parachains, &sender);
+	let receiver_ksm_after =
+		assets_balance_on!(PenpalA, ksm_at_kusama_parachains.clone(), &receiver);
 
 	// Sender's balance is reduced by sent "amount"
 	assert_eq!(sender_ksm_after, sender_ksm_before - amount);
@@ -1180,11 +1163,16 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	let penpal_location = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
 	let sov_penpal_on_pah = AssetHubPolkadot::sovereign_account_id_of(penpal_location);
 	let prefund_accounts = vec![(sov_penpal_on_pah.clone(), amount * 2)];
-	create_foreign_on_ah_polkadot(ksm_at_polkadot_parachains.clone(), true, prefund_accounts);
-	create_pool_with_native_on!(
-		AssetHubPolkadot,
+	let reserves = vec![(asset_hub_kusama_location(), false).into()];
+	create_foreign_on_ah_polkadot(
 		ksm_at_polkadot_parachains.clone(),
 		true,
+		reserves,
+		prefund_accounts,
+	);
+	create_foreign_pool_with_parent_native_on!(
+		AssetHubPolkadot,
+		ksm_at_polkadot_parachains.clone(),
 		AssetHubKusamaSender::get()
 	);
 	let asset_owner: AccountId = AssetHubPolkadot::account_id_of(ALICE);
@@ -1225,10 +1213,8 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 	Kusama::fund_accounts(vec![(<Kusama as KusamaPallet>::XcmPallet::check_account(), amount)]);
 
 	// balances before
-	let sender_ksm_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains.clone(), &sender)
-	});
+	let sender_ksm_before =
+		assets_balance_on!(PenpalB, ksm_at_polkadot_parachains.clone(), &sender);
 	let receiver_ksm_before = <Kusama as Chain>::account_data_of(receiver.clone()).free;
 
 	// send KSMs over the bridge, all fees paid with KSM along the way
@@ -1292,10 +1278,10 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 					vec![
 						// Amount to reserve transfer is withdrawn from Penpal's sovereign account
 						RuntimeEvent::ForeignAssets(
-							pallet_assets::Event::Burned { asset_id, owner, .. }
+							pallet_assets::Event::Withdrawn { asset_id, who, .. }
 						) => {
 							asset_id: asset_id == &ksm_at_polkadot_parachains,
-							owner: owner == &sov_penpal_on_pah,
+							who: who == &sov_penpal_on_pah,
 						},
 						RuntimeEvent::XcmpQueue(
 							cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }
@@ -1318,7 +1304,7 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 			vec![
 				// burn KSMs from PAH's SA on KAH
 				RuntimeEvent::Balances(
-					pallet_balances::Event::Burned { who, .. }
+					pallet_balances::Event::Withdraw { who, .. }
 				) => {
 					who: *who == sov_pah_on_kah.clone(),
 				},
@@ -1334,10 +1320,7 @@ fn send_back_ksm_from_penpal_polkadot_through_asset_hub_polkadot_to_asset_hub_ku
 		);
 	});
 
-	let sender_ksm_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(ksm_at_polkadot_parachains, &sender)
-	});
+	let sender_ksm_after = assets_balance_on!(PenpalB, ksm_at_polkadot_parachains, &sender);
 	let receiver_ksm_after = <Kusama as Chain>::account_data_of(receiver.clone()).free;
 
 	// Sender's balance is reduced by sent "amount"

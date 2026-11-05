@@ -13,49 +13,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Substrate
-use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
-
-// Cumulus
-use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::EthereumNetwork;
+use asset_hub_polkadot_runtime::{
+	xcm_config::{CheckingAccount, TreasuryAccount},
+	Dap,
+};
 use emulated_integration_tests_common::{
-	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, RESERVABLE_ASSET_ID,
+	accounts, build_genesis_storage, xcm_emulator::ConvertLocation, PenpalALocation,
+	PenpalAPen2TeleportableAssetLocation, PenpalASiblingSovereignAccount, PenpalBLocation,
+	PenpalBPen2TeleportableAssetLocation, PenpalBSiblingSovereignAccount, RESERVABLE_ASSET_ID,
 	SAFE_XCM_VERSION,
 };
-use frame_support::sp_runtime::traits::AccountIdConversion;
 use integration_tests_helpers::common::snowbridge::{EthLocation, WethLocation, MIN_ETHER_BALANCE};
 use parachains_common::{AccountId, Balance};
-use polkadot_parachain_primitives::primitives::Sibling;
-use snowbridge_inbound_queue_primitives::EthereumLocationsConverterFor;
+use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 use xcm::prelude::*;
+use xcm_builder::ExternalConsensusLocationsConverterFor;
 
 pub const PARA_ID: u32 = 1000;
 pub const ED: Balance = asset_hub_polkadot_runtime::ExistentialDeposit::get();
 pub const USDT_ID: u32 = 1984;
+pub const USDT_ED: Balance = 70_000;
 
 frame_support::parameter_types! {
 	pub AssetHubPolkadotAssetOwner: AccountId = Sr25519Keyring::Alice.to_account_id();
-	pub PenpalATeleportableAssetLocation: Location
-		= Location::new(1, [
-				Parachain(penpal_emulated_chain::PARA_ID_A),
-				PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
-			]
-		);
-	pub PenpalBTeleportableAssetLocation: Location
-		= Location::new(1, [
-				Parachain(penpal_emulated_chain::PARA_ID_B),
-				PalletInstance(penpal_emulated_chain::ASSETS_PALLET_ID),
-				GeneralIndex(penpal_emulated_chain::TELEPORTABLE_ASSET_ID.into()),
-			]
-		);
-	pub PenpalASiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_A).into_account_truncating();
-	pub PenpalBSiblingSovereignAccount: AccountId = Sibling::from(penpal_emulated_chain::PARA_ID_B).into_account_truncating();
-	pub EthereumSovereignAccount: AccountId = EthereumLocationsConverterFor::<AccountId>::convert_location(
-		&Location::new(
-			2,
-			[GlobalConsensus(EthereumNetwork::get())],
-		),
+	pub UniversalLocation: InteriorLocation = [GlobalConsensus(Polkadot), Parachain(PARA_ID)].into();
+	pub EthereumSovereignAccount: AccountId = ExternalConsensusLocationsConverterFor::<UniversalLocation, AccountId>::convert_location(
+		&EthLocation::get(),
 	).unwrap();
 }
 
@@ -67,8 +50,8 @@ pub mod collators {
 
 	pub fn session_keys() -> Vec<(AccountId, AssetHubPolkadotAuraId)> {
 		vec![
-			(Sr25519Keyring::Alice.to_account_id(), Ed25519Keyring::Alice.public().into()),
-			(Sr25519Keyring::Bob.to_account_id(), Ed25519Keyring::Bob.public().into()),
+			(Sr25519Keyring::Dave.to_account_id(), Ed25519Keyring::Dave.public().into()),
+			(Sr25519Keyring::Eve.to_account_id(), Ed25519Keyring::Eve.public().into()),
 		]
 	}
 }
@@ -78,9 +61,12 @@ pub fn genesis() -> sp_core::storage::Storage {
 		system: asset_hub_polkadot_runtime::SystemConfig::default(),
 		balances: asset_hub_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances()
-				.iter()
-				.cloned()
+				.into_iter()
+				.chain([TreasuryAccount::get(), Dap::buffer_account(), Dap::staging_account()])
 				.map(|k| (k, ED * 4096 * 4096))
+				// pre-fund checking account to avoid pre-funding for every test scenario
+				// teleporting funds to asset hub
+				.chain(std::iter::once((CheckingAccount::get(), ED * 4096 * 4096 * 4096)))
 				.collect(),
 			dev_accounts: None,
 		},
@@ -113,7 +99,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 		assets: asset_hub_polkadot_runtime::AssetsConfig {
 			assets: vec![
 				(RESERVABLE_ASSET_ID, AssetHubPolkadotAssetOwner::get(), false, ED),
-				(USDT_ID, AssetHubPolkadotAssetOwner::get(), true, ED),
+				(USDT_ID, AssetHubPolkadotAssetOwner::get(), true, USDT_ED),
 			],
 			..Default::default()
 		},
@@ -121,13 +107,13 @@ pub fn genesis() -> sp_core::storage::Storage {
 			assets: vec![
 				// Penpal's teleportable asset representation
 				(
-					PenpalATeleportableAssetLocation::get(),
+					PenpalAPen2TeleportableAssetLocation::get(),
 					PenpalASiblingSovereignAccount::get(),
 					false,
 					ED,
 				),
 				(
-					PenpalBTeleportableAssetLocation::get(),
+					PenpalBPen2TeleportableAssetLocation::get(),
 					PenpalBSiblingSovereignAccount::get(),
 					false,
 					ED,
@@ -136,6 +122,18 @@ pub fn genesis() -> sp_core::storage::Storage {
 				(EthLocation::get(), EthereumSovereignAccount::get(), true, MIN_ETHER_BALANCE),
 				// Weth
 				(WethLocation::get(), EthereumSovereignAccount::get(), true, MIN_ETHER_BALANCE),
+			],
+			reserves: vec![
+				(
+					PenpalAPen2TeleportableAssetLocation::get(),
+					vec![(PenpalALocation::get(), true).into()],
+				),
+				(
+					PenpalBPen2TeleportableAssetLocation::get(),
+					vec![(PenpalBLocation::get(), true).into()],
+				),
+				(EthLocation::get(), vec![(EthLocation::get(), false).into()]),
+				(WethLocation::get(), vec![(EthLocation::get(), false).into()]),
 			],
 			..Default::default()
 		},

@@ -11,6 +11,9 @@ license.workspace = true
 
 # Asset Hub Migration concerning deps
 pallet-rc-migrator = { workspace = true }
+# Behind the `ahm-v2` feature; see `src/ahm_v2.rs`.
+pallet-rc2-migrator = { workspace = true }
+migrator-types = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -52,7 +55,7 @@ pallet-broker = { workspace = true }
 pallet-child-bounties = { workspace = true }
 pallet-delegated-staking = { workspace = true }
 pallet-staking-async-ah-client = { workspace = true }
-pallet-staking-async-rc-client = { workspace = true }
+pallet-staking-async-rc-client = { workspace = true, features = ["xcm-sender"] }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-conviction-voting = { workspace = true }
@@ -68,6 +71,7 @@ pallet-multisig = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-nomination-pools-runtime-api = { workspace = true }
 pallet-offences = { workspace = true }
+pallet-parameters = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-referenda = { workspace = true }
@@ -102,7 +106,6 @@ hex-literal = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 runtime-parachains = { workspace = true }
 polkadot-primitives = { workspace = true }
-relay-common = { workspace = true }
 
 xcm = { workspace = true }
 xcm-executor = { workspace = true }
@@ -115,6 +118,7 @@ sp-debug-derive = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 
 [dev-dependencies]
+pallet-ct-migrator = { workspace = true, default-features = true }
 approx = { workspace = true }
 sp-keyring = { workspace = true }
 sp-trie = { workspace = true }
@@ -135,8 +139,12 @@ no_std = []
 polkadot-ahm = [
 	"pallet-rc-migrator/polkadot-ahm",
 ]
+
+ahm-v2 = []
 std = [
+	"migrator-types/std",
 	"pallet-rc-migrator/std",
+	"pallet-rc2-migrator/std",
 
 	"authority-discovery-primitives/std",
 	"babe-primitives/std",
@@ -179,6 +187,7 @@ std = [
 	"pallet-nomination-pools/std",
 	"pallet-offences-benchmarking?/std",
 	"pallet-offences/std",
+	"pallet-parameters/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
 	"pallet-referenda/std",
@@ -203,7 +212,6 @@ std = [
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
-	"relay-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde_json/std",
@@ -234,6 +242,7 @@ std = [
 ]
 runtime-benchmarks = [
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-rc2-migrator/runtime-benchmarks",
 
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-election-provider-support/runtime-benchmarks",
@@ -249,6 +258,7 @@ runtime-benchmarks = [
 	"pallet-broker/runtime-benchmarks",
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
+	"pallet-ct-migrator/runtime-benchmarks",
 	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-election-provider-multi-phase/runtime-benchmarks",
 	"pallet-election-provider-support-benchmarking/runtime-benchmarks",
@@ -262,11 +272,13 @@ runtime-benchmarks = [
 	"pallet-nomination-pools/runtime-benchmarks",
 	"pallet-offences-benchmarking/runtime-benchmarks",
 	"pallet-offences/runtime-benchmarks",
+	"pallet-parameters/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-session-benchmarking/runtime-benchmarks",
+	"pallet-session/runtime-benchmarks",
 	"pallet-staking-async-ah-client/runtime-benchmarks",
 	"pallet-staking-async-rc-client/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
@@ -282,7 +294,6 @@ runtime-benchmarks = [
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
-	"relay-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
@@ -293,6 +304,7 @@ runtime-benchmarks = [
 ]
 try-runtime = [
 	"pallet-rc-migrator/try-runtime",
+	"pallet-rc2-migrator/try-runtime",
 
 	"frame-election-provider-support/try-runtime",
 	"frame-executive/try-runtime",
@@ -312,6 +324,7 @@ try-runtime = [
 	"pallet-broker/try-runtime",
 	"pallet-child-bounties/try-runtime",
 	"pallet-conviction-voting/try-runtime",
+	"pallet-ct-migrator/try-runtime",
 	"pallet-delegated-staking/try-runtime",
 	"pallet-election-provider-multi-phase/try-runtime",
 	"pallet-fast-unstake/try-runtime",
@@ -322,6 +335,7 @@ try-runtime = [
 	"pallet-multisig/try-runtime",
 	"pallet-nomination-pools/try-runtime",
 	"pallet-offences/try-runtime",
+	"pallet-parameters/try-runtime",
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
 	"pallet-referenda/try-runtime",

@@ -5,22 +5,70 @@ name: "Tests"
 
 on:
   push:
-    branches: ["main", "release-*"]
+    branches: ["main", "*release-*"]
   pull_request:
+    # ready_for_review is needed to re-trigger when a draft PR is marked as ready.
+    # labeled is needed to re-trigger when the `ci-extended-checks` label is added.
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   workflow_dispatch:
-
-env:
-  FRAME_OMNI_BENCHER_RELEASE_VERSION: polkadot-stable2506
 
 # cancel previous runs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
+  check-release-pr:
+    # Produces two outputs:
+    #   is-release: whether this should trigger a GitHub Release or the runtimes
+    #   run-extended-checks: whether extended CI checks should run
+    name: Check if release PR
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
+    runs-on: ubuntu-24.04
+    outputs:
+      is-release: ${{ steps.check.outputs.is-release }}
+      run-extended-checks: ${{ steps.check.outputs.run-extended-checks }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if CHANGELOG.md changed
+        if: github.event_name == 'pull_request'
+        id: changed
+        uses: tj-actions/changed-files@v44
+        with:
+          files: |
+            CHANGELOG.md
+      - name: Determine release status
+        id: check
+        run: |
+          # is-release: purely changelog-driven
+          if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ steps.changed.outputs.any_changed }}" != "true" ]]; then
+            IS_RELEASE=0
+          else
+            IS_RELEASE=$(.github/changelog-processor.py CHANGELOG.md --should-release)
+          fi
+          echo "is-release=$IS_RELEASE" >> $GITHUB_OUTPUT
+
+          # run-extended-checks: is-release, workflow_dispatch, release branch push, or PR with `ci-extended-checks` label
+          if [[ "$IS_RELEASE" == "1" ]]; then
+            echo "run-extended-checks=1" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "run-extended-checks=1" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/heads/*release-* ]]; then
+            echo "run-extended-checks=1" >> $GITHUB_OUTPUT
+          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'ci-extended-checks') }}" == "true" ]]; then
+            echo "run-extended-checks=1" >> $GITHUB_OUTPUT
+          else
+            echo "run-extended-checks=0" >> $GITHUB_OUTPUT
+          fi
+
   # This generates a matrix with all the required jobs which will be run in the next step
   runtime-matrix:
-    runs-on: self-hosted
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
+    runs-on: ubuntu-24.04
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     name: Extract runtimes from matrix
@@ -33,7 +81,8 @@ jobs:
           echo "runtime=$TASKS" >> $GITHUB_OUTPUT
 
   integration-test-matrix:
-    runs-on: self-hosted
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
+    runs-on: ubuntu-24.04
     outputs:
       itest: ${{ steps.itest.outputs.itest }}
     name: Extract integration tests from matrix
@@ -75,12 +124,6 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-runtime-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
       - name: Download frame-omni-bencher
         run: |
           curl --max-time 10 --retry 5 --retry-delay 10 --retry-max-time 120 -sL https://github.com/paritytech/polkadot-sdk/releases/download/$FRAME_OMNI_BENCHER_RELEASE_VERSION/frame-omni-bencher -o frame-omni-bencher
@@ -90,46 +133,60 @@ jobs:
 
       - name: Test ${{ matrix.runtime.name }}
         run: |
-          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
-            cargo test -p ${{ matrix.runtime.package }} --release --locked -q --features ${{ matrix.runtime.build_extra_features }}
+          if [ -n "$EXTRA_FEATURES" ]; then
+            cargo test -p "$PACKAGE" --release --locked -q --features "$EXTRA_FEATURES"
           else
-            cargo test -p ${{ matrix.runtime.package }} --release --locked -q
+            cargo test -p "$PACKAGE" --release --locked -q
           fi
         env:
-          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
+          RUSTFLAGS: "-C debug-assertions"
+          PACKAGE: ${{ matrix.runtime.package }}
+          EXTRA_FEATURES: ${{ matrix.runtime.build_extra_features }}
 
       - name: Test all features ${{ matrix.runtime.name }}
-        run: cargo test -p ${{ matrix.runtime.package }} --release --locked -q --all-features
+        run: cargo test -p "$PACKAGE" --release --locked -q --all-features
         env:
-          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
+          RUSTFLAGS: "-C debug-assertions"
           SKIP_WASM_BUILD: 1
-          WS: ${{ matrix.runtime.uri }}
+          WS: ${{ matrix.runtime.uris[0] }}
           RUST_LOG: "remote-ext=info"
+          PACKAGE: ${{ matrix.runtime.package }}
 
       - name: Test benchmarks ${{ matrix.runtime.name }}
         run: |
-          PACKAGE_NAME=${{ matrix.runtime.package }}
-          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          PACKAGE_NAME="$PACKAGE"
+          RUNTIME_BLOB_NAME=$(echo "$PACKAGE_NAME" | sed 's/-/_/g').compact.compressed.wasm
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
           # build wasm
           echo "Preparing wasm for benchmarking RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
-          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
-            cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks,${{ matrix.runtime.build_extra_features }} -q --locked
+          if [ -n "$EXTRA_FEATURES" ]; then
+            cargo build --profile production -p "$PACKAGE" --features=runtime-benchmarks,"$EXTRA_FEATURES" -q --locked
           else
-            cargo build --profile production -p ${{ matrix.runtime.package }} --features=runtime-benchmarks -q --locked
+            cargo build --profile production -p "$PACKAGE" --features=runtime-benchmarks -q --locked
           fi
           # run benchmarking
-          if [ -z "${{ matrix.runtime.benchmarks_exclude_extrinsics }}" ]; then
+          # TODO: https://github.com/paritytech/polkadot-sdk/issues/12968
+          if [ "$EXCLUDE_PALLETS_JSON" = "null" ] || [ -z "$EXCLUDE_PALLETS_JSON" ]; then
+            EXCLUDE_PALLETS=""
+          else
+            EXCLUDE_PALLETS_LIST=$(echo "$EXCLUDE_PALLETS_JSON" | jq -r 'join(",")')
+            EXCLUDE_PALLETS=" --exclude-pallets ${EXCLUDE_PALLETS_LIST}"
+          fi
+          if [ "$EXCLUDE_EXTRINSICS_JSON" = "null" ] || [ -z "$EXCLUDE_EXTRINSICS_JSON" ]; then
             EXCLUDE_EXTRINSICS=""
           else
-            EXCLUDE_EXTRINSICS_JSON='${{ toJson(matrix.runtime.benchmarks_exclude_extrinsics) }}'
             EXCLUDE_EXTRINSICS_LIST=$(echo "$EXCLUDE_EXTRINSICS_JSON" | jq -r 'to_entries | map("\(.key)::\(.value[])") | join(" ")')
             EXCLUDE_EXTRINSICS=" --exclude-extrinsics ${EXCLUDE_EXTRINSICS_LIST}"
           fi
-          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_EXTRINSICS"
-          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_EXTRINSICS --heap-pages 4096
+          echo "Running benchmarking for RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH $EXCLUDE_PALLETS $EXCLUDE_EXTRINSICS"
+          ./frame-omni-bencher v1 benchmark pallet --runtime $RUNTIME_BLOB_PATH --all --steps 2 --repeat 1 $EXCLUDE_PALLETS $EXCLUDE_EXTRINSICS --heap-pages 4096 --min-duration 0 --quiet
         env:
-          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
+          RUSTFLAGS: "-C debug-assertions"
+          RUNTIME_LOG: "error"
+          PACKAGE: ${{ matrix.runtime.package }}
+          EXTRA_FEATURES: ${{ matrix.runtime.build_extra_features }}
+          EXCLUDE_PALLETS_JSON: ${{ toJson(matrix.runtime.benchmarks_exclude_pallets) }}
+          EXCLUDE_EXTRINSICS_JSON: ${{ toJson(matrix.runtime.benchmarks_exclude_extrinsics) }}
 
   # Job required by "confirmTestPassed"
   integration-test:
@@ -166,20 +223,25 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-integration-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
       - name: Test ${{ matrix.itest.name }}
-        run: cargo test -p ${{ matrix.itest.package }} --release --locked -q
+        run: cargo test -p "$PACKAGE" --release --locked -q
         env:
-          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
+          RUSTFLAGS: "-C debug-assertions"
+          PACKAGE: ${{ matrix.itest.package }}
 
-  # Job required by "confirmTestPassed"
-  build-chain-spec-generator:
+  # Not required by "confirmTestPassed": AHM v2 is behind a feature flag that no released runtime
+  # enables, so a failure here should not gate a release.
+  ahm-v2-test:
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
     runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - network: polkadot
+            relay_package: polkadot-runtime
+          - network: kusama
+            relay_package: staging-kusama-runtime
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
@@ -208,20 +270,101 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
+      # The runtimes are tested with `--features ahm-v2` rather than `--all-features`: the latter
+      # also turns on `on-chain-release-build`, which drops the migrator pallets from the runtime.
+      - name: Test AHM v2 pallets and ${{ matrix.network }} wiring
+        run: |
+          cargo test --release --locked -q -p pallet-rc2-migrator -p pallet-ct-migrator
+          cargo test --release --locked -q -p "$RELAY_PACKAGE" --features ahm-v2
+          cargo test --release --locked -q -p coretime-"$NETWORK"-runtime --features ahm-v2
+        env:
+          RUSTFLAGS: "-C debug-assertions"
+          SKIP_WASM_BUILD: 1
+          NETWORK: ${{ matrix.network }}
+          RELAY_PACKAGE: ${{ matrix.relay_package }}
+
+      # The snapshot suite runs against the cached try-runtime snapshots.
+      - name: Restore ${{ matrix.network }} relay snapshot
+        uses: actions/cache/restore@v4
         with:
-          shared-key: "fellowship-cache-chain-spec-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          path: snapshot.raw
+          key: try-runtime-snapshot-${{ matrix.network }}-
+          fail-on-cache-miss: true
+      - run: mv snapshot.raw snap_rc.snap
+
+      - name: Restore coretime-${{ matrix.network }} snapshot
+        uses: actions/cache/restore@v4
+        with:
+          path: snapshot.raw
+          key: try-runtime-snapshot-coretime-${{ matrix.network }}-
+          fail-on-cache-miss: true
+      - run: mv snapshot.raw snap_ct.snap
+
+      - name: Restore asset-hub-${{ matrix.network }} snapshot
+        uses: actions/cache/restore@v4
+        with:
+          path: snapshot.raw
+          key: try-runtime-snapshot-asset-hub-${{ matrix.network }}-
+          fail-on-cache-miss: true
+          # Several GB;
+          segment-download-timeout-mins: 60
+      - run: mv snapshot.raw snap_ah.snap
+
+      - name: Test AHM v2 against ${{ matrix.network }} snapshots
+        run: |
+          cargo test --release --locked -q -p polkadot-integration-tests-ahmv2 --features "$NETWORK"
+        env:
+          RUSTFLAGS: "-C debug-assertions"
+          SKIP_WASM_BUILD: 1
+          # The test binary runs with its package as the working directory, so these must be
+          # absolute.
+          SNAP_RC: ${{ github.workspace }}/snap_rc.snap
+          SNAP_CT: ${{ github.workspace }}/snap_ct.snap
+          SNAP_AH: ${{ github.workspace }}/snap_ah.snap
+          NETWORK: ${{ matrix.network }}
+
+  # Job required by "confirmTestPassed"
+  build-chain-spec-generator:
+    if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
+    runs-on: self-hosted
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ runner.environment == 'github-hosted' }}
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: "wasm32v1-none"
+          components: "rust-src"
+          toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Check
         run: cargo check -p chain-spec-generator --release --locked -q --features=all-runtimes
         env:
-          RUSTFLAGS: "-C debug-assertions -A warnings" # FAIL-CI AHM
+          RUSTFLAGS: "-C debug-assertions"
           SKIP_WASM_BUILD: 1
 
   # Job required by "confirmTestPassed"
   zombienet-smoke:
+    needs: [check-release-pr]
+    if: needs.check-release-pr.outputs.run-extended-checks == '1'
     runs-on: self-hosted
     steps:
       - name: Cancel previous runs
@@ -251,27 +394,21 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-zombienet-tests"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
       - name: Build
         run: |
-          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot --release --locked
+          cargo build -p chain-spec-generator --no-default-features --features fast-runtime,polkadot,coretime-polkadot,bulletin-polkadot,asset-hub-polkadot,people-polkadot --release --locked --quiet
 
       - name: Wait for Docker to Start
         run: |
           timeout 30 sh -c 'until docker info; do sleep 1; done'
           docker --version
 
-      - name: Zombienet smoke test
-        timeout-minutes: 20
+      - name: Zombienet tests
+        timeout-minutes: 60
         run: |
           # Since we are running the runner in a dind environment we need to find the ip
           # of the proxy where the ports will be exposed.
-          # In the current infra there are 2 containes, the `dind` and the runner.
+          # In the current infra there are 2 containers, the `dind` and the runner.
           export ZOMBIE_LOCAL_IP=$(hostname -i | awk -F"." '{printf "%d.%d.%d.%d", $1, $2, $3, $4 - 1}')
           export PATH=$(pwd)/target/release:$PATH
           cargo test --manifest-path integration-tests/zombienet/Cargo.toml
@@ -304,32 +441,29 @@ jobs:
           components: "rust-src"
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
-        with:
-          shared-key: "fellowship-cache-build-runtimes-test"
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
       - name: Build runtime ${{ matrix.runtime.name }}
+        env:
+          PACKAGE: ${{ matrix.runtime.package }}
+          EXTRA_FEATURES: ${{ matrix.runtime.build_extra_features }}
         run: |
-          PACKAGE_NAME=${{ matrix.runtime.package }}
-          RUNTIME_BLOB_NAME=$(echo $PACKAGE_NAME | sed 's/-/_/g').compact.compressed.wasm
+          PACKAGE_NAME="$PACKAGE"
+          RUNTIME_BLOB_NAME=$(echo "$PACKAGE_NAME" | sed 's/-/_/g').compact.compressed.wasm
           RUNTIME_BLOB_PATH=./target/production/wbuild/$PACKAGE_NAME/$RUNTIME_BLOB_NAME
           # Build wasm
           echo "Building wasm RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH"
 
           FEATURES=""
           # Find out if the `metadata-hash` feature exists for the given package.
-          if cargo metadata --format-version=1 | jq '.packages[] | select(.name=="${{ matrix.runtime.package }}") | .features' | grep metadata-hash; then
+          if cargo metadata --format-version=1 | jq --arg pkg "$PACKAGE" '.packages[] | select(.name==$pkg) | .features' | grep metadata-hash; then
             FEATURES="metadata-hash"
           fi
 
           # Add extra features
-          if [ -n "${{ matrix.runtime.build_extra_features }}" ]; then
+          if [ -n "$EXTRA_FEATURES" ]; then
             if [ -z "$FEATURES" ]; then
-              FEATURES="${{ matrix.runtime.build_extra_features }}"
+              FEATURES="$EXTRA_FEATURES"
             else
-              FEATURES="$FEATURES,${{ matrix.runtime.build_extra_features }}"
+              FEATURES="$FEATURES,$EXTRA_FEATURES"
             fi
           fi
 
@@ -339,7 +473,7 @@ jobs:
 
           # We only enable `metadata-hash`, but not `on-chain-release-build` to still have logs enabled.
           echo "Setting features: ${FEATURES}"
-          cargo build --profile production -p ${{ matrix.runtime.package }} $FEATURES -q --locked
+          cargo build --profile production -p "$PACKAGE" $FEATURES -q --locked
           echo "RUNTIME_BLOB_PATH=$RUNTIME_BLOB_PATH" >> $GITHUB_ENV
 
       - name: Upload  ${{ matrix.runtime.name }}
@@ -348,10 +482,186 @@ jobs:
           name: ${{ matrix.runtime.name }}
           path: ${{ env.RUNTIME_BLOB_PATH }}
 
+  check-runtimes:
+    needs: [ runtime-matrix, build-runtimes ]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Verify Node.js install
+        run: node --version && npm --version
+
+      - name: Download ${{ matrix.runtime.name }} WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.runtime.name }}
+
+      - name: Check runtime
+        timeout-minutes: 25
+        env:
+          RUNTIME_NAME: ${{ matrix.runtime.name }}
+          URIS_JSON: ${{ toJSON(matrix.runtime.uris) }}
+        run: |
+          # Skip runtimes without URIs (e.g. glutton-kusama)
+          if [ "$URIS_JSON" = "null" ] || [ -z "$URIS_JSON" ]; then
+            echo "::notice::Skipping $RUNTIME_NAME — no URIs configured"
+            exit 0
+          fi
+
+          WASM=$(find . -name '*.compact.compressed.wasm' -print -quit)
+          echo "WASM: $WASM"
+
+          # Probe each endpoint before starting check-runtime. The checker boots a Chopsticks
+          # fork and executes an upgrade block, so its timeout must also accommodate migrations.
+          readarray -t URIS < <(echo "$URIS_JSON" | jq -r '.[]')
+          for URI in "${URIS[@]}"; do
+            echo "Trying $URI..."
+
+            if ! RPC_URI="$URI" timeout 15 node <<'NODE'
+          const socket = new WebSocket(process.env.RPC_URI);
+          let settled = false;
+          const finish = (code, message) => {
+            if (settled) return;
+            settled = true;
+            if (message) console.error(message);
+            try { socket.close(); } catch {}
+            process.exit(code);
+          };
+          const timer = setTimeout(
+            () => finish(1, "Timed out waiting for an RPC response"),
+            10_000,
+          );
+
+          socket.addEventListener("open", () => {
+            socket.send(JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "chain_getFinalizedHead",
+              params: [],
+            }));
+          });
+          socket.addEventListener("message", ({ data }) => {
+            const response = JSON.parse(data.toString());
+            if (response.id !== 1) return;
+            clearTimeout(timer);
+            if (response.result) finish(0);
+            else finish(1, `RPC returned an error: ${JSON.stringify(response.error)}`);
+          });
+          socket.addEventListener("error", () =>
+            finish(1, "WebSocket connection failed"),
+          );
+          socket.addEventListener("close", () =>
+            finish(1, "WebSocket closed before returning an RPC response"),
+          );
+          NODE
+            then
+              echo "RPC probe failed for $URI, trying next..."
+              continue
+            fi
+            echo "RPC probe succeeded for $URI"
+
+            set +e
+            timeout 900 npx @polkadot-api/check-runtime@latest problems "$URI" --wasm "$WASM"
+            EXIT_CODE=$?
+            set -e
+            if [ $EXIT_CODE -eq 0 ]; then
+              exit 0
+            # When the time limit is reached, timeout returns exit code 124
+            elif [ $EXIT_CODE -eq 124 ]; then
+              echo "Runtime check timed out on $URI, trying next..."
+              continue
+            else
+              # Otherwise, it returns the exit status of the managed command
+              exit $EXIT_CODE
+            fi
+          done
+
+          echo "::error::No reachable RPC for $RUNTIME_NAME"
+          exit 1
+
+  pet-block-numbers:
+    # Resolve KNOWN_GOOD_BLOCK_NUMBERS_{POLKADOT,KUSAMA}.env once and share
+    # with all shards via an artifact. Previously each shard ran
+    # `yarn update-known-good` separately (6x redundant lookups, and shards
+    # within one run could see different blocks if a finalized block landed
+    # mid-lookup). `yarn update-known-good` ignores its CLI argument and
+    # always refreshes polkadot + kusama (+ unused westend) in one pass, so
+    # a single job suffices.
+    name: "PET block numbers"
+    needs: [check-release-pr]
+    runs-on: ubuntu-latest
+    if: needs.check-release-pr.outputs.run-extended-checks == '1'
+    steps:
+      - name: Checkout polkadot-ecosystem-tests
+        uses: actions/checkout@v4
+        with:
+          repository: open-web3-stack/polkadot-ecosystem-tests
+          ref: runtimes-master
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Verify Node.js install
+        run: node --version && npm --version
+
+      - name: Enable Corepack for Yarn Berry
+        run: |
+          npm install --global corepack
+          corepack enable
+
+      - name: Install test dependencies
+        run: yarn install --immutable
+
+      - name: Resolve block numbers
+        run: yarn update-known-good
+
+      - name: Upload env files
+        uses: actions/upload-artifact@v4
+        with:
+          name: pet-block-numbers
+          path: |
+            KNOWN_GOOD_BLOCK_NUMBERS_POLKADOT.env
+            KNOWN_GOOD_BLOCK_NUMBERS_KUSAMA.env
+          if-no-files-found: error
+          retention-days: 1
+
   ecosystem-tests:
-    needs: [runtime-matrix, build-runtimes]
+    name: "PET (${{ matrix.network.name }}, shard ${{ matrix.shard }}/3)"
+    needs: [build-runtimes, check-release-pr, pet-block-numbers]
     runs-on: self-hosted
-    if: github.event_name == 'pull_request'
+    timeout-minutes: 60
+    if: needs.check-release-pr.outputs.run-extended-checks == '1'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+        network:
+          - name: "polkadot"
+            test_dir: "packages/polkadot"
+            chains:
+              - { chain: "polkadot",             pet_key: "polkadot",             port: 9000, endpoint_var: "POLKADOT_ENDPOINT" }
+              - { chain: "asset-hub-polkadot",   pet_key: "assetHubPolkadot",     port: 9001, endpoint_var: "ASSETHUBPOLKADOT_ENDPOINT" }
+              - { chain: "bridge-hub-polkadot",  pet_key: "bridgeHubPolkadot",    port: 9002, endpoint_var: "BRIDGEHUBPOLKADOT_ENDPOINT" }
+              - { chain: "collectives-polkadot", pet_key: "collectivesPolkadot",  port: 9003, endpoint_var: "COLLECTIVESPOLKADOT_ENDPOINT" }
+              - { chain: "coretime-polkadot",    pet_key: "coretimePolkadot",     port: 9004, endpoint_var: "CORETIMEPOLKADOT_ENDPOINT" }
+              - { chain: "people-polkadot",      pet_key: "peoplePolkadot",       port: 9005, endpoint_var: "PEOPLEPOLKADOT_ENDPOINT" }
+              - { chain: "bulletin-polkadot",    pet_key: "bulletinPolkadot",     port: 9006, endpoint_var: "BULLETINPOLKADOT_ENDPOINT" }
+          - name: "kusama"
+            test_dir: "packages/kusama"
+            chains:
+              - { chain: "kusama",               pet_key: "kusama",               port: 9010, endpoint_var: "KUSAMA_ENDPOINT" }
+              - { chain: "asset-hub-kusama",     pet_key: "assetHubKusama",       port: 9011, endpoint_var: "ASSETHUBKUSAMA_ENDPOINT" }
+              - { chain: "bridge-hub-kusama",    pet_key: "bridgeHubKusama",      port: 9012, endpoint_var: "BRIDGEHUBKUSAMA_ENDPOINT" }
+              - { chain: "coretime-kusama",      pet_key: "coretimeKusama",       port: 9013, endpoint_var: "CORETIMEKUSAMA_ENDPOINT" }
+              - { chain: "people-kusama",        pet_key: "peopleKusama",         port: 9014, endpoint_var: "PEOPLEKUSAMA_ENDPOINT" }
     steps:
       - name: Free Disk Space (Ubuntu)
         if: ${{ runner.environment == 'github-hosted' }}
@@ -362,59 +672,201 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Checkout polkadot-ecosystem-tests
-        uses: actions/checkout@v4
-        with:
-          repository: open-web3-stack/polkadot-ecosystem-tests
-          path: ecosystem-tests
+      - name: Install updates and dependencies
+        run: .github/install-deps.sh
+
+      - name: Install Subway
+        run: |
+          curl -fsSL https://github.com/AcalaNetwork/subway/releases/download/v0.1.2/subway-v0.1.2-x86_64-unknown-linux-musl.tar.gz \
+            | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/subway /usr/local/bin/subway
+          rm /tmp/subway
+          subway --version
+
+      - name: Start all Subway instances
+        run: |
+          echo "Starting all Subway instances for ${{ matrix.network.name }}..."
+
+          # Both the endpoint list and the Subway config template come from
+          # PET at run time, not from this repo. PET's endpoint list is the
+          # only one actively probed and ranked for state availability at the
+          # pinned blocks chopsticks needs; PET's Subway template is the only
+          # one set up to honor that ranking (`shuffle_endpoints: false`) and
+          # configured for heavy-storage queries (`request_timeout_seconds:
+          # 90`). Maintaining a local snapshot of either is a recipe for
+          # drift, exactly the kind that surfaced "UnknownBlock: State
+          # already discarded" and the per-upstream timeout cycling we just
+          # fixed.
+          curl -fsSL https://raw.githubusercontent.com/open-web3-stack/polkadot-ecosystem-tests/master/packages/networks/src/pet-chain-endpoints.json \
+            -o /tmp/pet-chain-endpoints.json
+          curl -fsSL https://raw.githubusercontent.com/open-web3-stack/polkadot-ecosystem-tests/master/.github/subway-template.yml \
+            -o /tmp/subway-template.yml
+
+          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
+            CHAIN_NAME=$(echo "$chain" | jq -r '.chain')
+            PET_KEY=$(echo "$chain" | jq -r '.pet_key')
+            PORT=$(echo "$chain" | jq -r '.port')
+
+            ENDPOINTS=$(jq -c --arg k "$PET_KEY" '.[$k]' /tmp/pet-chain-endpoints.json)
+            if [ -z "$ENDPOINTS" ] || [ "$ENDPOINTS" = "null" ]; then
+              echo "ERROR: No endpoints for $CHAIN_NAME (pet_key=$PET_KEY) in PET's pet-chain-endpoints.json"
+              exit 1
+            fi
+
+            echo "Starting Subway for $CHAIN_NAME on port $PORT..."
+            sed -e "s/{{PORT}}/$PORT/g" -e "s|{{ENDPOINTS}}|$ENDPOINTS|g" /tmp/subway-template.yml > /tmp/subway-$PORT.yml
+            subway --config /tmp/subway-$PORT.yml > /tmp/subway-$PORT.log 2>&1 &
+            echo $! >> /tmp/subway.pids
+          done
+
+          # Wait for all subways to start
+          echo "Waiting for all Subway instances to start..."
+          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
+            PORT=$(echo "$chain" | jq -r '.port')
+            timeout=60
+            elapsed=0
+            while [ $elapsed -lt $timeout ]; do
+              if curl -sf http://127.0.0.1:$PORT/health > /dev/null 2>&1; then
+                echo "Subway on port $PORT started successfully!"
+                break
+              fi
+              sleep 1
+              elapsed=$((elapsed + 1))
+            done
+
+            if [ $elapsed -ge $timeout ]; then
+              echo "Timeout waiting for subway on port $PORT"
+              cat /tmp/subway-$PORT.log
+              exit 1
+            fi
+          done
+
+          echo "All Subway instances started successfully!"
 
       - name: Download WASM artifacts
         uses: actions/download-artifact@v4
         with:
           merge-multiple: true
 
-      - name: Setup runtime overrides
+      - name: Setup endpoint and runtime overrides
         run: |
+          # Set all subway endpoint environment variables
+          echo '${{ toJSON(matrix.network.chains) }}' | jq -c '.[]' | while IFS= read -r chain; do
+            ENDPOINT_VAR=$(echo "$chain" | jq -r '.endpoint_var')
+            PORT=$(echo "$chain" | jq -r '.port')
+            echo "${ENDPOINT_VAR}=ws://localhost:${PORT}" >> $GITHUB_ENV
+          done
+
+          # Set runtime WASM overrides
           jq --raw-output '.[] | .name, .package' .github/workflows/runtimes-matrix.json | while read -r NAME && read -r PACKAGE; do
             NAME="$(echo $NAME | tr -d '-' | tr '[:lower:]' '[:upper:]')"
             RUNTIME_BLOB_NAME=$(echo $PACKAGE | sed 's/-/_/g').compact.compressed.wasm
             echo "Setting runtime override ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
-            # Set the path to the build runtimes
-            eval "export ${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}"
+            echo "${NAME}_WASM=$(pwd)/${RUNTIME_BLOB_NAME}" >> $GITHUB_ENV
           done
-          
-      - name: Use latest Node.js
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'node'
+          node-version: 22.x
 
-      - name: Install yarn
-        run: npm install -g yarn
+      - name: Verify Node.js install
+        run: node --version && npm --version
 
-      - name: Installing dependencies of ecosystem tests
-        working-directory: ecosystem-tests
-        run: yarn install
+      - name: Enable Corepack for Yarn Berry
+        run: |
+          npm install --global corepack
+          corepack enable
 
-      - name: Running ecosystem tests
-        uses: nick-fields/retry@v3
+      - name: Checkout polkadot-ecosystem-tests
+        uses: actions/checkout@v4
         with:
-          timeout_minutes: 90
-          max_attempts: 3
-          command: cd ecosystem-tests && yarn test
+          repository: open-web3-stack/polkadot-ecosystem-tests
+          ref: runtimes-master
+          path: ecosystem-tests
+
+      - name: Install test dependencies
+        working-directory: ecosystem-tests
+        run: yarn install --immutable
+
+      - name: Print environment variables
+        run: |
+          echo "=== Injected Environment Variables ==="
+          env | grep -E "ENDPOINT=|_WASM=" | sort || true
+          echo "======================================"
+
+      - name: Download resolved block numbers
+        uses: actions/download-artifact@v4
+        with:
+          name: pet-block-numbers
+          path: ecosystem-tests
+
+      - name: Run ${{ matrix.network.name }} ecosystem tests (shard ${{ matrix.shard }}/3)
+        working-directory: ecosystem-tests
+        run: |
+          echo "Finding Fellowship runtime test files in ${{ matrix.network.test_dir }}..."
+          # Only run tests for chains that have a local Subway proxy (i.e. a *_ENDPOINT env var set).
+          # External parachains (bifrost, acala, hydration, ...) never have endpoint vars set, so
+          # they are excluded automatically — no hard-coded allowlist/denylist needed.
+          TEST_FILES=$(find ${{ matrix.network.test_dir }} -name "*.e2e.test.ts" | \
+            while IFS= read -r f; do
+              chain=$(basename "$f" | cut -d. -f1)
+              envvar=$(echo "$chain" | tr '[:lower:]' '[:upper:]')_ENDPOINT
+              [ -n "${!envvar}" ] && echo "$f"
+            done | tr '\n' ' ')
+
+          if [ -z "$TEST_FILES" ]; then
+            echo "No test files found in ${{ matrix.network.test_dir }}"
+            exit 0
+          fi
+
+          # Flags:
+          #   -u                       update snapshots (proof size / ref time drift)
+          #   --pool=forks             child-process isolation; required for shared-client
+          #                            refactor (#609) to avoid retry-induced state leaks
+          #   --maxWorkers=8           up to 8 test files in parallel per shard
+          #   --retry=2                per-test retry (#616 cut endpoint flakiness)
+          #   --shard=${i}/3           static partition of TEST_FILES across 3 parallel jobs
+          yarn test -u $TEST_FILES --pool=forks --maxWorkers=8 --retry=2 --shard=${{ matrix.shard }}/3
+
+      - name: Cleanup all Subway instances
+        if: always()
+        run: |
+          if [ -f /tmp/subway.pids ]; then
+            echo "Stopping all subway instances..."
+            cat /tmp/subway.pids | xargs kill || true
+          fi
+
+          # Print logs for debugging
+          for log in /tmp/subway-*.log; do
+            if [ -f "$log" ]; then
+              echo "=== $log ==="
+              cat "$log" || true
+            fi
+          done
 
   # This will only run if all the tests in its "needs" array passed.
   # Add this as your required job, becuase if the matrix changes size (new things get added)
   # it will still require all the steps to succeed.
   # If you add more jobs, remember to add them to the "needs" array.
   confirmTestPassed:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     name: All tests passed
+    if: always()
     # If any new job gets added, be sure to add it to this list
     needs:
       - runtime-test
       - integration-test
       - build-chain-spec-generator
-      - zombienet-smoke
-      - ecosystem-tests
+      - check-runtimes
+      # These jobs only run on release PRs/branches, so they are not required for the gate.
+      #- zombienet-smoke
+      #- ecosystem-tests
+      # Tests a feature flag no released runtime enables; informational until AHM v2 ships.
+      #- ahm-v2-test
     steps:
+      # Branch protection treats `skipped` as passing, so fail explicitly.
+      - name: Fail if any dependency did not succeed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1
       - run: echo '### Good job! All the tests passed 🚀' >> $GITHUB_STEP_SUMMARY

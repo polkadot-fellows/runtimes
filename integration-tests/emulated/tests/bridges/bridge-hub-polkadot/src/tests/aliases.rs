@@ -32,7 +32,9 @@ fn account_on_sibling_chain_cannot_alias_into_same_local_account() {
 	// origin and target are the same account on different chains
 	let origin: AccountId = [1; 32].into();
 	let target = origin.clone();
-	let fees = POLKADOT_ED * 10;
+	// Depends on: XCM execution fees + liquidity pool swap overhead at the
+	// destination (asset conversion cost from relay token to native).
+	let fees = POLKADOT_ED * 20;
 
 	PenpalB::mint_foreign_asset(
 		<PenpalB as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
@@ -63,7 +65,9 @@ fn account_on_sibling_chain_cannot_alias_into_different_local_account() {
 	// origin and target are different accounts on different chains
 	let origin: AccountId = [1; 32].into();
 	let target: AccountId = [2; 32].into();
-	let fees = POLKADOT_ED * 10;
+	// Depends on: XCM execution fees + liquidity pool swap overhead at the
+	// destination (asset conversion cost from relay token to native).
+	let fees = POLKADOT_ED * 20;
 
 	PenpalB::mint_foreign_asset(
 		<PenpalB as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
@@ -92,7 +96,9 @@ fn authorized_cross_chain_aliases() {
 	let origin: AccountId = [100; 32].into();
 	let bad_origin: AccountId = [150; 32].into();
 	let target: AccountId = [200; 32].into();
-	let fees = POLKADOT_ED * 10;
+	// Depends on: XCM execution fees + liquidity pool swap overhead at the
+	// destination (asset conversion cost from relay token to native).
+	let fees = POLKADOT_ED * 20;
 
 	let pal_admin = <PenpalB as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get());
 	PenpalB::mint_foreign_asset(pal_admin.clone(), Location::parent(), origin.clone(), fees * 10);

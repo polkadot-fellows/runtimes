@@ -21,22 +21,21 @@ use cumulus_primitives_core::relay_chain;
 use frame_support::{
 	parameter_types,
 	traits::{
-		fungible::{Balanced, Credit, Inspect},
+		fungible::{Inspect, Mutate},
 		tokens::{Fortitude, Preservation},
-		DefensiveResult, OnUnbalanced,
+		Defensive, OnRuntimeUpgrade,
 	},
-	weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
+	weights::Weight,
 };
-use frame_system::Pallet as System;
 use pallet_broker::{
 	CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf, TaskId,
 };
 use parachains_common::{AccountId, Balance};
-use polkadot_runtime_constants::{system_parachain::coretime, time::DAYS as RELAY_DAYS};
+use polkadot_runtime_constants::system_parachain::coretime;
 use sp_runtime::traits::{AccountIdConversion, MaybeConvert};
 use xcm::latest::prelude::*;
 use xcm_config::LocationToAccountId;
-use xcm_executor::traits::{ConvertLocation, TransactAsset};
+use xcm_executor::traits::ConvertLocation;
 
 /// A type containing the encoding of the coretime pallet in the Relay chain runtime. Used to
 /// construct any remote calls. The codec index must correspond to the index of `Coretime` in the
@@ -66,62 +65,6 @@ enum CoretimeProviderCalls {
 }
 
 parameter_types! {
-	/// The holding account into which burnt funds will be moved at the point of sale. This will be
-	/// burnt periodically.
-	pub CoretimeBurnAccount: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
-}
-
-/// Burn revenue from coretime sales. See
-/// [RFC-010](https://polkadot-fellows.github.io/RFCs/approved/0010-burn-coretime-revenue.html).
-pub struct BurnCoretimeRevenue;
-impl OnUnbalanced<Credit<AccountId, Balances>> for BurnCoretimeRevenue {
-	fn on_nonzero_unbalanced(amount: Credit<AccountId, Balances>) {
-		let acc = CoretimeBurnAccount::get();
-		if !System::<Runtime>::account_exists(&acc) {
-			// The account doesn't require ED to survive.
-			System::<Runtime>::inc_providers(&acc);
-		}
-		Balances::resolve(&acc, amount).defensive_ok();
-	}
-}
-
-type AssetTransactor = <xcm_config::XcmConfig as xcm_executor::Config>::AssetTransactor;
-
-fn burn_at_relay(stash: &AccountId, value: Balance) -> Result<(), XcmError> {
-	let dest = Location::parent();
-	let stash_location =
-		Junction::AccountId32 { network: None, id: stash.clone().into() }.into_location();
-	let asset = Asset { id: AssetId(Location::parent()), fun: Fungible(value) };
-	let dummy_xcm_context = XcmContext { origin: None, message_id: [0; 32], topic: None };
-
-	let withdrawn = AssetTransactor::withdraw_asset(&asset, &stash_location, None)?;
-
-	// TODO https://github.com/polkadot-fellows/runtimes/issues/404
-	AssetTransactor::can_check_out(&dest, &asset, &dummy_xcm_context)?;
-
-	let parent_assets = Into::<Assets>::into(withdrawn)
-		.reanchored(&dest, &Here)
-		.defensive_map_err(|_| XcmError::ReanchorFailed)?;
-
-	PolkadotXcm::send_xcm(
-		Here,
-		Location::parent(),
-		Xcm(vec![
-			Instruction::UnpaidExecution {
-				weight_limit: WeightLimit::Unlimited,
-				check_origin: None,
-			},
-			ReceiveTeleportedAsset(parent_assets.clone()),
-			BurnAsset(parent_assets),
-		]),
-	)?;
-
-	AssetTransactor::check_out(&dest, &asset, &dummy_xcm_context);
-
-	Ok(())
-}
-
-parameter_types! {
 	/// The revenue from on-demand coretime sales. This is distributed amonst those who contributed
 	/// regions to the pool.
 	pub storage CoretimeRevenue: Option<(BlockNumber, Balance)> = None;
@@ -140,14 +83,6 @@ impl CoretimeInterface for CoretimeAllocator {
 		use crate::coretime::CoretimeProviderCalls::RequestCoreCount;
 		let request_core_count_call = RelayRuntimePallets::Coretime(RequestCoreCount(count));
 
-		// Weight for `request_core_count` from Polkadot runtime benchmarks:
-		// `ref_time`, `proof_size`, reads, writes
-		// 9_660_000, 1640, 3, 1
-		// Use overestimates for reads and writes, add 30% to each component with a healthy round
-		// up.
-		let call_weight =
-			Weight::from_parts(250 * WEIGHT_REF_TIME_PER_MICROS, 3 * WEIGHT_PROOF_SIZE_PER_KB);
-
 		let message = Xcm(vec![
 			Instruction::UnpaidExecution {
 				weight_limit: WeightLimit::Unlimited,
@@ -155,7 +90,7 @@ impl CoretimeInterface for CoretimeAllocator {
 			},
 			Instruction::Transact {
 				origin_kind: OriginKind::Native,
-				fallback_max_weight: Some(call_weight),
+				fallback_max_weight: None,
 				call: request_core_count_call.encode().into(),
 			},
 		]);
@@ -177,19 +112,11 @@ impl CoretimeInterface for CoretimeAllocator {
 		let request_revenue_info_at_call =
 			RelayRuntimePallets::Coretime(RequestRevenueInfoAt(when));
 
-		// Weight for `request_revenue_at` from Polkadot runtime benchmarks:
-		// `ref_time`, `proof_size`, reads, writes
-		// 93_731_000, 6313, 7, 5
-		// Use overestimates for reads and writes, add 30% to each component with a healthy round
-		// up.
-		let call_weight =
-			Weight::from_parts(1000 * WEIGHT_REF_TIME_PER_MICROS, 9 * WEIGHT_PROOF_SIZE_PER_KB);
-
 		let message = Xcm(vec![
 			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 			Transact {
 				origin_kind: OriginKind::Native,
-				fallback_max_weight: Some(call_weight),
+				fallback_max_weight: None,
 				call: request_revenue_info_at_call.encode().into(),
 			},
 		]);
@@ -224,90 +151,38 @@ impl CoretimeInterface for CoretimeAllocator {
 	) {
 		use crate::coretime::CoretimeProviderCalls::AssignCore;
 
-		// Weight for `assign_core` from Polkadot runtime benchmarks:
-		// `ref_time`, `proof_size`, reads, writes
-		// 12_201_135 + 80 * 13_556, 3579, 1, 2
-		// Use overestimates for reads and writes, add 30% to each component with a healthy round
-		// up.
-		let call_weight =
-			Weight::from_parts(350 * WEIGHT_REF_TIME_PER_MICROS, 5 * WEIGHT_PROOF_SIZE_PER_KB);
+		// A maximum of 28 assignments fit in one message. Fortunately the relay chain allows
+		// chunking, so we just split the assignments into chunks of 28 and send multiple messages.
+		// This will get reassembled into a full list of assignments on the relay chain side.
 
-		// The relay chain currently only allows `assign_core` to be called with a complete mask
-		// and only ever with increasing `begin`. The assignments must be truncated to avoid
-		// dropping that core's assignment completely.
+		for chunk in assignment.chunks(28) {
+			let partial_assignment = chunk.to_vec();
 
-		// This shadowing of `assignment` is temporary and can be removed when the relay can accept
-		// multiple messages to assign a single core.
-		let assignment = if assignment.len() > 28 {
-			let mut total_parts = 0u16;
-			// Account for missing parts with a new `Idle` assignment at the start as
-			// `assign_core` on the relay assumes this is sorted. We'll add the rest of the
-			// assignments and sum the parts in one pass, so this is just initialized to 0.
-			let mut assignment_truncated = vec![(CoreAssignment::Idle, 0)];
-			// Truncate to first 27 non-idle assignments.
-			assignment_truncated.extend(
-				assignment
-					.into_iter()
-					.filter(|(a, _)| *a != CoreAssignment::Idle)
-					.take(27)
-					.inspect(|(_, parts)| total_parts += *parts)
-					.collect::<Vec<_>>(),
-			);
+			let assign_core_call = RelayRuntimePallets::Coretime(AssignCore(
+				core,
+				begin,
+				partial_assignment,
+				end_hint,
+			));
 
-			// Set the parts of the `Idle` assignment we injected at the start of the vec above.
-			assignment_truncated[0].1 = 57_600u16.saturating_sub(total_parts);
-			assignment_truncated
-		} else {
-			assignment
-		};
-
-		let assign_core_call =
-			RelayRuntimePallets::Coretime(AssignCore(core, begin, assignment, end_hint));
-
-		let message = Xcm(vec![
-			UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
-			Transact {
-				origin_kind: OriginKind::Native,
-				fallback_max_weight: Some(call_weight),
-				call: assign_core_call.encode().into(),
-			},
-		]);
-
-		match PolkadotXcm::send_xcm(Here, Location::parent(), message.clone()) {
-			Ok(_) => log::debug!(
-				target: "runtime::coretime",
-				"Core assignment sent successfully."
-			),
-			Err(e) => log::error!(
-				target: "runtime::coretime",
-				"Core assignment failed to send: {e:?}"
-			),
-		}
-	}
-
-	fn on_new_timeslice(t: pallet_broker::Timeslice) {
-		// Burn roughly once per day. TIMESLICE_PERIOD tested to be != 0.
-		const BURN_PERIOD: pallet_broker::Timeslice =
-			RELAY_DAYS.saturating_div(coretime::TIMESLICE_PERIOD);
-		// If checked_rem returns `None`, `TIMESLICE_PERIOD` is misconfigured for some reason. We
-		// have bigger issues with the chain, but we still want to burn.
-		if t.checked_rem(BURN_PERIOD).is_some_and(|r| r != 0) {
-			return;
-		}
-
-		let stash = CoretimeBurnAccount::get();
-		let value =
-			Balances::reducible_balance(&stash, Preservation::Expendable, Fortitude::Polite);
-
-		if value > 0 {
-			log::debug!(target: "runtime::coretime", "Going to burn {value} stashed tokens at RC");
-			match burn_at_relay(&stash, value) {
-				Ok(()) => {
-					log::debug!(target: "runtime::coretime", "Succesfully burnt {value} tokens");
+			let message = Xcm(vec![
+				UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+				Transact {
+					origin_kind: OriginKind::Native,
+					fallback_max_weight: None,
+					call: assign_core_call.encode().into(),
 				},
-				Err(err) => {
-					log::error!(target: "runtime::coretime", "burn_at_relay failed: {err:?}");
-				},
+			]);
+
+			match PolkadotXcm::send_xcm(Here, Location::parent(), message) {
+				Ok(_) => log::debug!(
+					target: "runtime::coretime",
+					"Core assignment sent successfully."
+				),
+				Err(e) => log::error!(
+					target: "runtime::coretime",
+					"Core assignment failed to send: {e:?}"
+				),
 			}
 		}
 	}
@@ -331,10 +206,10 @@ impl MaybeConvert<TaskId, AccountId> for SovereignAccountOf {
 impl pallet_broker::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
-	type OnRevenue = BurnCoretimeRevenue;
+	type OnRevenue = AccumulateForward;
 	type TimeslicePeriod = ConstU32<{ coretime::TIMESLICE_PERIOD }>;
 	type MaxLeasedCores = ConstU32<55>;
-	type MaxReservedCores = ConstU32<10>;
+	type MaxReservedCores = ConstU32<50>;
 	type Coretime = CoretimeAllocator;
 	type ConvertBalance = sp_runtime::traits::Identity;
 	type WeightInfo = weights::pallet_broker::WeightInfo<Runtime>;
@@ -344,4 +219,80 @@ impl pallet_broker::Config for Runtime {
 	type MaxAutoRenewals = ConstU32<100>;
 	type PriceAdapter = pallet_broker::MinimumPrice<Balance, MinimumEndPrice>;
 	type MinimumCreditPurchase = MinimumCreditPurchase;
+}
+
+/// Retires the `py/ctbrn` holding account of the former relay-chain burn: moves any residual
+/// balance to the accumulation account and drops the provider reference the burn handler added,
+/// so the account is reaped. Idempotent: once the account is gone, a rerun only reads.
+pub struct RetireCoretimeBurnAccount;
+
+impl RetireCoretimeBurnAccount {
+	fn burn_account() -> AccountId {
+		PalletId(*b"py/ctbrn").into_account_truncating()
+	}
+}
+
+impl OnRuntimeUpgrade for RetireCoretimeBurnAccount {
+	fn on_runtime_upgrade() -> Weight {
+		let burn_account = Self::burn_account();
+		if !System::account_exists(&burn_account) {
+			return <Runtime as frame_system::Config>::DbWeight::get().reads(1);
+		}
+		let residual =
+			Balances::reducible_balance(&burn_account, Preservation::Expendable, Fortitude::Polite);
+		if residual > 0 {
+			let accumulation_account = AccumulateForward::accumulation_account();
+			if let Err(e) = Balances::transfer(
+				&burn_account,
+				&accumulation_account,
+				residual,
+				Preservation::Expendable,
+			) {
+				log::error!(
+					target: "runtime::coretime",
+					"Failed to sweep {residual} from the coretime burn account: {e:?}"
+				);
+			}
+		}
+		if Balances::total_balance(&burn_account) == 0 && System::providers(&burn_account) > 0 {
+			let _ = System::dec_providers(&burn_account).defensive();
+		}
+		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(6, 3)
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+		let residual = Balances::reducible_balance(
+			&Self::burn_account(),
+			Preservation::Expendable,
+			Fortitude::Polite,
+		);
+		let accumulated = Balances::total_balance(&AccumulateForward::accumulation_account());
+		Ok((residual, accumulated).encode())
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+		let (residual, accumulated_before): (Balance, Balance) =
+			Decode::decode(&mut &state[..]).map_err(|_| "invalid pre_upgrade state")?;
+		frame_support::ensure!(
+			System::account_exists(&AccumulateForward::accumulation_account()),
+			"accumulation account not funded"
+		);
+		let burn_account = Self::burn_account();
+		frame_support::ensure!(
+			Balances::total_balance(&burn_account) == 0,
+			"coretime burn account not swept"
+		);
+		frame_support::ensure!(
+			System::providers(&burn_account) == 0,
+			"coretime burn account not reaped"
+		);
+		frame_support::ensure!(
+			Balances::total_balance(&AccumulateForward::accumulation_account()) ==
+				accumulated_before + residual,
+			"residual not moved to the accumulation account"
+		);
+		Ok(())
+	}
 }

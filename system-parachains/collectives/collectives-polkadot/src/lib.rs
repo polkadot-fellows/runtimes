@@ -46,6 +46,7 @@ mod weights;
 pub mod xcm_config;
 // Fellowship configurations.
 pub mod fellowship;
+pub mod parameters;
 pub use ambassador::pallet_ambassador_origins;
 
 // Secretary Configuration
@@ -54,8 +55,9 @@ pub mod secretary;
 use alloc::{borrow::Cow, boxed::Box, vec, vec::Vec};
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
-use fellowship::{pallet_fellowship_origins, Fellows};
+use fellowship::{pallet_fellowship_origins, Architects, Fellows};
 use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
+use parameters::dynamic_params;
 use polkadot_runtime_common::impls::{
 	ContainsParts as ContainsLocationParts, VersionedLocatableAsset,
 };
@@ -76,13 +78,14 @@ use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
+	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstBool, ConstU16, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse, FromContains,
-		InstanceFilter, LinearStoragePrice, TransformOrigin,
+		ConstBool, ConstU16, ConstU32, ConstU64, ConstU8, EitherOf, EitherOfDiverse, EnsureOrigin,
+		EnsureOriginWithArg, FromContains, InstanceFilter, LinearStoragePrice, TransformOrigin,
 	},
 	weights::{ConstantMultiplier, Weight},
 	PalletId,
@@ -94,15 +97,15 @@ use frame_system::{
 use parachains_common::{
 	message_queue::*, AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
-use sp_runtime::RuntimeDebug;
+use sp_runtime::{Debug, FixedU128};
 use system_parachains_constants::{
 	polkadot::{account::*, consensus::*, currency::*, fee::WeightToFee},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
 	SLOT_DURATION,
 };
 use xcm_config::{
-	AssetHubLocation, LocationToAccountId, RelayChainLocation, SelfParaId, StakingPot,
-	TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
+	AssetHubLocation, FellowshipAdminBodyId, LocationToAccountId, RelayChainLocation, SelfParaId,
+	StakingPot, TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
 };
 
 #[cfg(any(feature = "std", test))]
@@ -120,6 +123,7 @@ use xcm_runtime_apis::{
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 impl_opaque_keys! {
+	#[derive(MaxEncodedLen)]
 	pub struct SessionKeys {
 		pub aura: Aura,
 	}
@@ -130,7 +134,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("collectives"),
 	impl_name: Cow::Borrowed("collectives"),
 	authoring_version: 1,
-	spec_version: 2_000_004,
+	spec_version: 2_005_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 7,
@@ -152,7 +156,13 @@ pub type RootOrAllianceTwoThirdsMajority = EitherOfDiverse<
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
 	pub RuntimeBlockLength: BlockLength =
-		BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+		BlockLength::builder()
+			.max_length(5 * 1024 * 1024)
+			.modify_max_length_for_class(DispatchClass::Normal, |m| {
+				*m = NORMAL_DISPATCH_RATIO * *m
+			})
+			.max_header_size(100 * 1024)
+			.build();
 	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
 		.base_block(BlockExecutionWeight::get())
 		.for_class(DispatchClass::all(), |weights| {
@@ -211,7 +221,7 @@ impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
 	type OnTimestampSet = Aura;
-	type MinimumPeriod = ConstU64<{ SLOT_DURATION / 2 }>;
+	type MinimumPeriod = ConstU64<0>;
 	type WeightInfo = weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
@@ -239,7 +249,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = ();
-	type MaxFreezes = ConstU32<0>;
+	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
 }
 
@@ -252,12 +262,15 @@ impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction =
 		pallet_transaction_payment::FungibleAdapter<Balances, ResolveTo<StakingPot, Balances>>;
-	type WeightToFee = WeightToFee;
+	type WeightToFee = WeightToFee<Self>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = ConstU8<5>;
 	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Self>;
 }
+
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_transaction_payment::BenchmarkConfig for Runtime {}
 
 parameter_types! {
 	// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
@@ -305,12 +318,14 @@ parameter_types! {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Default,
+	Debug,
 	MaxEncodedLen,
 	scale_info::TypeInfo,
 )]
 pub enum ProxyType {
 	/// Fully permissioned proxy. Can execute any call on behalf of _proxied_.
+	#[default]
 	Any,
 	/// Can execute any call that does not transfer funds.
 	NonTransfer,
@@ -327,11 +342,21 @@ pub enum ProxyType {
 	/// Secretary proxy. Allows calls related to the Secretary collective
 	Secretary,
 }
-impl Default for ProxyType {
-	fn default() -> Self {
-		Self::Any
-	}
+
+/// `pallet_salary` calls that only pay the claimant itself.
+///
+/// Specifically omitting `payout_other`, which pays the claimant's salary to any account.
+macro_rules! own_salary_call {
+	() => {
+		pallet_salary::Call::init { .. } |
+			pallet_salary::Call::bump { .. } |
+			pallet_salary::Call::induct { .. } |
+			pallet_salary::Call::register { .. } |
+			pallet_salary::Call::payout { .. } |
+			pallet_salary::Call::check_payment { .. }
+	};
 }
+
 impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
@@ -352,12 +377,12 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::FellowshipCollective(_) |
 					RuntimeCall::FellowshipReferenda(_) |
 					RuntimeCall::FellowshipCore(_) |
-					RuntimeCall::FellowshipSalary(_) |
+					RuntimeCall::FellowshipSalary(own_salary_call!()) |
 					RuntimeCall::FellowshipTreasury(_) |
 					RuntimeCall::AmbassadorCollective(_) |
 					RuntimeCall::AmbassadorReferenda(_) |
 					RuntimeCall::AmbassadorCore(_) |
-					RuntimeCall::AmbassadorSalary(_) |
+					RuntimeCall::AmbassadorSalary(own_salary_call!()) |
 					RuntimeCall::AmbassadorTreasury(_)
 			),
 			ProxyType::CancelProxy => matches!(
@@ -384,7 +409,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::FellowshipCollective { .. } |
 					RuntimeCall::FellowshipReferenda { .. } |
 					RuntimeCall::FellowshipCore { .. } |
-					RuntimeCall::FellowshipSalary { .. } |
+					RuntimeCall::FellowshipSalary(own_salary_call!()) |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -393,14 +418,14 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::AmbassadorCollective { .. } |
 					RuntimeCall::AmbassadorReferenda { .. } |
 					RuntimeCall::AmbassadorCore { .. } |
-					RuntimeCall::AmbassadorSalary { .. } |
+					RuntimeCall::AmbassadorSalary(own_salary_call!()) |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
 			ProxyType::Secretary => matches!(
 				c,
 				RuntimeCall::SecretaryCollective { .. } |
-					RuntimeCall::SecretarySalary { .. } |
+					RuntimeCall::SecretarySalary(own_salary_call!()) |
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
@@ -411,7 +436,15 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
-			(ProxyType::NonTransfer, _) => true,
+			// Only list proxy types whose calls are all allowed by `NonTransfer`.
+			(
+				ProxyType::NonTransfer,
+				ProxyType::CancelProxy |
+				ProxyType::Collator |
+				ProxyType::Alliance |
+				ProxyType::Fellowship |
+				ProxyType::Ambassador,
+			) => true,
 			_ => false,
 		}
 	}
@@ -440,6 +473,7 @@ parameter_types! {
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
+	type SchedulingSignatureVerifier = ();
 	type RuntimeEvent = RuntimeEvent;
 	type OnSystemEvent = ();
 	type SelfParaId = parachain_info::Pallet<Runtime>;
@@ -451,7 +485,6 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type CheckAssociatedRelayNumber = RelayNumberMonotonicallyIncreases;
 	type ConsensusHook = ConsensusHook;
 	type WeightInfo = weights::cumulus_pallet_parachain_system::WeightInfo<Runtime>;
-	type SelectCore = cumulus_pallet_parachain_system::DefaultCoreSelector<Runtime>;
 	type RelayParentOffset = ConstU32<0>;
 }
 
@@ -541,6 +574,15 @@ impl cumulus_pallet_xcmp_queue::migration::v5::V5Config for Runtime {
 pub const PERIOD: u32 = 6 * HOURS;
 pub const OFFSET: u32 = 0;
 
+parameter_types! {
+	/// One `NextKeys` entry plus one `KeyOwner` entry per session key.
+	pub SessionKeyDeposit: Balance = system_para_deposit(1, SessionKeys::max_encoded_len() as u32)
+		.saturating_add(system_para_deposit(
+			<SessionKeys as sp_runtime::traits::OpaqueKeys>::key_ids().len() as u32,
+			<Runtime as pallet_session::Config>::ValidatorId::max_encoded_len() as u32,
+		));
+}
+
 impl pallet_session::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
@@ -555,14 +597,14 @@ impl pallet_session::Config for Runtime {
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = ();
 	type Currency = Balances;
-	type KeyDeposit = ();
+	type KeyDeposit = SessionKeyDeposit;
 }
 
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = ConstU32<100_000>;
-	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type AllowMultipleBlocksPerSlot = ConstBool<true>;
 	type SlotDuration = ConstU64<SLOT_DURATION>;
 }
 
@@ -607,6 +649,24 @@ parameter_types! {
 pub const ALLIANCE_MAX_PROPOSALS: u32 = 100;
 pub const ALLIANCE_MAX_MEMBERS: u32 = 100;
 
+parameter_types! {
+	// This configuration causes the deposit amount to increase with the number of active proposals.
+	// 1 proposal = 1 DOT, 5 = 1, 10 = 2, 25 = 10, 50 = 117, 75 = 1271, 100 = 13780
+	pub const AllianceProposalDepositGrowthFactor: FixedU128 = FixedU128::from_rational(11, 10);
+	pub const AllianceBaseProposalDeposit: Balance = UNITS;
+	pub const AllianceProposalRoundPrecision: u32 = 10;
+	pub const AllianceProposalHoldReason: RuntimeHoldReason =
+		RuntimeHoldReason::AllianceMotion(pallet_collective::HoldReason::ProposalSubmission);
+}
+
+type AllianceDeposit = pallet_collective::deposit::Round<
+	AllianceProposalRoundPrecision,
+	pallet_collective::deposit::Geometric<
+		AllianceProposalDepositGrowthFactor,
+		AllianceBaseProposalDeposit,
+	>,
+>;
+
 type AllianceCollective = pallet_collective::Instance1;
 impl pallet_collective::Config<AllianceCollective> for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
@@ -621,7 +681,8 @@ impl pallet_collective::Config<AllianceCollective> for Runtime {
 	type MaxProposalWeight = MaxProposalWeight;
 	type DisapproveOrigin = EnsureRoot<AccountId>;
 	type KillOrigin = EnsureRoot<AccountId>;
-	type Consideration = ();
+	type Consideration =
+		HoldConsideration<AccountId, Balances, AllianceProposalHoldReason, AllianceDeposit, u32>;
 }
 
 pub const MAX_FELLOWS: u32 = ALLIANCE_MAX_MEMBERS;
@@ -679,7 +740,7 @@ impl pallet_scheduler::Config for Runtime {
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
 	type MaximumWeight = MaximumSchedulerWeight;
-	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type ScheduleOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Architects>;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
 	type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
 	type OriginPrivilegeCmp = EqualOrGreatestRootCmp;
@@ -743,6 +804,10 @@ impl pallet_asset_rate::Config for Runtime {
 	type BenchmarkHelper = polkadot_runtime_common::impls::benchmarks::AssetRateArguments;
 }
 
+impl cumulus_pallet_weight_reclaim::Config for Runtime {
+	type WeightInfo = weights::cumulus_pallet_weight_reclaim::WeightInfo<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime
@@ -752,6 +817,7 @@ construct_runtime!(
 		ParachainSystem: cumulus_pallet_parachain_system = 1,
 		Timestamp: pallet_timestamp = 2,
 		ParachainInfo: parachain_info = 3,
+		WeightReclaim: cumulus_pallet_weight_reclaim = 4,
 
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
@@ -778,6 +844,7 @@ construct_runtime!(
 		Preimage: pallet_preimage = 43,
 		Scheduler: pallet_scheduler = 44,
 		AssetRate: pallet_asset_rate = 45,
+		Parameters: pallet_parameters = 46,
 
 		// The main stage.
 
@@ -824,17 +891,21 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 pub type BlockId = generic::BlockId<Block>;
 
 /// The `TransactionExtension` to the basic transaction logic.
-pub type TxExtension = (
-	frame_system::CheckNonZeroSender<Runtime>,
-	frame_system::CheckSpecVersion<Runtime>,
-	frame_system::CheckTxVersion<Runtime>,
-	frame_system::CheckGenesis<Runtime>,
-	frame_system::CheckEra<Runtime>,
-	frame_system::CheckNonce<Runtime>,
-	frame_system::CheckWeight<Runtime>,
-	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
-	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
-);
+pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
+	Runtime,
+	(
+		frame_system::AuthorizeCall<Runtime>,
+		frame_system::CheckNonZeroSender<Runtime>,
+		frame_system::CheckSpecVersion<Runtime>,
+		frame_system::CheckTxVersion<Runtime>,
+		frame_system::CheckGenesis<Runtime>,
+		frame_system::CheckEra<Runtime>,
+		frame_system::CheckNonce<Runtime>,
+		frame_system::CheckWeight<Runtime>,
+		pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+	),
+>;
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
@@ -845,13 +916,14 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
-
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
+	pub type Unreleased = (
+		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
+		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
+	);
 
 	/// All migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
+	pub type SingleBlockMigrations = Unreleased;
 
 	/// MBM migrations to apply on runtime upgrade.
 	pub type MbmMigrations = ();
@@ -878,12 +950,14 @@ mod benches {
 		[pallet_balances, Balances]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
+		[pallet_parameters, Parameters]
 		[pallet_proxy, Proxy]
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_utility, Utility]
 		[pallet_timestamp, Timestamp]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_parachain_system, ParachainSystem]
+		[cumulus_pallet_weight_reclaim, WeightReclaim]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
 		[pallet_alliance, Alliance]
 		[pallet_collective, AllianceMotion]
@@ -924,7 +998,17 @@ mod benches {
 		}
 	}
 
-	impl cumulus_pallet_session_benchmarking::Config for Runtime {}
+	impl cumulus_pallet_session_benchmarking::Config for Runtime {
+		fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Self::Keys, Vec<u8>) {
+			use frame_support::traits::fungible::Mutate;
+			// Mint the key deposit on top of the balance the benchmark already funded.
+			// TODO: Remove after https://github.com/paritytech/polkadot-sdk/issues/13336 is fixed.
+			Balances::mint_into(&owner, SessionKeyDeposit::get())
+				.expect("mint session key deposit");
+			let keys = SessionKeys::generate(&owner.encode(), None);
+			(keys.keys, keys.proof.encode())
+		}
+	}
 
 	use xcm_config::DotLocation;
 
@@ -975,6 +1059,11 @@ mod benches {
 		fn get_asset() -> Asset {
 			Asset { id: AssetId(Location::parent()), fun: Fungible(ExistentialDeposit::get()) }
 		}
+
+		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
+		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
 	}
 
 	impl pallet_xcm_benchmarks::Config for Runtime {
@@ -990,11 +1079,15 @@ mod benches {
 		fn valid_destination() -> Result<Location, BenchmarkError> {
 			Ok(AssetHubLocation::get())
 		}
-		fn worst_case_holding(_depositable_count: u32) -> Assets {
+		fn worst_case_holding(_depositable_count: u32) -> xcm_executor::AssetsInHolding {
+			use pallet_xcm_benchmarks::MockCredit;
 			// just concrete assets according to relay chain.
-			let assets: Vec<Asset> =
-				vec![Asset { id: AssetId(DotLocation::get()), fun: Fungible(1_000_000 * UNITS) }];
-			assets.into()
+			let mut holding = xcm_executor::AssetsInHolding::new();
+			holding.fungible.insert(
+				AssetId(DotLocation::get()),
+				alloc::boxed::Box::new(MockCredit(1_000_000 * UNITS)),
+			);
+			holding
 		}
 	}
 
@@ -1070,10 +1163,10 @@ mod benches {
 		}
 
 		fn alias_origin() -> Result<(Location, Location), BenchmarkError> {
-			Ok((
-				Location::new(1, [Parachain(1000)]),
-				Location::new(1, [Parachain(1000), AccountId32 { id: [111u8; 32], network: None }]),
-			))
+			use system_parachains_common::benchmarking::set_up_worst_case_authorized_alias;
+
+			// Worst case: `AuthorizedAliasers`, the last and priciest `Aliasers` entry.
+			Ok(set_up_worst_case_authorized_alias::<Runtime>())
 		}
 	}
 
@@ -1111,6 +1204,9 @@ impl_runtime_apis! {
 		fn relay_parent_offset() -> u32 {
 			0
 		}
+		fn max_claim_queue_offset() -> u8 {
+			cumulus_pallet_parachain_system::Pallet::<Runtime>::max_claim_queue_offset()
+		}
 	}
 
 	impl cumulus_primitives_aura::AuraUnincludedSegmentApi<Block> for Runtime {
@@ -1127,7 +1223,7 @@ impl_runtime_apis! {
 			VERSION
 		}
 
-		fn execute_block(block: Block) {
+		fn execute_block(block: <Block as BlockT>::LazyBlock) {
 			Executive::execute_block(block)
 		}
 
@@ -1164,7 +1260,7 @@ impl_runtime_apis! {
 		}
 
 		fn check_inherents(
-			block: Block,
+			block: <Block as BlockT>::LazyBlock,
 			data: sp_inherents::InherentData,
 		) -> sp_inherents::CheckInherentsResult {
 			data.check_extrinsics(&block)
@@ -1188,8 +1284,8 @@ impl_runtime_apis! {
 	}
 
 	impl sp_session::SessionKeys<Block> for Runtime {
-		fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
-			SessionKeys::generate(seed)
+		fn generate_session_keys(owner: Vec<u8>, seed: Option<Vec<u8>>) -> sp_session::OpaqueGeneratedSessionKeys {
+			SessionKeys::generate(&owner, seed).into()
 		}
 
 		fn decode_session_keys(
@@ -1274,8 +1370,9 @@ impl_runtime_apis! {
 			PolkadotXcm::query_xcm_weight(message)
 		}
 
-		fn query_delivery_fees(destination: VersionedLocation, message: VersionedXcm<()>) -> Result<VersionedAssets, XcmPaymentApiError> {
-			PolkadotXcm::query_delivery_fees(destination, message)
+		fn query_delivery_fees(destination: VersionedLocation, message: VersionedXcm<()>, asset_id: VersionedAssetId) -> Result<VersionedAssets, XcmPaymentApiError> {
+			type AssetExchanger = <xcm_config::XcmConfig as xcm_executor::Config>::AssetExchanger;
+			PolkadotXcm::query_delivery_fees::<AssetExchanger>(destination, message, asset_id)
 		}
 	}
 
@@ -1285,7 +1382,7 @@ impl_runtime_apis! {
 		}
 
 		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
-			PolkadotXcm::dry_run_xcm::<Runtime, xcm_config::XcmRouter, RuntimeCall, xcm_config::XcmConfig>(origin_location, xcm)
+			PolkadotXcm::dry_run_xcm::<xcm_config::XcmRouter>(origin_location, xcm)
 		}
 	}
 
@@ -1359,7 +1456,7 @@ impl_runtime_apis! {
 		}
 
 		fn execute_block(
-			block: Block,
+			block: <Block as BlockT>::LazyBlock,
 			state_root_check: bool,
 			signature_check: bool,
 			select: frame_try_runtime::TryStateSelect,
@@ -1460,4 +1557,30 @@ fn scheduler_weight_is_sane() {
 
 	let large_lookup = lookup_weight(1024 * 1024);
 	assert!(large_lookup.all_lte(limit), "Must be possible to submit a large lookup");
+}
+
+/// Verifies the deposit curve documented on `AllianceProposalDepositGrowthFactor`:
+/// 1 proposal = 1 DOT, 5 = 1, 10 = 2, 25 = 10, 50 = 117, 75 = 1271, 100 = 13780.
+#[test]
+fn alliance_deposit_matches_documented_curve() {
+	use sp_runtime::traits::Convert;
+
+	let cases: &[(u32, Balance)] = &[
+		(1, UNITS),
+		(5, UNITS),
+		(10, 2 * UNITS),
+		(25, 10 * UNITS),
+		(50, 117 * UNITS),
+		(75, 1271 * UNITS),
+		(ALLIANCE_MAX_PROPOSALS, 13780 * UNITS),
+	];
+
+	for (proposals, expected) in cases {
+		let actual = <AllianceDeposit as Convert<u32, Balance>>::convert(*proposals);
+		assert_eq!(
+			actual, *expected,
+			"AllianceDeposit at {} proposals: expected {} plancks, got {}",
+			proposals, expected, actual
+		);
+	}
 }

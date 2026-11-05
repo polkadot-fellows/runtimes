@@ -15,18 +15,9 @@
 // limitations under the License.
 
 use crate::*;
-use frame_support::{
-	dispatch::{GetDispatchInfo, RawOrigin},
-	sp_runtime::traits::Dispatchable,
-	traits::fungible::Mutate,
-};
 use integration_tests_helpers::{
 	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay,
 	test_relay_is_trusted_teleporter,
-};
-use xcm_runtime_apis::{
-	dry_run::runtime_decl_for_dry_run_api::DryRunApiV2,
-	fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1,
 };
 
 #[test]
@@ -117,4 +108,12 @@ fn teleport_via_transfer_assets_from_and_to_other_system_parachains_works() {
 		(native_asset, amount),
 		transfer_assets
 	);
+}
+
+#[test]
+fn accumulate_forward_coretime_transfers_native_to_asset_hub() {
+	emulated_integration_tests_common::dap_helpers::test_accumulate_forward_transfers_to_asset_hub::<
+		CoretimePolkadot,
+		AssetHubPolkadot,
+	>();
 }

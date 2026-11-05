@@ -17,13 +17,13 @@
 //! XCM configurations for the Kusama runtime.
 
 use super::{
-	parachains_origin, AccountId, AllPalletsWithSystem, Balances, Dmp, Fellows, GeneralAdmin,
-	ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin, TransactionByteFee,
-	Treasury, WeightToFee, XcmPallet,
+	parachains_origin, AccountId, AccumulateForward, AllPalletsWithSystem, Balances, Dmp, Fellows,
+	GeneralAdmin, ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin,
+	TransactionByteFee, Treasury, WeightToFee, XcmPallet,
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Disabled, Equals, Everything, FromContains, Nothing},
+	traits::{Contains, Disabled, Equals, Everything, Nothing},
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::CENTS, system_parachain::*};
@@ -58,10 +58,13 @@ parameter_types! {
 	pub UniversalLocation: InteriorLocation = ThisNetwork::get().into();
 	/// The check account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
-	/// The check account that is allowed to mint assets locally.
-	pub TeleportTracking: Option<(AccountId, MintLocation)> = crate::RcMigrator::teleport_tracking();
+	/// Relay cannot mint locally.
+	pub NoTeleportTracking: Option<(AccountId, MintLocation)> = None;
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
+	/// The `pallet-accumulate-and-forward` account, as a local location.
+	pub AccumulateForwardLocation: Location =
+		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
 
 /// The canonical means of converting a `Location` into an `AccountId`, used when we want to
@@ -90,8 +93,8 @@ pub type LocalAssetTransactor = FungibleAdapter<
 	SovereignAccountOf,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
-	// Teleports tracking is managed by `RcMigrator`: track before, no tracking after.
-	TeleportTracking,
+	// Teleports disabled for the Relay Chain. KSM issuance tracking happens on AH.
+	NoTeleportTracking,
 >;
 
 /// The means that we convert the XCM message origin location into a local dispatch origin.
@@ -123,21 +126,14 @@ parameter_types! {
 pub type PriceForChildParachainDelivery =
 	ExponentialPrice<FeeAssetId, BaseDeliveryFee, TransactionByteFee, Dmp>;
 
-/// The XCM router. Use [`XcmRouter`] instead.
-pub(crate) type XcmRouterWithoutException = WithUniqueTopic<(
-	// Only one router so far - use DMP to communicate with child parachains.
-	ChildParachainRouter<Runtime, XcmPallet, PriceForChildParachainDelivery>,
-)>;
-
 /// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
 /// individual routers.
 ///
 /// This router does not route to the Asset Hub if the migration is ongoing.
-pub type XcmRouter = pallet_rc_migrator::types::RouteInnerWithException<
-	XcmRouterWithoutException,
-	FromContains<Equals<AssetHubLocation>, Everything>,
-	crate::RcMigrator,
->;
+pub(crate) type XcmRouter = WithUniqueTopic<(
+	// Only one router so far - use DMP to communicate with child parachains.
+	ChildParachainRouter<Runtime, XcmPallet, PriceForChildParachainDelivery>,
+)>;
 
 parameter_types! {
 	pub const Ksm: AssetFilter = Wild(AllOf { fun: WildFungible, id: AssetId(TokenLocation::get()) });
@@ -206,7 +202,13 @@ pub type Barrier = TrailingSetTopicAsId<(
 
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations = (SystemParachains, Equals<TokenLocation>, LocalPlurality);
+pub type WaivedLocations = (
+	SystemParachains,
+	Equals<TokenLocation>,
+	LocalPlurality,
+	// Forwards of accumulated funds to Asset Hub.
+	Equals<AccumulateForwardLocation>,
+);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -216,9 +218,18 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = LocalOriginConverter;
 	type IsReserve = ();
+	// Teleports to and from this chain are refused once the AHM v2 migration starts.
+	#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
 	type IsTeleporter =
-		pallet_rc_migrator::xcm_config::FalseIfMigrating<crate::RcMigrator, TrustedTeleporters>;
+		pallet_rc2_migrator::xcm_config::NothingOnceStarted<Runtime, TrustedTeleporters>;
+	#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
+	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
+	// Once the AHM v2 migration starts, only the Coretime chain and Asset Hub get through.
+	#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+	type Barrier =
+		xcm_builder::DenyThenTry<crate::ahm_v2::lockdown::DenyOnceMigrationStarts, Barrier>;
+	#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
 	type Barrier = Barrier;
 	type Weigher = WeightInfoBounds<
 		crate::weights::xcm::KusamaXcmWeight<RuntimeCall>,
@@ -232,7 +243,6 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTrap = XcmPallet;
 	type AssetLocker = ();
 	type AssetExchanger = ();
-	type AssetClaims = XcmPallet;
 	type SubscriptionService = XcmPallet;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;

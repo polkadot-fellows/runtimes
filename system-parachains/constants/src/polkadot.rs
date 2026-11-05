@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// Network suffix used to derive Individuality product contexts on Polkadot system chains.
+pub const INDIVIDUALITY_NETWORK_SUFFIX: &[u8] = b"polkadot";
+
 /// Universally recognized accounts.
 pub mod account {
 	use frame_support::PalletId;
@@ -35,6 +38,9 @@ pub mod account {
 	pub const FELLOWSHIP_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/feltr");
 	/// Ambassador treasury pallet ID
 	pub const AMBASSADOR_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/ambtr");
+	/// Accumulate-and-forward pallet ID. Derives the account on a system chain that gathers sinks
+	/// (coretime revenue, dust, XCM fees) before they are forwarded to the DAP on Asset Hub.
+	pub const ACCUMULATE_FORWARD_PALLET_ID: PalletId = PalletId(*b"acf/dott");
 }
 
 /// Consensus-related.
@@ -60,6 +66,8 @@ pub mod consensus {
 
 	/// Parameters enabling elastic scaling functionality.
 	pub mod elastic_scaling {
+		use parachains_common::BlockNumber;
+
 		/// Build with an offset of 1 behind the relay chain.
 		pub const RELAY_PARENT_OFFSET: u32 = 1;
 
@@ -73,6 +81,17 @@ pub mod consensus {
 		/// into the relay chain.
 		pub const UNINCLUDED_SEGMENT_CAPACITY: u32 =
 			(3 + RELAY_PARENT_OFFSET) * BLOCK_PROCESSING_VELOCITY;
+
+		/// The average expected block time, in milliseconds, of a chain running at
+		/// [`BLOCK_PROCESSING_VELOCITY`].
+		pub const MILLISECS_PER_BLOCK: u64 =
+			(super::RELAY_CHAIN_SLOT_DURATION_MILLIS / BLOCK_PROCESSING_VELOCITY) as u64;
+
+		// Time is measured by number of blocks. Use these, not the six-second-basis
+		// `async_backing` ones, for anything the runtime measures against its own block number.
+		pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+		pub const HOURS: BlockNumber = MINUTES * 60;
+		pub const DAYS: BlockNumber = HOURS * 24;
 	}
 }
 
@@ -101,15 +120,8 @@ pub mod currency {
 
 /// Constants related to Polkadot fee payment.
 pub mod fee {
-	use frame_support::{
-		pallet_prelude::Weight,
-		weights::{
-			constants::ExtrinsicBaseWeight, FeePolynomial, WeightToFeeCoefficient,
-			WeightToFeeCoefficients, WeightToFeePolynomial,
-		},
-	};
 	use polkadot_core_primitives::Balance;
-	use smallvec::smallvec;
+	use polkadot_runtime_constants::weights::ExtrinsicBaseWeight;
 	pub use sp_runtime::Perbill;
 
 	/// The block saturation level. Fees will be updates based on this value.
@@ -120,70 +132,21 @@ pub mod fee {
 	/// It is the Relay Chain (Polkadot) `TransactionByteFee` / 20.
 	pub const TRANSACTION_BYTE_FEE: Balance = super::currency::MILLICENTS / 2;
 
-	/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
-	/// node's balance type.
-	///
-	/// This should typically create a mapping between the following ranges:
-	///   - [0, MAXIMUM_BLOCK_WEIGHT]
-	///   - [Balance::min, Balance::max]
-	///
-	/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
-	///   - Setting it to `0` will essentially disable the weight fee.
-	///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
-	pub struct WeightToFee;
-	impl frame_support::weights::WeightToFee for WeightToFee {
-		type Balance = Balance;
-
-		fn weight_to_fee(weight: &Weight) -> Self::Balance {
-			let time_poly: FeePolynomial<Balance> = RefTimeToFee::polynomial().into();
-			let proof_poly: FeePolynomial<Balance> = ProofSizeToFee::polynomial().into();
-
-			// Take the maximum instead of the sum to charge by the more scarce resource.
-			time_poly.eval(weight.ref_time()).max(proof_poly.eval(weight.proof_size()))
-		}
-	}
-
-	/// Maps the reference time component of `Weight` to a fee.
-	pub struct RefTimeToFee;
-	impl WeightToFeePolynomial for RefTimeToFee {
-		type Balance = Balance;
-		fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-			// In Polkadot, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
-			// The standard system parachain configuration is 1/20 of that, as in 1/200 CENT.
-			let p = super::currency::CENTS;
-			let q = 200 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
-
-			smallvec![WeightToFeeCoefficient {
-				degree: 1,
-				negative: false,
-				coeff_frac: Perbill::from_rational(p % q, q),
-				coeff_integer: p / q,
-			}]
-		}
-	}
-
-	/// Maps the proof size component of `Weight` to a fee.
-	pub struct ProofSizeToFee;
-	impl WeightToFeePolynomial for ProofSizeToFee {
-		type Balance = Balance;
-		fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-			// Map 20kb proof to 1 CENT.
-			let p = super::currency::CENTS;
-			let q = 20_000;
-
-			smallvec![WeightToFeeCoefficient {
-				degree: 1,
-				negative: false,
-				coeff_frac: Perbill::from_rational(p % q, q),
-				coeff_integer: p / q,
-			}]
-		}
-	}
+	/// The two generic parameters of `BlockRatioFee` define a rational number that defines the
+	/// ref_time to fee mapping. The numbers chosen here are exactly the same as the one from the
+	/// `WeightToFeePolynomial` that was used before.
+	pub type WeightToFee<Runtime> = pallet_revive::evm::fees::BlockRatioFee<
+		{ super::currency::CENTS },
+		{ (200 * ExtrinsicBaseWeight::get().ref_time()) as u128 },
+		Runtime,
+		Balance,
+	>;
 }
 
 pub mod locations {
 	use frame_support::{parameter_types, traits::Contains};
-	use xcm::latest::prelude::{Junction::*, Location, NetworkId};
+	use sp_runtime::traits::AccountIdConversion;
+	use xcm::latest::prelude::{InteriorLocation, Junction::*, Location, NetworkId};
 
 	parameter_types! {
 		pub RelayChainLocation: Location = Location::parent();
@@ -195,6 +158,14 @@ pub mod locations {
 		pub GovernanceLocation: Location = Location::parent();
 
 		pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
+
+		/// The DAP staging account on Asset Hub. `pallet-dap` drains it into the DAP buffer and
+		/// deactivates the funds, so inflows meant for the DAP must target this account.
+		pub DapStagingLocation: InteriorLocation = AccountId32 {
+			network: None,
+			id: sp_dap::DAP_PALLET_ID.into_sub_account_truncating(sp_dap::DAP_STAGING_ACCOUNT_ID),
+		}
+		.into();
 	}
 
 	/// `Contains` implementation for the asset hub location pluralities.

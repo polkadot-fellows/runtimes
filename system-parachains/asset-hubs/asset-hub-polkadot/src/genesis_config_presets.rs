@@ -18,10 +18,11 @@
 
 use crate::{xcm_config::UniversalLocation, *};
 use alloc::vec::Vec;
+use pallet_revive::AddressMapper;
 use parachains_common::AssetHubPolkadotAuraId;
 use sp_core::sr25519;
 use sp_genesis_builder::PresetId;
-use system_parachains_constants::genesis_presets::*;
+use system_parachains_constants::{genesis_presets::*, polkadot::INDIVIDUALITY_NETWORK_SUFFIX};
 use xcm::latest::prelude::*;
 use xcm_builder::GlobalConsensusConvertsFor;
 use xcm_executor::traits::ConvertLocation;
@@ -49,13 +50,22 @@ fn asset_hub_polkadot_genesis(
 	foreign_assets: Vec<(Location, AccountId, Balance)>,
 	foreign_assets_endowed_accounts: Vec<(Location, AccountId, Balance)>,
 ) -> serde_json::Value {
+	let mut balances: Vec<(AccountId, Balance)> = endowed_accounts
+		.iter()
+		.cloned()
+		.map(|k| (k, ASSET_HUB_POLKADOT_ED * 4096 * 4096))
+		.collect();
+	// The DAP buffer receives slashes and is the reward pot for the election signed phase. Reward
+	// payouts transfer with `Preservation::Preserve`, so it needs spendable balance above ED,
+	// sized in rounds of `RewardBase`.
+	balances
+		.push((Dap::buffer_account(), ASSET_HUB_POLKADOT_ED + staking::RewardBase::get() * 1_000));
+	// The staging account only receives, so ED is enough for it to exist.
+	balances.push((Dap::staging_account(), ASSET_HUB_POLKADOT_ED));
+
 	serde_json::json!({
 		"balances": BalancesConfig {
-			balances: endowed_accounts
-				.iter()
-				.cloned()
-				.map(|k| (k, ASSET_HUB_POLKADOT_ED * 4096 * 4096))
-				.collect(),
+			balances,
 			dev_accounts: None,
 		},
 		"parachainInfo": ParachainInfoConfig {
@@ -83,6 +93,10 @@ fn asset_hub_polkadot_genesis(
 		"polkadotXcm": {
 			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
+		"networkSuffix": NetworkSuffixConfig {
+			network_suffix: INDIVIDUALITY_NETWORK_SUFFIX.to_vec().try_into().expect("network suffix fits"),
+			..Default::default()
+		},
 		"staking": {
 			"validatorCount": 600,
 			"devStakers": Some((2_000, 25_000)),
@@ -97,6 +111,11 @@ fn asset_hub_polkadot_genesis(
 				.map(|asset| (asset.0, asset.1, asset.2))
 				.collect(),
 			..Default::default()
+		},
+		"revive": ReviveConfig {
+			mapped_accounts: endowed_accounts.iter().filter(|x| !<Runtime as pallet_revive::Config>::AddressMapper::is_mapped(x)).cloned().collect(),
+			accounts: Vec::new(),
+			debug_settings: None,
 		},
 		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
 		// of this. `aura: Default::default()`
@@ -133,10 +152,7 @@ pub fn asset_hub_polkadot_local_testnet_genesis(para_id: ParaId) -> serde_json::
 fn asset_hub_polkadot_development_genesis(para_id: ParaId) -> serde_json::Value {
 	asset_hub_polkadot_genesis(
 		invulnerables_asset_hub_polkadot(),
-		testnet_accounts_with([
-			// Make sure `StakingPot` is funded for benchmarking purposes.
-			StakingPot::get(),
-		]),
+		testnet_accounts(),
 		para_id,
 		vec![],
 		vec![],

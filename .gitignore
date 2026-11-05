@@ -41,3 +41,5 @@ target/
 *.snap
 *.json
 *.lz4
+.claude/
+integration-tests/ahmv2/snapshots/

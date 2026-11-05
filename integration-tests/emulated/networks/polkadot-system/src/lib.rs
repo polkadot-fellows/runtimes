@@ -15,6 +15,7 @@
 
 pub use asset_hub_polkadot_emulated_chain;
 pub use bridge_hub_polkadot_emulated_chain;
+pub use bulletin_polkadot_emulated_chain;
 pub use collectives_polkadot_emulated_chain;
 pub use coretime_polkadot_emulated_chain;
 pub use penpal_emulated_chain;
@@ -23,6 +24,7 @@ pub use polkadot_emulated_chain;
 
 use asset_hub_polkadot_emulated_chain::AssetHubPolkadot;
 use bridge_hub_polkadot_emulated_chain::BridgeHubPolkadot;
+use bulletin_polkadot_emulated_chain::BulletinPolkadot;
 use collectives_polkadot_emulated_chain::CollectivesPolkadot;
 use coretime_polkadot_emulated_chain::CoretimePolkadot;
 use penpal_emulated_chain::{PenpalA, PenpalB};
@@ -40,6 +42,7 @@ decl_test_networks! {
 		relay_chain = Polkadot,
 		parachains = vec![
 			AssetHubPolkadot,
+			BulletinPolkadot,
 			BridgeHubPolkadot,
 			CollectivesPolkadot,
 			CoretimePolkadot,
@@ -54,6 +57,7 @@ decl_test_networks! {
 decl_test_sender_receiver_accounts_parameter_types! {
 	PolkadotRelay { sender: ALICE, receiver: BOB },
 	AssetHubPolkadotPara { sender: ALICE, receiver: BOB },
+	BulletinPolkadotPara { sender: ALICE, receiver: BOB },
 	BridgeHubPolkadotPara { sender: ALICE, receiver: BOB },
 	CollectivesPolkadotPara { sender: ALICE, receiver: BOB },
 	CoretimePolkadotPara { sender: ALICE, receiver: BOB },

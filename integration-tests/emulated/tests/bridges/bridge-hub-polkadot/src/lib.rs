@@ -35,7 +35,7 @@ pub use bp_messages::LegacyLaneId;
 // Cumulus
 pub use emulated_integration_tests_common::{
 	accounts::{ALICE, BOB},
-	create_pool_with_native_on,
+	create_foreign_pool_with_native_on, create_foreign_pool_with_parent_native_on,
 	impls::Inspect,
 	test_parachain_is_trusted_teleporter, test_parachain_is_trusted_teleporter_for_relay,
 	test_relay_is_trusted_teleporter,
@@ -46,19 +46,23 @@ pub use emulated_integration_tests_common::{
 	xcm_helpers::{xcm_transact_paid_execution, xcm_transact_unpaid_execution},
 	ASSETS_PALLET_ID, PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V4,
 };
-pub use integration_tests_helpers::common::snowbridge::{MIN_ETHER_BALANCE, WETH};
+pub use integration_tests_helpers::{
+	assets_balance_on,
+	common::snowbridge::{MIN_ETHER_BALANCE, WETH},
+};
 pub use kusama_polkadot_system_emulated_network::{
 	asset_hub_kusama_emulated_chain::{
 		genesis::ED as ASSET_HUB_KUSAMA_ED, AssetHubKusamaParaPallet as AssetHubKusamaPallet,
 	},
 	asset_hub_polkadot_emulated_chain::{
 		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
-		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet, ForeignAssetReserveData,
 	},
 	bridge_hub_polkadot_emulated_chain::{
 		genesis::ED as BRIDGE_HUB_POLKADOT_ED,
 		BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
 	},
+	collectives_polkadot_emulated_chain::CollectivesPolkadotParaPallet as CollectivesPolkadotPallet,
 	kusama_emulated_chain::KusamaRelayPallet as KusamaPallet,
 	penpal_emulated_chain::{
 		penpal_runtime::xcm_config::{
@@ -78,7 +82,8 @@ pub use kusama_polkadot_system_emulated_network::{
 	AssetHubPolkadotParaSender as AssetHubPolkadotSender, BridgeHubKusamaPara as BridgeHubKusama,
 	BridgeHubPolkadotPara as BridgeHubPolkadot,
 	BridgeHubPolkadotParaReceiver as BridgeHubPolkadotReceiver,
-	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender, KusamaRelay as Kusama,
+	BridgeHubPolkadotParaSender as BridgeHubPolkadotSender,
+	CollectivesPolkadotPara as CollectivesPolkadot, KusamaRelay as Kusama,
 	KusamaRelayReceiver as KusamaReceiver, PenpalAPara as PenpalA,
 	PenpalAParaReceiver as PenpalAReceiver, PenpalBPara as PenpalB,
 	PenpalBParaReceiver as PenpalBReceiver, PenpalBParaSender as PenpalBSender,

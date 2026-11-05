@@ -14,16 +14,17 @@
 // limitations under the License.
 
 use super::{
-	AccountId, AllPalletsWithSystem, Balance, Balances, CollatorSelection, Fellows, ParachainInfo,
-	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
+	AccountId, AllPalletsWithSystem, Architects, Balance, Balances, CollatorSelection, Fellows,
+	ParachainInfo, ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall,
+	RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use cumulus_primitives_core::ParaId;
 use frame_support::{
+	pallet_prelude::PalletInfoAccess,
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains, Equals,
-		Everything, LinearStoragePrice, Nothing,
+		fungible::HoldConsideration, tokens::imbalance::ResolveTo, ConstU32, Contains,
+		EnsureOrigin, Equals, Everything, LinearStoragePrice, Nothing,
 	},
 };
 use frame_system::EnsureRoot;
@@ -33,8 +34,11 @@ use parachains_common::xcm_config::{
 	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::xcm::body::FELLOWSHIP_ADMIN_INDEX;
-use sp_runtime::traits::AccountIdConversion;
+use polkadot_runtime_constants::{
+	fellowship::{ARCHITECTS_RANK, FELLOWS_RANK},
+	xcm::body::FELLOWSHIP_ADMIN_INDEX,
+};
+use sp_runtime::traits::{AccountIdConversion, TryConvert};
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -43,10 +47,10 @@ use xcm_builder::{
 	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
 	DescribeAllTerminal, DescribeFamily, DescribeTerminus, EnsureXcmOrigin,
 	FrameTransactionalProcessor, FungibleAdapter, HashedDescription, IsConcrete, LocatableAssetId,
-	LocationAsSuperuser, OriginToPluralityVoice, ParentIsPreset, RelayChainAsNative,
-	SendXcmFeeToAccount, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
+	LocationAsSuperuser, ParentIsPreset, RelayChainAsNative, SendXcmFeeToAccount,
+	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, TrailingSetTopicAsId,
+	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
 use xcm_executor::{traits::ConvertLocation, XcmExecutor};
@@ -64,8 +68,10 @@ parameter_types! {
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub const TreasurerBodyId: BodyId = BodyId::Treasury;
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	// Test [`treasury_pallet_account_not_none`] ensures that the result of location conversion is
 	// not `None`.
 	pub RelayTreasuryPalletAccount: AccountId =
@@ -76,6 +82,7 @@ parameter_types! {
 		location: AssetHubLocation::get(),
 		asset_id: (PalletInstance(50), GeneralIndex(1984)).into(),
 	};
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
 }
@@ -139,10 +146,9 @@ pub type XcmOriginToTransactDispatchOrigin = (
 parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
 }
 
+/// Matches the relay chain or pluralities on the relay chain.
 pub struct ParentOrParentsPlurality;
 impl Contains<Location> for ParentOrParentsPlurality {
 	fn contains(location: &Location) -> bool {
@@ -150,10 +156,11 @@ impl Contains<Location> for ParentOrParentsPlurality {
 	}
 }
 
+/// Matches local pluralities and ranks inside those pluralities.
 pub struct LocalPlurality;
 impl Contains<Location> for LocalPlurality {
 	fn contains(loc: &Location) -> bool {
-		matches!(loc.unpack(), (0, [Plurality { .. }]))
+		matches!(loc.unpack(), (0, [Plurality { .. }]) | (0, [Plurality { .. }, GeneralIndex(_)]))
 	}
 }
 
@@ -173,12 +180,17 @@ pub type Barrier = TrailingSetTopicAsId<
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					// Parent and its pluralities (i.e. governance bodies) and relay treasury get
 					// free execution.
-					AllowExplicitUnpaidExecutionFrom<(
-						ParentOrParentsPlurality,
-						Equals<RelayTreasuryLocation>,
-						Equals<AssetHubLocation>,
-						AssetHubPlurality,
-					)>,
+					AllowExplicitUnpaidExecutionFrom<
+						(
+							ParentOrParentsPlurality,
+							Equals<RelayTreasuryLocation>,
+							Equals<AssetHubLocation>,
+							AssetHubPlurality,
+						),
+						// Barriers run before any fee is taken: this must stay computation-only.
+						// Do not pass `TrustedAliasers` here.
+						CheapTrustedAliasers,
+					>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
 				),
@@ -189,6 +201,19 @@ pub type Barrier = TrailingSetTopicAsId<
 	>,
 >;
 
+parameter_types! {
+	pub FellowshipTreasuryLocation: Location =
+		PalletInstance(<crate::FellowshipTreasury as PalletInfoAccess>::index() as u8).into();
+	pub FellowshipSalaryLocation: Location =
+		PalletInstance(<crate::FellowshipSalary as PalletInfoAccess>::index() as u8).into();
+	pub SecretarySalaryLocation: Location =
+		PalletInstance(<crate::SecretarySalary as PalletInfoAccess>::index() as u8).into();
+	pub AmbassadorSalaryLocation: Location =
+		PalletInstance(<crate::AmbassadorSalary as PalletInfoAccess>::index() as u8).into();
+	pub AmbassadorTreasuryLocation: Location =
+		PalletInstance(<crate::AmbassadorTreasury as PalletInfoAccess>::index() as u8).into();
+}
+
 /// Locations that will not be charged fees in the executor,
 /// either execution or delivery.
 /// We only waive fees for system functions, which these locations represent.
@@ -196,6 +221,11 @@ pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
+	Equals<FellowshipTreasuryLocation>,
+	Equals<FellowshipSalaryLocation>,
+	Equals<SecretarySalaryLocation>,
+	Equals<AmbassadorSalaryLocation>,
+	Equals<AmbassadorTreasuryLocation>,
 	LocalPlurality,
 );
 
@@ -203,18 +233,26 @@ pub type WaivedLocations = (
 /// - DOT with the parent Relay Chain and sibling parachains.
 pub type TrustedTeleporters = ConcreteAssetFromSystem<DotLocation>;
 
-/// Defines origin aliasing rules for this chain.
+/// Aliasing rules that are pure computation, so the `AllowExplicitUnpaidExecutionFrom` barrier can
+/// evaluate them before any fee is charged.
+///
+/// Do not add storage-reading filters here: the barrier calls this once per `AliasOrigin` (up to 5)
+/// on keys the message chooses, and may then reject the message without taking a fee. That is why
+/// `AuthorizedAliasers` belongs to [`TrustedAliasers`] alone.
 ///
 /// - Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
 /// - Allow same accounts to alias into each other across system chains,
-/// - Allow AssetHub root to alias into anything,
-/// - Allow origins explicitly authorized to alias into target location.
-pub type TrustedAliasers = (
+/// - Allow AssetHub root to alias into anything.
+pub type CheapTrustedAliasers = (
 	AliasChildLocation,
 	AliasAccountId32FromSiblingSystemChain,
 	AliasOriginRootUsingFilter<AssetHubLocation, Everything>,
-	AuthorizedAliasers<Runtime>,
 );
+
+/// Defines origin aliasing rules for this chain, used by `xcm_executor::Config::Aliasers` at
+/// execution time: everything in [`CheapTrustedAliasers`], plus origins explicitly authorized by
+/// the alias target location.
+pub type TrustedAliasers = (CheapTrustedAliasers, AuthorizedAliasers<Runtime>);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -235,7 +273,7 @@ impl xcm_executor::Config for XcmConfig {
 		MaxInstructions,
 	>;
 	type Trader = UsingComponents<
-		WeightToFee,
+		WeightToFee<Runtime>,
 		DotLocation,
 		AccountId,
 		Balances,
@@ -243,7 +281,6 @@ impl xcm_executor::Config for XcmConfig {
 	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
-	type AssetClaims = PolkadotXcm;
 	type SubscriptionService = PolkadotXcm;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
@@ -285,13 +322,46 @@ parameter_types! {
 		RuntimeHoldReason::PolkadotXcm(pallet_xcm::HoldReason::AuthorizeAlias);
 }
 
-/// Type to convert the Fellows origin to a Plurality `Location` value.
-pub type FellowsToPlurality = OriginToPluralityVoice<RuntimeOrigin, Fellows, FellowsBodyId>;
+/// Converts the Fellows origin to an XCM `Location` representing the Technical body (Fellowship)
+/// refined to rank 3 (Fellows): `[Plurality { id: Technical, part: Voice },
+/// GeneralIndex(FELLOWS_RANK)]`.
+pub struct FellowsToLocation;
+impl TryConvert<RuntimeOrigin, Location> for FellowsToLocation {
+	fn try_convert(o: RuntimeOrigin) -> Result<Location, RuntimeOrigin> {
+		let _ = Fellows::try_origin(o)?;
+		Ok(Location {
+			parents: 0,
+			interior: [
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				GeneralIndex(FELLOWS_RANK),
+			]
+			.into(),
+		})
+	}
+}
+
+/// Converts the Architects origin to an XCM `Location` representing the Technical body (Fellowship)
+/// refined to rank 4 (Architects): `[Plurality { id: Technical, part: Voice },
+/// GeneralIndex(ARCHITECTS_RANK)]`.
+pub struct ArchitectsToLocation;
+impl TryConvert<RuntimeOrigin, Location> for ArchitectsToLocation {
+	fn try_convert(o: RuntimeOrigin) -> Result<Location, RuntimeOrigin> {
+		let _ = Architects::try_origin(o)?;
+		Ok(Location {
+			parents: 0,
+			interior: [
+				Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				GeneralIndex(ARCHITECTS_RANK),
+			]
+			.into(),
+		})
+	}
+}
 
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	// We only allow the Fellows to send (arbitrary) messages.
-	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, FellowsToPlurality>;
+	// We allow the Fellows and Architects to send messages.
+	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, (FellowsToLocation, ArchitectsToLocation)>;
 	type XcmRouter = XcmRouter;
 	// Any local signed origin can execute XCM messages.
 	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalSignedOriginToLocation>;
@@ -318,7 +388,7 @@ impl pallet_xcm::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type MaxRemoteLockConsumers = ConstU32<0>;
 	type RemoteLockConsumerIdentifier = ();
-	// xcm_executor::Config::Aliasers uses pallet_xcm::AuthorizedAliasers.
+	// xcm_executor::Config::Aliasers includes pallet_xcm::AuthorizedAliasers.
 	type AuthorizedAliasConsideration = HoldConsideration<
 		AccountId,
 		Balances,

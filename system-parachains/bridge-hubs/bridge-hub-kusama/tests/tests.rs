@@ -86,6 +86,7 @@ fn construct_extrinsic(
 ) -> UncheckedExtrinsic {
 	let account_id = AccountId32::from(sender.public());
 	let extra: TxExtension = (
+		frame_system::AuthorizeCall::<Runtime>::new(),
 		frame_system::CheckNonZeroSender::<Runtime>::new(),
 		frame_system::CheckSpecVersion::<Runtime>::new(),
 		frame_system::CheckTxVersion::<Runtime>::new(),
@@ -141,7 +142,7 @@ bridge_hub_test_utils::test_cases::include_teleports_for_native_asset_works!(
 	AllPalletsWithoutSystem,
 	XcmConfig,
 	(),
-	WeightToFee,
+	WeightToFee<Runtime>,
 	ParachainSystem,
 	collator_session_keys(),
 	slot_durations(),
@@ -261,6 +262,7 @@ fn handle_export_message_from_system_parachain_add_to_outbound_queue_works() {
 			Runtime,
 			XcmConfig,
 			WithBridgeHubPolkadotMessagesInstance,
+			LocationToAccountId,
 		>(
 			collator_session_keys(),
 			bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_PARACHAIN_ID,
@@ -409,7 +411,7 @@ pub fn can_calculate_weight_for_paid_export_message_with_reserve_transfer() {
 			bridge_hub_test_utils::test_cases::can_calculate_weight_for_paid_export_message_with_reserve_transfer::<
 				Runtime,
 				XcmConfig,
-				WeightToFee,
+				WeightToFee<Runtime>,
 			>()
 		},
 		Perbill::from_percent(33),
@@ -577,7 +579,7 @@ fn xcm_payment_api_works() {
 		RuntimeCall,
 		RuntimeOrigin,
 		Block,
-		WeightToFee,
+		WeightToFee<Runtime>,
 	>();
 }
 
@@ -611,4 +613,12 @@ fn governance_authorize_upgrade_works() {
 		Runtime,
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(AssetHubLocation::get())));
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
 }

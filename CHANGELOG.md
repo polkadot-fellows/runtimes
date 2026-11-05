@@ -6,17 +6,282 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Added
-- AH Polkadot - A new stepped curve primitive. Used for the 'Hard Pressure' inflation changes from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+### Changed
+
+- Asset Hub Polkadot and Kusama: the Fellowship controls the `Scheduler` and `MessageQueue` technical parameters ([#1346](https://github.com/polkadot-fellows/runtimes/pull/1346)).
+
+### Fixed
+
+- Asset Hub Polkadot and Kusama: `NonTransfer` proxies can call `CollatorSelection` again, as on the other system parachains. It was unintentionally dropped from the allowlist while `NonTransfer` still claimed to be a superset of `Collator` ([#1341](https://github.com/polkadot-fellows/runtimes/pull/1341)).
+- Collectives Polkadot: only `Any` proxies can call `pallet_salary::payout_other`, so other proxies can no longer pay the proxied account's salary to another account. `NonTransfer` proxies are no longer a superset of `Secretary` proxies ([#1341](https://github.com/polkadot-fellows/runtimes/pull/1341)).
+
+## [2.5.2] 27.10.2026
+
+### Fixed
+
+- Asset Hub Polkadot: multi-block migration recomputing `pallet-assets` total issuance for dotUSD (`7873`). dotUSD is frozen while it runs ([#1334](https://github.com/polkadot-fellows/runtimes/pull/1334)).
+
+## [2.5.1] 24.10.2026
+
+### Removed
+
+- People Polkadot: remove the single-use `SeedSubscriptionWhitelist` migration that seeded the Asset Hub `MembersNotifier` subscription whitelist entry. It shipped in 2.5.0 and has run on chain. [#1292](https://github.com/polkadot-fellows/runtimes/pull/1292)).
 
 ### Changed
+
+- Update Individuality pallets from [`53482baa`](https://github.com/paritytech/individuality-community/commit/53482baa337278c6c4c8115fb8d2b4b5def08ccb) to [`e69b079e`](https://github.com/paritytech/individuality-community/commit/e69b079ef93b6b0224ca81b96d4385f6dd4c8e22) ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331), [#1332](https://github.com/polkadot-fellows/runtimes/pull/1332)).
+- Asset Hub Polkadot: move missing membership-root detection to offchain-submitted scans with a 60-second cooldown after incoming updates. Migrate Members Subscriber timestamps from global to per-collection storage ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
+- `pallet-accumulate-and-forward`: measure `TransferPeriod` from the last forward instead of requiring exact block multiples ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
+- Bridge Hub Polkadot: Snowbridge validates sync committee BLS public keys ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
+- Bulletin Polkadot: dust and XCM delivery fees now accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub, instead of being burnt or stranded locally ([#1319](https://github.com/polkadot-fellows/runtimes/pull/1319)).
+- Asset Hub, Bridge Hub, Coretime and People Polkadot & Kusama, Collectives Polkadot, Bulletin Polkadot and Encointer: `pallet_session::set_keys` now holds a deposit priced with `system_para_deposit` so a first registration needs free balance of at least ED plus the deposit. Keys registered before this change stay deposit-free ([#1310](https://github.com/polkadot-fellows/runtimes/pull/1310)).
+- Coretime Kusama: bulk revenue now accumulates with dust and is burnt on Asset Hub through `pallet-accumulate-and-forward`, and a migration retires the `py/ctbrn` holding account ([#1301](https://github.com/polkadot-fellows/runtimes/pull/1301)).
+- Kusama relay: dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1289](https://github.com/polkadot-fellows/runtimes/pull/1289)).
+- Bridge Hub, Coretime, People and Encointer Kusama:  dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1287](https://github.com/polkadot-fellows/runtimes/pull/1287)).
+- Asset Hub Polkadot: `DustRemoval` resolves into the DAP staging account instead of burning, so dust is deactivated like every other sink ([#1288](https://github.com/polkadot-fellows/runtimes/pull/1288)).
+- Coretime Polkadot & Kusama, Asset Hub Polkadot: coretime bulk revenue is no longer teleported to the relay chain to be burnt. Polkadot forwards revenue, and now also dust from reaped accounts, to the DAP staging account on Asset Hub through `pallet-accumulate-and-forward`, and Asset Hub grants system-chain accumulation accounts free execution. Asset Hub Polkadot must be upgraded before Coretime Polkadot, otherwise the forwards are rejected and the teleported DOT is lost. Kusama teleports it to Asset Hub and burns it there, since KSM issuance is tracked on Asset Hub. A migration retires the `py/ctbrn` holding account on Coretime Polkadot. ([#1282](https://github.com/polkadot-fellows/runtimes/pull/1282)).
+
+### Fixed
+
+- Asset Hub and People Polkadot: update `ark-vrf` to 0.6.1 to fix batched ring proof verification ([#1332](https://github.com/polkadot-fellows/runtimes/pull/1332)).
+- Apply XCM hardening from [polkadot-sdk#13531](https://github.com/paritytech/polkadot-sdk/pull/13531) ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
+- People Polkadot: fix XCM fee refunds for non-DOT assets that could burn part of the fee ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
+
+## [2.5.0] 01.09.2026
+
+### Added
+
+- Asset Hub Polkadot: add the `technical_maintenance` OpenGov track for operational settings such as quotas, allowances, limits and fees, and the `prosperity_emergency` track for guarding the dotUSD monetary mechanisms ([#1236](https://github.com/polkadot-fellows/runtimes/pull/1236)).
+
+### Changed
+
+- Polkadot & Kusama: `is_superset` no longer declares `NonTransfer` a superset of `Auction`; the `Auction` filter admits `Registrar::swap`, which `NonTransfer` omits on purpose.
+
+- Asset Hub Polkadot & Kusama: enable `pallet-assets::force_create` by moving asset ID allocation to the new `AssetIdAllocator` config item ([#1275](https://github.com/polkadot-fellows/runtimes/pull/1275)).
+- People Polkadot & Asset Hub Polkadot: wire the `technical_maintenance` track into the operational Individuality settings: quotas, allowances and housekeeping on People, the Individuality parameters on Asset Hub ([#1269](https://github.com/polkadot-fellows/runtimes/pull/1269)).
+- Asset Hub Polkadot & Kusama: update `pallet-revive` to `0.19.1`, adding the `originIsRoot` System precompile method ([#1262](https://github.com/polkadot-fellows/runtimes/pull/1262), integrates [paritytech/polkadot-sdk#12281](https://github.com/paritytech/polkadot-sdk/pull/12281)).
+- People Polkadot: add the Individuality pallets: `pallet-chunks-manager`, `pallet-coinage`, `pallet-dummy-dim`, `pallet-members`, `pallet-members-notifier`, `pallet-network-suffix`, `pallet-origin-restriction`, `pallet-parameters`, `pallet-people`, `pallet-people-lite`, `pallet-relay-randomness`, `pallet-resources`, and `pallet-verify-signature` ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
+- Asset Hub Polkadot: add the Individuality pallets: `pallet-alias-accounts`, `pallet-assets-freezer`, `pallet-assets-holder`, `pallet-dotns-gateway`, `pallet-members-subscriber`, `pallet-network-suffix`, `pallet-origin-restriction`, `pallet-pgas`, and `pallet-pgas-allowance` ([#1233](https://github.com/polkadot-fellows/runtimes/pull/1233)).
+
+## [2.4.0] 25.08.2026
+
+### Added
+
+- Bulletin Polkadot: add the storage pallets and business logic ([#1119](https://github.com/polkadot-fellows/runtimes/issues/1119), [#1170](https://github.com/polkadot-fellows/runtimes/pull/1170)).
+- Asset Hub Polkadot: add support for multiple independent PSMs ([#1252](https://github.com/polkadot-fellows/runtimes/pull/1252), integrates [paritytech/polkadot-sdk#12952](https://github.com/paritytech/polkadot-sdk/pull/12952)).
+- All system parachains: add the `cumulus_pallet_parachain_system::Config::SchedulingSignatureVerifier` associated type (set to `()`) and implement `RelayParentOffsetApi` v2 (`max_claim_queue_offset`); preparation for candidate-descriptor v3, with V3 scheduling left disabled ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#10742](https://github.com/paritytech/polkadot-sdk/pull/10742)).
+- People Polkadot: pay XCM execution fees in any asset governance registered a rate for in `pallet-asset-rate`, not only HOLLAR and DOT. `XcmPaymentApi::query_acceptable_payment_assets` lists every rated asset ([#1257](https://github.com/polkadot-fellows/runtimes/pull/1257)).
+
+
+
+### Changed
+
+- Update all runtimes to `polkadot-sdk` `stable2606-2` ([#1252](https://github.com/polkadot-fellows/runtimes/pull/1252)).
+- Update all runtimes to `polkadot-sdk` `stable2606-1` ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223)).
+- All system parachains: run the `cumulus_pallet_xcmp_queue` storage migration to v7 (outbound channel status now stores the queued byte size, avoiding per-page checks) ([#1223](https://github.com/polkadot-fellows/runtimes/pull/1223), integrates [paritytech/polkadot-sdk#12176](https://github.com/paritytech/polkadot-sdk/pull/12176)).
+- People Polkadot: raise the block weight limit to the `async_backing` constants (2s of ref time, 85% normal dispatch ratio) from `parachains_common`'s pre-async-backing pair (0.5s, 75%). This chain already authors a block every 2s under `elastic_scaling` consensus. It is now closer to Asset Hub Polkadot config.
+- People Polkadot: accept reserve transfers from Asset Hub of any asset native to Asset Hub; `IsReserve` previously only accepted HOLLAR from Hydration. which is still accepted. Incoming assets are still only credited if root has registered them locally, since `pallet-assets` on People has `CreateOrigin = EnsureNever` ([#1260](https://github.com/polkadot-fellows/runtimes/pull/1260)).
+
+### Fixed
+
+- Asset Hub Polkadot & Kusama: fix `pallet-remote-proxy` dropping the newest relay storage root when multiple parachain blocks share one relay parent. `on_validation_data` now skips storing duplicate relay blocks, which used to fill the bounded `BlockToRoot` vector with copies too young to prune and silently drop the newest root, so remote-proxy proofs anchored at recent relay blocks no longer fail with `UnknownProofAnchorBlock` ([#1230](https://github.com/polkadot-fellows/runtimes/issues/1230)).
+- Polkadot & Kusama system parachains that pass aliasers to their XCM barrier: stop passing the storage-reading `pallet_xcm::AuthorizedAliasers` filter to `AllowExplicitUnpaidExecutionFrom`. `TrustedAliasers` is now split into a computation-only `CheapTrustedAliasers` (used by the barrier) and `(CheapTrustedAliasers, AuthorizedAliasers<Runtime>)` (still `xcm_executor::Config::Aliasers`); aliases that only `AuthorizedAliasers` permits must now buy execution via the paid barrier instead of using `UnpaidExecution` ([#1237](https://github.com/polkadot-fellows/runtimes/pull/1237)).
+- Coretime Polkadot & Kusama: remove the truncation of the coretime assignments vector when sending them from the Coretime Chain to the Relay Chain. Now users can make all 80 assignments per core. ([#1231](https://github.com/polkadot-fellows/runtimes/pull/1231))
+- Relay chains and most system parachains: fix `pallet-xcm-benchmarks` worst-case setups (`Transact` batching, `alias_origin`, multi-asset deposits) that were underpricing XCM weights.
+
+### Removed
+
+- All runtimes: remove `pallet_xcm::migration::MigrateToLatestXcmVersion`, which ran on every runtime upgrade as the `Permanent` migration. Stored XCM data is already at the current `XCM_VERSION`, so re-running it on each upgrade is pure overhead. The now-empty `Permanent` alias is gone and `SingleBlockMigrations` is just `Unreleased`; a future `XCM_VERSION` bump must add this migration to that release's `Unreleased` list ([#1244](https://github.com/polkadot-fellows/runtimes/pull/1244)).
+
+## [2.3.2] 23.07.2026
+
+### Added
+
+- Collectives Polkadot: extend the Fellowship referenda `SubmitOrigin` with a governance-managed allow-list (`AllowedProposers` dynamic parameter, empty by default) so approved non-member accounts (e.g. the RFC or tip bot) can open Fellowship referenda ([#629](https://github.com/polkadot-fellows/runtimes/issues/629), [#1188](https://github.com/polkadot-fellows/runtimes/pull/1188)).
+- Asset Hub Polkadot & Kusama: add the curator-gated `increase_value` extrinsic to `pallet-multi-asset-bounties`, letting a bounty's curator raise its recorded `value` to recognise funds transferred to the bounty account out-of-band ([#1226](https://github.com/polkadot-fellows/runtimes/pull/1226), integrates [paritytech/polkadot-sdk#12409](https://github.com/paritytech/polkadot-sdk/pull/12409)).
+
+### Changed
+
+- Asset Hub Polkadot & Kusama: bump `pallet-multi-asset-bounties` to 0.7.0 and the `parachains-common` / `assets-common` dependency cluster to the matching snapshot (staying on `frame-support` 47); no storage migration required ([#1226](https://github.com/polkadot-fellows/runtimes/pull/1226)).
+- Polkadot & Kusama relay: Disable the `session.set_keys` and `session.purge_keys` extrinsics via `PostAhmFilter`. Post-AHM session keys are managed on Asset Hub and forwarded to the relay through `ah_client::set_keys_from_ah`, so the direct relay path is no longer needed; disabling it closes the free-registration storage-spam vector (the relay `pallet_session::KeyDeposit` stays `()`) ([#1200](https://github.com/polkadot-fellows/runtimes/issues/1200)).
+- Proposal submission deposits for Polkadot Ambassador and Encointer Council Motions ([#1194](https://github.com/polkadot-fellows/runtimes/pull/1194))
+- Bump pallet-xcm and pallet-xcm-precompiles to latest version ([#1227](https://github.com/polkadot-fellows/runtimes/pull/1227))
+
+### Fixed
+- All Polkadot & Kusama runtimes: configure an explicit `max_header_size` of 100 KiB. ([#1219](https://github.com/polkadot-fellows/runtimes/pull/1219))
+
+## [2.3.1] 12.06.2026
+
+### Fixed
+
+- PAH: pin the nomination-pools `TotalUnbondingPools` bound at its historical maximum (32) so lowering the nominator bonding duration via the `AreNominatorsSlashable` fast-unbond flip cannot shrink the bound (32 -> 6) and make oversized `SubPools::with_era` maps undecodable ([#1201](https://github.com/polkadot-fellows/runtimes/pull/1201))
+
+## [2.3.0] 04.06.2026
+
+### Added
+
+- PAH: staking switched to non-minting; emission via `pallet-dap` drips ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH: `DapStagingAccount` is the sink for fees, slashes and `RewardRemainder` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- KAH: `pallet_recovery` modernized ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: add asset-conversion and vesting precompiles ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: `pallet_revive::EthExtra` supports multi-version Ethereum extensions ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- Bridge Hub Polkadot: expose Snowbridge `InboundQueueV2Api::is_message_relayed` runtime API ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: add `PrevalidateAttests` transaction extension to the `TxExtension` ([#1156](https://github.com/polkadot-fellows/runtimes/pull/1156))
+
+### Removed
+
+- Polkadot, Asset Hub Polkadot & Asset Hub Kusama: remove the now-complete `pallet-state-trie-migration` and purge its leftover on-chain storage via a `RemovePallet` migration ([#905](https://github.com/polkadot-fellows/runtimes/issues/905)).
+
+### Changed
+
+- Enable multiple blocks per slot for all remaining system parachains (BridgeHub Polkadot/Kusama, Coretime Polkadot/Kusama, Collectives Polkadot) ([#1154](https://github.com/polkadot-fellows/runtimes/pull/1154))
+- Update all runtimes to `polkadot-sdk` `unstable2604` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: K↔P bridge router exports unpaid (`UnpaidExport = true`) ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH & KAH: enable `pallet_revive` auto mapping feature ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- Asset Hub Kusama & Polkadot: wire `pallet_revive` to its native runtime-benchmarked weights instead of `SubstrateWeight` (kitchensink). Resolves [#840](https://github.com/polkadot-fellows/runtimes/issues/840) ([#1182](https://github.com/polkadot-fellows/runtimes/pull/1182))
+- PAH & KAH: ERC-20 assets precompile `permit()` renamed to `use_permit()` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH: redirect XCM trader fees (native and swap) to `DapStagingAccount` instead of `StakingPot` ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- PAH: filter `staking.reap_stash` from both `BaseCallFilter` and the XCM `SafeCallFilter` while the validator self-stake transition to higher bond. See Ref: [#1890](https://polkadot.subsquare.io/referenda/1890) ([#1159](https://github.com/polkadot-fellows/runtimes/pull/1159))
+- Collectives Polkadot: Increase the Secretary Collective salary budget ([#1172](https://github.com/polkadot-fellows/runtimes/pull/1172))
+- Align all runtimes to use the same values for e.g. `TransactionByteFee` and some other clean ups. ([#1175](https://github.com/polkadot-fellows/runtimes/pull/1175))
+- PAH & KAH: switch `pallet_multi_asset_bounties` source types to the upstream `BountySourceFromPalletId` / `ChildBountySourceFromPalletId` and migrate bounty/child-bounty pot funds to the new `[u8; 3]`-prefix account derivation ([#1168](https://github.com/polkadot-fellows/runtimes/pull/1168))
+- Asset Hub Polkadot & Kusama, People Polkadot & Kusama: switch to 24s Aura slot duration. Longer Aura slots improve elastic scaling throughput and censorship resistance, while keeping the parachain block time unchanged. ([#1174](https://github.com/polkadot-fellows/runtimes/pull/1174))
+- Flexible minimum validator set size on rc ([#PR1193](https://github.com/polkadot-fellows/runtimes/pull/1193))
+- Configurable salary parameters for Fellowship and Secretary ([#1186](https://github.com/polkadot-fellows/runtimes/pull/1186))
+
+## [2.2.2] 23.04.2026
+
+### Changed
+
+- people-polkadot: Allow multiple blocks per slot ([#1154](https://github.com/polkadot-fellows/runtimes/pull/1154))
+
+## [2.2.1] 16.04.2026
+
+### Added
+
+- [[#1143](https://github.com/polkadot-fellows/runtimes/pull/1143)] All runtimes now support the transaction extension `AuthorizeCall`.
+- Add Bulletin Polkadot live chain spec and genesis preset ([#1146](https://github.com/polkadot-fellows/runtimes/pull/1146)).
+
+### Changed
+
+- Polkadot and Kusama AH: reduce `DepositPerChildTrieItem` config of pallet-revive by factor of 10 ([1113](https://github.com/polkadot-fellows/runtimes/pull/1113))
+- Bump maximum number of reserved cores to 50 on Polkadot and Kusama Coretime chains ([#1147](https://github.com/polkadot-fellows/runtimes/pull/1147))
+- Update dependencies to stable2603-1 ([#1148](https://github.com/polkadot-fellows/runtimes/pull/1148)).
+- Bulletin Polkadot: switch to 24s Aura slot duration ([#1149](https://github.com/polkadot-fellows/runtimes/pull/1149))
+
+## [2.2.0] 10.04.2026
+
+### Added
+
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] 💥 Pallet-broker: add extrinsic to forcefully remove the potential renewal ([stable2603 #10828](https://github.com/paritytech/polkadot-sdk/pull/10828)).
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] 💥 Pallet-broker: add extrinsic to force transfer a region ([stable2603 #10856](https://github.com/paritytech/polkadot-sdk/pull/10856)).
+- Runtime API view function for accessing the Asset Hub Migration start and end blocks ([#1016](https://github.com/polkadot-fellows/runtimes/pull/1016))
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] 💥 Polkadot & Kusama relay: Bump `ParachainHost` runtime API to v16, adding `unapplied_slashes_v2`, `para_ids`, `max_relay_parent_session_age` and `ancestor_relay_parent_info`
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Asset Hub Kusama & Polkadot: EVM ERC-20 precompiles for foreign assets.
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Polkadot & Kusama relay: Set `max_relay_parent_session_age` to `0` in genesis presets (to be configured via governance).
+- Add Bulletin Polkadot system parachain runtime ([#1120](https://github.com/polkadot-fellows/runtimes/pull/1120)).
+
+### Changed
+
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Kusama & Polkadot relay: Waive XCM fees for Treasury pallet origin.
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Collectives Polkadot: Waive XCM fees for Fellowship/Ambassador Treasury and Salary pallet origins.
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Asset Hub Kusama & Polkadot: Activate `TransferAllAssets` on `pallet_bounties` to sweep fungibles from closed bounty accounts.
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Asset Hub Kusama & Polkadot: Set `BountyDepositBase` on `pallet_bounties` to `10 * QUID` / `10 * DOLLARS` instead of `system_para_deposit(0, 176)`, aligning the proposer deposit with other fixed governance deposits on Asset Hub.
+- people-polkadot: Enable elastic scaling with 2s block times and 3 cores ([#1116](https://github.com/polkadot-fellows/runtimes/pull/1116))
+
+### Fixed
+
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)]  Fix auto-renew core tracking on immediate renew ([stable2603 #10767](https://github.com/paritytech/polkadot-sdk/pull/10767))
+- [encointer] updated hardcoded remote execution weight for AHK [1124](https://github.com/polkadot-fellows/runtimes/pull/1124)
+- Fix fee calculation on Polkadot and Kusama system parachains: use chain-specific `ExtrinsicBaseWeight` instead of the generic `frame_support` default [1117](https://github.com/polkadot-fellows/runtimes/pull/1117)
+
+### Removed
+
+- Remove hardcoded `deposit_asset` weight cap from people runtimes to align with other system parachains ([#1121](https://github.com/polkadot-fellows/runtimes/pull/1121))
+- Remove pre-hardcap related code and storage values. ([#1112](https://github.com/polkadot-fellows/runtimes/pull/1112))
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)]  Frame-support: remove error reporting in `remote_transfer_xcm` for paid execution ([stable2603 #10697](https://github.com/paritytech/polkadot-sdk/pull/10697)).
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Polkadot & Kusama relay: Remove `CoretimeAssignmentProvider` pallet, coretime assignment now via `ParaScheduler`.
+- [[#1114](https://github.com/polkadot-fellows/runtimes/pull/1114)] Asset Hub Polkadot: Remove `March2026TI` value and hard-code instead.
+
+## [2.1.1] 13.03.2026
+
+### Added
+
+- Migration for claiming trapped funds in nomination pool in PAH [1104](https://github.com/polkadot-fellows/runtimes/pull/1104)
+- Kusama system parachains recognize authority of the Polkadot Technical Fellowship ([#1100](https://github.com/polkadot-fellows/runtimes/pull/1100))
+
+### Changed
+
+- Revert hard cap enactment block number back to [30_349_908](https://polkadot.subscan.io/block/30349908) ([#1103](https://github.com/polkadot-fellows/runtimes/pull/1103))
+
+## [2.1.0] 09.03.2026
+
+- Collectives Polkadot - Change Secretary Salary Location [1067](https://github.com/polkadot-fellows/runtimes/pull/1067)
+
+### Added
+
+- Add `pallet-assets` on Polkadot People to support HOLLAR (and more assets in the future) ([polkadot-fellows/runtimes/pull/962](https://github.com/polkadot-fellows/runtimes/pull/962))
+- Collectives/Asset Hub Polkadot: Allow Architects track (rank 4+ Fellowship members) to manage Fellowship Treasury and Salary on Asset Hub via XCM. The Architects origin is represented as `[Plurality { id: Technical, part: Voice }, GeneralIndex(4)]` ([polkadot-fellows/runtimes/pull/1072](https://github.com/polkadot-fellows/runtimes/pull/1072))
+- Encointer: add pallets `offline-payment` and `reputation-rings` and fixes ([polkadot-fellows/runtimes/pull/1082](https://github.com/polkadot-fellows/runtimes/pull/1082))
+- Add `pallet_multi_asset_bounties` pallet to Asset Hub Kusama and Asset Hub Polkadot for multi-asset bounty support ([#1070](https://github.com/polkadot-fellows/runtimes/pull/1070))
+- Asset Hub Polkadot: Add `MultiAssetBounties` to `Governance` and `NonTransfer` proxy type filters, matching Asset Hub Kusama ([#1095](https://github.com/polkadot-fellows/runtimes/pull/1095))
+- Add `kick_member` extrinsic to `pallet-society` and key deposit and support for proof of ownership as input parameter in `set_keys` on staking-async-rc-client ([#1101](https://github.com/polkadot-fellows/runtimes/pull/1101))
+
+### Changed
+
+- Asset Hub(s): Foreign Asset owners can now configure how to support crosschain transfers for each asset: either reserve-based or teleport-based [#1085](https://github.com/polkadot-fellows/runtimes/pull/1085)
+- Remove local pay module in favor of upstream implementation ([#1070](https://github.com/polkadot-fellows/runtimes/pull/1070))
+- Update Kusama submission deposit to 3.333KSM as per [ref 588](https://kusama.subsquare.io/referenda/558)
+- Re-add StakingOperator proxy type and allow Staking proxy to add/remove a StakingOperator  [#1033](https://github.com/polkadot-fellows/runtimes/pull/1033)
+- Fix check-migration(asset-hub-polkadot) CI job [#1057](https://github.com/polkadot-fellows/runtimes/pull/1057)
+- Update to polkadot-sdk stable2512 (tag 2512-2-rc2), introduce DAP pallet, refine StakingOperator and add Session keys handling on AssetHub  [#1065](https://github.com/polkadot-fellows/runtimes/pull/1065)
+- asset-hub-polkadot and asset-hub-kusama: new weights for staking and election pallets [#1042](https://github.com/polkadot-fellows/runtimes/pull/1042)
+- Update crates to SDK release `2512-2` [#1084](https://github.com/polkadot-fellows/runtimes/pull/1084)
+- Lower `MaxEthExtrinsicWeight` from 90% to 50% [#1091](https://github.com/polkadot-fellows/runtimes/pull/1091)
+- Update election-provider-multi-phase and staking crates [#1090](https://github.com/polkadot-fellows/runtimes/pull/1090)
+- Restrict StakingOperator proxy to explicit utility batch calls [#1093](https://github.com/polkadot-fellows/runtimes/pull/1093)
+- Regenerate weights for pallet_bridge_relayers on bridge-hub-polkadot [#1092](https://github.com/polkadot-fellows/runtimes/pull/1092)
+- Bump pallet-session to 45.2.0 to track consumer refs and release deposits for externally set keys([#1097](https://github.com/polkadot-fellows/runtimes/pull/1097))
+
+## [2.0.7] 16.02.2026
+
+### Added
+
+- Add hyperbridge to parachains header root ([#1073](https://github.com/polkadot-fellows/runtimes/pull/1073))
+
+### Changed
+
+- Set hard cap enactment block number to relay block number [30_354_008](https://polkadot.subscan.io/block/30354008) ([#1076](https://github.com/polkadot-fellows/runtimes/pull/1076))
+
+## [2.0.6] 04.02.2026
+
+### Changed
+
+- Updates to latest polkadot-sdk
+
+## [2.0.5] 13.01.2026
+
+### Added
+- Bridge-Hubs - Add proxy pallet ([#1045](https://github.com/polkadot-fellows/runtimes/pull/1045)).
+- AH Polkadot - A new stepped curve primitive. Used for the 'Hard Pressure' inflation changes from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+- AH Polkadot - Added `pallet_revive` and changed proof size fee formula ([polkadot-fellows/runtimes/pull/1050](https://github.com/polkadot-fellows/runtimes/pull/1050))
+- Add `cumulus-pallet-weight-reclaim` to all Polkadot system parachains (Asset Hub, Bridge Hub, Coretime, People, Collectives) for storage weight reclaim functionality ([#1047](https://github.com/polkadot-fellows/runtimes/pull/1047)).
+
+### Changed
+
+- AH Polkadot - Inflation now follows the 'Hard Pressure' schedule from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898))
 - AH Polkadot - Enable Elastic Scaling for Polkadot Hub ([polkadot-fellows/runtimes/pull/1048](https://github.com/polkadot-fellows/runtimes/pull/1048))
 - AH Polkadot - Inflation now follows the 'Hard Pressure' schedule from [Ref 1710](https://polkadot.subsquare.io/referenda/1710) ([#898](https://github.com/polkadot-fellows/runtimes/pull/898)).
+
+### Fixed
+
+- [PAH] Migrate missing Stellaswap sovereign accounts ([1036](https://github.com/polkadot-fellows/runtimes/pull/1036))
 
 ## [2.0.4] 18.12.2025
 
 ### Changed
 
+- Add StakingOperator proxy type and the ability for Staking proxy to manage StakingOperator proxies ([#1033](https://github.com/polkadot-fellows/runtimes/pull/1033))
 - asset-hub-polkadot: remove treasury burns ([#1028](https://github.com/polkadot-fellows/runtimes/pull/1028))
 - asset-hub-polkadot: fix the regression in doc-test for staking after changing the base deposit for NPoS solution from 4 to 100 DOT ([#1023](https://github.com/polkadot-fellows/runtimes/pull/1023))
 - asset-hub-polkadot: increase the base deposit for a signed NPoS solution from 4 to 100 DOT, significantly mitigating the risk of transaction spamming ([#1022](https://github.com/polkadot-fellows/runtimes/pull/1022))
@@ -32,6 +297,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - asset-hub-kusama: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/918))
 - Add fast runtime feature for Encointer Kusama([#1021](https://github.com/polkadot-fellows/runtimes/pull/1021))
 - asset-hub-polkadot: use inmemorydb weights([polkadot-fellows/runtimes/pull/918](https://github.com/polkadot-fellows/runtimes/pull/1025))
+
+### Removed
+
+- Removed most of the Asset Hub Migration code ([#1016](https://github.com/polkadot-fellows/runtimes/pull/1016))
 
 ## [2.0.3] 21.11.2025
 
@@ -419,11 +688,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Tx Payment: drop ED requirements for tx payments with exchangeable asset ([SDK `stable2409` #4488](https://github.com/paritytech/polkadot-sdk/pull/4488))
 - Coretime auto-renew ([SDK `stable2409` #4424](https://github.com/paritytech/polkadot-sdk/pull/4424))
 - Initialises pallet-delegated-staking ([SDK `v1.12.0` #3904](https://github.com/paritytech/polkadot-sdk/pull/3904))
-
-### Changed
-
-#### From [#490](https://github.com/polkadot-fellows/runtimes/pull/490)
-
 - Polkadot Primitives v8 ([SDK v1.16 #5525](https://github.com/paritytech/polkadot-sdk/pull/5525)).
 - Relax `XcmFeeToAccount` trait bound on `AccountId` ([SDK v1.16 #4959](https://github.com/paritytech/polkadot-sdk/pull/4959))
 - Bridges V2 refactoring backport and `pallet_bridge_messages` simplifications ([SDK `stable2407` #4935](https://github.com/paritytech/polkadot-sdk/pull/4935))
@@ -654,14 +918,11 @@ Note: This release only affects the following runtimes and is not a full system 
 ### Changed
 
 - Set max asset ID restriction for the creation of trusted assets ([polkadot-fellows/runtimes#346](https://github.com/polkadot-fellows/runtimes/pull/346))
+- People chain now uses 6-second block times ([polkadot-fellows/runtimes#308](https://github.com/polkadot-fellows/runtimes/pull/308))
 
 ### Fixed
 
 - Kusama People: clear requested judgements that do not have corresponding deposits reserved ([polkadot-fellows/runtimes#339](https://github.com/polkadot-fellows/runtimes/pull/339))
-
-### Changed
-
-- People chain now uses 6-second block times ([polkadot-fellows/runtimes#308](https://github.com/polkadot-fellows/runtimes/pull/308))
 
 ### Removed
 
@@ -771,6 +1032,9 @@ Note: This release only affects the following runtimes and is not a full system 
 - Treasury Spend detects relative locations of the native asset ([polkadot-fellows/runtimes#233](https://github.com/polkadot-fellows/runtimes/pull/233))
 - Increase consumer reference limits for Asset Hubs ([polkadot-fellows/runtimes#258](https://github.com/polkadot-fellows/runtimes/pull/258))
 - Updated Asset Hub asset class creation deposit to use `system_para_deposit()` ([polkadot-fellows/runtimes#259](https://github.com/polkadot-fellows/runtimes/pull/259))
+- Upgrade dependencies to the [polkadot-sdk@1.5.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.5.0) release ([polkadot-fellows/runtimes#137](https://github.com/polkadot-fellows/runtimes/pull/137))
+- Upgrade dependencies to the [polkadot-sdk@1.6.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.6.0) release ([polkadot-fellows/runtimes#159](https://github.com/polkadot-fellows/runtimes/pull/159))
+- Upgrade dependencies to the [polkadot-sdk@1.7.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.7.0) release ([polkadot-fellows/runtimes#187](https://github.com/polkadot-fellows/runtimes/pull/187))
 
 ### Removed
 
@@ -780,12 +1044,6 @@ Note: This release only affects the following runtimes and is not a full system 
 ### Fixed
 
 - Fixed the cost of a single byte, sent over bridge to use the `TransactionByteFee` constant of the bridged chain [polkadot-fellows/runtimes#174](https://github.com/polkadot-fellows/runtimes/pull/174).
-
-### Based on Polkadot-SDK
-
-- Upgrade dependencies to the [polkadot-sdk@1.5.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.5.0) release ([polkadot-fellows/runtimes#137](https://github.com/polkadot-fellows/runtimes/pull/137))
-- Upgrade dependencies to the [polkadot-sdk@1.6.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.6.0) release ([polkadot-fellows/runtimes#159](https://github.com/polkadot-fellows/runtimes/pull/159))
-- Upgrade dependencies to the [polkadot-sdk@1.7.0](https://github.com/paritytech/polkadot-sdk/releases/tag/polkadot-v1.7.0) release ([polkadot-fellows/runtimes#187](https://github.com/polkadot-fellows/runtimes/pull/187))
 
 ## [1.1.1] 25.01.2024
 

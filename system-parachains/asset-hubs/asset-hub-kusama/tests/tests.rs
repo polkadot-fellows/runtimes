@@ -22,10 +22,8 @@ extern crate alloc;
 use alloc::boxed::Box;
 use asset_hub_kusama_runtime::{
 	xcm_config::{
-		bridging::{self, XcmBridgeHubRouterFeeAssetId},
-		CheckingAccount, KsmLocation, LocationToAccountId, RelayChainLocation,
-		RelayTreasuryLocation, RelayTreasuryPalletAccount, StakingPot,
-		TrustBackedAssetsPalletLocation, XcmConfig,
+		bridging, CheckingAccount, KsmLocation, LocationToAccountId, RelayChainLocation,
+		RelayTreasuryPalletAccount, StakingPot, TrustBackedAssetsPalletLocation, XcmConfig,
 	},
 	AllPalletsWithoutSystem, AssetDeposit, Assets, Balances, Block, ExistentialDeposit,
 	ForeignAssets, ForeignAssetsInstance, MetadataDepositBase, MetadataDepositPerByte,
@@ -40,17 +38,19 @@ use asset_test_utils::{
 	},
 	CollatorSessionKey, CollatorSessionKeys, ExtBuilder, GovernanceOrigin, SlotDurations,
 };
+use assets_common::local_and_foreign_assets::ForeignAssetReserveData;
 use codec::{Decode, Encode};
 use frame_support::{
 	assert_err, assert_ok,
-	traits::{fungibles::InspectEnumerable, ContainsPair, Get},
+	traits::{fungibles::InspectEnumerable, ContainsPair},
 };
 use parachains_common::{AccountId, AssetIdForTrustBackedAssets, AuraId, Balance};
 use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::{traits::MaybeEquivalence, Either, TryRuntimeError};
 use system_parachains_constants::kusama::{
-	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, currency::UNITS, fee::WeightToFee,
+	consensus::RELAY_CHAIN_SLOT_DURATION_MILLIS, currency::UNITS,
+	fee::WeightToFee as KsmWeightToFee,
 };
 use xcm::latest::{
 	prelude::{Assets as XcmAssets, *},
@@ -70,8 +70,8 @@ frame_support::parameter_types! {
 
 type AssetIdForTrustBackedAssetsConvertLatest =
 	assets_common::AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocation>;
-
 type RuntimeHelper = asset_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
+type WeightToFee = KsmWeightToFee<Runtime>;
 
 fn collator_session_key(account: [u8; 32]) -> CollatorSessionKey<Runtime> {
 	CollatorSessionKey::new(
@@ -225,8 +225,7 @@ asset_test_utils::include_teleports_for_native_asset_works!(
 	Runtime,
 	AllPalletsWithoutSystem,
 	XcmConfig,
-	// TODO: after AHM change this from `()` to `CheckingAccount`
-	(),
+	CheckingAccount,
 	WeightToFee,
 	ParachainSystem,
 	collator_session_keys(),
@@ -394,7 +393,7 @@ fn limited_reserve_transfer_assets_for_native_asset_to_asset_hub_polkadot_works(
 		}),
 		bridging_to_asset_hub_polkadot,
 		WeightLimit::Unlimited,
-		Some(XcmBridgeHubRouterFeeAssetId::get()),
+		None,
 		Some(RelayTreasuryPalletAccount::get()),
 		)
 	});
@@ -407,10 +406,19 @@ fn receive_reserve_asset_deposited_dot_from_asset_hub_polkadot_fees_paid_by_pool
 	let staking_pot = StakingPot::get();
 
 	let foreign_asset_id_location = Location::new(2, [GlobalConsensus(Polkadot)]);
+	let reserve_location = Location::new(2, [GlobalConsensus(Polkadot), Parachain(1000)]);
+	let foreign_asset_reserve_data =
+		ForeignAssetReserveData { reserve: reserve_location, teleportable: false };
 	let foreign_asset_id_minimum_balance = 1_000_000_000;
 	// sovereign account as foreign asset owner (can be whoever for this scenario)
 	let foreign_asset_owner = LocationToAccountId::convert_location(&Location::parent()).unwrap();
-	let foreign_asset_create_params =
+	let foreign_asset_create_params = (
+		foreign_asset_owner.clone(),
+		foreign_asset_id_location.clone(),
+		foreign_asset_reserve_data,
+		foreign_asset_id_minimum_balance,
+	);
+	let pool_params =
 		(foreign_asset_owner, foreign_asset_id_location.clone(), foreign_asset_id_minimum_balance);
 
 	receive_reserve_asset_deposited_from_different_consensus_works::<
@@ -424,14 +432,14 @@ fn receive_reserve_asset_deposited_dot_from_asset_hub_polkadot_fees_paid_by_pool
 		AccountId::from([73; 32]),
 		block_author_account,
 		// receiving DOTs
-		foreign_asset_create_params.clone(),
+		foreign_asset_create_params,
 		1000000000000,
 		|| {
 			// setup pool for paying fees to touch `SwapFirstAssetTrader`
 			asset_test_utils::test_cases::setup_pool_for_paying_fees_with_foreign_assets::<
 				Runtime,
 				RuntimeOrigin,
-			>(ExistentialDeposit::get(), foreign_asset_create_params);
+			>(ExistentialDeposit::get(), pool_params);
 			// staking pot account for collecting local native fees from `BuyExecution`
 			let _ = Balances::force_set_balance(
 				RuntimeOrigin::root(),
@@ -600,17 +608,6 @@ fn change_xcm_bridge_hub_router_byte_fee_by_governance_works() {
 			}
 		},
 	)
-}
-
-#[test]
-fn treasury_pallet_account_not_none() {
-	ExtBuilder::<Runtime>::default().build().execute_with(|| {
-		let relay_treasury_account: AccountId = RelayTreasuryPalletAccount::get();
-		assert_eq!(
-			relay_treasury_account,
-			LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
-		)
-	});
 }
 
 #[test]
@@ -905,4 +902,420 @@ fn governance_authorize_upgrade_works() {
 		Runtime,
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(RelayChainLocation::get())));
+}
+
+/// A Staking proxy can add/remove a StakingOperator proxy for the account it is proxying.
+#[test]
+fn staking_proxy_can_manage_staking_operator() {
+	use asset_hub_kusama_runtime::{Proxy, ProxyType};
+	use frame_support::traits::fungible::Mutate;
+	use sp_runtime::traits::StaticLookup;
+
+	ExtBuilder::<Runtime>::default()
+		.with_collators(vec![AccountId::from(ALICE)])
+		.with_session_keys(vec![(
+			AccountId::from(ALICE),
+			AccountId::from(ALICE),
+			SessionKeys { aura: AuraId::from(sp_core::sr25519::Public::from_raw(ALICE)) },
+		)])
+		.build()
+		.execute_with(|| {
+			// Given: Alice, Bob, and Carol with sufficient balance
+			let alice: AccountId = ALICE.into();
+			let bob: AccountId = [2u8; 32].into();
+			let carol: AccountId = [3u8; 32].into();
+
+			Balances::mint_into(&alice, 100 * UNITS).unwrap();
+			Balances::mint_into(&bob, 100 * UNITS).unwrap();
+			Balances::mint_into(&carol, 100 * UNITS).unwrap();
+
+			// Given: Alice has Bob as her Staking proxy
+			assert_ok!(Proxy::add_proxy(
+				RuntimeOrigin::signed(alice.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(bob.clone()),
+				ProxyType::Staking,
+				0
+			));
+
+			// When: Bob (via proxy) adds Carol as StakingOperator for Alice
+			let add_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+				proxy_type: ProxyType::StakingOperator,
+				delay: 0,
+			});
+			assert_ok!(Proxy::proxy(
+				RuntimeOrigin::signed(bob.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+				None,
+				Box::new(add_call)
+			));
+
+			// Then: Carol is Alice's StakingOperator proxy
+			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+			assert!(
+				alice_proxies
+					.0
+					.iter()
+					.any(|p| p.delegate == carol && p.proxy_type == ProxyType::StakingOperator),
+				"Carol should be Alice's StakingOperator proxy"
+			);
+
+			// When: Bob tries to add an Any proxy for Alice
+			let add_any_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+				proxy_type: ProxyType::Any,
+				delay: 0,
+			});
+			// proxy() returns Ok(()) but inner call result is in ProxyExecuted event
+			assert_ok!(Proxy::proxy(
+				RuntimeOrigin::signed(bob.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+				None,
+				Box::new(add_any_call),
+			));
+
+			// Then: The ProxyExecuted event should contain CallFiltered error
+			let events = frame_system::Pallet::<Runtime>::events();
+			let proxy_executed = events.iter().rev().find_map(|record| {
+				if let RuntimeEvent::Proxy(pallet_proxy::Event::ProxyExecuted { result }) =
+					&record.event
+				{
+					Some(*result)
+				} else {
+					None
+				}
+			});
+			assert_eq!(
+				proxy_executed,
+				Some(Err(frame_system::Error::<Runtime>::CallFiltered.into())),
+				"Inner call should fail with CallFiltered"
+			);
+
+			// And: Carol was NOT added as Any proxy
+			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+			assert!(
+				!alice_proxies
+					.0
+					.iter()
+					.any(|p| p.delegate == carol && p.proxy_type == ProxyType::Any),
+				"Carol should NOT be Alice's Any proxy - Staking proxy cannot add Any"
+			);
+
+			// When: Bob (via proxy) removes Carol as StakingOperator for Alice
+			let remove_call = RuntimeCall::Proxy(pallet_proxy::Call::remove_proxy {
+				delegate: <Runtime as frame_system::Config>::Lookup::unlookup(carol.clone()),
+				proxy_type: ProxyType::StakingOperator,
+				delay: 0,
+			});
+			assert_ok!(Proxy::proxy(
+				RuntimeOrigin::signed(bob.clone()),
+				<Runtime as frame_system::Config>::Lookup::unlookup(alice.clone()),
+				None,
+				Box::new(remove_call)
+			));
+
+			// Then: Carol is no longer Alice's StakingOperator proxy
+			let alice_proxies = pallet_proxy::Proxies::<Runtime>::get(&alice);
+			assert!(
+				!alice_proxies
+					.0
+					.iter()
+					.any(|p| p.delegate == carol && p.proxy_type == ProxyType::StakingOperator),
+				"Carol should no longer be Alice's StakingOperator proxy"
+			);
+		});
+}
+
+/// Verifies StakingOperator filter allows validator operations and session key management,
+/// but forbids fund management.
+#[test]
+fn staking_operator_filter_allows_validator_ops_and_session_keys() {
+	use asset_hub_kusama_runtime::ProxyType;
+	use frame_support::traits::InstanceFilter;
+	use pallet_staking_async::{Call as StakingCall, RewardDestination, ValidatorPrefs};
+	use pallet_staking_async_rc_client::Call as RcClientCall;
+
+	let operator = ProxyType::StakingOperator;
+
+	// StakingOperator can perform validator operations
+	assert!(operator
+		.filter(&RuntimeCall::Staking(StakingCall::validate { prefs: ValidatorPrefs::default() })));
+	assert!(operator.filter(&RuntimeCall::Staking(StakingCall::chill {})));
+	assert!(operator.filter(&RuntimeCall::Staking(StakingCall::kick { who: vec![] })));
+
+	// StakingOperator can manage session keys
+	assert!(operator.filter(&RuntimeCall::StakingRcClient(RcClientCall::set_keys {
+		keys: Default::default(),
+		proof: Default::default(),
+		max_delivery_and_remote_execution_fee: None,
+	})));
+	assert!(operator.filter(&RuntimeCall::StakingRcClient(RcClientCall::purge_keys {
+		max_delivery_and_remote_execution_fee: None,
+	})));
+
+	// StakingOperator can batch operations
+	assert!(operator.filter(&RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] })));
+	assert!(
+		operator.filter(&RuntimeCall::Utility(pallet_utility::Call::batch_all { calls: vec![] }))
+	);
+	assert!(
+		operator.filter(&RuntimeCall::Utility(pallet_utility::Call::force_batch { calls: vec![] }))
+	);
+
+	// StakingOperator cannot use other utility calls
+	assert!(!operator.filter(&RuntimeCall::Utility(pallet_utility::Call::as_derivative {
+		index: 0,
+		call: Box::new(RuntimeCall::System(frame_system::Call::remark { remark: vec![] })),
+	})));
+	assert!(!operator.filter(&RuntimeCall::Utility(pallet_utility::Call::dispatch_as {
+		as_origin: Box::new(asset_hub_kusama_runtime::OriginCaller::system(
+			frame_system::RawOrigin::Root,
+		)),
+		call: Box::new(RuntimeCall::System(frame_system::Call::remark { remark: vec![] })),
+	})));
+	assert!(!operator.filter(&RuntimeCall::Utility(pallet_utility::Call::with_weight {
+		call: Box::new(RuntimeCall::System(frame_system::Call::remark { remark: vec![] })),
+		weight: Default::default(),
+	})));
+
+	// StakingOperator cannot manage funds or nominations
+	assert!(!operator.filter(&RuntimeCall::Staking(StakingCall::bond {
+		value: 100,
+		payee: RewardDestination::Staked
+	})));
+	assert!(!operator.filter(&RuntimeCall::Staking(StakingCall::unbond { value: 100 })));
+	assert!(!operator.filter(&RuntimeCall::Staking(StakingCall::nominate { targets: vec![] })));
+	assert!(!operator
+		.filter(&RuntimeCall::Staking(StakingCall::update_payee { controller: [0u8; 32].into() })));
+}
+
+/// Test that a pure proxy stash can delegate to a StakingOperator
+/// who can then call validate, chill, and manage session keys.
+#[test]
+fn pure_proxy_stash_can_delegate_to_staking_operator() {
+	use asset_hub_kusama_runtime::ProxyType;
+
+	let controller: AccountId = ALICE.into();
+	let operator: AccountId = [2u8; 32].into();
+
+	ExtBuilder::<Runtime>::default()
+		.with_collators(vec![AccountId::from(ALICE)])
+		.with_session_keys(vec![(
+			AccountId::from(ALICE),
+			AccountId::from(ALICE),
+			SessionKeys { aura: AuraId::from(sp_core::sr25519::Public::from_raw(ALICE)) },
+		)])
+		.build()
+		.execute_with(|| {
+			use frame_support::traits::fungible::Mutate;
+
+			// GIVEN: fund controller and operator
+			assert_ok!(Balances::mint_into(&controller, 100 * UNITS));
+			assert_ok!(Balances::mint_into(&operator, 100 * UNITS));
+
+			// WHEN: controller creates a pure proxy stash with Staking proxy type
+			assert_ok!(asset_hub_kusama_runtime::Proxy::create_pure(
+				RuntimeOrigin::signed(controller.clone()),
+				ProxyType::Staking,
+				0,
+				0
+			));
+			let pure_stash = asset_hub_kusama_runtime::Proxy::pure_account(
+				&controller,
+				&ProxyType::Staking,
+				0,
+				None,
+			);
+
+			// Fund the pure proxy stash
+			assert_ok!(Balances::mint_into(&pure_stash, 100 * UNITS));
+
+			// WHEN: controller (via Staking proxy) adds StakingOperator proxy for the operator
+			let add_operator_call = RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+				delegate: operator.clone().into(),
+				proxy_type: ProxyType::StakingOperator,
+				delay: 0,
+			});
+			assert_ok!(asset_hub_kusama_runtime::Proxy::proxy(
+				RuntimeOrigin::signed(controller.clone()),
+				pure_stash.clone().into(),
+				None,
+				Box::new(add_operator_call),
+			));
+
+			// THEN: operator can call chill on behalf of pure proxy stash
+			let chill_call = RuntimeCall::Staking(pallet_staking_async::Call::chill {});
+			assert_ok!(asset_hub_kusama_runtime::Proxy::proxy(
+				RuntimeOrigin::signed(operator.clone()),
+				pure_stash.clone().into(),
+				None,
+				Box::new(chill_call),
+			));
+
+			// THEN: operator can call validate on behalf of pure proxy stash
+			let validate_call = RuntimeCall::Staking(pallet_staking_async::Call::validate {
+				prefs: Default::default(),
+			});
+			assert_ok!(asset_hub_kusama_runtime::Proxy::proxy(
+				RuntimeOrigin::signed(operator.clone()),
+				pure_stash.clone().into(),
+				None,
+				Box::new(validate_call),
+			));
+
+			// THEN: operator can call purge_keys (session key management on AssetHub)
+			let purge_keys_call =
+				RuntimeCall::StakingRcClient(pallet_staking_async_rc_client::Call::purge_keys {
+					max_delivery_and_remote_execution_fee: None,
+				});
+			assert_ok!(asset_hub_kusama_runtime::Proxy::proxy(
+				RuntimeOrigin::signed(operator.clone()),
+				pure_stash.clone().into(),
+				None,
+				Box::new(purge_keys_call),
+			));
+
+			// THEN: operator CANNOT call bond (fund management is forbidden)
+			let bond_call = RuntimeCall::Staking(pallet_staking_async::Call::bond {
+				value: 10 * UNITS,
+				payee: pallet_staking_async::RewardDestination::Staked,
+			});
+			assert_ok!(asset_hub_kusama_runtime::Proxy::proxy(
+				RuntimeOrigin::signed(operator.clone()),
+				pure_stash.clone().into(),
+				None,
+				Box::new(bond_call),
+			));
+			// Check that the proxied call failed due to filter (CallFiltered error)
+			frame_system::Pallet::<Runtime>::assert_last_event(
+				pallet_proxy::Event::ProxyExecuted {
+					result: Err(frame_system::Error::<Runtime>::CallFiltered.into()),
+				}
+				.into(),
+			);
+		});
+}
+
+#[test]
+fn migrate_bounty_account_assets_moves_ksm_dot_and_usdt() {
+	use asset_hub_kusama_runtime::{
+		migrations::MigrateBountyAccountAssets, treasury::TreasuryPalletId, ForeignAssets,
+	};
+	use frame_support::traits::{
+		fungible::Mutate as _, tokens::fungibles::Mutate as _, Get as _, OnRuntimeUpgrade,
+		PalletInfoAccess,
+	};
+	use pallet_multi_asset_bounties::{Bounty, BountyStatus};
+	use polkadot_runtime_common::impls::VersionedLocatableAsset;
+	use sp_core::H256;
+	use sp_runtime::traits::AccountIdConversion;
+
+	const BOUNTY_ID: u32 = 42;
+	const USDT_ASSET_ID: u32 = 1984;
+	const UNRELATED_ASSET_ID: u32 = 99; // NOT used by multi-asset bounties, must NOT move
+	const KSM_AMOUNT: Balance = 100 * UNITS;
+	const DOT_AMOUNT: Balance = 50 * UNITS;
+	const USDT_AMOUNT: Balance = 300_000 * 1_000_000; // 6 decimals
+	const UNRELATED_AMOUNT: Balance = 999 * 1_000_000;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		// Insert a `MultiAssetBounties::Bounties` entry so the migration's
+		// `iter_keys()` finds it. We bypass `propose_bounty` since the
+		// migration only iterates keys; the value's contents don't affect it.
+		let bounty = Bounty::<
+			AccountId,
+			Balance,
+			VersionedLocatableAsset,
+			H256,
+			xcm::v5::QueryId,
+			parachains_common::pay::VersionedLocatableAccount,
+		> {
+			asset_kind: VersionedLocatableAsset::V5 {
+				location: Location::new(0, []),
+				asset_id: AssetId(Location::new(
+					0,
+					[
+						PalletInstance(<Assets as PalletInfoAccess>::index() as u8),
+						GeneralIndex(USDT_ASSET_ID.into()),
+					],
+				)),
+			},
+			value: USDT_AMOUNT,
+			metadata: H256::zero(),
+			status: BountyStatus::CuratorUnassigned,
+		};
+		pallet_multi_asset_bounties::Bounties::<Runtime>::insert(BOUNTY_ID, bounty);
+
+		// Old derivation (`&str` prefix, used up to v2.2.2 via the local
+		// wrapper) vs new derivation (`[u8; 3]` prefix, from SDK PR 11052).
+		let pallet_id = TreasuryPalletId::get();
+		let old: AccountId = pallet_id.into_sub_account_truncating(("mbt", BOUNTY_ID));
+		let new: AccountId = pallet_id.into_sub_account_truncating((
+			pallet_multi_asset_bounties::BountyAccountPrefix::get(),
+			BOUNTY_ID,
+		));
+		assert_ne!(old, new);
+
+		// Native KSM (Balances).
+		Balances::mint_into(&old, KSM_AMOUNT).unwrap();
+		// Foreign DOT (registered in `ForeignAssets` by its location).
+		let dot_location =
+			asset_hub_kusama_runtime::xcm_config::bridging::to_polkadot::DotLocation::get();
+		assert_ok!(ForeignAssets::force_create(
+			RuntimeHelper::root_origin(),
+			dot_location.clone(),
+			AccountId::from(SOME_ASSET_ADMIN).into(),
+			true,
+			1,
+		));
+		ForeignAssets::mint_into(dot_location.clone(), &old, DOT_AMOUNT).unwrap();
+		// Trust-backed assets the multi-asset bounties pallet supports.
+		for id in [USDT_ASSET_ID, UNRELATED_ASSET_ID] {
+			assert_ok!(Assets::force_create(
+				RuntimeHelper::root_origin(),
+				id.into(),
+				AccountId::from(SOME_ASSET_ADMIN).into(),
+				true,
+				1,
+			));
+		}
+		Assets::mint_into(USDT_ASSET_ID, &old, USDT_AMOUNT).unwrap();
+		Assets::mint_into(UNRELATED_ASSET_ID, &old, UNRELATED_AMOUNT).unwrap();
+
+		MigrateBountyAccountAssets::on_runtime_upgrade();
+
+		// KSM (native), DOT (foreign), and USDT moved.
+		assert_eq!(Balances::free_balance(&old), 0);
+		assert_eq!(Balances::free_balance(&new), KSM_AMOUNT);
+		assert_eq!(ForeignAssets::balance(dot_location.clone(), &old), 0);
+		assert_eq!(ForeignAssets::balance(dot_location, &new), DOT_AMOUNT);
+		assert_eq!(Assets::balance(USDT_ASSET_ID, &old), 0);
+		assert_eq!(Assets::balance(USDT_ASSET_ID, &new), USDT_AMOUNT);
+		// An asset not used by the multi-asset bounties pallet stays at the old account.
+		assert_eq!(Assets::balance(UNRELATED_ASSET_ID, &old), UNRELATED_AMOUNT);
+		assert_eq!(Assets::balance(UNRELATED_ASSET_ID, &new), 0);
+	});
+}
+
+#[test]
+fn session_keys_are_compatible_between_ah_and_rc() {
+	use asset_hub_kusama_runtime::staking::RelayChainSessionKeys;
+	use sp_runtime::traits::OpaqueKeys;
+
+	// Verify the key type IDs match in order.
+	// This ensures that when keys are encoded on AssetHub and decoded on Kusama (or vice versa),
+	// they map to the correct key types.
+	assert_eq!(
+		RelayChainSessionKeys::key_ids(),
+		kusama_runtime::SessionKeys::key_ids(),
+		"Session key type IDs must match between AssetHub and Kusama"
+	);
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
 }

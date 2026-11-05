@@ -33,8 +33,9 @@ mod imports {
 
 	pub(crate) use polkadot_system_emulated_network::{
 		AssetHubPolkadotPara as AssetHubPolkadot, BridgeHubPolkadotPara as BridgeHubPolkadot,
-		CollectivesPolkadotPara as CollectivesPolkadot, CoretimePolkadotPara as CoretimePolkadot,
-		PeoplePolkadotPara as PeoplePolkadot, PolkadotRelay as Polkadot,
+		BulletinPolkadotPara as BulletinPolkadot, CollectivesPolkadotPara as CollectivesPolkadot,
+		CoretimePolkadotPara as CoretimePolkadot, PeoplePolkadotPara as PeoplePolkadot,
+		PolkadotRelay as Polkadot,
 	};
 }
 

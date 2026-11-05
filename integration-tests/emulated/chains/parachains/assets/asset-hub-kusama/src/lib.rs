@@ -27,6 +27,8 @@ use emulated_integration_tests_common::{
 };
 use kusama_emulated_chain::Kusama;
 
+pub use assets_common::local_and_foreign_assets::ForeignAssetReserveData;
+
 // AssetHubKusama Parachain declaration
 decl_test_parachains! {
 	pub struct AssetHubKusama {
@@ -40,6 +42,7 @@ decl_test_parachains! {
 			LocationToAccountId: asset_hub_kusama_runtime::xcm_config::LocationToAccountId,
 			ParachainInfo: asset_hub_kusama_runtime::ParachainInfo,
 			MessageOrigin: cumulus_primitives_core::AggregateMessageOrigin,
+			native_total_supply_tracker: true,
 		},
 		pallets = {
 			PolkadotXcm: asset_hub_kusama_runtime::PolkadotXcm,
@@ -48,6 +51,8 @@ decl_test_parachains! {
 			PoolAssets: asset_hub_kusama_runtime::PoolAssets,
 			AssetConversion: asset_hub_kusama_runtime::AssetConversion,
 			Balances: asset_hub_kusama_runtime::Balances,
+			Treasury: asset_hub_kusama_runtime::Treasury,
+			AssetRate: asset_hub_kusama_runtime::AssetRate,
 		}
 	},
 }
@@ -57,5 +62,9 @@ impl_accounts_helpers_for_parachain!(AssetHubKusama);
 impl_assert_events_helpers_for_parachain!(AssetHubKusama);
 impl_assets_helpers_for_system_parachain!(AssetHubKusama, Kusama);
 impl_assets_helpers_for_parachain!(AssetHubKusama);
-impl_foreign_assets_helpers_for_parachain!(AssetHubKusama, xcm::latest::Location);
+impl_foreign_assets_helpers_for_parachain!(
+	AssetHubKusama,
+	xcm::latest::Location,
+	ForeignAssetReserveData
+);
 impl_xcm_helpers_for_parachain!(AssetHubKusama);

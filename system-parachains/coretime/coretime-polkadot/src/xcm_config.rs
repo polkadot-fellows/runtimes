@@ -15,9 +15,9 @@
 // limitations under the License.
 
 use super::{
-	AccountId, AllPalletsWithSystem, Balance, Balances, Broker, CollatorSelection, ParachainInfo,
-	ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
+	AccountId, AccumulateForward, AllPalletsWithSystem, Balance, Balances, Broker,
+	CollatorSelection, ParachainInfo, ParachainSystem, PolkadotXcm, PriceForParentDelivery,
+	Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use frame_support::{
 	pallet_prelude::PalletInfoAccess,
@@ -34,7 +34,7 @@ use parachains_common::xcm_config::{
 	ParentRelayOrSiblingParachains, RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::system_parachain;
+use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
 use sp_runtime::traits::AccountIdConversion;
 use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
@@ -68,6 +68,7 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
@@ -153,22 +154,10 @@ impl Contains<Location> for ParentOrParentsPlurality {
 }
 
 /// A location matching the Core Technical Fellowship.
-pub struct FellowsPlurality;
-impl Contains<Location> for FellowsPlurality {
-	fn contains(location: &Location) -> bool {
-		matches!(
-			location.unpack(),
-			(
-				1,
-				[
-					Parachain(system_parachain::COLLECTIVES_ID),
-					Plurality { id: BodyId::Technical, .. }
-				]
-			)
-		)
-	}
-}
+pub type FellowsPlurality = IsFellowshipVoice<FellowshipLocation>;
 
+// TODO(ahm-v2): decide whether to refuse inbound XCM from everyone but the relay chain while
+// the migration runs, so its messages do not queue behind others'.
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
 		DenyReserveTransferToRelayChain,
@@ -183,13 +172,18 @@ pub type Barrier = TrailingSetTopicAsId<
 					// allow it.
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					// Parent and its pluralities (i.e. governance bodies) get free execution.
-					AllowExplicitUnpaidExecutionFrom<(
-						ParentOrParentsPlurality,
-						FellowsPlurality,
-						Equals<RelayTreasuryLocation>,
-						Equals<AssetHubLocation>,
-						AssetHubPlurality,
-					)>,
+					AllowExplicitUnpaidExecutionFrom<
+						(
+							ParentOrParentsPlurality,
+							FellowsPlurality,
+							Equals<RelayTreasuryLocation>,
+							Equals<AssetHubLocation>,
+							AssetHubPlurality,
+						),
+						// Barriers run before any fee is taken: this must stay computation-only.
+						// Do not pass `TrustedAliasers` here.
+						CheapTrustedAliasers,
+					>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
 				),
@@ -202,12 +196,17 @@ pub type Barrier = TrailingSetTopicAsId<
 
 parameter_types! {
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
 	// conversion is not `None`.
 	pub RelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(TreasuryAccount::get());
+	/// The `pallet-accumulate-and-forward` account, as a local location.
+	pub AccumulateForwardLocation: Location =
+		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
 
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
@@ -217,20 +216,30 @@ pub type WaivedLocations = (
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
 	Equals<RelayTreasuryLocation>,
 	FellowsPlurality,
+	// Forwards of accumulated coretime revenue to the DAP.
+	Equals<AccumulateForwardLocation>,
 );
 
-/// Defines origin aliasing rules for this chain.
+/// Aliasing rules that are pure computation, so the `AllowExplicitUnpaidExecutionFrom` barrier can
+/// evaluate them before any fee is charged.
+///
+/// Do not add storage-reading filters here: the barrier calls this once per `AliasOrigin` (up to 5)
+/// on keys the message chooses, and may then reject the message without taking a fee. That is why
+/// `AuthorizedAliasers` belongs to [`TrustedAliasers`] alone.
 ///
 /// - Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
 /// - Allow same accounts to alias into each other across system chains,
-/// - Allow AssetHub root to alias into anything,
-/// - Allow origins explicitly authorized to alias into target location.
-pub type TrustedAliasers = (
+/// - Allow AssetHub root to alias into anything.
+pub type CheapTrustedAliasers = (
 	AliasChildLocation,
 	AliasAccountId32FromSiblingSystemChain,
 	AliasOriginRootUsingFilter<AssetHubLocation, Everything>,
-	AuthorizedAliasers<Runtime>,
 );
+
+/// Defines origin aliasing rules for this chain, used by `xcm_executor::Config::Aliasers` at
+/// execution time: everything in [`CheapTrustedAliasers`], plus origins explicitly authorized by
+/// the alias target location.
+pub type TrustedAliasers = (CheapTrustedAliasers, AuthorizedAliasers<Runtime>);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -252,7 +261,7 @@ impl xcm_executor::Config for XcmConfig {
 		MaxInstructions,
 	>;
 	type Trader = UsingComponents<
-		WeightToFee,
+		WeightToFee<Runtime>,
 		DotRelayLocation,
 		AccountId,
 		Balances,
@@ -260,7 +269,6 @@ impl xcm_executor::Config for XcmConfig {
 	>;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
-	type AssetClaims = PolkadotXcm;
 	type SubscriptionService = PolkadotXcm;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
@@ -332,7 +340,7 @@ impl pallet_xcm::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type MaxRemoteLockConsumers = ConstU32<0>;
 	type RemoteLockConsumerIdentifier = ();
-	// xcm_executor::Config::Aliasers uses pallet_xcm::AuthorizedAliasers.
+	// xcm_executor::Config::Aliasers includes pallet_xcm::AuthorizedAliasers.
 	type AuthorizedAliasConsideration = HoldConsideration<
 		AccountId,
 		Balances,

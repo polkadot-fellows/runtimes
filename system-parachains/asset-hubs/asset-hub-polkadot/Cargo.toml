@@ -9,7 +9,6 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-pallet-ah-migrator = { workspace = true }
 pallet-ah-ops = { workspace = true }
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -29,21 +28,39 @@ polkadot-runtime-constants = { workspace = true }
 system-parachains-constants = { workspace = true }
 system-parachains-common = { workspace = true }
 
-# Substrate
 frame-benchmarking = { optional = true, workspace = true }
 frame-election-provider-support = { workspace = true }
 frame-executive = { workspace = true }
 frame-metadata-hash-extension = { workspace = true }
-frame-support = { workspace = true }
+# `tuples-96`: the Individuality pallets push the pallet count past the default 64-tuple limit.
+frame-support = { workspace = true, features = ["tuples-96"] }
 sp-staking = { workspace = true }
 frame-system = { workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
+
+# Individuality
+indiv-pallet-alias-accounts = { workspace = true }
+indiv-pallet-dotns-gateway = { workspace = true }
+indiv-pallet-members-subscriber = { workspace = true }
+indiv-pallet-network-suffix = { workspace = true }
+indiv-pallet-origin-restriction = { workspace = true }
+indiv-pallet-pgas = { workspace = true }
+indiv-precompile-personhood = { workspace = true }
+indiv-support = { workspace = true }
+# Ring-VRF primitives, only needed by the Individuality benchmark helpers, which build ring-VRF SRS
+# chunks and produce real proofs against them.
+verifiable = { optional = true, workspace = true }
+
 pallet-asset-conversion-tx-payment = { workspace = true }
 pallet-asset-conversion = { workspace = true }
+pallet-asset-conversion-precompiles = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-assets = { workspace = true }
+pallet-assets-freezer = { workspace = true }
+pallet-assets-holder = { workspace = true }
+pallet-assets-precompiles = { workspace = true }
 pallet-asset-rate = { workspace = true }
 pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
@@ -54,17 +71,22 @@ pallet-child-bounties = { workspace = true }
 pallet-conviction-voting = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-message-queue = { workspace = true }
+pallet-migrations = { workspace = true }
 pallet-multisig = { workspace = true }
+pallet-multi-asset-bounties = { workspace = true }
 pallet-nfts = { workspace = true }
 pallet-nfts-runtime-api = { workspace = true }
 pallet-parameters = { workspace = true }
+pallet-pgas-allowance = { workspace = true }
 pallet-preimage = { workspace = true }
 pallet-proxy = { workspace = true }
+pallet-psm = { workspace = true }
 pallet-referenda = { workspace = true }
+pallet-revive = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-nomination-pools-benchmarking = { optional = true, workspace = true }
 pallet-staking-async = { workspace = true }
-pallet-staking-async-rc-client = { workspace = true }
+pallet-staking-async-rc-client = { workspace = true, features = ["xcm-sender"] }
 pallet-election-provider-multi-block = { workspace = true }
 pallet-session = { workspace = true }
 pallet-staking = { workspace = true }
@@ -76,13 +98,21 @@ pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-uniques = { workspace = true }
 pallet-utility = { workspace = true }
+pallet-verify-signature = { workspace = true }
 pallet-vesting = { workspace = true }
+pallet-vesting-precompiles = { workspace = true }
 pallet-whitelist = { workspace = true }
 sp-api = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-block-builder = { workspace = true }
+authority-discovery-primitives = { workspace = true }
+babe-primitives = { workspace = true }
+beefy-primitives = { workspace = true }
+grandpa-primitives = { workspace = true }
+polkadot-primitives = { workspace = true }
 sp-consensus-aura = { workspace = true }
 sp-core = { workspace = true }
+sp-dap = { workspace = true }
 sp-genesis-builder = { workspace = true }
 sp-io = { workspace = true }
 sp-inherents = { workspace = true }
@@ -100,11 +130,12 @@ primitive-types = { features = [
 	"num-traits",
 	"scale-info",
 ], workspace = true }
+pallet-dap = { workspace = true }
 pallet-delegated-staking = { workspace = true }
 
-# Polkadot
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
+pallet-xcm-precompiles = { workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-parachain-primitives = { workspace = true }
 polkadot-runtime-common = { workspace = true }
@@ -114,10 +145,10 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 xcm-runtime-apis = { workspace = true }
 
-# Cumulus
 cumulus-pallet-aura-ext = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
+cumulus-pallet-weight-reclaim = { workspace = true }
 cumulus-pallet-xcm = { workspace = true }
 cumulus-pallet-xcmp-queue = { features = ["bridging"], workspace = true }
 cumulus-primitives-aura = { workspace = true }
@@ -140,7 +171,13 @@ approx = { workspace = true }
 asset-test-utils = { workspace = true }
 hex = { workspace = true }
 parachains-runtimes-test-utils = { workspace = true }
+system-parachains-test-utils = { workspace = true }
+polkadot-runtime = { workspace = true }
+sp-keyring = { workspace = true }
 sp-tracing = { workspace = true, default-features = true }
+remote-externalities = { workspace = true }
+frame-try-runtime = { workspace = true }
+tokio = { features = ["macros"], workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true }
@@ -149,8 +186,8 @@ substrate-wasm-builder = { optional = true, workspace = true }
 default = ["std"]
 
 polkadot-ahm = [
-	"pallet-ah-migrator/polkadot-ahm",
 	"pallet-rc-migrator/polkadot-ahm",
+	"polkadot-runtime/polkadot-ahm",
 ]
 runtime-benchmarks = [
 	"assets-common/runtime-benchmarks",
@@ -160,6 +197,7 @@ runtime-benchmarks = [
 	"bp-bridge-hub-polkadot/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
+	"cumulus-pallet-weight-reclaim/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"cumulus-primitives-utility/runtime-benchmarks",
@@ -168,12 +206,24 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"indiv-pallet-alias-accounts/runtime-benchmarks",
+	"indiv-pallet-dotns-gateway/runtime-benchmarks",
+	"indiv-pallet-members-subscriber/runtime-benchmarks",
+	"indiv-pallet-network-suffix/runtime-benchmarks",
+	"indiv-pallet-origin-restriction/runtime-benchmarks",
+	"indiv-pallet-pgas/runtime-benchmarks",
+	"indiv-precompile-personhood/runtime-benchmarks",
+	"indiv-support/genesis",
+	"indiv-support/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
-	"pallet-ah-migrator/runtime-benchmarks",
 	"pallet-ah-ops/runtime-benchmarks",
+	"pallet-asset-conversion-precompiles/runtime-benchmarks",
 	"pallet-asset-conversion-tx-payment/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
+	"pallet-assets-freezer/runtime-benchmarks",
+	"pallet-assets-holder/runtime-benchmarks",
+	"pallet-assets-precompiles/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -181,20 +231,27 @@ runtime-benchmarks = [
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
+	"pallet-dap/runtime-benchmarks",
 	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-election-provider-multi-block/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
+	"pallet-migrations/runtime-benchmarks",
+	"pallet-multi-asset-bounties/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nfts/runtime-benchmarks",
 	"pallet-nomination-pools-benchmarking/runtime-benchmarks",
 	"pallet-nomination-pools/runtime-benchmarks",
 	"pallet-parameters/runtime-benchmarks",
+	"pallet-pgas-allowance/runtime-benchmarks",
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
+	"pallet-psm/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
+	"pallet-revive/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-session/runtime-benchmarks",
 	"pallet-staking-async-rc-client/runtime-benchmarks",
 	"pallet-staking-async/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
@@ -203,15 +260,20 @@ runtime-benchmarks = [
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
+	"pallet-verify-signature/runtime-benchmarks",
+	"pallet-vesting-precompiles/runtime-benchmarks",
 	"pallet-vesting/runtime-benchmarks",
 	"pallet-whitelist/runtime-benchmarks",
 	"pallet-xcm-benchmarks/runtime-benchmarks",
 	"pallet-xcm-bridge-hub-router/runtime-benchmarks",
+	"pallet-xcm-precompiles/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
+	"polkadot-runtime/runtime-benchmarks",
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
 	"snowbridge-pallet-system-frontend/runtime-benchmarks",
 	"snowbridge-runtime-common/runtime-benchmarks",
@@ -219,15 +281,19 @@ runtime-benchmarks = [
 	"sp-staking/runtime-benchmarks",
 	"system-parachains-common/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
+	"verifiable",
+	"verifiable/no-std-prover",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
 ]
 try-runtime = [
+	"asset-test-utils/try-runtime",
 	"assets-common/try-runtime",
 	"cumulus-pallet-aura-ext/try-runtime",
 	"cumulus-pallet-parachain-system/try-runtime",
+	"cumulus-pallet-weight-reclaim/try-runtime",
 	"cumulus-pallet-xcm/try-runtime",
 	"cumulus-pallet-xcmp-queue/try-runtime",
 	"frame-election-provider-support/try-runtime",
@@ -235,11 +301,21 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
-	"pallet-ah-migrator/try-runtime",
+	"indiv-pallet-alias-accounts/try-runtime",
+	"indiv-pallet-dotns-gateway/try-runtime",
+	"indiv-pallet-members-subscriber/try-runtime",
+	"indiv-pallet-network-suffix/try-runtime",
+	"indiv-pallet-origin-restriction/try-runtime",
+	"indiv-pallet-pgas/try-runtime",
+	"indiv-precompile-personhood/try-runtime",
 	"pallet-ah-ops/try-runtime",
+	"pallet-asset-conversion-precompiles/try-runtime",
 	"pallet-asset-conversion-tx-payment/try-runtime",
 	"pallet-asset-conversion/try-runtime",
 	"pallet-asset-rate/try-runtime",
+	"pallet-assets-freezer/try-runtime",
+	"pallet-assets-holder/try-runtime",
+	"pallet-assets-precompiles/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-aura/try-runtime",
 	"pallet-authorship/try-runtime",
@@ -249,18 +325,24 @@ try-runtime = [
 	"pallet-child-bounties/try-runtime",
 	"pallet-collator-selection/try-runtime",
 	"pallet-conviction-voting/try-runtime",
+	"pallet-dap/try-runtime",
 	"pallet-delegated-staking/try-runtime",
 	"pallet-election-provider-multi-block/try-runtime",
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
+	"pallet-migrations/try-runtime",
+	"pallet-multi-asset-bounties/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nfts/try-runtime",
 	"pallet-nomination-pools/try-runtime",
 	"pallet-parameters/try-runtime",
+	"pallet-pgas-allowance/try-runtime",
 	"pallet-preimage/try-runtime",
 	"pallet-proxy/try-runtime",
+	"pallet-psm/try-runtime",
 	"pallet-rc-migrator/try-runtime",
 	"pallet-referenda/try-runtime",
+	"pallet-revive/try-runtime",
 	"pallet-scheduler/try-runtime",
 	"pallet-session/try-runtime",
 	"pallet-staking-async-rc-client/try-runtime",
@@ -271,22 +353,30 @@ try-runtime = [
 	"pallet-treasury/try-runtime",
 	"pallet-uniques/try-runtime",
 	"pallet-utility/try-runtime",
+	"pallet-verify-signature/try-runtime",
+	"pallet-vesting-precompiles/try-runtime",
 	"pallet-vesting/try-runtime",
 	"pallet-whitelist/try-runtime",
 	"pallet-xcm-bridge-hub-router/try-runtime",
+	"pallet-xcm-precompiles/try-runtime",
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
+	"polkadot-runtime/try-runtime",
+	"snowbridge-inbound-queue-primitives/try-runtime",
 	"snowbridge-pallet-system-frontend/try-runtime",
 	"snowbridge-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
+	"system-parachains-constants/try-runtime",
 ]
 std = [
-	"pallet-ah-migrator/std",
 
 	"assets-common/std",
+	"authority-discovery-primitives/std",
+	"babe-primitives/std",
+	"beefy-primitives/std",
 	"bp-asset-hub-kusama/std",
 	"bp-asset-hub-polkadot/std",
 	"bp-bridge-hub-kusama/std",
@@ -295,6 +385,7 @@ std = [
 	"cumulus-pallet-aura-ext/std",
 	"cumulus-pallet-parachain-system/std",
 	"cumulus-pallet-session-benchmarking/std",
+	"cumulus-pallet-weight-reclaim/std",
 	"cumulus-pallet-xcm/std",
 	"cumulus-pallet-xcmp-queue/std",
 	"cumulus-primitives-aura/std",
@@ -309,13 +400,26 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"frame-try-runtime?/std",
+	"grandpa-primitives/std",
 	"hex/std",
+	"indiv-pallet-alias-accounts/std",
+	"indiv-pallet-dotns-gateway/std",
+	"indiv-pallet-members-subscriber/std",
+	"indiv-pallet-network-suffix/std",
+	"indiv-pallet-origin-restriction/std",
+	"indiv-pallet-pgas/std",
+	"indiv-precompile-personhood/std",
+	"indiv-support/std",
 	"kusama-runtime-constants/std",
 	"log/std",
 	"pallet-ah-ops/std",
+	"pallet-asset-conversion-precompiles/std",
 	"pallet-asset-conversion-tx-payment/std",
 	"pallet-asset-conversion/std",
 	"pallet-asset-rate/std",
+	"pallet-assets-freezer/std",
+	"pallet-assets-holder/std",
+	"pallet-assets-precompiles/std",
 	"pallet-assets/std",
 	"pallet-aura/std",
 	"pallet-authorship/std",
@@ -325,10 +429,13 @@ std = [
 	"pallet-child-bounties/std",
 	"pallet-collator-selection/std",
 	"pallet-conviction-voting/std",
+	"pallet-dap/std",
 	"pallet-delegated-staking/std",
 	"pallet-election-provider-multi-block/std",
 	"pallet-indices/std",
 	"pallet-message-queue/std",
+	"pallet-migrations/std",
+	"pallet-multi-asset-bounties/std",
 	"pallet-multisig/std",
 	"pallet-nfts-runtime-api/std",
 	"pallet-nfts/std",
@@ -336,10 +443,13 @@ std = [
 	"pallet-nomination-pools-runtime-api/std",
 	"pallet-nomination-pools/std",
 	"pallet-parameters/std",
+	"pallet-pgas-allowance/std",
 	"pallet-preimage/std",
 	"pallet-proxy/std",
+	"pallet-psm/std",
 	"pallet-rc-migrator/std",
 	"pallet-referenda/std",
+	"pallet-revive/std",
 	"pallet-scheduler/std",
 	"pallet-session/std",
 	"pallet-staking-async-rc-client/std",
@@ -352,15 +462,19 @@ std = [
 	"pallet-treasury/std",
 	"pallet-uniques/std",
 	"pallet-utility/std",
+	"pallet-verify-signature/std",
+	"pallet-vesting-precompiles/std",
 	"pallet-vesting/std",
 	"pallet-whitelist/std",
 	"pallet-xcm-benchmarks?/std",
 	"pallet-xcm-bridge-hub-router/std",
+	"pallet-xcm-precompiles/std",
 	"pallet-xcm/std",
 	"parachain-info/std",
 	"parachains-common/std",
 	"polkadot-core-primitives/std",
 	"polkadot-parachain-primitives/std",
+	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-constants/std",
 	"primitive-types/std",
@@ -375,6 +489,7 @@ std = [
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",
 	"sp-core/std",
+	"sp-dap/std",
 	"sp-genesis-builder/std",
 	"sp-inherents/std",
 	"sp-io/std",
@@ -390,6 +505,7 @@ std = [
 	"substrate-wasm-builder",
 	"system-parachains-common/std",
 	"system-parachains-constants/std",
+	"verifiable?/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm-runtime-apis/std",
@@ -398,6 +514,9 @@ std = [
 
 # Set timing constants (e.g. session period) to faster versions to speed up testing.
 fast-runtime = []
+
+# Use RFC-163 EC host functions instead of in-runtime cryptography.
+ec-crypto-hostcalls = ["indiv-support/ec-crypto-hostcalls"]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
 metadata-hash = ["substrate-wasm-builder?/metadata-hash"]

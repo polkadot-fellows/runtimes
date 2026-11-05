@@ -150,6 +150,10 @@ if args.command == 'bench':
         for pallet in runtime_pallets_map[runtime]:
             config = runtimesMatrix[runtime]
             print(f'-- config: {config}')
+            excluded_pallets = config.get("benchmarks_exclude_pallets", []) or []
+            if pallet in excluded_pallets:
+                print(f'-- skipping excluded pallet {pallet} in {runtime}')
+                continue
             default_path = f"./{config['path']}/src/weights"
             xcm_path = f"./{config['path']}/src/weights/xcm"
             output_path = default_path if not pallet.startswith("pallet_xcm_benchmarks") else xcm_path
@@ -161,7 +165,7 @@ if args.command == 'bench':
 
             print(f'-- benchmarking {pallet} in {runtime} into {output_path} using template {template} and excluded {excluded_string}')
 
-            status = os.system(f"frame-omni-bencher v1 benchmark pallet "
+            status = os.system(f"RUNTIME_LOG=off frame-omni-bencher v1 benchmark pallet "
                                f"--extrinsic=* "
                                f"--runtime=target/{profile}/wbuild/{config['package']}/{config['package'].replace('-', '_')}.wasm "
                                f"--pallet={pallet} "
@@ -171,6 +175,8 @@ if args.command == 'bench':
                                f"--steps=50 "
                                f"--repeat=20 "
                                f"--heap-pages=4096 "
+                               f"--min-duration 1 "
+                               f"--quiet "
                                f"{f'--template={template} ' if template else ''}"
                                f"{f'--exclude-extrinsics={excluded_string} ' if excluded_string else ''}"
                                )

@@ -30,10 +30,20 @@ use frame_support::{
 	dispatch::DispatchClass,
 	sp_runtime::{MultiAddress, MultiSigner},
 };
-use sp_runtime::{FixedPointNumber, FixedU128, RuntimeDebug, Saturating, StateVersion};
+use sp_runtime::{Debug, FixedPointNumber, FixedU128, Saturating, StateVersion};
+
+frame_support::parameter_types! {
+	/// Size limit of the BridgeHubKusama blocks - must stay in sync with the runtime's
+	/// `RuntimeBlockLength` (shadows the `bp_bridge_hub_cumulus::BlockLength` re-export).
+	pub BlockLength: frame_system::limits::BlockLength = {
+		let mut length = bp_bridge_hub_cumulus::BlockLength::get();
+		length.max_header_size = Some(100 * 1024);
+		length
+	};
+}
 
 /// BridgeHubKusama parachain.
-#[derive(RuntimeDebug)]
+#[derive(Debug)]
 pub struct BridgeHubKusama;
 
 impl Chain for BridgeHubKusama {
@@ -105,15 +115,15 @@ frame_support::parameter_types! {
 	/// The XCM fee that is paid for executing XCM program (with `ExportMessage` instruction) at the Kusama
 	/// BridgeHub.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_weight_for_paid_export_message_with_reserve_transfer` + `33%`)
-	pub const BridgeHubKusamaBaseXcmFeeInKsms: u128 = 757_124_666;
+	pub const BridgeHubKusamaBaseXcmFeeInKsms: u128 = 36_453_538;
 
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single inbound message.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_delivery_transaction` + `33%`)
-	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 3_142_112_953;
+	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 709_970_588;
 
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single outbound message confirmation.
 	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_confirmation_transaction` + `33%`)
-	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 575_036_072;
+	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 181_274_402;
 }
 
 /// Compute the total estimated fee that needs to be paid in KSMs by the sender when sending

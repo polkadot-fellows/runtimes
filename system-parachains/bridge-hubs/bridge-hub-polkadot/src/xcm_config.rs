@@ -37,7 +37,7 @@ use parachains_common::xcm_config::{
 	RelayOrOtherSystemParachains,
 };
 use polkadot_parachain_primitives::primitives::Sibling;
-use polkadot_runtime_constants::system_parachain;
+use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
 use sp_runtime::traits::AccountIdConversion;
 use system_parachains_constants::{polkadot::locations::EthereumNetwork, TREASURY_PALLET_ID};
 use xcm::latest::prelude::*;
@@ -70,12 +70,15 @@ parameter_types! {
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
 	// conversion is not `None`.
 	pub RelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(TreasuryAccount::get());
+	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
@@ -142,21 +145,7 @@ impl Contains<Location> for ParentOrParentsPlurality {
 	}
 }
 
-pub struct FellowsPlurality;
-impl Contains<Location> for FellowsPlurality {
-	fn contains(location: &Location) -> bool {
-		matches!(
-			location.unpack(),
-			(
-				1,
-				[
-					Parachain(system_parachain::COLLECTIVES_ID),
-					Plurality { id: BodyId::Technical, .. }
-				]
-			)
-		)
-	}
-}
+pub type FellowsPlurality = IsFellowshipVoice<FellowshipLocation>;
 
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
@@ -181,14 +170,19 @@ pub type Barrier = TrailingSetTopicAsId<
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					// Parent, its pluralities (i.e. governance bodies), Fellows plurality
 					// and relay treasury get free execution.
-					AllowExplicitUnpaidExecutionFrom<(
-						ParentOrParentsPlurality,
-						FellowsPlurality,
-						Equals<RelayTreasuryLocation>,
-						Equals<AssetHubLocation>,
-						AssetHubPlurality,
-						Equals<SnowbridgeFrontendLocation>,
-					)>,
+					AllowExplicitUnpaidExecutionFrom<
+						(
+							ParentOrParentsPlurality,
+							FellowsPlurality,
+							Equals<RelayTreasuryLocation>,
+							Equals<AssetHubLocation>,
+							AssetHubPlurality,
+							Equals<SnowbridgeFrontendLocation>,
+						),
+						// Barriers run before any fee is taken: this must stay computation-only.
+						// Do not pass `TrustedAliasers` here.
+						CheapTrustedAliasers,
+					>,
 					// Subscriptions for version tracking are OK.
 					AllowSubscriptionsFrom<ParentRelayOrSiblingParachains>,
 					// HRMP notifications from the relay chain are OK.
@@ -215,11 +209,20 @@ pub type WaivedLocations = (
 /// - DOT with the parent Relay Chain and sibling parachains.
 pub type TrustedTeleporters = ConcreteAssetFromSystem<DotRelayLocation>;
 
-/// Defines origin aliasing rules for this chain.
+/// Aliasing rules that are pure computation, so the `AllowExplicitUnpaidExecutionFrom` barrier can
+/// evaluate them before any fee is charged.
 ///
-/// - Allow any origin to alias into a child sub-location (equivalent to DescendOrigin),
-/// - Allow origins explicitly authorized by the alias target location.
-pub type TrustedAliasers = (AliasChildLocation, AuthorizedAliasers<Runtime>);
+/// Do not add storage-reading filters here: the barrier calls this once per `AliasOrigin` (up to 5)
+/// on keys the message chooses, and may then reject the message without taking a fee. That is why
+/// `AuthorizedAliasers` belongs to [`TrustedAliasers`] alone.
+///
+/// Allows any origin to alias into a child sub-location (equivalent to `DescendOrigin`).
+pub type CheapTrustedAliasers = (AliasChildLocation,);
+
+/// Defines origin aliasing rules for this chain, used by `xcm_executor::Config::Aliasers` at
+/// execution time: everything in [`CheapTrustedAliasers`], plus origins explicitly authorized by
+/// the alias target location.
+pub type TrustedAliasers = (CheapTrustedAliasers, AuthorizedAliasers<Runtime>);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -239,7 +242,7 @@ impl xcm_executor::Config for XcmConfig {
 		MaxInstructions,
 	>;
 	type Trader = UsingComponents<
-		WeightToFee,
+		WeightToFee<Runtime>,
 		DotRelayLocation,
 		AccountId,
 		Balances,
@@ -249,7 +252,6 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTrap = PolkadotXcm;
 	type AssetLocker = ();
 	type AssetExchanger = ();
-	type AssetClaims = PolkadotXcm;
 	type SubscriptionService = PolkadotXcm;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
@@ -325,7 +327,7 @@ impl pallet_xcm::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 	type MaxRemoteLockConsumers = ConstU32<0>;
 	type RemoteLockConsumerIdentifier = ();
-	// xcm_executor::Config::Aliasers uses pallet_xcm::AuthorizedAliasers.
+	// xcm_executor::Config::Aliasers includes pallet_xcm::AuthorizedAliasers.
 	type AuthorizedAliasConsideration = HoldConsideration<
 		AccountId,
 		Balances,

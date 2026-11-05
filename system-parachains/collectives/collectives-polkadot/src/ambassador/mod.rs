@@ -257,7 +257,7 @@ const USDT_UNITS: u128 = 1_000_000;
 /// [`PayOverXcm`] setup to pay the Ambassador salary on the AssetHub in USDt.
 pub type AmbassadorSalaryPaymaster = PayOverXcm<
 	AmbassadorSalaryLocation,
-	crate::xcm_config::XcmRouter,
+	crate::xcm_config::XcmConfig,
 	crate::PolkadotXcm,
 	ConstU32<{ 6 * HOURS }>,
 	AccountId,
@@ -315,7 +315,7 @@ parameter_types! {
 /// [`PayOverXcm`] setup to pay the Ambasssador Treasury.
 pub type AmbassadorTreasuryPaymaster = PayOverXcm<
 	AmbassadorTreasuryInteriorLocation,
-	crate::xcm_config::XcmRouter,
+	crate::xcm_config::XcmConfig,
 	crate::PolkadotXcm,
 	ConstU32<{ 6 * HOURS }>,
 	VersionedLocation,

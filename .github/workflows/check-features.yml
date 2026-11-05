@@ -3,7 +3,7 @@ name: "Workspace features"
 
 on:
   push:
-    branches: ["main", "release-*"]
+    branches: ["main", "*release-*"]
   pull_request:
   workflow_dispatch:
 
@@ -11,6 +11,9 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   check:

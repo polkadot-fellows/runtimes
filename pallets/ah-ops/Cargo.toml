@@ -23,6 +23,13 @@ sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
+pallet-staking-async = { workspace = true }
+
+[dev-dependencies]
+sp-staking = { workspace = true }
+pallet-election-provider-multi-block = { workspace = true }
+frame-election-provider-support = { workspace = true }
+pallet-staking-async-rc-client = { workspace = true }
 
 [features]
 default = ["std"]
@@ -30,34 +37,48 @@ std = [
 	"codec/std",
 	"cumulus-primitives-core/std",
 	"frame-benchmarking?/std",
+	"frame-election-provider-support/std",
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
 	"pallet-assets/std",
 	"pallet-balances/std",
+	"pallet-election-provider-multi-block/std",
+	"pallet-staking-async-rc-client/std",
+	"pallet-staking-async/std",
 	"pallet-timestamp/std",
 	"scale-info/std",
 	"sp-application-crypto/std",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
+	"sp-staking/std",
 	"sp-std/std",
 ]
 runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
+	"frame-election-provider-support/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-election-provider-multi-block/runtime-benchmarks",
+	"pallet-staking-async-rc-client/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks",
 ]
 try-runtime = [
+	"frame-election-provider-support/try-runtime",
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-balances/try-runtime",
+	"pallet-election-provider-multi-block/try-runtime",
+	"pallet-staking-async-rc-client/try-runtime",
+	"pallet-staking-async/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"sp-runtime/try-runtime",
 ]

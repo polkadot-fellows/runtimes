@@ -18,6 +18,7 @@
 
 use crate::{xcm_config::UniversalLocation, *};
 use alloc::vec::Vec;
+use pallet_revive::AddressMapper;
 use sp_genesis_builder::PresetId;
 use system_parachains_constants::genesis_presets::*;
 use xcm::latest::prelude::*;
@@ -83,7 +84,7 @@ fn asset_hub_kusama_genesis(
 			..Default::default()
 		},
 		"revive": ReviveConfig {
-			mapped_accounts: endowed_accounts.iter().filter(|x| ! pallet_revive::is_eth_derived(x)).cloned().collect(),
+			mapped_accounts: endowed_accounts.iter().filter(|x| !<Runtime as pallet_revive::Config>::AddressMapper::is_mapped(x)).cloned().collect(),
 			accounts: Vec::new(),
 			debug_settings: None,
 		},

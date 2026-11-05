@@ -31,15 +31,7 @@ pub mod pallet_custom_origins {
 	pub struct Pallet<T>(_);
 
 	#[derive(
-		PartialEq,
-		Eq,
-		Clone,
-		MaxEncodedLen,
-		Encode,
-		Decode,
-		DecodeWithMemTracking,
-		TypeInfo,
-		RuntimeDebug,
+		PartialEq, Eq, Clone, MaxEncodedLen, Encode, Decode, DecodeWithMemTracking, TypeInfo, Debug,
 	)]
 	#[pallet::origin]
 	pub enum Origin {
@@ -74,6 +66,21 @@ pub mod pallet_custom_origins {
 		WhitelistedCaller,
 		/// Origin for signaling that the network wishes for some change.
 		WishForChange,
+		/// Origin for technical maintenance of operational values across system pallets: quotas,
+		/// allowances, limits, durations and anti-spam fees, and similar settings whose change
+		/// moves no funds, sets no monetary or market policy and does not change who controls
+		/// what.
+		TechnicalMaintenance,
+		/// Origin for guarding the monetary mechanisms around Prosperity: PSM, coinage and related
+		/// financial parameters.
+		///
+		/// Intended to be designated as the protective tier of those mechanisms once they are
+		/// deployed: operating their circuit breakers, for example disabling the minting of a
+		/// stable asset while keeping redemptions open, halting its swaps entirely, or restoring
+		/// normal operation, so that a fast referendum on this track can react when something
+		/// goes wrong. Wider administrative powers, such as fees, debt ceilings and asset
+		/// composition, stay on stricter paths until deliberately wired here.
+		ProsperityEmergency,
 	}
 
 	macro_rules! decl_unit_ensures {
@@ -117,6 +124,8 @@ pub mod pallet_custom_origins {
 		ReferendumKiller,
 		WhitelistedCaller,
 		WishForChange,
+		TechnicalMaintenance,
+		ProsperityEmergency,
 	);
 
 	macro_rules! decl_ensure {

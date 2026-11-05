@@ -13,14 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Substrate
-use sp_keyring::Sr25519Keyring as Keyring;
-
-// Cumulus
+use bridge_hub_kusama_runtime::xcm_config::{RelayTreasuryPalletAccount, StakingPot};
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
 use parachains_common::Balance;
+use sp_keyring::Sr25519Keyring as Keyring;
 use xcm::latest::prelude::*;
 
 pub const ASSET_HUB_PARA_ID: u32 = 1000;
@@ -31,7 +29,11 @@ pub fn genesis() -> sp_core::storage::Storage {
 	let genesis_config = bridge_hub_kusama_runtime::RuntimeGenesisConfig {
 		system: bridge_hub_kusama_runtime::SystemConfig::default(),
 		balances: bridge_hub_kusama_runtime::BalancesConfig {
-			balances: accounts::init_balances().iter().cloned().map(|k| (k, ED * 4096)).collect(),
+			balances: accounts::init_balances()
+				.into_iter()
+				.chain([RelayTreasuryPalletAccount::get(), StakingPot::get()])
+				.map(|k| (k, ED * 4096))
+				.collect(),
 			dev_accounts: None,
 		},
 		parachain_info: bridge_hub_kusama_runtime::ParachainInfoConfig {

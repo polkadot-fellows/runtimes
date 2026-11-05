@@ -58,9 +58,6 @@ fn register_kusama_asset_on_pah_from_kah() {
 
 	let destination = asset_hub_polkadot_location();
 
-	// fund the KAH's SA on KBH for paying bridge transport fees
-	BridgeHubKusama::fund_para_sovereign(AssetHubKusama::para_id(), 10_000_000_000_000u128);
-
 	// set XCM versions
 	AssetHubKusama::force_xcm_version(destination.clone(), XCM_VERSION);
 	BridgeHubKusama::force_xcm_version(bridge_hub_polkadot_location(), XCM_VERSION);
@@ -85,7 +82,7 @@ fn register_kusama_asset_on_pah_from_kah() {
 			AssetHubPolkadot,
 			vec![
 				// Burned the fee
-				RuntimeEvent::Balances(pallet_balances::Event::Burned { who, amount }) => {
+				RuntimeEvent::Balances(pallet_balances::Event::Withdraw { who, amount }) => {
 					who: *who == sa_of_kah_on_pah.clone(),
 					amount: *amount == fee_amount,
 				},
@@ -96,7 +93,7 @@ fn register_kusama_asset_on_pah_from_kah() {
 					owner: *owner == sa_of_kah_on_pah,
 				},
 				// Unspent fee minted to origin
-				RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
+				RuntimeEvent::Balances(pallet_balances::Event::Deposit { who, .. }) => {
 					who: *who == sa_of_kah_on_pah.clone(),
 				},
 			]

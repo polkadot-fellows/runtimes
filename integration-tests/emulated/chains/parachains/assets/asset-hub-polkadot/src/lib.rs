@@ -27,6 +27,8 @@ use emulated_integration_tests_common::{
 };
 use polkadot_emulated_chain::Polkadot;
 
+pub use assets_common::local_and_foreign_assets::ForeignAssetReserveData;
+
 // AssetHubPolkadot Parachain declaration
 decl_test_parachains! {
 	pub struct AssetHubPolkadot {
@@ -40,6 +42,7 @@ decl_test_parachains! {
 			LocationToAccountId: asset_hub_polkadot_runtime::xcm_config::LocationToAccountId,
 			ParachainInfo: asset_hub_polkadot_runtime::ParachainInfo,
 			MessageOrigin: cumulus_primitives_core::AggregateMessageOrigin,
+			native_total_supply_tracker: true,
 		},
 		pallets = {
 			PolkadotXcm: asset_hub_polkadot_runtime::PolkadotXcm,
@@ -50,6 +53,8 @@ decl_test_parachains! {
 			AssetConversion: asset_hub_polkadot_runtime::AssetConversion,
 			SnowbridgeSystemFrontend: asset_hub_polkadot_runtime::SnowbridgeSystemFrontend,
 			Preimage: asset_hub_polkadot_runtime::Preimage,
+			Treasury: asset_hub_polkadot_runtime::Treasury,
+			AssetRate: asset_hub_polkadot_runtime::AssetRate,
 		}
 	},
 }
@@ -59,5 +64,9 @@ impl_accounts_helpers_for_parachain!(AssetHubPolkadot);
 impl_assert_events_helpers_for_parachain!(AssetHubPolkadot);
 impl_assets_helpers_for_system_parachain!(AssetHubPolkadot, Polkadot);
 impl_assets_helpers_for_parachain!(AssetHubPolkadot);
-impl_foreign_assets_helpers_for_parachain!(AssetHubPolkadot, xcm::latest::Location);
+impl_foreign_assets_helpers_for_parachain!(
+	AssetHubPolkadot,
+	xcm::latest::Location,
+	ForeignAssetReserveData
+);
 impl_xcm_helpers_for_parachain!(AssetHubPolkadot);

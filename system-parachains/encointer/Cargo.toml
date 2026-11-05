@@ -38,13 +38,14 @@ pallet-encointer-communities = { workspace = true }
 pallet-encointer-communities-rpc-runtime-api = { workspace = true }
 pallet-encointer-democracy = { workspace = true }
 pallet-encointer-faucet = { workspace = true }
+pallet-encointer-offline-payment = { workspace = true }
 pallet-encointer-reputation-commitments = { workspace = true }
+pallet-encointer-reputation-rings = { workspace = true }
 pallet-encointer-scheduler = { workspace = true }
 pallet-encointer-treasuries = { workspace = true }
 pallet-encointer-treasuries-rpc-runtime-api = { workspace = true }
 
 
-# Substrate
 frame-benchmarking = { optional = true, workspace = true }
 frame-executive = { workspace = true }
 frame-metadata-hash-extension = { workspace = true }
@@ -53,6 +54,7 @@ frame-system = { workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
+pallet-accumulate-and-forward = { workspace = true }
 pallet-asset-tx-payment = { workspace = true }
 pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
@@ -80,7 +82,6 @@ sp-session = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
 
-# Polkadot dependencies
 pallet-xcm = { workspace = true }
 pallet-xcm-benchmarks = { optional = true, workspace = true }
 polkadot-parachain-primitives = { workspace = true }
@@ -91,7 +92,6 @@ xcm-builder = { workspace = true }
 xcm-executor = { workspace = true }
 xcm-runtime-apis = { workspace = true }
 
-# Cumulus dependencies
 cumulus-pallet-aura-ext = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true }
 cumulus-pallet-session-benchmarking = { optional = true, workspace = true }
@@ -106,6 +106,7 @@ parachain-info = { workspace = true }
 parachains-common = { workspace = true }
 polkadot-core-primitives = { workspace = true }
 polkadot-primitives = { workspace = true }
+system-parachains-common = { workspace = true }
 system-parachains-constants = { workspace = true }
 
 [build-dependencies]
@@ -114,6 +115,7 @@ substrate-wasm-builder = { optional = true, workspace = true }
 [dev-dependencies]
 pallet-assets = { workspace = true, default-features = true }
 parachains-runtimes-test-utils = { workspace = true }
+system-parachains-test-utils = { workspace = true }
 sp-io = { workspace = true, default-features = true }
 sp-tracing = { workspace = true, default-features = true }
 
@@ -134,6 +136,7 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
+	"pallet-accumulate-and-forward/runtime-benchmarks",
 	"pallet-asset-tx-payment/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
@@ -145,13 +148,16 @@ runtime-benchmarks = [
 	"pallet-encointer-communities/runtime-benchmarks",
 	"pallet-encointer-democracy/runtime-benchmarks",
 	"pallet-encointer-faucet/runtime-benchmarks",
+	"pallet-encointer-offline-payment/runtime-benchmarks",
 	"pallet-encointer-reputation-commitments/runtime-benchmarks",
+	"pallet-encointer-reputation-rings/runtime-benchmarks",
 	"pallet-encointer-scheduler/runtime-benchmarks",
 	"pallet-encointer-treasuries/runtime-benchmarks",
 	"pallet-membership/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
+	"pallet-session/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
@@ -162,6 +168,7 @@ runtime-benchmarks = [
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"system-parachains-common/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
@@ -193,6 +200,7 @@ std = [
 	"frame-try-runtime?/std",
 	"kusama-runtime-constants/std",
 	"log/std",
+	"pallet-accumulate-and-forward/std",
 	"pallet-asset-tx-payment/std",
 	"pallet-assets/std",
 	"pallet-aura/std",
@@ -209,7 +217,9 @@ std = [
 	"pallet-encointer-communities/std",
 	"pallet-encointer-democracy/std",
 	"pallet-encointer-faucet/std",
+	"pallet-encointer-offline-payment/std",
 	"pallet-encointer-reputation-commitments/std",
+	"pallet-encointer-reputation-rings/std",
 	"pallet-encointer-scheduler/std",
 	"pallet-encointer-treasuries-rpc-runtime-api/std",
 	"pallet-encointer-treasuries/std",
@@ -247,6 +257,7 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
+	"system-parachains-common/std",
 	"system-parachains-constants/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
@@ -267,6 +278,7 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"frame-try-runtime/try-runtime",
+	"pallet-accumulate-and-forward/try-runtime",
 	"pallet-asset-tx-payment/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-aura/try-runtime",
@@ -280,7 +292,9 @@ try-runtime = [
 	"pallet-encointer-communities/try-runtime",
 	"pallet-encointer-democracy/try-runtime",
 	"pallet-encointer-faucet/try-runtime",
+	"pallet-encointer-offline-payment/try-runtime",
 	"pallet-encointer-reputation-commitments/try-runtime",
+	"pallet-encointer-reputation-rings/try-runtime",
 	"pallet-encointer-scheduler/try-runtime",
 	"pallet-encointer-treasuries/try-runtime",
 	"pallet-insecure-randomness-collective-flip/try-runtime",
@@ -297,6 +311,8 @@ try-runtime = [
 	"parachains-common/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
+	"system-parachains-common/try-runtime",
+	"system-parachains-constants/try-runtime",
 ]
 
 # Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.

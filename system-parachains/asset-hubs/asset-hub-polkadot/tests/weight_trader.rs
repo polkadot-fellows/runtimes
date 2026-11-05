@@ -16,7 +16,7 @@
 //! Tests for `WeighTrader` type of XCM Executor.
 
 use asset_hub_polkadot_runtime::{
-	xcm_config::{DotLocation, StakingPot, TrustBackedAssetsPalletLocation, XcmConfig},
+	xcm_config::{DotLocation, TrustBackedAssetsPalletLocation, XcmConfig},
 	AllPalletsWithoutSystem, AssetConversion, Assets, Balances, ForeignAssets, Runtime,
 	SessionKeys,
 };
@@ -32,7 +32,7 @@ use frame_support::{
 };
 use parachains_common::{AccountId, AssetHubPolkadotAuraId as AuraId};
 use sp_runtime::traits::MaybeEquivalence;
-use system_parachains_constants::polkadot::{currency::*, fee::WeightToFee};
+use system_parachains_constants::polkadot::{currency::*, fee::WeightToFee as DotWeightToFee};
 use xcm::latest::prelude::*;
 use xcm_executor::traits::WeightTrader;
 
@@ -40,6 +40,7 @@ const ALICE: [u8; 32] = [1u8; 32];
 const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
 
 type RuntimeHelper = asset_test_utils::RuntimeHelper<Runtime, AllPalletsWithoutSystem>;
+type WeightToFee = DotWeightToFee<Runtime>;
 
 #[test]
 fn test_buy_and_refund_weight_with_native() {
@@ -53,12 +54,12 @@ fn test_buy_and_refund_weight_with_native() {
 		.build()
 		.execute_with(|| {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
-			let staking_pot = StakingPot::get();
+			let dap_staging_account = pallet_dap::Pallet::<Runtime>::staging_account();
 			let native_location = DotLocation::get();
 			let initial_balance = 200 * UNITS;
 
 			assert_ok!(Balances::mint_into(&bob, initial_balance));
-			assert_ok!(Balances::mint_into(&staking_pot, initial_balance));
+			assert_ok!(Balances::mint_into(&dap_staging_account, initial_balance));
 
 			// keep initial total issuance to assert later.
 			let total_issuance = Balances::total_issuance();
@@ -72,12 +73,15 @@ fn test_buy_and_refund_weight_with_native() {
 
 			// init trader and buy weight.
 			let mut trader = <XcmConfig as xcm_executor::Config>::Trader::new();
-			let unused_asset =
-				trader.buy_weight(weight, payment.into(), &ctx).expect("Expected Ok");
+			let unused_asset = trader
+				.buy_weight(weight, asset_to_holding_withdraw(payment, &bob), &ctx)
+				.expect("Expected Ok");
 
 			// assert.
-			let unused_amount =
-				unused_asset.fungible.get(&native_location.clone().into()).map_or(0, |a| *a);
+			let unused_amount = unused_asset
+				.fungible
+				.get(&native_location.clone().into())
+				.map_or(0, |a| a.amount());
 			assert_eq!(unused_amount, extra_amount);
 			assert_eq!(Balances::total_issuance(), total_issuance);
 
@@ -87,15 +91,18 @@ fn test_buy_and_refund_weight_with_native() {
 
 			// refund.
 			let actual_refund = trader.refund_weight(refund_weight, &ctx).unwrap();
-			assert_eq!(actual_refund, (native_location, refund).into());
+			let expected_refund = asset_to_holding((native_location, refund).into());
+			assert_eq!(actual_refund, expected_refund);
 
 			// assert.
-			assert_eq!(Balances::balance(&staking_pot), initial_balance);
-			// only after `trader` is dropped we expect the fee to be resolved into the treasury
-			// account.
+			assert_eq!(Balances::balance(&dap_staging_account), initial_balance);
+			// only after `trader` is dropped we expect the fee to be resolved into the DAP
+			// staging account.
 			drop(trader);
-			assert_eq!(Balances::balance(&staking_pot), initial_balance + fee - refund);
-			assert_eq!(Balances::total_issuance(), total_issuance + fee - refund);
+			assert_eq!(Balances::balance(&dap_staging_account), initial_balance + fee - refund);
+			// Balanced operations: fee is transferred, not minted, so total issuance
+			// stays the same.
+			assert_eq!(Balances::total_issuance(), total_issuance);
 		})
 }
 
@@ -111,7 +118,7 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 		.build()
 		.execute_with(|| {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
-			let staking_pot = StakingPot::get();
+			let dap_staging_account = pallet_dap::Pallet::<Runtime>::staging_account();
 			let asset_1: u32 = 1;
 			let native_location = DotLocation::get();
 			let asset_1_location = AssetIdForTrustBackedAssetsConvert::<
@@ -129,7 +136,7 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 
 			assert_ok!(Assets::mint_into(asset_1, &bob, initial_balance));
 			assert_ok!(Balances::mint_into(&bob, initial_balance));
-			assert_ok!(Balances::mint_into(&staking_pot, initial_balance));
+			assert_ok!(Balances::mint_into(&dap_staging_account, initial_balance));
 
 			assert_ok!(AssetConversion::create_pool(
 				RuntimeHelper::origin_of(bob.clone()),
@@ -145,12 +152,16 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 				pool_liquidity,
 				1,
 				1,
-				bob,
+				bob.clone(),
 			));
 
 			// keep initial total issuance to assert later.
 			let asset_total_issuance = Assets::total_issuance(asset_1);
 			let native_total_issuance = Balances::total_issuance();
+			// snapshot the DAP staging account *after* pool setup (the pool setup fee is
+			// resolved there) so that subsequent assertions check the delta caused by the
+			// trader alone.
+			let dap_staging_after_pool_setup = Balances::balance(&dap_staging_account);
 
 			// prepare input to buy weight.
 			let weight = Weight::from_parts(4_000_000_000, 0);
@@ -164,16 +175,17 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 
 			// init trader and buy weight.
 			let mut trader = <XcmConfig as xcm_executor::Config>::Trader::new();
-			let unused_asset =
-				trader.buy_weight(weight, payment.into(), &ctx).expect("Expected Ok");
+			let unused_asset = trader
+				.buy_weight(weight, asset_to_holding_withdraw(payment, &bob), &ctx)
+				.expect("Expected Ok");
 
 			// assert.
 			let unused_amount = unused_asset
 				.fungible
-				.get(&asset_1_location_latest.clone().into())
-				.map_or(0, |a| *a);
+				.get(&asset_1_location.clone().into())
+				.map_or(0, |a| a.amount());
 			assert_eq!(unused_amount, extra_amount);
-			assert_eq!(Assets::total_issuance(asset_1), asset_total_issuance + asset_fee);
+			assert_eq!(Assets::total_issuance(asset_1), asset_total_issuance);
 
 			// prepare input to refund weight.
 			let refund_weight = Weight::from_parts(1_000_000_000, 0);
@@ -185,18 +197,20 @@ fn test_buy_and_refund_weight_with_swap_local_asset_xcm_trader() {
 
 			// refund.
 			let actual_refund = trader.refund_weight(refund_weight, &ctx).unwrap();
-			assert_eq!(actual_refund, (asset_1_location_latest, asset_refund).into());
+			let expected_refund = asset_to_holding((asset_1_location, asset_refund).into());
+			assert_eq!(actual_refund, expected_refund);
 
 			// assert.
-			assert_eq!(Balances::balance(&staking_pot), initial_balance);
-			// only after `trader` is dropped we expect the fee to be resolved into the treasury
-			// account.
+			assert_eq!(Balances::balance(&dap_staging_account), dap_staging_after_pool_setup);
+			// only after `trader` is dropped we expect the fee to be resolved into the DAP
+			// staging account.
 			drop(trader);
-			assert_eq!(Balances::balance(&staking_pot), initial_balance + fee - refund);
 			assert_eq!(
-				Assets::total_issuance(asset_1),
-				asset_total_issuance + asset_fee - asset_refund
+				Balances::balance(&dap_staging_account),
+				dap_staging_after_pool_setup + fee - refund
 			);
+			// Balanced operations: swap doesn't change total issuance.
+			assert_eq!(Assets::total_issuance(asset_1), asset_total_issuance);
 			assert_eq!(Balances::total_issuance(), native_total_issuance);
 		})
 }
@@ -213,7 +227,7 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 		.build()
 		.execute_with(|| {
 			let bob: AccountId = SOME_ASSET_ADMIN.into();
-			let staking_pot = StakingPot::get();
+			let dap_staging_account = pallet_dap::Pallet::<Runtime>::staging_account();
 			let native_location = DotLocation::get();
 			let foreign_location =
 				Location { parents: 1, interior: (Parachain(1234), GeneralIndex(12345)).into() };
@@ -232,7 +246,7 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 
 			assert_ok!(ForeignAssets::mint_into(foreign_location.clone(), &bob, initial_balance));
 			assert_ok!(Balances::mint_into(&bob, initial_balance));
-			assert_ok!(Balances::mint_into(&staking_pot, initial_balance));
+			assert_ok!(Balances::mint_into(&dap_staging_account, initial_balance));
 
 			assert_ok!(AssetConversion::create_pool(
 				RuntimeHelper::origin_of(bob.clone()),
@@ -248,12 +262,16 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 				pool_liquidity,
 				1,
 				1,
-				bob,
+				bob.clone(),
 			));
 
 			// keep initial total issuance to assert later.
 			let asset_total_issuance = ForeignAssets::total_issuance(foreign_location.clone());
 			let native_total_issuance = Balances::total_issuance();
+			// snapshot the DAP staging account *after* pool setup (the pool setup fee is
+			// resolved there) so that subsequent assertions check the delta caused by the
+			// trader alone.
+			let dap_staging_after_pool_setup = Balances::balance(&dap_staging_account);
 
 			// prepare input to buy weight.
 			let weight = Weight::from_parts(4_000_000_000, 0);
@@ -266,16 +284,19 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 
 			// init trader and buy weight.
 			let mut trader = <XcmConfig as xcm_executor::Config>::Trader::new();
-			let unused_asset =
-				trader.buy_weight(weight, payment.into(), &ctx).expect("Expected Ok");
+			let unused_asset = trader
+				.buy_weight(weight, asset_to_holding_withdraw(payment, &bob), &ctx)
+				.expect("Expected Ok");
 
 			// assert.
-			let unused_amount =
-				unused_asset.fungible.get(&foreign_location.clone().into()).map_or(0, |a| *a);
+			let unused_amount = unused_asset
+				.fungible
+				.get(&foreign_location.clone().into())
+				.map_or(0, |a| a.amount());
 			assert_eq!(unused_amount, extra_amount);
 			assert_eq!(
 				ForeignAssets::total_issuance(foreign_location.clone()),
-				asset_total_issuance + asset_fee
+				asset_total_issuance
 			);
 
 			// prepare input to refund weight.
@@ -288,19 +309,39 @@ fn test_buy_and_refund_weight_with_swap_foreign_asset_xcm_trader() {
 
 			// refund.
 			let actual_refund = trader.refund_weight(refund_weight, &ctx).unwrap();
-			let asset: Asset = (foreign_location.clone(), asset_refund).into();
-			assert_eq!(actual_refund, asset);
+			let expected_refund = asset_to_holding((foreign_location.clone(), asset_refund).into());
+			assert_eq!(actual_refund, expected_refund);
 
 			// assert.
-			assert_eq!(Balances::balance(&staking_pot), initial_balance);
-			// only after `trader` is dropped we expect the fee to be resolved into the treasury
-			// account.
+			assert_eq!(Balances::balance(&dap_staging_account), dap_staging_after_pool_setup);
+			// only after `trader` is dropped we expect the fee to be resolved into the DAP
+			// staging account.
 			drop(trader);
-			assert_eq!(Balances::balance(&staking_pot), initial_balance + fee - refund);
 			assert_eq!(
-				ForeignAssets::total_issuance(foreign_location),
-				asset_total_issuance + asset_fee - asset_refund
+				Balances::balance(&dap_staging_account),
+				dap_staging_after_pool_setup + fee - refund
 			);
+			// Balanced operations: swap doesn't change total issuance.
+			assert_eq!(ForeignAssets::total_issuance(foreign_location), asset_total_issuance);
 			assert_eq!(Balances::total_issuance(), native_total_issuance);
 		})
+}
+
+/// Helper to convert a single Asset into AssetsInHolding for tests
+/// This creates a proper AssetsInHolding by withdrawing from an account
+fn asset_to_holding_withdraw(asset: Asset, who: &AccountId) -> xcm_executor::AssetsInHolding {
+	use xcm_executor::traits::TransactAsset;
+	let who_location: Location =
+		Junction::AccountId32 { network: None, id: who.clone().into() }.into();
+	<XcmConfig as xcm_executor::Config>::AssetTransactor::withdraw_asset(
+		&asset,
+		&who_location,
+		None,
+	)
+	.expect("failed to withdraw asset")
+}
+
+/// Helper to convert a single Asset into AssetsInHolding for tests (mock version for error tests)
+fn asset_to_holding(asset: Asset) -> xcm_executor::AssetsInHolding {
+	xcm_executor::test_helpers::mock_asset_to_holding(asset)
 }

@@ -13,9 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::*;
-use asset_hub_polkadot_runtime::xcm_config::DotLocation;
-use emulated_integration_tests_common::RESERVABLE_ASSET_ID;
+use crate::{assets_balance_on, create_pool_with_dot_on, *};
+use emulated_integration_tests_common::{xcm_helpers::fee_asset, RESERVABLE_ASSET_ID};
 use polkadot_system_emulated_network::{
 	penpal_emulated_chain::LocalReservableFromAssetHub as PenpalLocalReservableFromAssetHub,
 	polkadot_emulated_chain::polkadot_runtime::Dmp,
@@ -49,12 +48,12 @@ fn para_to_relay_sender_assertions(t: ParaToRelayTest) {
 		PenpalA,
 		vec![
 			// Amount to reserve transfer is transferred to Parachain's Sovereign account
-			RuntimeEvent::ForeignAssets(
-				pallet_assets::Event::Burned { asset_id, owner, balance, .. }
+			RuntimeEvent::Assets(
+				pallet_assets::Event::Withdrawn { asset_id, who, amount, .. }
 			) => {
 				asset_id: *asset_id == DotLocation::get(),
-				owner: *owner == t.sender.account_id,
-				balance: *balance == t.args.amount,
+				who: *who == t.sender.account_id,
+				amount: *amount == t.args.amount,
 			},
 		]
 	);
@@ -97,9 +96,9 @@ pub fn system_para_to_para_receiver_assertions(t: SystemParaToParaTest) {
 		assert_expected_events!(
 			PenpalB,
 			vec![
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+				RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 					asset_id: *asset_id == relative_id,
-					owner: *owner == t.receiver.account_id,
+					who: *who == t.receiver.account_id,
 				},
 			]
 		);
@@ -112,9 +111,9 @@ fn relay_to_para_assets_receiver_assertions(t: RelayToParaTest) {
 	assert_expected_events!(
 		PenpalB,
 		vec![
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+			RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 				asset_id: *asset_id == DotLocation::get(),
-				owner: *owner == t.receiver.account_id,
+				who: *who == t.receiver.account_id,
 			},
 			RuntimeEvent::MessageQueue(
 				pallet_message_queue::Event::Processed { success: true, .. }
@@ -134,12 +133,12 @@ fn para_to_relay_receiver_assertions(t: ParaToRelayTest) {
 		vec![
 			// Amount to reserve transfer is withdrawn from Parachain's Sovereign account
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Burned { who, amount }
+				pallet_balances::Event::Withdraw { who, amount }
 			) => {
 				who: *who == sov_penpal_on_relay.clone(),
 				amount: *amount == t.args.amount,
 			},
-			RuntimeEvent::Balances(pallet_balances::Event::Minted { .. }) => {},
+			RuntimeEvent::Balances(pallet_balances::Event::Deposit { .. }) => {},
 			RuntimeEvent::MessageQueue(
 				pallet_message_queue::Event::Processed { success: true, .. }
 			) => {},
@@ -157,12 +156,12 @@ pub fn para_to_system_para_sender_assertions(t: ParaToSystemParaTest) {
 		assert_expected_events!(
 			PenpalA,
 			vec![
-				RuntimeEvent::ForeignAssets(
-					pallet_assets::Event::Burned { asset_id, owner, balance }
+				RuntimeEvent::Assets(
+					pallet_assets::Event::Withdrawn { asset_id, who, amount }
 				) => {
 					asset_id: *asset_id == expected_id,
-					owner: *owner == t.sender.account_id,
-					balance: *balance == asset_amount,
+					who: *who == t.sender.account_id,
+					amount: *amount == asset_amount,
 				},
 			]
 		);
@@ -180,12 +179,12 @@ pub fn para_to_system_para_receiver_assertions(t: ParaToSystemParaTest) {
 		vec![
 			// Amount to reserve transfer is transferred to Parachain's Sovereign account
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Burned { who, amount }
+				pallet_balances::Event::Withdraw { who, amount }
 			) => {
 				who: *who == sov_penpal_on_ahp.clone(),
 				amount: *amount == t.args.amount,
 			},
-			RuntimeEvent::Balances(pallet_balances::Event::Minted { .. }) => {},
+			RuntimeEvent::Balances(pallet_balances::Event::Deposit { .. }) => {},
 			RuntimeEvent::MessageQueue(
 				pallet_message_queue::Event::Processed { success: true, .. }
 			) => {},
@@ -224,19 +223,19 @@ fn para_to_system_para_assets_sender_assertions(t: ParaToSystemParaTest) {
 		PenpalB,
 		vec![
 			// Fees amount to reserve transfer is burned from Parachains's sender account
-			RuntimeEvent::ForeignAssets(
-				pallet_assets::Event::Burned { asset_id, owner, .. }
+			RuntimeEvent::Assets(
+				pallet_assets::Event::Withdrawn { asset_id, who, .. }
 			) => {
 				asset_id: *asset_id == system_para_native_asset_location,
-				owner: *owner == t.sender.account_id,
+				who: *who == t.sender.account_id,
 			},
 			// Amount to reserve transfer is burned from Parachains's sender account
-			RuntimeEvent::ForeignAssets(
-				pallet_assets::Event::Burned { asset_id, owner, balance }
+			RuntimeEvent::Assets(
+				pallet_assets::Event::Withdrawn { asset_id, who, amount }
 			) => {
 				asset_id: *asset_id == reservable_asset_location,
-				owner: *owner == t.sender.account_id,
-				balance: *balance == t.args.amount,
+				who: *who == t.sender.account_id,
+				amount: *amount == t.args.amount,
 			},
 			// Transport fees are paid
 			RuntimeEvent::PolkadotXcm(
@@ -254,13 +253,13 @@ fn system_para_to_para_assets_receiver_assertions(t: SystemParaToParaTest) {
 	assert_expected_events!(
 		PenpalB,
 		vec![
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+			RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 				asset_id: *asset_id == DotLocation::get(),
-				owner: *owner == t.receiver.account_id,
+				who: *who == t.receiver.account_id,
 			},
-			RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, amount }) => {
+			RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, amount }) => {
 				asset_id: *asset_id == system_para_asset_location,
-				owner: *owner == t.receiver.account_id,
+				who: *who == t.receiver.account_id,
 				amount: *amount == t.args.amount,
 			},
 		]
@@ -269,39 +268,39 @@ fn system_para_to_para_assets_receiver_assertions(t: SystemParaToParaTest) {
 
 fn para_to_system_para_assets_receiver_assertions(t: ParaToSystemParaTest) {
 	type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
-	// let penpal_on_ah = AssetHubPolkadot::sibling_location_of(PenpalA::para_id());
-	// let sov_penpal_on_ah = AssetHubPolkadot::sovereign_account_id_of(penpal_on_ah.clone());
+	let penpal_on_ah = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
+	let sov_penpal_on_ah = AssetHubPolkadot::sovereign_account_id_of(penpal_on_ah.clone());
 	AssetHubPolkadot::assert_xcmp_queue_success(None);
 	assert_expected_events!(
 		AssetHubPolkadot,
 		vec![
-			// Amount to reserve transfer is burned from Parachain's Sovereign account
-			RuntimeEvent::Assets(pallet_assets::Event::Burned { asset_id, balance, .. }) => {
+			// Amount to reserve transfer is withdrawn from Parachain's Sovereign account
+			RuntimeEvent::Assets(pallet_assets::Event::Withdrawn { asset_id, who, amount }) => {
 				asset_id: *asset_id == RESERVABLE_ASSET_ID,
-				// TODO: investigate
-				// owner: *owner == sov_penpal_on_ah,
-				balance: *balance == t.args.amount,
+				who: *who == sov_penpal_on_ah,
+				amount: *amount == t.args.amount,
 			},
-			// Fee amount is burned from Parachain's Sovereign account
-			RuntimeEvent::Balances(pallet_balances::Event::Burned { .. }) => {
-				// TODO: investigate
-				// who: *who == sov_penpal_on_ah,
+			// Fee amount is withdrawn from Parachain's Sovereign account
+			RuntimeEvent::Balances(pallet_balances::Event::Withdraw { who, .. }) => {
+				who: *who == sov_penpal_on_ah,
 			},
 			// Amount to reserve transfer is issued for beneficiary
-			RuntimeEvent::Assets(pallet_assets::Event::Issued { asset_id, owner, amount }) => {
+			RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, amount }) => {
 				asset_id: *asset_id == RESERVABLE_ASSET_ID,
-				owner: *owner == t.receiver.account_id,
+				who: *who == t.receiver.account_id,
 				amount: *amount == t.args.amount,
 			},
 			// Remaining fee amount is minted for for beneficiary
-			RuntimeEvent::Balances(pallet_balances::Event::Minted { who, .. }) => {
+			RuntimeEvent::Balances(pallet_balances::Event::Deposit { who, .. }) => {
 				who: *who == t.receiver.account_id,
 			},
 		]
 	);
 }
 
-pub fn para_to_para_through_hop_sender_assertions<Hop: Clone>(t: Test<PenpalB, PenpalA, Hop>) {
+pub fn para_to_para_through_hop_sender_assertions<Hop: Clone>(
+	t: Test<PenpalB, PenpalA, Hop, TestArgs<Location>>,
+) {
 	type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
 
 	PenpalB::assert_xcm_pallet_attempted_complete(None);
@@ -312,12 +311,12 @@ pub fn para_to_para_through_hop_sender_assertions<Hop: Clone>(t: Test<PenpalB, P
 			PenpalB,
 			vec![
 				// Amount to reserve transfer is transferred to Parachain's Sovereign account
-				RuntimeEvent::ForeignAssets(
-					pallet_assets::Event::Burned { asset_id, owner, balance },
+				RuntimeEvent::Assets(
+					pallet_assets::Event::Withdrawn { asset_id, who, amount: transferred_amount },
 				) => {
 					asset_id: *asset_id == expected_id,
-					owner: *owner == t.sender.account_id,
-					balance: *balance == amount,
+					who: *who == t.sender.account_id,
+					transferred_amount: *transferred_amount == amount,
 				},
 			]
 		);
@@ -335,14 +334,14 @@ fn para_to_para_relay_hop_assertions(t: ParaToParaThroughRelayTest) {
 		vec![
 			// Withdrawn from sender parachain SA
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Withdraw { who, amount } | pallet_balances::Event::Burned { who, amount }
+				pallet_balances::Event::Withdraw { who, amount }
 			) => {
 				who: *who == sov_penpal_b_on_polkadot,
 				amount: *amount == t.args.amount,
 			},
 			// Deposited to receiver parachain SA
 			RuntimeEvent::Balances(
-				pallet_balances::Event::Deposit { who, .. } | pallet_balances::Event::Minted { who, .. }
+				pallet_balances::Event::Deposit { who, .. }
 			) => {
 				who: *who == sov_penpal_a_on_polkadot,
 			},
@@ -353,7 +352,9 @@ fn para_to_para_relay_hop_assertions(t: ParaToParaThroughRelayTest) {
 	);
 }
 
-pub fn para_to_para_through_hop_receiver_assertions<Hop: Clone>(t: Test<PenpalB, PenpalA, Hop>) {
+pub fn para_to_para_through_hop_receiver_assertions<Hop: Clone>(
+	t: Test<PenpalB, PenpalA, Hop, TestArgs<Location>>,
+) {
 	type RuntimeEvent = <PenpalA as Chain>::RuntimeEvent;
 
 	PenpalA::assert_xcmp_queue_success(None);
@@ -362,9 +363,9 @@ pub fn para_to_para_through_hop_receiver_assertions<Hop: Clone>(t: Test<PenpalB,
 		assert_expected_events!(
 			PenpalA,
 			vec![
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Issued { asset_id, owner, .. }) => {
+				RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
 					asset_id: *asset_id == expected_id,
-					owner: *owner == t.receiver.account_id,
+					who: *who == t.receiver.account_id,
 				},
 			]
 		);
@@ -614,10 +615,8 @@ fn reserve_transfer_dot_from_relay_to_para() {
 
 	// Query initial balances
 	let sender_balance_before = test.sender.balance;
-	let receiver_assets_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &receiver)
-	});
+	let receiver_assets_before =
+		assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &receiver);
 
 	// Set assertions and dispatchables
 	test.set_assertion::<Polkadot>(relay_to_para_sender_assertions);
@@ -627,10 +626,7 @@ fn reserve_transfer_dot_from_relay_to_para() {
 
 	// Query final balances
 	let sender_balance_after = test.sender.balance;
-	let receiver_assets_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location, &receiver)
-	});
+	let receiver_assets_after = assets_balance_on!(PenpalB, relay_native_asset_location, &receiver);
 
 	// Sender's balance is reduced by amount sent plus delivery fees
 	assert!(sender_balance_after < sender_balance_before - amount_to_send);
@@ -685,10 +681,8 @@ fn reserve_transfer_dot_from_para_to_relay() {
 	let mut test = ParaToRelayTest::new(test_args);
 
 	// Query initial balances
-	let sender_assets_before = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &sender)
-	});
+	let sender_assets_before =
+		assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &sender);
 	let receiver_balance_before = test.receiver.balance;
 
 	// Set assertions and dispatchables
@@ -698,14 +692,11 @@ fn reserve_transfer_dot_from_para_to_relay() {
 	test.assert();
 
 	// Query final balances
-	let sender_assets_after = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location, &sender)
-	});
+	let sender_assets_after = assets_balance_on!(PenpalA, relay_native_asset_location, &sender);
 	let receiver_balance_after = test.receiver.balance;
 
-	// Sender's balance is reduced by amount sent plus delivery fees
-	assert!(sender_assets_after < sender_assets_before - amount_to_send);
+	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
+	assert_eq!(sender_assets_after, sender_assets_before - amount_to_send);
 	// Receiver's asset balance is increased
 	assert!(receiver_balance_after > receiver_balance_before);
 	// Receiver's asset balance increased by `amount_to_send - delivery_fees - bought_execution`;
@@ -744,10 +735,8 @@ fn reserve_transfer_dot_from_asset_hub_to_para() {
 
 	// Query initial balances
 	let sender_balance_before = test.sender.balance;
-	let receiver_assets_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(system_para_native_asset_location.clone(), &receiver)
-	});
+	let receiver_assets_before =
+		assets_balance_on!(PenpalB, system_para_native_asset_location.clone(), &receiver);
 
 	// Set assertions and dispatchables
 	test.set_assertion::<AssetHubPolkadot>(system_para_to_para_sender_assertions);
@@ -757,10 +746,8 @@ fn reserve_transfer_dot_from_asset_hub_to_para() {
 
 	// Query final balances
 	let sender_balance_after = test.sender.balance;
-	let receiver_assets_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(system_para_native_asset_location, &receiver)
-	});
+	let receiver_assets_after =
+		assets_balance_on!(PenpalB, system_para_native_asset_location, &receiver);
 
 	// Sender's balance is reduced by amount sent plus delivery fees
 	assert!(sender_balance_after < sender_balance_before - amount_to_send);
@@ -817,10 +804,8 @@ fn reserve_transfer_dot_from_para_to_asset_hub() {
 	let mut test = ParaToSystemParaTest::new(test_args);
 
 	// Query initial balances
-	let sender_assets_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(system_para_native_asset_location.clone(), &sender)
-	});
+	let sender_assets_before =
+		assets_balance_on!(PenpalB, system_para_native_asset_location.clone(), &sender);
 	let receiver_balance_before = test.receiver.balance;
 
 	// Set assertions and dispatchables
@@ -830,14 +815,12 @@ fn reserve_transfer_dot_from_para_to_asset_hub() {
 	test.assert();
 
 	// Query final balances
-	let sender_assets_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(system_para_native_asset_location, &sender)
-	});
+	let sender_assets_after =
+		assets_balance_on!(PenpalB, system_para_native_asset_location, &sender);
 	let receiver_balance_after = test.receiver.balance;
 
-	// Sender's balance is reduced by amount sent plus delivery fees
-	assert!(sender_assets_after < sender_assets_before - amount_to_send);
+	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
+	assert_eq!(sender_assets_after, sender_assets_before - amount_to_send);
 	// Receiver's balance is increased
 	assert!(receiver_balance_after > receiver_balance_before);
 	// Receiver's balance increased by `amount_to_send - delivery_fees - bought_execution`;
@@ -908,17 +891,10 @@ fn reserve_transfer_multiple_assets_from_asset_hub_to_para() {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
 		<Assets as Inspect<_>>::balance(RESERVABLE_ASSET_ID, &sender)
 	});
-	let receiver_system_native_assets_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(system_para_native_asset_location.clone(), &receiver)
-	});
-	let receiver_foreign_assets_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(
-			system_para_foreign_asset_location.clone(),
-			&receiver,
-		)
-	});
+	let receiver_system_native_assets_before =
+		assets_balance_on!(PenpalB, system_para_native_asset_location.clone(), &receiver);
+	let receiver_foreign_assets_before =
+		assets_balance_on!(PenpalB, system_para_foreign_asset_location.clone(), &receiver);
 
 	// Set assertions and dispatchables
 	test.set_assertion::<AssetHubPolkadot>(system_para_to_para_assets_sender_assertions);
@@ -932,14 +908,10 @@ fn reserve_transfer_multiple_assets_from_asset_hub_to_para() {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
 		<Assets as Inspect<_>>::balance(RESERVABLE_ASSET_ID, &sender)
 	});
-	let receiver_system_native_assets_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(system_para_native_asset_location.clone(), &receiver)
-	});
-	let receiver_foreign_assets_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(system_para_foreign_asset_location, &receiver)
-	});
+	let receiver_system_native_assets_after =
+		assets_balance_on!(PenpalB, system_para_native_asset_location.clone(), &receiver);
+	let receiver_foreign_assets_after =
+		assets_balance_on!(PenpalB, system_para_foreign_asset_location, &receiver);
 	// Sender's balance is reduced
 	assert!(sender_balance_after < sender_balance_before);
 	// Receiver's foreign asset balance is increased
@@ -1035,14 +1007,10 @@ fn reserve_transfer_multiple_assets_from_para_to_asset_hub() {
 	let mut test = ParaToSystemParaTest::new(para_test_args);
 
 	// Query initial balances
-	let sender_system_assets_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(system_asset_location_on_penpal.clone(), &sender)
-	});
-	let sender_foreign_assets_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(asset_location_on_penpal.clone(), &sender)
-	});
+	let sender_system_assets_before =
+		assets_balance_on!(PenpalB, system_asset_location_on_penpal.clone(), &sender);
+	let sender_foreign_assets_before =
+		assets_balance_on!(PenpalB, asset_location_on_penpal.clone(), &sender);
 	let receiver_balance_before = test.receiver.balance;
 	let receiver_assets_before = AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
@@ -1056,14 +1024,10 @@ fn reserve_transfer_multiple_assets_from_para_to_asset_hub() {
 	test.assert();
 
 	// Query final balances
-	let sender_system_assets_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(system_asset_location_on_penpal, &sender)
-	});
-	let sender_foreign_assets_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(asset_location_on_penpal, &sender)
-	});
+	let sender_system_assets_after =
+		assets_balance_on!(PenpalB, system_asset_location_on_penpal, &sender);
+	let sender_foreign_assets_after =
+		assets_balance_on!(PenpalB, asset_location_on_penpal, &sender);
 	let receiver_balance_after = test.receiver.balance;
 	let receiver_assets_after = AssetHubPolkadot::execute_with(|| {
 		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
@@ -1120,14 +1084,10 @@ fn reserve_transfer_dot_from_para_to_para_through_relay() {
 	let mut test = ParaToParaThroughRelayTest::new(test_args);
 
 	// Query initial balances
-	let sender_assets_before = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &sender)
-	});
-	let receiver_assets_before = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &receiver)
-	});
+	let sender_assets_before =
+		assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
+	let receiver_assets_before =
+		assets_balance_on!(PenpalA, relay_native_asset_location.clone(), &receiver);
 
 	// Set assertions and dispatchables
 	test.set_assertion::<PenpalB>(para_to_para_through_hop_sender_assertions);
@@ -1137,17 +1097,362 @@ fn reserve_transfer_dot_from_para_to_para_through_relay() {
 	test.assert();
 
 	// Query final balances
-	let sender_assets_after = PenpalB::execute_with(|| {
-		type ForeignAssets = <PenpalB as PenpalBPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location.clone(), &sender)
-	});
-	let receiver_assets_after = PenpalA::execute_with(|| {
-		type ForeignAssets = <PenpalA as PenpalAPallet>::ForeignAssets;
-		<ForeignAssets as Inspect<_>>::balance(relay_native_asset_location, &receiver)
-	});
+	let sender_assets_after =
+		assets_balance_on!(PenpalB, relay_native_asset_location.clone(), &sender);
+	let receiver_assets_after = assets_balance_on!(PenpalA, relay_native_asset_location, &receiver);
 
-	// Sender's balance is reduced by amount sent plus delivery fees
-	assert!(sender_assets_after < sender_assets_before - amount_to_send);
+	// Sender's balance is reduced by amount sent (delivery fees are charged in native tokens).
+	assert_eq!(sender_assets_after, sender_assets_before - amount_to_send);
 	// Receiver's balance is increased
 	assert!(receiver_assets_after > receiver_assets_before);
+}
+
+fn system_para_to_penpal_receiver_assertions(t: SystemParaToParaTest) {
+	type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
+
+	PenpalB::assert_xcmp_queue_success(None);
+	for asset in t.args.assets.into_inner().into_iter() {
+		let expected_id = asset.id.0;
+		let relative_id = match expected_id {
+			Location { parents: 1, interior: Here } => expected_id,
+			_ => {
+				let mut id = expected_id;
+				id.push_front_interior(Parachain(AssetHubPolkadot::para_id().into())).unwrap();
+				Location::new(1, id.interior().clone())
+			},
+		};
+
+		assert_expected_events!(
+			PenpalB,
+			vec![
+				RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
+					asset_id: *asset_id == relative_id,
+					who: *who == t.receiver.account_id,
+				},
+			]
+		);
+	}
+}
+
+#[test]
+fn reserve_transfer_usdt_from_asset_hub_to_para() {
+	let usdt_id = 1984u32;
+	let penpal_location = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
+	let penpal_sov_account = AssetHubPolkadot::sovereign_account_id_of(penpal_location.clone());
+
+	// Create SA-of-Penpal-on-AHP with ED.
+	AssetHubPolkadot::fund_accounts(vec![(penpal_sov_account.clone(), ASSET_HUB_POLKADOT_ED)]);
+
+	let sender = AssetHubPolkadotSender::get();
+	let receiver = PenpalBReceiver::get();
+	let asset_amount_to_send = 1_000_000_000_000;
+
+	AssetHubPolkadot::execute_with(|| {
+		use frame_support::traits::tokens::fungibles::Mutate;
+		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
+		assert_ok!(<Assets as Mutate<_>>::mint_into(
+			usdt_id,
+			&AssetHubPolkadotSender::get(),
+			asset_amount_to_send + 10_000_000_000_000,
+		));
+	});
+
+	let usdt_from_asset_hub = PenpalUsdtFromAssetHub::get();
+	// Setup the pool so we can swap the custom asset for native asset to pay for fees.
+	create_foreign_pool_with_native_on!(
+		PenpalB,
+		PenpalUsdtFromAssetHub::get(),
+		PenpalAssetOwner::get()
+	);
+
+	let assets: Assets = vec![(
+		[PalletInstance(ASSETS_PALLET_ID), GeneralIndex(usdt_id.into())],
+		asset_amount_to_send,
+	)
+		.into()]
+	.into();
+
+	let test_args = TestContext {
+		sender: sender.clone(),
+		receiver: receiver.clone(),
+		args: TestArgs::new_para(
+			penpal_location,
+			receiver.clone(),
+			asset_amount_to_send,
+			assets,
+			None,
+			0,
+		),
+	};
+	let mut test = SystemParaToParaTest::new(test_args);
+
+	let sender_initial_balance = AssetHubPolkadot::execute_with(|| {
+		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
+		<Assets as Inspect<_>>::balance(usdt_id, &sender)
+	});
+	let sender_initial_native_balance = AssetHubPolkadot::execute_with(|| {
+		type Balances = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances;
+		Balances::free_balance(&sender)
+	});
+	let receiver_initial_balance =
+		assets_balance_on!(PenpalB, usdt_from_asset_hub.clone(), &receiver);
+
+	fn usdt_sender_assertions(_t: SystemParaToParaTest) {
+		AssetHubPolkadot::assert_xcm_pallet_attempted_complete(None);
+	}
+
+	test.set_assertion::<AssetHubPolkadot>(usdt_sender_assertions);
+	test.set_assertion::<PenpalB>(system_para_to_penpal_receiver_assertions);
+	test.set_dispatchable::<AssetHubPolkadot>(system_para_to_para_reserve_transfer_assets);
+	test.assert();
+
+	let sender_after_balance = AssetHubPolkadot::execute_with(|| {
+		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
+		<Assets as Inspect<_>>::balance(usdt_id, &sender)
+	});
+	let sender_after_native_balance = AssetHubPolkadot::execute_with(|| {
+		type Balances = <AssetHubPolkadot as AssetHubPolkadotPallet>::Balances;
+		Balances::free_balance(&sender)
+	});
+	let receiver_after_balance = assets_balance_on!(PenpalB, usdt_from_asset_hub, &receiver);
+
+	assert!(sender_after_native_balance < sender_initial_native_balance);
+	// Sender account's balance decreases.
+	assert_eq!(sender_after_balance, sender_initial_balance - asset_amount_to_send);
+	// Receiver account's balance increases.
+	assert!(receiver_after_balance > receiver_initial_balance);
+	assert!(receiver_after_balance < receiver_initial_balance + asset_amount_to_send);
+}
+
+#[test]
+fn reserve_transfer_usdt_from_para_to_para_through_asset_hub() {
+	type PenpalAToPenpalBTest = Test<PenpalA, PenpalB, AssetHubPolkadot>;
+
+	let destination = PenpalA::sibling_location_of(PenpalB::para_id());
+	let sender = PenpalASender::get();
+	let asset_amount_to_send: Balance = POLKADOT_ED * 10000;
+	let fee_amount_to_send: Balance = POLKADOT_ED * 10000;
+	let sender_chain_as_seen_by_asset_hub =
+		AssetHubPolkadot::sibling_location_of(PenpalA::para_id());
+	let sov_of_sender_on_asset_hub =
+		AssetHubPolkadot::sovereign_account_id_of(sender_chain_as_seen_by_asset_hub);
+	let receiver_as_seen_by_asset_hub = AssetHubPolkadot::sibling_location_of(PenpalB::para_id());
+	let sov_of_receiver_on_asset_hub =
+		AssetHubPolkadot::sovereign_account_id_of(receiver_as_seen_by_asset_hub);
+
+	// Create SA-of-Penpal-on-AHP with ED.
+	AssetHubPolkadot::fund_accounts(vec![
+		(sov_of_sender_on_asset_hub.clone(), ASSET_HUB_POLKADOT_ED),
+		(sov_of_receiver_on_asset_hub.clone(), ASSET_HUB_POLKADOT_ED),
+	]);
+
+	// Give USDT to sov account of sender.
+	let usdt_id: u32 = 1984;
+	AssetHubPolkadot::execute_with(|| {
+		use frame_support::traits::tokens::fungibles::Mutate;
+		type Assets = <AssetHubPolkadot as AssetHubPolkadotPallet>::Assets;
+		assert_ok!(<Assets as Mutate<_>>::mint_into(
+			usdt_id,
+			&sov_of_sender_on_asset_hub.clone(),
+			asset_amount_to_send + fee_amount_to_send,
+		));
+	});
+
+	// We create a pool between DOT and USDT in AssetHub.
+	let usdt = Location::new(
+		0,
+		[Junction::PalletInstance(ASSETS_PALLET_ID), Junction::GeneralIndex(usdt_id.into())],
+	);
+	create_pool_with_dot_on!(AssetHubPolkadot, usdt, false, AssetHubPolkadotSender::get());
+	// We also need a pool between DOT and USDT on PenpalB.
+	create_foreign_pool_with_native_on!(
+		PenpalB,
+		PenpalUsdtFromAssetHub::get(),
+		PenpalAssetOwner::get()
+	);
+
+	let usdt_from_asset_hub = PenpalUsdtFromAssetHub::get();
+	PenpalA::mint_foreign_asset(
+		<PenpalA as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
+		usdt_from_asset_hub.clone(),
+		sender.clone(),
+		asset_amount_to_send + fee_amount_to_send,
+	);
+
+	// Prepare assets to transfer.
+	let assets: Assets =
+		(usdt_from_asset_hub.clone(), asset_amount_to_send + fee_amount_to_send).into();
+	assert_eq!(assets.len(), 1);
+
+	// Give the sender enough Relay tokens to pay for local delivery fees.
+	PenpalA::mint_foreign_asset(
+		<PenpalA as Chain>::RuntimeOrigin::signed(PenpalAssetOwner::get()),
+		DotLocation::get(),
+		sender.clone(),
+		10_000_000_000_000,
+	);
+
+	// Init values for Parachain Destination
+	let receiver = PenpalBReceiver::get();
+
+	// Init Test
+	let fee_asset_index = 0;
+	let test_args = TestContext {
+		sender: sender.clone(),
+		receiver: receiver.clone(),
+		args: TestArgs::new_para(
+			destination,
+			receiver.clone(),
+			asset_amount_to_send,
+			assets,
+			None,
+			fee_asset_index,
+		),
+	};
+	let mut test = PenpalAToPenpalBTest::new(test_args);
+
+	fn usdt_hop_assertions(t: PenpalAToPenpalBTest) {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+		let sov_penpal_a_on_ah = AssetHubPolkadot::sovereign_account_id_of(
+			AssetHubPolkadot::sibling_location_of(PenpalA::para_id()),
+		);
+		let (_, asset_amount) = fee_asset(&t.args.assets, t.args.fee_asset_item as usize).unwrap();
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				// Withdrawn from sender parachain SA
+				RuntimeEvent::Assets(
+					pallet_assets::Event::Withdrawn { who, amount, .. }
+				) => {
+					who: *who == sov_penpal_a_on_ah,
+					amount: *amount == asset_amount,
+				},
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: true, .. }
+				) => {},
+			]
+		);
+	}
+
+	fn usdt_dispatchable(t: PenpalAToPenpalBTest) -> DispatchResult {
+		<PenpalA as PenpalAPallet>::PolkadotXcm::limited_reserve_transfer_assets(
+			t.signed_origin,
+			bx!(t.args.dest.into()),
+			bx!(t.args.beneficiary.into()),
+			bx!(t.args.assets.into()),
+			t.args.fee_asset_item,
+			t.args.weight_limit,
+		)
+	}
+
+	fn usdt_sender_assertions(t: PenpalAToPenpalBTest) {
+		type RuntimeEvent = <PenpalA as Chain>::RuntimeEvent;
+		PenpalA::assert_xcm_pallet_attempted_complete(None);
+		for asset in t.args.assets.into_inner() {
+			let expected_id = asset.id.0.clone();
+			let amount = if let Fungible(a) = asset.fun { Some(a) } else { None }.unwrap();
+			assert_expected_events!(
+				PenpalA,
+				vec![
+					RuntimeEvent::Assets(
+						pallet_assets::Event::Withdrawn { asset_id, who, amount: transferred_amount },
+					) => {
+						asset_id: *asset_id == expected_id,
+						who: *who == t.sender.account_id,
+						transferred_amount: *transferred_amount == amount,
+					},
+				]
+			);
+		}
+	}
+
+	fn usdt_receiver_assertions(t: PenpalAToPenpalBTest) {
+		type RuntimeEvent = <PenpalB as Chain>::RuntimeEvent;
+		PenpalB::assert_xcmp_queue_success(None);
+		for asset in t.args.assets.into_inner().into_iter() {
+			let expected_id = asset.id.0;
+			assert_expected_events!(
+				PenpalB,
+				vec![
+					RuntimeEvent::Assets(pallet_assets::Event::Deposited { asset_id, who, .. }) => {
+						asset_id: *asset_id == expected_id,
+						who: *who == t.receiver.account_id,
+					},
+				]
+			);
+		}
+	}
+
+	// Query initial balances
+	let sender_assets_before = assets_balance_on!(PenpalA, usdt_from_asset_hub.clone(), &sender);
+	let receiver_assets_before =
+		assets_balance_on!(PenpalB, usdt_from_asset_hub.clone(), &receiver);
+	test.set_assertion::<PenpalA>(usdt_sender_assertions);
+	test.set_assertion::<AssetHubPolkadot>(usdt_hop_assertions);
+	test.set_assertion::<PenpalB>(usdt_receiver_assertions);
+	test.set_dispatchable::<PenpalA>(usdt_dispatchable);
+	test.assert();
+
+	// Query final balances
+	let sender_assets_after = assets_balance_on!(PenpalA, usdt_from_asset_hub.clone(), &sender);
+	let receiver_assets_after = assets_balance_on!(PenpalB, usdt_from_asset_hub, &receiver);
+
+	// Sender's balance is reduced by amount
+	assert!(sender_assets_after < sender_assets_before - asset_amount_to_send);
+	// Receiver's balance is increased
+	assert!(receiver_assets_after > receiver_assets_before);
+}
+
+#[test]
+fn reserve_withdraw_from_untrusted_reserve_fails() {
+	// Init values for Parachain Origin
+	let destination = AssetHubPolkadot::sibling_location_of(PenpalA::para_id());
+	let signed_origin =
+		<AssetHubPolkadot as Chain>::RuntimeOrigin::signed(AssetHubPolkadotSender::get());
+	let dot_to_send: Balance = POLKADOT_ED * 10000;
+	let dot_location = DotLocation::get();
+
+	// Assets to send
+	let assets: Vec<Asset> = vec![(dot_location.clone(), dot_to_send).into()];
+	let fee_id: AssetId = dot_location.into();
+
+	// this should fail
+	AssetHubPolkadot::execute_with(|| {
+		let result = <AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::transfer_assets_using_type_and_then(
+			signed_origin.clone(),
+			bx!(destination.clone().into()),
+			bx!(assets.clone().into()),
+			bx!(TransferType::DestinationReserve),
+			bx!(fee_id.into()),
+			bx!(TransferType::DestinationReserve),
+			bx!(VersionedXcm::from(Xcm::<()>::new())),
+			Unlimited,
+		);
+		assert_err!(
+			result,
+			DispatchError::Module(sp_runtime::ModuleError {
+				index: 31,
+				error: [22, 0, 0, 0],
+				message: Some("InvalidAssetUnsupportedReserve")
+			})
+		);
+	});
+
+	// this should also fail
+	AssetHubPolkadot::execute_with(|| {
+		let xcm: Xcm<asset_hub_polkadot_runtime::RuntimeCall> = Xcm(vec![
+			WithdrawAsset(assets.into()),
+			InitiateReserveWithdraw {
+				assets: Wild(All),
+				reserve: destination,
+				xcm: Xcm::<()>::new(),
+			},
+		]);
+		let result = <AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
+			signed_origin,
+			bx!(xcm::VersionedXcm::from(xcm)),
+			Weight::MAX,
+		);
+		assert!(result.is_err());
+	});
 }

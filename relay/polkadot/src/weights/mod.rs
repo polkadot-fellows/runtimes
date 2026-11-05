@@ -18,7 +18,6 @@
 pub mod frame_election_provider_support;
 pub mod frame_system;
 pub mod frame_system_extensions;
-pub mod pallet_ah_migrator;
 pub mod pallet_asset_rate;
 pub mod pallet_bags_list;
 pub mod pallet_balances;
@@ -32,9 +31,9 @@ pub mod pallet_indices;
 pub mod pallet_message_queue;
 pub mod pallet_multisig;
 pub mod pallet_nomination_pools;
+pub mod pallet_parameters;
 pub mod pallet_preimage;
 pub mod pallet_proxy;
-pub mod pallet_rc_migrator;
 pub mod pallet_referenda;
 pub mod pallet_scheduler;
 pub mod pallet_session;

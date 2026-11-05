@@ -22,7 +22,6 @@
 
 extern crate alloc;
 
-use ah_migration::phase1 as ahm_phase1;
 use alloc::{
 	collections::{BTreeMap, VecDeque},
 	vec,
@@ -41,15 +40,15 @@ use frame_election_provider_support::{
 };
 use frame_support::{
 	construct_runtime,
+	dynamic_params::{dynamic_pallet_params, dynamic_params},
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
 		fungible::HoldConsideration,
-		schedule::DispatchTime,
 		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, EitherOf, EitherOfDiverse, Equals, FromContains, Get,
-		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
-		ProcessMessageError, WithdrawReasons,
+		ConstU32, ConstU8, ConstUint, Contains, EitherOf, EitherOfDiverse, EnsureOrigin,
+		EnsureOriginWithArg, FromContains, Get, InstanceFilter, KeyOwnerProofSystem,
+		LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -69,16 +68,13 @@ use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInf
 use pallet_treasury::TreasuryAccountId;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
-	slashing,
-	vstaging::{
-		async_backing::Constraints, CandidateEvent,
-		CommittedCandidateReceiptV2 as CommittedCandidateReceipt, CoreState, ScrapedOnChainVotes,
-	},
-	AccountId, AccountIndex, ApprovalVotingParams, Balance, BlockNumber, CandidateHash, CoreIndex,
-	DisputeState, ExecutorParams, GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage,
+	async_backing::Constraints, slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance,
+	BlockNumber, CandidateEvent, CandidateHash,
+	CommittedCandidateReceiptV2 as CommittedCandidateReceipt, CoreIndex, CoreState, DisputeState,
+	ExecutorParams, GroupRotationInfo, Hash, Id as ParaId, InboundDownwardMessage,
 	InboundHrmpMessage, Moment, NodeFeatures, Nonce, OccupiedCoreAssumption,
-	PersistedValidationData, SessionInfo, Signature, ValidationCode, ValidationCodeHash,
-	ValidatorId, ValidatorIndex, PARACHAIN_KEY_TYPE_ID,
+	PersistedValidationData, ScrapedOnChainVotes, SessionInfo, Signature, ValidationCode,
+	ValidationCodeHash, ValidatorId, ValidatorIndex, PARACHAIN_KEY_TYPE_ID,
 };
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
@@ -95,7 +91,7 @@ use sp_runtime::traits::Convert;
 use pallet_staking_async_ah_client as ah_client;
 use pallet_staking_async_rc_client as rc_client;
 use runtime_parachains::{
-	assigner_coretime as parachains_assigner_coretime, configuration as parachains_configuration,
+	configuration as parachains_configuration,
 	configuration::ActiveConfigHrmpChannelSizeAndCapacityRatio,
 	coretime, disputes as parachains_disputes,
 	disputes::slashing as parachains_slashing,
@@ -105,7 +101,7 @@ use runtime_parachains::{
 	origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, reward_points as parachains_reward_points,
 	runtime_api_impl::{
-		v11 as parachains_runtime_api_impl, vstaging as parachains_runtime_api_impl_vstaging,
+		v13 as parachains_runtime_api_impl, vstaging as parachains_staging_runtime_api_impl,
 	},
 	scheduler as parachains_scheduler, session_info as parachains_session_info,
 	shared as parachains_shared,
@@ -120,8 +116,7 @@ use sp_runtime::{
 		IdentityLookup, Keccak256, OpaqueKeys, SaturatedConversion, Verify,
 	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedU128, KeyTypeId, OpaqueValue, Perbill, Percent, Permill,
-	RuntimeDebug,
+	ApplyExtrinsicResult, Debug, FixedU128, KeyTypeId, OpaqueValue, Perbill, Percent, Permill,
 };
 use sp_staking::{EraIndex, SessionIndex};
 #[cfg(any(feature = "std", test))]
@@ -129,9 +124,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::prelude::*;
 use xcm_builder::PayOverXcm;
-use xcm_config::{
-	AssetHubLocation, CollectivesLocation, FellowsBodyId, GeneralAdminBodyId, StakingAdminBodyId,
-};
+use xcm_config::{AssetHubLocation, GeneralAdminBodyId, StakingAdminBodyId};
 use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
@@ -142,14 +135,16 @@ use polkadot_runtime_constants::{
 	currency::*, fee::*, proxy::ProxyType, system_parachain, time::*, TREASURY_PALLET_ID,
 };
 
+// AHM v2 migration wiring. Kept out of the on-chain build.
+#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+mod ahm_v2;
+
 // Weights used in the runtime.
 mod weights;
 
 mod bag_thresholds;
 // Genesis preset configurations.
 pub mod genesis_config_presets;
-// Governance configurations.
-pub mod ah_migration;
 pub mod governance;
 use governance::{
 	pallet_custom_origins, AuctionAdmin, FellowshipAdmin, GeneralAdmin, LeaseAdmin, StakingAdmin,
@@ -177,7 +172,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 2_000_004,
+	spec_version: 2_005_002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 26,
@@ -202,10 +197,74 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 0;
 }
 
+/// Pallets that are blocked for user calls after the AHM.
+pub struct PostAhmFilter;
+impl Contains<RuntimeCall> for PostAhmFilter {
+	fn contains(call: &RuntimeCall) -> bool {
+		use RuntimeCall::*;
+		match call {
+			Scheduler(..) |
+			Indices(..) |
+			Staking(..) |
+			Treasury(..) |
+			ConvictionVoting(..) |
+			Referenda(..) |
+			Claims(..) |
+			Vesting(..) |
+			Bounties(..) |
+			ChildBounties(..) |
+			ElectionProviderMultiPhase(..) |
+			VoterList(..) |
+			NominationPools(..) |
+			FastUnstake(..) |
+			Slots(..) |
+			Auctions(..) |
+			AssetRate(..) => false,
+
+			// Session keys are managed via Asset Hub post-AHM (forwarded to the relay through
+			// `ah_client::set_keys_from_ah`); the direct relay extrinsics are disabled.
+			Session(
+				pallet_session::Call::<Runtime>::set_keys { .. } |
+				pallet_session::Call::<Runtime>::purge_keys { .. },
+			) => false,
+
+			// Crowdloan: only dissolve, refund, and withdraw are allowed.
+			Crowdloan(
+				crowdloan::Call::<Runtime>::dissolve { .. } |
+				crowdloan::Call::<Runtime>::refund { .. } |
+				crowdloan::Call::<Runtime>::withdraw { .. },
+			) => true,
+			Crowdloan(..) => false,
+
+			Coretime(coretime::Call::<Runtime>::request_revenue_at { .. }) => true,
+
+			// Everything else is allowed.
+			_ => true,
+		}
+	}
+}
+
+parameter_types! {
+	/// Maximum length of block. Up to 5 MiB.
+	///
+	/// `max_header_size` caps the pre-runtime digest and header overhead checked at block
+	/// initialization.
+	pub RuntimeBlockLength: limits::BlockLength = limits::BlockLength::builder()
+		.max_length(5 * 1024 * 1024)
+		.modify_max_length_for_class(DispatchClass::Normal, |m| {
+			*m = NORMAL_DISPATCH_RATIO * *m
+		})
+		.max_header_size(100 * 1024)
+		.build();
+}
+
 impl frame_system::Config for Runtime {
-	type BaseCallFilter = RcMigrator;
+	#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+	type BaseCallFilter = frame_support::traits::InsideBoth<PostAhmFilter, Rc2Migrator>;
+	#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
+	type BaseCallFilter = PostAhmFilter;
 	type BlockWeights = BlockWeights;
-	type BlockLength = BlockLength;
+	type BlockLength = RuntimeBlockLength;
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
 	type Nonce = Nonce;
@@ -266,8 +325,7 @@ impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletsOrigin = OriginCaller;
 	type RuntimeCall = RuntimeCall;
-	type MaximumWeight =
-		pallet_rc_migrator::types::LeftOrRight<RcMigrator, ZeroWeight, MaximumSchedulerWeight>;
+	type MaximumWeight = MaximumSchedulerWeight;
 	// The goal of having ScheduleOrigin include AuctionAdmin is to allow the auctions track of
 	// OpenGov to schedule periodic auctions.
 	// Also allow Treasurer to schedule recurring payments.
@@ -362,7 +420,7 @@ impl pallet_balances::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
 	type FreezeIdentifier = RuntimeFreezeReason;
-	type MaxFreezes = ConstU32<8>;
+	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
 }
 
@@ -421,18 +479,31 @@ parameter_types! {
 	pub LeafVersion: MmrLeafVersion = MmrLeafVersion::new(0, 0);
 }
 
+/// Parathreads whitelisted to be added to the beefy mmr leaf parachains header root
+const BEEFY_WHITELISTED_PARATHREADS: &[ParaId] = &[
+	// Hyperbridge
+	ParaId::new(3367),
+];
+
 /// A BEEFY data provider that merkelizes all the parachain heads at the current block
 /// (sorted by their parachain id).
 pub struct ParaHeadsRootProvider;
 impl BeefyDataProvider<H256> for ParaHeadsRootProvider {
 	fn extra_data() -> H256 {
-		let mut para_heads: Vec<(u32, Vec<u8>)> = parachains_paras::Parachains::<Runtime>::get()
-			.into_iter()
-			.filter_map(|id| {
-				parachains_paras::Heads::<Runtime>::get(id).map(|head| (id.into(), head.0))
-			})
-			.collect();
-		para_heads.sort_by_key(|k| k.0);
+		let mut para_heads = Paras::sorted_para_heads();
+
+		for id in BEEFY_WHITELISTED_PARATHREADS {
+			let raw_id = u32::from(*id);
+			if let Err(pos) = para_heads.binary_search_by_key(&raw_id, |(id, _)| *id) {
+				// Apply the same sanity bound as `sorted_para_heads`.
+				if let Some(head) = parachains_paras::Heads::<Runtime>::get(id)
+					.filter(|head| head.0.len() >= parachains_paras::MIN_PARA_HEAD_LEN)
+				{
+					para_heads.insert(pos, (raw_id, head.0));
+				}
+			}
+		}
+
 		binary_merkle_tree::merkle_root::<mmr::Hashing, _>(
 			para_heads.into_iter().map(|pair| pair.encode()),
 		)
@@ -464,6 +535,9 @@ impl pallet_transaction_payment::Config for Runtime {
 	type WeightInfo = weights::pallet_transaction_payment::WeightInfo<Runtime>;
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_transaction_payment::BenchmarkConfig for Runtime {}
+
 parameter_types! {
 	pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
 }
@@ -490,11 +564,6 @@ impl_opaque_keys! {
 	}
 }
 
-parameter_types! {
-	// all keys are 32 bytes, except beefy being 33
-	pub KeyDeposit: Balance = deposit(1, 5 * 32 + 33);
-}
-
 impl pallet_session::Config for Runtime {
 	type Currency = Balances;
 	type RuntimeEvent = RuntimeEvent;
@@ -507,7 +576,8 @@ impl pallet_session::Config for Runtime {
 	type Keys = SessionKeys;
 	type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 	type DisablingStrategy = pallet_session::disabling::UpToLimitWithReEnablingDisablingStrategy;
-	// TODO: we will set this post-AHM
+	// `set_keys`/`purge_keys` are disabled on the relay post-AHM via `PostAhmFilter`; session keys
+	// are now managed on Asset Hub, so no deposit is taken here.
 	type KeyDeposit = ();
 }
 
@@ -667,7 +737,7 @@ impl pallet_bags_list::Config<VoterBagsListInstance> for Runtime {
 	type BagThresholds = BagThresholds;
 	type Score = sp_npos_elections::VoteWeight;
 	#[cfg(feature = "runtime-benchmarks")]
-	type MaxAutoRebagPerBlock = ConstU32<5>;
+	type MaxAutoRebagPerBlock = ConstU32<10>;
 	#[cfg(not(feature = "runtime-benchmarks"))]
 	type MaxAutoRebagPerBlock = ();
 }
@@ -770,10 +840,33 @@ impl pallet_fast_unstake::Config for Runtime {
 	type ControlOrigin = EnsureRoot<AccountId>;
 	type Staking = Staking;
 	type MaxErasToCheckPerBlock = ConstU32<1>;
-	type WeightInfo = pallet_rc_migrator::types::MaxOnIdleOrInner<
-		RcMigrator,
-		weights::pallet_fast_unstake::WeightInfo<Runtime>,
-	>;
+	// Bug in fast-unstake pallet; its benchmark cannot run when on_idle does not have weight.
+	#[cfg(feature = "runtime-benchmarks")]
+	type WeightInfo = weights::pallet_fast_unstake::WeightInfo<Runtime>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type WeightInfo = DisableOnIdle<weights::pallet_fast_unstake::WeightInfo<Runtime>>;
+}
+
+/// Disable the on_idle of the fast_unstake pallet.
+pub struct DisableOnIdle<Inner>(core::marker::PhantomData<Inner>);
+impl<Inner: pallet_fast_unstake::weights::WeightInfo> pallet_fast_unstake::weights::WeightInfo
+	for DisableOnIdle<Inner>
+{
+	fn on_idle_unstake(_: u32) -> Weight {
+		Weight::MAX
+	}
+	fn on_idle_check(_: u32, _: u32) -> Weight {
+		Weight::MAX
+	}
+	fn register_fast_unstake() -> Weight {
+		Inner::register_fast_unstake()
+	}
+	fn deregister() -> Weight {
+		Inner::deregister()
+	}
+	fn control() -> Weight {
+		Inner::control()
+	}
 }
 
 parameter_types! {
@@ -803,7 +896,7 @@ parameter_types! {
 
 pub type TreasuryPaymaster = PayOverXcm<
 	TreasuryInteriorLocation,
-	crate::xcm_config::XcmRouter,
+	crate::xcm_config::XcmConfig,
 	crate::XcmPallet,
 	ConstU32<{ 6 * HOURS }>,
 	<Runtime as pallet_treasury::Config>::Beneficiary,
@@ -817,8 +910,7 @@ impl pallet_treasury::Config for Runtime {
 	type Currency = Balances;
 	type RejectOrigin = EitherOfDiverse<EnsureRoot<AccountId>, Treasurer>;
 	type RuntimeEvent = RuntimeEvent;
-	type SpendPeriod =
-		pallet_rc_migrator::types::LeftOrRight<RcMigrator, DisableSpends, SpendPeriod>;
+	type SpendPeriod = SpendPeriod;
 	type Burn = Burn;
 	type BurnDestination = ();
 	type SpendFunds = Bounties;
@@ -861,6 +953,7 @@ impl pallet_bounties::Config for Runtime {
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
 	type OnSlash = Treasury;
+	type TransferAllAssets = (); // not used on the relay
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 }
 
@@ -959,6 +1052,7 @@ where
 			.saturating_sub(1);
 		let tip = 0;
 		let tx_ext: TxExtension = (
+			frame_system::AuthorizeCall::<Runtime>::new(),
 			frame_system::CheckNonZeroSender::<Runtime>::new(),
 			frame_system::CheckSpecVersion::<Runtime>::new(),
 			frame_system::CheckTxVersion::<Runtime>::new(),
@@ -1073,7 +1167,7 @@ parameter_types! {
 	Encode,
 	Decode,
 	DecodeWithMemTracking,
-	RuntimeDebug,
+	Debug,
 	MaxEncodedLen,
 	Default,
 )]
@@ -1145,17 +1239,15 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 					RuntimeCall::Referenda(..) |
 					RuntimeCall::Whitelist(..)
 			),
-			ProxyType::Staking => {
-				matches!(
-					c,
-					RuntimeCall::Staking(..) |
-						RuntimeCall::Session(..) |
-						RuntimeCall::Utility(..) |
-						RuntimeCall::FastUnstake(..) |
-						RuntimeCall::VoterList(..) |
-						RuntimeCall::NominationPools(..)
-				)
-			},
+			ProxyType::Staking => matches!(
+				c,
+				RuntimeCall::Staking(..) |
+					RuntimeCall::Session(..) |
+					RuntimeCall::Utility(..) |
+					RuntimeCall::FastUnstake(..) |
+					RuntimeCall::VoterList(..) |
+					RuntimeCall::NominationPools(..)
+			),
 			ProxyType::NominationPools => {
 				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
 			},
@@ -1191,6 +1283,8 @@ impl InstanceFilter<RuntimeCall> for TransparentProxyType<ProxyType> {
 			(x, y) if x == y => true,
 			(ProxyType::Any, _) => true,
 			(_, ProxyType::Any) => false,
+			// `Auction` admits `Registrar::swap`; `NonTransfer` omits it on purpose.
+			(ProxyType::NonTransfer, ProxyType::Auction) => false,
 			(ProxyType::NonTransfer, _) => true,
 			_ => false,
 		}
@@ -1247,7 +1341,7 @@ impl parachains_paras::Config for Runtime {
 	type QueueFootprinter = ParaInclusion;
 	type NextSessionRotation = Babe;
 	type OnNewHead = Registrar;
-	type AssignCoretime = CoretimeAssignmentProvider;
+	type AssignCoretime = ParaScheduler;
 	type Fungible = Balances;
 	// Per day the cooldown is removed earlier, it should cost 5000.
 	type CooldownRemovalMultiplier = ConstUint<{ 5000 * UNITS / DAYS as u128 }>;
@@ -1334,11 +1428,7 @@ impl parachains_paras_inherent::Config for Runtime {
 	type WeightInfo = weights::runtime_parachains_paras_inherent::WeightInfo<Runtime>;
 }
 
-impl parachains_scheduler::Config for Runtime {
-	// If you change this, make sure the `Assignment` type of the new provider is binary compatible,
-	// otherwise provide a migration.
-	type AssignmentProvider = CoretimeAssignmentProvider;
-}
+impl parachains_scheduler::Config for Runtime {}
 
 parameter_types! {
 	pub const BrokerId: u32 = system_parachain::BROKER_ID;
@@ -1386,8 +1476,6 @@ impl parachains_on_demand::Config for Runtime {
 	type MaxHistoricalRevenue = MaxHistoricalRevenue;
 	type PalletId = OnDemandPalletId;
 }
-
-impl parachains_assigner_coretime::Config for Runtime {}
 
 impl parachains_initializer::Config for Runtime {
 	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
@@ -1545,16 +1633,75 @@ impl pallet_delegated_staking::Config for Runtime {
 	type CoreStaking = Staking;
 }
 
+/// Dynamic params that can be adjusted at runtime.
+#[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
+pub mod dynamic_params {
+	use super::*;
+
+	/// Parameters used by `pallet-staking-async-ah-client`.
+	#[dynamic_pallet_params]
+	#[codec(index = 0)]
+	pub mod ah_client {
+		/// Minimum size of the validator set that the relay chain will accept from Asset Hub.
+		#[codec(index = 0)]
+		pub static MinimumValidatorSetSize: u32 = 250;
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl Default for RuntimeParameters {
+	fn default() -> Self {
+		RuntimeParameters::AhClient(dynamic_params::ah_client::Parameters::MinimumValidatorSetSize(
+			dynamic_params::ah_client::MinimumValidatorSetSize,
+			Some(250),
+		))
+	}
+}
+
+/// Defines what origin can modify which dynamic parameters.
+pub struct DynamicParameterOrigin;
+impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {
+	type Success = ();
+
+	fn try_origin(
+		origin: RuntimeOrigin,
+		key: &RuntimeParametersKey,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		use crate::RuntimeParametersKey::*;
+
+		match key {
+			AhClient(_) => EitherOfDiverse::<
+				// either local root or StakingAdmin, or same from OpenGov on AH
+				EitherOf<EnsureRoot<AccountId>, StakingAdmin>,
+				EnsureXcm<IsVoiceOfBody<AssetHubLocation, StakingAdminBodyId>>,
+			>::ensure_origin(origin.clone())
+			.map(|_success| ()),
+		}
+		.map_err(|_| origin)
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
+		// Provide the origin for the parameter returned by `Default`:
+		Ok(RuntimeOrigin::root())
+	}
+}
+
+impl pallet_parameters::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeParameters = RuntimeParameters;
+	type AdminOrigin = DynamicParameterOrigin;
+	type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
+}
+
 impl ah_client::Config for Runtime {
 	type CurrencyBalance = Balance;
 	type AssetHubOrigin =
 		frame_support::traits::EitherOfDiverse<EnsureRoot<AccountId>, EnsureAssetHub>;
 	type AdminOrigin = EnsureRoot<AccountId>;
-	type SessionInterface = Self;
+	type SessionInterface = Session;
 	type SendToAssetHub = StakingXcmToAssetHub;
-	// Polkadot RC currently has 600 validators. Note: this has to be updated with AH validator
-	// count increasing.
-	type MinimumValidatorSetSize = ConstU32<600>;
+	type MinimumValidatorSetSize = dynamic_params::ah_client::MinimumValidatorSetSize;
 	type UnixTime = Timestamp;
 	type PointsPerBlock = ConstU32<20>;
 	type MaxOffenceBatchSize = ConstU32<32>;
@@ -1700,66 +1847,9 @@ impl OnSwap for SwapLeases {
 	}
 }
 
-// Derived from `polkadot_asset_hub_runtime::RuntimeBlockWeights`.
-const AH_MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
-	frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
-	polkadot_primitives::MAX_POV_SIZE as u64,
-);
-
-parameter_types! {
-	// Exvivalent to `polkadot_asset_hub_runtime::MessageQueueServiceWeight`.
-	pub AhMqServiceWeight: Weight = Perbill::from_percent(50) * AH_MAXIMUM_BLOCK_WEIGHT;
-	// 80 percent of the `AhMqServiceWeight` to leave some space for XCM message base processing.
-	pub AhMigratorMaxWeight: Weight = Perbill::from_percent(80) * AhMqServiceWeight::get();
-	pub RcMigratorMaxWeight: Weight = Perbill::from_percent(60) * BlockWeights::get().max_block;
-	pub AhExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT / 100;
-	pub const XcmResponseTimeout: BlockNumber = 30 * DAYS;
-	pub const AhUmpQueuePriorityPattern: (BlockNumber, BlockNumber) = (18, 2);
-}
-
-pub struct ProxyTypeAny;
-impl frame_support::traits::Contains<TransparentProxyType<ProxyType>> for ProxyTypeAny {
-	fn contains(proxy_type: &TransparentProxyType<ProxyType>) -> bool {
-		proxy_type.0 == polkadot_runtime_constants::proxy::ProxyType::Any
-	}
-}
-
 impl pallet_rc_migrator::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type RuntimeCall = RuntimeCall;
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type RuntimeEvent = RuntimeEvent;
-	type AdminOrigin = EitherOfDiverse<
-		EnsureRoot<AccountId>,
-		EitherOfDiverse<
-			EnsureXcm<IsVoiceOfBody<CollectivesLocation, FellowsBodyId>>,
-			EnsureXcm<Equals<AssetHubLocation>, Location>,
-		>,
-	>;
 	type Currency = Balances;
-	type CheckingAccount = xcm_config::CheckAccount;
-	type TreasuryBlockNumberProvider = System;
-	type TreasuryPaymaster = TreasuryPaymaster;
-	type PureProxyFreeVariants = ProxyTypeAny;
-	type SessionDuration = EpochDuration; // Session == Epoch
-	type SendXcm = xcm_config::XcmRouterWithoutException;
-	type MaxRcWeight = RcMigratorMaxWeight;
-	type MaxAhWeight = AhMigratorMaxWeight;
-	type AhExistentialDeposit = AhExistentialDeposit;
-	type RcWeightInfo = weights::pallet_rc_migrator::WeightInfo<Runtime>;
-	type AhWeightInfo = weights::pallet_ah_migrator::WeightInfo<ah_migration::weights::AhDbConfig>;
-	type RcIntraMigrationCalls = ahm_phase1::CallsEnabledDuringMigration;
-	type RcPostMigrationCalls = ahm_phase1::CallsEnabledAfterMigration;
-	type StakingDelegationReason = ahm_phase1::StakingDelegationReason;
-	type OnDemandPalletId = OnDemandPalletId;
-	type UnprocessedMsgBuffer = ConstU32<50>;
-	type XcmResponseTimeout = XcmResponseTimeout;
-	type MessageQueue = MessageQueue;
-	type AhUmpQueuePriorityPattern = AhUmpQueuePriorityPattern;
-	type MultisigMembers = (); // disabled post AHM
-	type MultisigThreshold = ConstU32<{ u32::MAX }>; // disabled
-	type MultisigMaxVotesPerRound = (); // disabled
 }
 
 construct_runtime! {
@@ -1824,6 +1914,9 @@ construct_runtime! {
 		DelegatedStaking: pallet_delegated_staking = 41,
 		StakingAhClient: pallet_staking_async_ah_client = 42,
 
+		// Dynamic, configurable parameters.
+		Parameters: pallet_parameters = 46,
+
 		// Parachains pallets. Start indices at 50 to leave room.
 		ParachainsOrigin: parachains_origin = 50,
 		Configuration: parachains_configuration = 51,
@@ -1840,7 +1933,6 @@ construct_runtime! {
 		ParasDisputes: parachains_disputes = 62,
 		ParasSlashing: parachains_slashing = 63,
 		OnDemand: parachains_on_demand = 64,
-		CoretimeAssignmentProvider: parachains_assigner_coretime = 65,
 
 		// Parachain Onboarding Pallets. Start indices at 70 to leave room.
 		Registrar: paras_registrar = 70,
@@ -1869,6 +1961,10 @@ construct_runtime! {
 		// The pallet must be located below `MessageQueue` to get the XCM message acknowledgements
 		// from Asset Hub before we get the `RcMigrator` `on_initialize` executed.
 		RcMigrator: pallet_rc_migrator = 255,
+		// AHM v2 migrator. Below `MessageQueue` for the same reason as `RcMigrator`: its
+		// `on_initialize` has to see the block's inbound messages.
+		#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+		Rc2Migrator: pallet_rc2_migrator = 254,
 	}
 }
 
@@ -1893,6 +1989,7 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 pub type BlockId = generic::BlockId<Block>;
 /// The `TransactionExtension` to the basic transaction logic.
 pub type TxExtension = (
+	frame_system::AuthorizeCall<Runtime>,
 	frame_system::CheckNonZeroSender<Runtime>,
 	frame_system::CheckSpecVersion<Runtime>,
 	frame_system::CheckTxVersion<Runtime>,
@@ -1909,61 +2006,30 @@ pub type TxExtension = (
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	use super::*;
-	use frame_support::traits::OnRuntimeUpgrade;
-	use pallet_rc_migrator::{MigrationStage, MigrationStartBlock, RcMigrationStage};
 
-	parameter_types! {
-		pub const StateTrieMigrationPalletName: &'static str = "StateTrieMigration";
+	frame_support::parameter_types! {
+		pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
 	}
+
+	/// Remove the `StateTrieMigration` pallet's storage. The state trie migration on Polkadot is
+	/// complete and the pallet has been removed from the runtime, see
+	/// <https://github.com/polkadot-fellows/runtimes/issues/905>.
+	pub type RemoveStateTrieMigrationPallet = frame_support::migrations::RemovePallet<
+		StateTrieMigrationName,
+		<Runtime as frame_system::Config>::DbWeight,
+	>;
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		frame_support::migrations::RemovePallet<
-			StateTrieMigrationPalletName,
-			<Runtime as frame_system::Config>::DbWeight,
-		>,
-		KickOffAhm<Runtime>,
+		parachains_on_demand::migration::MigrateV1ToV2<Runtime>,
+		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
+		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
+		parachains_shared::migration::MigrateToV2<Runtime>,
+		RemoveStateTrieMigrationPallet,
 	);
 
-	/// Migrations/checks that do not need to be versioned and can run on every update.
-	pub type Permanent = pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>;
-
 	/// All migrations that will run on the next runtime upgrade.
-	pub type SingleBlockMigrations = (Unreleased, Permanent);
-
-	/// Kick off the Asset Hub Migration.
-	pub struct KickOffAhm<T>(pub core::marker::PhantomData<T>);
-	impl<T: pallet_rc_migrator::Config> OnRuntimeUpgrade for KickOffAhm<T> {
-		fn on_runtime_upgrade() -> Weight {
-			if MigrationStartBlock::<T>::exists() ||
-				RcMigrationStage::<T>::get() != MigrationStage::Pending
-			{
-				// Already started or scheduled
-				log::info!("KickOffAhm: Asset Hub Migration already started or scheduled");
-				return T::DbWeight::get().reads(2)
-			}
-
-			let result = pallet_rc_migrator::Pallet::<T>::do_schedule_migration(
-				// Migration start block, Tuesday 4th Nov 8 AM UTC
-				// https://polkadot.subscan.io/block/28490502
-				DispatchTime::At(28490502u32.into()),
-				// Warm up to wait for Messaging queues to empty
-				DispatchTime::After((60 * MINUTES).into()),
-				// Cool off to verify the success of the migration
-				DispatchTime::After((60 * MINUTES).into()),
-				// Respect the session scheduling check:
-				Default::default(),
-			);
-
-			if let Err(e) = result {
-				log::error!("KickOffAhm: Failed to schedule Asset Hub Migration: {e:?}");
-			} else {
-				log::info!("KickOffAhm: Scheduled Asset Hub Migration");
-			}
-
-			T::DbWeight::get().reads_writes(5, 5) // Includes the scheduling function
-		}
-	}
+	pub type SingleBlockMigrations = Unreleased;
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2015,8 +2081,8 @@ mod benches {
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
-		[pallet_nomination_pools, NominationPoolsBench::<Runtime>]
 		[pallet_offences, OffencesBench::<Runtime>]
+		[pallet_parameters, Parameters]
 		[pallet_preimage, Preimage]
 		[pallet_proxy, Proxy]
 		[pallet_scheduler, Scheduler]
@@ -2026,14 +2092,12 @@ mod benches {
 		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
 		[pallet_timestamp, Timestamp]
 		[pallet_transaction_payment, TransactionPayment]
-		[pallet_treasury, Treasury]
 		[pallet_utility, Utility]
 		[pallet_vesting, Vesting]
 		[pallet_conviction_voting, ConvictionVoting]
 		[pallet_referenda, Referenda]
 		[pallet_whitelist, Whitelist]
 		[pallet_asset_rate, AssetRate]
-		[pallet_rc_migrator, RcMigrator]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsicsBenchmark::<Runtime>]
 		[pallet_xcm_benchmarks::fungible, pallet_xcm_benchmarks::fungible::Pallet::<Runtime>]
@@ -2050,22 +2114,22 @@ mod benches {
 		extensions::Pallet as SystemExtensionsBench, Pallet as SystemBench,
 	};
 	pub use pallet_election_provider_support_benchmarking::Pallet as ElectionProviderBench;
-	pub use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 	pub use pallet_offences_benchmarking::Pallet as OffencesBench;
 	pub use pallet_session_benchmarking::Pallet as SessionBench;
 	pub use pallet_xcm::benchmarking::Pallet as PalletXcmExtrinsicsBenchmark;
 	use polkadot_runtime_constants::system_parachain::AssetHubParaId;
-	use xcm_builder::MintLocation;
-	use xcm_config::{
-		AssetHubLocation, SovereignAccountOf, TeleportTracking, TokenLocation, XcmConfig,
-	};
+	use xcm_config::{AssetHubLocation, SovereignAccountOf, TokenLocation, XcmConfig};
 
-	impl pallet_session_benchmarking::Config for Runtime {}
+	impl pallet_session_benchmarking::Config for Runtime {
+		fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Self::Keys, Vec<u8>) {
+			let keys = SessionKeys::generate(&owner.encode(), None);
+			(keys.keys, keys.proof.encode())
+		}
+	}
 	impl pallet_offences_benchmarking::Config for Runtime {}
 	impl pallet_election_provider_support_benchmarking::Config for Runtime {}
 	impl frame_system_benchmarking::Config for Runtime {}
 	impl frame_benchmarking::baseline::Config for Runtime {}
-	impl pallet_nomination_pools_benchmarking::Config for Runtime {}
 	impl runtime_parachains::disputes::slashing::benchmarking::Config for Runtime {}
 
 	parameter_types! {
@@ -2127,6 +2191,11 @@ mod benches {
 		fn get_asset() -> Asset {
 			Asset { id: AssetId(Location::here()), fun: Fungible(ExistentialDeposit::get()) }
 		}
+
+		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
+		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
 	}
 
 	impl pallet_xcm_benchmarks::Config for Runtime {
@@ -2142,13 +2211,15 @@ mod benches {
 		fn valid_destination() -> Result<Location, BenchmarkError> {
 			Ok(AssetHubLocation::get())
 		}
-		fn worst_case_holding(_depositable_count: u32) -> Assets {
+		fn worst_case_holding(_depositable_count: u32) -> xcm_executor::AssetsInHolding {
+			use pallet_xcm_benchmarks::MockCredit;
 			// Polkadot only knows about DOT
-			vec![Asset {
-				id: AssetId(TokenLocation::get()),
-				fun: Fungible(1_000_000_000_000 * UNITS),
-			}]
-			.into()
+			let mut holding = xcm_executor::AssetsInHolding::new();
+			holding.fungible.insert(
+				AssetId(TokenLocation::get()),
+				alloc::boxed::Box::new(MockCredit(1_000_000_000 * UNITS)),
+			);
+			holding
 		}
 	}
 
@@ -2158,13 +2229,13 @@ mod benches {
 			Asset { id: AssetId(TokenLocation::get()), fun: Fungible(UNITS) }
 		));
 		pub const TrustedReserve: Option<(Location, Asset)> = None;
-		pub LocalCheckAccount: (AccountId, MintLocation) = TeleportTracking::get().unwrap();
+		pub const CheckedAccount: Option<(AccountId, xcm_builder::MintLocation)> = None;
 	}
 
 	impl pallet_xcm_benchmarks::fungible::Config for Runtime {
 		type TransactAsset = Balances;
 
-		type CheckedAccount = LocalCheckAccount;
+		type CheckedAccount = CheckedAccount;
 		type TrustedTeleporter = TrustedTeleporter;
 		type TrustedReserve = TrustedReserve;
 
@@ -2252,7 +2323,7 @@ sp_api::impl_runtime_apis! {
 			VERSION
 		}
 
-		fn execute_block(block: Block) {
+		fn execute_block(block: <Block as BlockT>::LazyBlock) {
 			Executive::execute_block(block);
 		}
 
@@ -2289,7 +2360,7 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn check_inherents(
-			block: Block,
+			block: <Block as BlockT>::LazyBlock,
 			data: sp_inherents::InherentData,
 		) -> sp_inherents::CheckInherentsResult {
 			data.check_extrinsics(&block)
@@ -2372,7 +2443,7 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
-	#[api_version(13)]
+	#[api_version(16)]
 	impl polkadot_primitives::runtime_api::ParachainHost<Block> for Runtime {
 		fn validators() -> Vec<ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
@@ -2481,8 +2552,13 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn unapplied_slashes(
-		) -> Vec<(SessionIndex, CandidateHash, slashing::PendingSlashes)> {
+		) -> Vec<(SessionIndex, CandidateHash, slashing::LegacyPendingSlashes)> {
 			parachains_runtime_api_impl::unapplied_slashes::<Runtime>()
+		}
+
+		fn unapplied_slashes_v2(
+		) -> Vec<(SessionIndex, CandidateHash, slashing::PendingSlashes)> {
+			parachains_runtime_api_impl::unapplied_slashes_v2::<Runtime>()
 		}
 
 		fn key_ownership_proof(
@@ -2509,7 +2585,7 @@ sp_api::impl_runtime_apis! {
 			parachains_runtime_api_impl::minimum_backing_votes::<Runtime>()
 		}
 
-		fn para_backing_state(para_id: ParaId) -> Option<polkadot_primitives::vstaging::async_backing::BackingState> {
+		fn para_backing_state(para_id: ParaId) -> Option<polkadot_primitives::async_backing::BackingState> {
 			#[allow(deprecated)]
 			parachains_runtime_api_impl::backing_state::<Runtime>(para_id)
 		}
@@ -2540,15 +2616,30 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn validation_code_bomb_limit() -> u32 {
-			parachains_runtime_api_impl_vstaging::validation_code_bomb_limit::<Runtime>()
+			parachains_runtime_api_impl::validation_code_bomb_limit::<Runtime>()
 		}
 
 		fn backing_constraints(para_id: ParaId) -> Option<Constraints> {
-			parachains_runtime_api_impl_vstaging::backing_constraints::<Runtime>(para_id)
+			parachains_runtime_api_impl::backing_constraints::<Runtime>(para_id)
 		}
 
 		fn scheduling_lookahead() -> u32 {
-			parachains_runtime_api_impl_vstaging::scheduling_lookahead::<Runtime>()
+			parachains_runtime_api_impl::scheduling_lookahead::<Runtime>()
+		}
+
+		fn para_ids() -> Vec<ParaId> {
+			parachains_staging_runtime_api_impl::para_ids::<Runtime>()
+		}
+
+		fn max_relay_parent_session_age() -> u32 {
+			parachains_staging_runtime_api_impl::max_relay_parent_session_age::<Runtime>()
+		}
+
+		fn ancestor_relay_parent_info(
+			session_index: SessionIndex,
+			relay_parent: Hash,
+		) -> Option<polkadot_primitives::vstaging::RelayParentInfo<Hash, BlockNumber>> {
+			parachains_staging_runtime_api_impl::ancestor_relay_parent_info::<Runtime>(session_index, relay_parent)
 		}
 	}
 
@@ -2603,16 +2694,6 @@ sp_api::impl_runtime_apis! {
 				key_owner_proof.decode()?,
 			)
 		}
-
-		fn generate_ancestry_proof(
-			prev_block_number: BlockNumber,
-			best_known_block_number: Option<BlockNumber>,
-		) -> Option<sp_runtime::OpaqueValue> {
-			Mmr::generate_ancestry_proof(prev_block_number, best_known_block_number)
-				.map(|p| p.encode())
-				.map(OpaqueKeyOwnershipProof::new)
-				.ok()
-		}
 	}
 
 	impl mmr::MmrApi<Block, Hash, BlockNumber> for Runtime {
@@ -2639,6 +2720,13 @@ sp_api::impl_runtime_apis! {
 					)
 				},
 			)
+		}
+
+		fn generate_ancestry_proof(
+			prev_block_number: BlockNumber,
+			best_known_block_number: Option<BlockNumber>,
+		) -> Result<mmr::AncestryProof<mmr::Hash>, mmr::Error> {
+			Mmr::generate_ancestry_proof(prev_block_number, best_known_block_number)
 		}
 
 		fn verify_proof(leaves: Vec<mmr::EncodableOpaqueLeaf>, proof: mmr::LeafProof<mmr::Hash>)
@@ -2763,8 +2851,8 @@ sp_api::impl_runtime_apis! {
 	}
 
 	impl sp_session::SessionKeys<Block> for Runtime {
-		fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
-			SessionKeys::generate(seed)
+		fn generate_session_keys(owner: Vec<u8>, seed: Option<Vec<u8>>) -> sp_session::OpaqueGeneratedSessionKeys {
+			SessionKeys::generate(&owner, seed).into()
 		}
 
 		fn decode_session_keys(
@@ -2840,8 +2928,9 @@ sp_api::impl_runtime_apis! {
 			XcmPallet::query_xcm_weight(message)
 		}
 
-		fn query_delivery_fees(destination: VersionedLocation, message: VersionedXcm<()>) -> Result<VersionedAssets, XcmPaymentApiError> {
-			XcmPallet::query_delivery_fees(destination, message)
+		fn query_delivery_fees(destination: VersionedLocation, message: VersionedXcm<()>, asset_id: VersionedAssetId) -> Result<VersionedAssets, XcmPaymentApiError> {
+			type AssetExchanger = <xcm_config::XcmConfig as xcm_executor::Config>::AssetExchanger;
+			XcmPallet::query_delivery_fees::<AssetExchanger>(destination, message, asset_id)
 		}
 	}
 
@@ -2851,7 +2940,7 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn dry_run_xcm(origin_location: VersionedLocation, xcm: VersionedXcm<RuntimeCall>) -> Result<XcmDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
-			XcmPallet::dry_run_xcm::<Runtime, xcm_config::XcmRouter, RuntimeCall, xcm_config::XcmConfig>(origin_location, xcm)
+			XcmPallet::dry_run_xcm::<xcm_config::XcmRouter>(origin_location, xcm)
 		}
 	}
 
@@ -2881,6 +2970,16 @@ sp_api::impl_runtime_apis! {
 		}
 	}
 
+	impl pallet_rc_migrator::runtime_api::AssetHubMigrationApi<Block, BlockNumber> for Runtime {
+		fn migration_start_block() -> BlockNumber {
+			pallet_rc_migrator::MigrationStartBlock::<Runtime>::get().unwrap_or(0)
+		}
+
+		fn migration_end_block() -> BlockNumber {
+			pallet_rc_migrator::MigrationEndBlock::<Runtime>::get().unwrap_or(0)
+		}
+	}
+
 	#[cfg(feature = "try-runtime")]
 	impl frame_try_runtime::TryRuntime<Block> for Runtime {
 		fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
@@ -2890,7 +2989,7 @@ sp_api::impl_runtime_apis! {
 		}
 
 		fn execute_block(
-			block: Block,
+			block: <Block as BlockT>::LazyBlock,
 			state_root_check: bool,
 			signature_check: bool,
 			select: frame_try_runtime::TryStateSelect,
@@ -2993,6 +3092,7 @@ mod test_fees {
 		// convert to runtime call.
 		let call = RuntimeCall::Balances(call);
 		let tx_ext: TxExtension = (
+			frame_system::AuthorizeCall::<Runtime>::new(),
 			frame_system::CheckNonZeroSender::<Runtime>::new(),
 			frame_system::CheckSpecVersion::<Runtime>::new(),
 			frame_system::CheckTxVersion::<Runtime>::new(),
@@ -3004,14 +3104,12 @@ mod test_fees {
 			claims::PrevalidateAttests::<Runtime>::new(),
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
 		);
-		let uxt = UncheckedExtrinsic {
-			preamble: generic::Preamble::Signed(
-				MultiAddress::Id(Alice.to_account_id()),
-				MultiSignature::Sr25519(Alice.sign(b"foo")),
-				tx_ext,
-			),
-			function: call,
-		};
+		let uxt = UncheckedExtrinsic::new_signed(
+			call,
+			MultiAddress::Id(Alice.to_account_id()),
+			MultiSignature::Sr25519(Alice.sign(b"foo")),
+			tx_ext,
+		);
 		let len = uxt.encoded_size();
 
 		let mut ext = sp_io::TestExternalities::new_empty();
@@ -3395,53 +3493,29 @@ mod remote_tests {
 	use super::*;
 	use frame_try_runtime::{runtime_decl_for_try_runtime::TryRuntime, UpgradeCheckSelect};
 	use remote_externalities::{
-		Builder, Mode, OfflineConfig, OnlineConfig, RemoteExternalities, SnapshotConfig, Transport,
+		Builder, Mode, OfflineConfig, OnlineConfig, RemoteExternalities, SnapshotConfig,
 	};
 	use std::env::var;
 
 	async fn remote_ext_test_setup() -> RemoteExternalities<Block> {
-		let transport: Transport =
-			var("WS").unwrap_or("wss://polkadot-rpc.dwellir.com".to_string()).into();
+		let transport: String = var("WS").unwrap_or("wss://polkadot-rpc.dwellir.com".to_string());
 		let maybe_state_snapshot: Option<SnapshotConfig> = var("SNAP").map(|s| s.into()).ok();
 		Builder::<Block>::default()
 			.mode(if let Some(state_snapshot) = maybe_state_snapshot {
 				Mode::OfflineOrElseOnline(
 					OfflineConfig { state_snapshot: state_snapshot.clone() },
 					OnlineConfig {
-						transport,
+						transport_uris: vec![transport],
 						state_snapshot: Some(state_snapshot),
 						..Default::default()
 					},
 				)
 			} else {
-				Mode::Online(OnlineConfig { transport, ..Default::default() })
+				Mode::Online(OnlineConfig { transport_uris: vec![transport], ..Default::default() })
 			})
 			.build()
 			.await
 			.unwrap()
-	}
-
-	#[tokio::test]
-	#[ignore = "this test is meant to be executed manually"]
-	async fn validators_who_cannot_afford_session_key_deposit() {
-		use frame_support::traits::fungible::InspectHold;
-		sp_tracing::try_init_simple();
-		let mut ext = remote_ext_test_setup().await;
-		ext.execute_with(|| {
-			let amount = <Runtime as pallet_session::Config>::KeyDeposit::get();
-			let reason = pallet_session::HoldReason::Keys;
-			let cannot_pay = pallet_staking::Validators::<Runtime>::iter()
-				.map(|(v, _prefs)| v)
-				.filter(|v| {
-					pallet_balances::Pallet::<Runtime>::ensure_can_hold(&reason.into(), v, amount)
-						.is_err()
-				})
-				.collect::<Vec<_>>();
-
-			for v in cannot_pay {
-				log::warn!(target: "runtime", "validator {v:?} cannot pay a deposit of {amount:?}")
-			}
-		})
 	}
 
 	#[tokio::test]
@@ -3519,11 +3593,11 @@ mod remote_tests {
 		}
 		use hex_literal::hex;
 		sp_tracing::try_init_simple();
-		let transport: Transport =
-			var("WS").unwrap_or("wss://rpc.dotters.network/polkadot".to_string()).into();
+		let transport: String =
+			var("WS").unwrap_or("wss://rpc.dotters.network/polkadot".to_string());
 		let mut ext = Builder::<Block>::default()
 			.mode(Mode::Online(OnlineConfig {
-				transport,
+				transport_uris: vec![transport],
 				hashed_prefixes: vec![
 					// staking eras total stake
 					hex!("5f3e4907f716ac89b6347d15ececedcaa141c4fe67c2d11f4a10c6aca7a79a04")
@@ -3571,6 +3645,88 @@ mod remote_tests {
 			log::info!(target: LOG_TARGET, "era-duration = {average_era_duration_millis:?}");
 			log::info!(target: LOG_TARGET, "maxStakingRewards = {:?}", pallet_staking::MaxStakedRewards::<Runtime>::get());
 			log::info!(target: LOG_TARGET, "💰 Inflation ==> staking = {:?} / leftover = {:?}", token.amount(staking), token.amount(leftover));
+		});
+	}
+}
+
+#[cfg(test)]
+mod post_ahm_filter_tests {
+	use super::*;
+	use sp_runtime::traits::Dispatchable;
+
+	fn new_test_ext() -> sp_io::TestExternalities {
+		frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
+			.unwrap()
+			.into()
+	}
+
+	#[test]
+	fn staking_is_blocked() {
+		new_test_ext().execute_with(|| {
+			let call = RuntimeCall::Staking(pallet_staking::Call::bond {
+				value: 100,
+				payee: pallet_staking::RewardDestination::Staked,
+			});
+
+			let origin = RuntimeOrigin::signed(AccountId::from([1u8; 32]));
+			let result = call.dispatch(origin);
+
+			assert_eq!(
+				result.unwrap_err().error,
+				frame_system::Error::<Runtime>::CallFiltered.into(),
+			);
+		});
+	}
+
+	/// Session keys are managed via Asset Hub post-AHM, so the direct relay `set_keys`/`purge_keys`
+	/// extrinsics must be rejected by the base call filter (closing the free-registration spam
+	/// vector, #1200).
+	#[test]
+	fn session_set_keys_and_purge_keys_are_blocked() {
+		use codec::Decode;
+		new_test_ext().execute_with(|| {
+			// `SessionKeys` is not `Default`; decode a zero-filled buffer to obtain an instance
+			// (the field values are irrelevant to the filter, which matches on the call variant).
+			let keys = SessionKeys::decode(&mut &[0u8; 512][..]).expect("decodes into SessionKeys");
+			let origin = RuntimeOrigin::signed(AccountId::from([1u8; 32]));
+
+			for call in [
+				RuntimeCall::Session(pallet_session::Call::set_keys {
+					keys,
+					proof: Default::default(),
+				}),
+				RuntimeCall::Session(pallet_session::Call::purge_keys {}),
+			] {
+				assert_eq!(
+					call.dispatch(origin.clone()).unwrap_err().error,
+					frame_system::Error::<Runtime>::CallFiltered.into(),
+				);
+			}
+		});
+	}
+
+	#[test]
+	fn transfer_is_allowed() {
+		new_test_ext().execute_with(|| {
+			let sender = AccountId::from([1u8; 32]);
+			let dest = AccountId::from([0u8; 32]);
+
+			// Fund the sender.
+			pallet_balances::Pallet::<Runtime>::force_set_balance(
+				RuntimeOrigin::root(),
+				sp_runtime::MultiAddress::Id(sender.clone()),
+				1_000_000_000_000,
+			)
+			.unwrap();
+
+			let call = RuntimeCall::Balances(pallet_balances::Call::transfer_allow_death {
+				dest: sp_runtime::MultiAddress::Id(dest),
+				value: 100_000_000_000,
+			});
+
+			let origin = RuntimeOrigin::signed(sender);
+			assert!(call.dispatch(origin).is_ok());
 		});
 	}
 }

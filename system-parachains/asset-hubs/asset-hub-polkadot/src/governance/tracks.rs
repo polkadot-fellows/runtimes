@@ -72,8 +72,16 @@ const APP_WHITELISTED_CALLER: Curve =
 	Curve::make_reciprocal(16, 28 * 24, percent(96), percent(50), percent(100));
 const SUP_WHITELISTED_CALLER: Curve =
 	Curve::make_reciprocal(1, 28, percent(20), percent(5), percent(50));
+const APP_TECHNICAL_MAINTENANCE: Curve =
+	Curve::make_reciprocal(16, 28 * 24, percent(96), percent(50), percent(100));
+const SUP_TECHNICAL_MAINTENANCE: Curve =
+	Curve::make_reciprocal(3, 28, percent(6), percent(5), percent(50));
+const APP_PROSPERITY_EMERGENCY: Curve =
+	Curve::make_reciprocal(16, 28 * 24, percent(96), percent(50), percent(100));
+const SUP_PROSPERITY_EMERGENCY: Curve =
+	Curve::make_reciprocal(1, 28, percent(20), percent(5), percent(50));
 
-const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 16] = [
+const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 18] = [
 	pallet_referenda::Track {
 		id: 0,
 		info: pallet_referenda::TrackInfo {
@@ -198,6 +206,34 @@ const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 16] = [
 			min_enactment_period: 10 * RC_MINUTES,
 			min_approval: APP_AUCTION_ADMIN,
 			min_support: SUP_AUCTION_ADMIN,
+		},
+	},
+	pallet_referenda::Track {
+		id: 16,
+		info: pallet_referenda::TrackInfo {
+			name: s("technical_maintenance"),
+			max_deciding: 100,
+			decision_deposit: 10 * GRAND,
+			prepare_period: 30 * RC_MINUTES,
+			decision_period: 28 * RC_DAYS,
+			confirm_period: 10 * RC_MINUTES,
+			min_enactment_period: 10 * RC_MINUTES,
+			min_approval: APP_TECHNICAL_MAINTENANCE,
+			min_support: SUP_TECHNICAL_MAINTENANCE,
+		},
+	},
+	pallet_referenda::Track {
+		id: 17,
+		info: pallet_referenda::TrackInfo {
+			name: s("prosperity_emergency"),
+			max_deciding: 10,
+			decision_deposit: 50 * GRAND,
+			prepare_period: 2 * RC_HOURS,
+			decision_period: 28 * RC_DAYS,
+			confirm_period: 3 * RC_HOURS,
+			min_enactment_period: 10 * RC_MINUTES,
+			min_approval: APP_PROSPERITY_EMERGENCY,
+			min_support: SUP_PROSPERITY_EMERGENCY,
 		},
 	},
 	pallet_referenda::Track {
@@ -326,6 +362,8 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				origins::Origin::FellowshipAdmin => Ok(13),
 				origins::Origin::GeneralAdmin => Ok(14),
 				origins::Origin::AuctionAdmin => Ok(15),
+				origins::Origin::TechnicalMaintenance => Ok(16),
+				origins::Origin::ProsperityEmergency => Ok(17),
 				// Referendum admins
 				origins::Origin::ReferendumCanceller => Ok(20),
 				origins::Origin::ReferendumKiller => Ok(21),
@@ -339,5 +377,55 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 		} else {
 			Err(())
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use pallet_referenda::TracksInfo as _;
+
+	/// `pallet-referenda` relies on `tracks()` being sorted by id to look tracks up.
+	#[test]
+	fn tracks_are_well_formed() {
+		assert_eq!(TracksInfo::check_integrity(), Ok(()));
+	}
+
+	/// Track ids are consensus relevant: in flight referenda and conviction voting class locks
+	/// reference them, so the origin to id mapping must never shift when tracks are added.
+	#[test]
+	fn all_origins_map_to_their_declared_tracks() {
+		use origins::Origin::*;
+		let cases: [(origins::Origin, u16); 17] = [
+			(WhitelistedCaller, 1),
+			(WishForChange, 2),
+			(StakingAdmin, 10),
+			(Treasurer, 11),
+			(LeaseAdmin, 12),
+			(FellowshipAdmin, 13),
+			(GeneralAdmin, 14),
+			(AuctionAdmin, 15),
+			(TechnicalMaintenance, 16),
+			(ProsperityEmergency, 17),
+			(ReferendumCanceller, 20),
+			(ReferendumKiller, 21),
+			(SmallTipper, 30),
+			(BigTipper, 31),
+			(SmallSpender, 32),
+			(MediumSpender, 33),
+			(BigSpender, 34),
+		];
+		let pinned = cases.len();
+		for (origin, id) in cases {
+			assert_eq!(TracksInfo::track_for(&origin.into()), Ok(id));
+			assert!(TRACKS_DATA.iter().any(|t| t.id == id), "track {id} is not declared");
+		}
+		assert_eq!(
+			TracksInfo::track_for(&frame_system::RawOrigin::Root.into()),
+			Ok(0),
+			"Root maps to the root track"
+		);
+
+		assert_eq!(TRACKS_DATA.len(), pinned + 1);
 	}
 }

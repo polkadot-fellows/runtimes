@@ -14,9 +14,13 @@ hex-literal = { workspace = true }
 
 # Substrate
 sp-runtime = { workspace = true, default-features = true }
+sp-tracing = { workspace = true, default-features = true }
 frame-support = { workspace = true, default-features = true }
+frame-system = { workspace = true, default-features = true }
 pallet-assets = { workspace = true, default-features = true }
+pallet-accumulate-and-forward = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
+pallet-collator-selection = { workspace = true, default-features = true }
 pallet-asset-conversion = { workspace = true, default-features = true }
 pallet-treasury = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
@@ -24,6 +28,7 @@ pallet-utility = { workspace = true, default-features = true }
 
 # Polkadot
 xcm = { workspace = true, default-features = true }
+xcm-builder = { workspace = true, default-features = true }
 xcm-executor = { workspace = true }
 pallet-xcm = { workspace = true, default-features = true }
 polkadot-runtime-common = { workspace = true }
@@ -37,6 +42,7 @@ cumulus-pallet-parachain-system = { workspace = true, default-features = true }
 
 # Local
 asset-hub-kusama-runtime = { workspace = true }
+bridge-hub-kusama-runtime = { workspace = true }
 integration-tests-helpers = { workspace = true }
 kusama-runtime = { workspace = true }
 kusama-system-emulated-network = { workspace = true }
@@ -46,15 +52,19 @@ kusama-runtime-constants = { workspace = true, default-features = true }
 [features]
 runtime-benchmarks = [
 	"asset-hub-kusama-runtime/runtime-benchmarks",
+	"bridge-hub-kusama-runtime/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
 	"kusama-runtime/runtime-benchmarks",
 	"kusama-system-emulated-network/runtime-benchmarks",
+	"pallet-accumulate-and-forward/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
@@ -63,6 +73,7 @@ runtime-benchmarks = [
 	"polkadot-runtime-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"system-parachains-constants/runtime-benchmarks",
+	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",

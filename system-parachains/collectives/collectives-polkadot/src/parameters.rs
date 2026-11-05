@@ -1,0 +1,227 @@
+// Copyright (C) Parity Technologies (UK) Ltd.
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//! Dynamic parameters.
+
+use super::*;
+use core::marker::PhantomData;
+use frame_support::{traits::Get, BoundedVec};
+use polkadot_runtime_common::impls::LocatableAssetConverter;
+use sp_runtime::traits::TryConvert;
+use xcm_builder::LocatableAssetId;
+
+/// Dynamic runtime parameters configurable on-chain through [`pallet_parameters`].
+#[dynamic_params(RuntimeParameters, pallet_parameters::Parameters::<Runtime>)]
+pub mod dynamic_params {
+	use super::*;
+
+	/// Fellowship Salary Parameters.
+	#[dynamic_pallet_params]
+	#[codec(index = 0)]
+	pub mod fellowship_salary {
+		/// Fellowship Salary Configuration.
+		///
+		/// Defaults to USDT on Asset Hub (`PalletInstance(50)/GeneralIndex(1984)`) asset with 6
+		/// decimals and budget value of 250,000 USDT (i.e., `250_000_000_000` means
+		/// 250,000.000000 USDT).
+		#[codec(index = 0)]
+		pub static SalaryConfig: crate::parameters::FellowshipSalaryConfig =
+			crate::parameters::FellowshipSalaryConfig {
+				asset: Box::new(VersionedLocatableAsset::V5 {
+					location: crate::xcm_config::AssetHubUsdt::get().location,
+					asset_id: crate::xcm_config::AssetHubUsdt::get().asset_id,
+				}),
+				budget: 250_000 * 1_000_000,
+			};
+	}
+
+	/// Secretary Salary Parameters.
+	#[dynamic_pallet_params]
+	#[codec(index = 1)]
+	pub mod secretary_salary {
+		/// Secretary Salary Configuration.
+		///
+		/// Defaults to USDT on Asset Hub (`PalletInstance(50)/GeneralIndex(1984)`) asset with 6
+		/// decimals and budget value of 13,332 USDT (i.e., `13_332_000_000` means
+		/// 13,332.000000 USDT) and salary for rank 1 of 6,666 USDT (i.e., `6666_000000` means
+		/// 6,666.000000 USDT).
+		#[codec(index = 0)]
+		pub static SalaryConfig: crate::parameters::SecretarySalaryConfig =
+			crate::parameters::SecretarySalaryConfig {
+				asset: Box::new(VersionedLocatableAsset::V5 {
+					location: crate::xcm_config::AssetHubUsdt::get().location,
+					asset_id: crate::xcm_config::AssetHubUsdt::get().asset_id,
+				}),
+				budget: 13_332 * 1_000_000,
+				salary_rank1: 6666 * 1_000_000,
+			};
+	}
+
+	/// Parameters of the Polkadot Technical Fellowship.
+	#[dynamic_pallet_params]
+	#[codec(index = 2)]
+	pub mod fellowship {
+		/// Non-member accounts allowed to submit Fellowship referenda (e.g. the RFC or tip bot).
+		///
+		/// Empty by default: until governance populates it, only Fellows (rank 3+) may submit.
+		#[codec(index = 0)]
+		pub static AllowedProposers: BoundedVec<AccountId, ConstU32<16>> = Default::default();
+	}
+}
+
+parameter_types! {
+	/// The Fellowship salary asset, read from the [`dynamic_params::fellowship_salary::SalaryConfig`]
+	/// parameter.
+	pub FellowshipSalaryAsset: VersionedLocatableAsset =
+		*dynamic_params::fellowship_salary::SalaryConfig::get().asset;
+	/// The Secretary salary asset, read from the [`dynamic_params::secretary_salary::SalaryConfig`]
+	/// parameter.
+	pub SecretarySalaryAsset: VersionedLocatableAsset =
+		*dynamic_params::secretary_salary::SalaryConfig::get().asset;
+}
+
+/// Resolves a configured [`VersionedLocatableAsset`] to a [`LocatableAssetId`] for use as the
+/// `AssetKind` of a salary [`xcm_builder::PayOverXcm`] paymaster.
+///
+/// `Asset` supplies the configured salary asset (e.g. [`FellowshipSalaryAsset`] or
+/// [`SecretarySalaryAsset`]).
+pub struct SalaryAssetId<Asset>(PhantomData<Asset>);
+impl<Asset: Get<VersionedLocatableAsset>> TryConvert<(), LocatableAssetId>
+	for SalaryAssetId<Asset>
+{
+	fn try_convert(_: ()) -> Result<LocatableAssetId, ()> {
+		LocatableAssetConverter::try_convert(Asset::get()).map_err(|_| {
+			frame_support::defensive!("Salary asset conversion failed");
+		})
+	}
+}
+
+impl pallet_parameters::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeParameters = RuntimeParameters;
+	type AdminOrigin = DynamicParameterOrigin;
+	type WeightInfo = weights::pallet_parameters::WeightInfo<Runtime>;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl Default for RuntimeParameters {
+	fn default() -> Self {
+		RuntimeParameters::FellowshipSalary(
+			dynamic_params::fellowship_salary::Parameters::SalaryConfig(
+				dynamic_params::fellowship_salary::SalaryConfig,
+				None,
+			),
+		)
+	}
+}
+
+/// Origin allowed to change dynamic runtime parameters.
+///
+/// Each [`RuntimeParametersKey`] variant defines its own access rules; see the
+/// per-variant matches in [`Self::try_origin`].
+pub struct DynamicParameterOrigin;
+impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {
+	type Success = ();
+
+	fn try_origin(
+		origin: RuntimeOrigin,
+		key: &RuntimeParametersKey,
+	) -> Result<Self::Success, RuntimeOrigin> {
+		match key {
+			// Fellowship salary parameters can be set by Root, the FellowshipAdmin
+			// origin (i.e. token holder referendum), or by a vote among all Fellows.
+			RuntimeParametersKey::FellowshipSalary(_) |
+			RuntimeParametersKey::SecretarySalary(_) => EitherOfDiverse::<
+				EnsureRoot<AccountId>,
+				EitherOfDiverse<
+					EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+					Fellows,
+				>,
+			>::ensure_origin(origin.clone())
+			.map(|_| ())
+			.map_err(|_| origin),
+			// The Fellowship referenda allow-list can be set by Root (relay-chain or Asset Hub
+			// governance), the FellowshipAdmin track, or by a vote among all Fellows.
+			RuntimeParametersKey::Fellowship(_) => EitherOfDiverse::<
+				EnsureRoot<AccountId>,
+				EitherOfDiverse<
+					EitherOf<
+						EnsureXcm<IsVoiceOfBody<RelayChainLocation, FellowshipAdminBodyId>>,
+						EnsureXcm<IsVoiceOfBody<AssetHubLocation, FellowshipAdminBodyId>>,
+					>,
+					Fellows,
+				>,
+			>::ensure_origin(origin.clone())
+			.map(|_| ())
+			.map_err(|_| origin),
+		}
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_key: &RuntimeParametersKey) -> Result<RuntimeOrigin, ()> {
+		Ok(RuntimeOrigin::root())
+	}
+}
+
+/// Fellowship Salary Configuration.
+#[derive(
+	Encode,
+	Decode,
+	scale_info::TypeInfo,
+	DecodeWithMemTracking,
+	MaxEncodedLen,
+	Clone,
+	PartialEq,
+	Eq,
+	Debug,
+)]
+pub struct FellowshipSalaryConfig {
+	/// Fellowship Salary Asset.
+	///
+	/// WARNING: Changing this asset may require updating [`Self::budget`] and the per-rank
+	/// salaries configured in the core-fellowship pallet to account for the new asset's decimals.
+	pub asset: Box<VersionedLocatableAsset>,
+	/// Fellowship salary budget for a single period (i.e., `RegistrationPeriod` +
+	/// `PayoutPeriod`), expressed as the raw value of the `asset` (e.g., USDT on Asset Hub with 6
+	/// decimals).
+	pub budget: u128,
+}
+
+/// Secretary Salary Configuration.
+#[derive(
+	Encode,
+	Decode,
+	scale_info::TypeInfo,
+	DecodeWithMemTracking,
+	MaxEncodedLen,
+	Clone,
+	PartialEq,
+	Eq,
+	Debug,
+)]
+pub struct SecretarySalaryConfig {
+	/// Secretary Salary Asset.
+	///
+	/// WARNING: Changing this asset may require updating [`Self::budget`] and
+	/// [`Self::salary_rank1`] to account for the new asset's decimals.
+	pub asset: Box<VersionedLocatableAsset>,
+	/// Secretary salary budget for a single period (i.e., `RegistrationPeriod` +
+	/// `PayoutPeriod`), expressed as the raw value of the `asset` (e.g., USDT on Asset Hub with 6
+	/// decimals).
+	pub budget: u128,
+	/// Secretary salary for rank 1 in `asset`, expressed in the raw
+	/// value of the asset (e.g., USDT on Asset Hub with 6 decimals).
+	pub salary_rank1: u128,
+}

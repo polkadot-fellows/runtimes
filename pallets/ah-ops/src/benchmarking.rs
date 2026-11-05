@@ -24,28 +24,28 @@ pub mod benchmarks {
 	#[benchmark]
 	fn unreserve_lease_deposit() {
 		let sender = account("sender", 0, 0);
-		let ed = <T::Currency as Currency<_>>::minimum_balance();
-		let _ = T::Currency::deposit_creating(&sender, ed + ed);
-		let _ = T::Currency::reserve(&sender, ed);
+		let ed = <<T as crate::Config>::Currency as Currency<_>>::minimum_balance();
+		let _ = <T as crate::Config>::Currency::deposit_creating(&sender, ed + ed);
+		let _ = <T as crate::Config>::Currency::reserve(&sender, ed);
 		let block = T::RcBlockNumberProvider::current_block_number();
 		let para_id = ParaId::from(1u32);
 		RcLeaseReserve::<T>::insert((block, para_id, &sender), ed);
 
-		assert_eq!(T::Currency::reserved_balance(&sender), ed);
+		assert_eq!(<T as crate::Config>::Currency::reserved_balance(&sender), ed);
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(sender.clone()), block, None, para_id);
 
-		assert_eq!(T::Currency::reserved_balance(&sender), 0);
+		assert_eq!(<T as crate::Config>::Currency::reserved_balance(&sender), 0);
 		assert_eq!(RcLeaseReserve::<T>::get((block, para_id, &sender)), None);
 	}
 
 	#[benchmark]
 	fn withdraw_crowdloan_contribution() {
 		let pot = account("pot", 0, 0);
-		let ed = <T::Currency as Currency<_>>::minimum_balance();
-		let _ = T::Currency::deposit_creating(&pot, ed + ed);
-		let _ = T::Currency::reserve(&pot, ed);
+		let ed = <<T as crate::Config>::Currency as Currency<_>>::minimum_balance();
+		let _ = <T as crate::Config>::Currency::deposit_creating(&pot, ed + ed);
+		let _ = <T as crate::Config>::Currency::reserve(&pot, ed);
 		let block = T::RcBlockNumberProvider::current_block_number();
 		let para_id = ParaId::from(1u32);
 		RcLeaseReserve::<T>::insert((block, para_id, &pot), ed);
@@ -53,32 +53,32 @@ pub mod benchmarks {
 		let sender = account("sender", 0, 0);
 		RcCrowdloanContribution::<T>::insert((block, para_id, &sender), (pot.clone(), ed));
 
-		assert_eq!(T::Currency::free_balance(&sender), 0);
+		assert_eq!(<T as crate::Config>::Currency::free_balance(&sender), 0);
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(sender.clone()), block, None, para_id);
 
 		assert_eq!(RcCrowdloanContribution::<T>::get((block, para_id, &sender)), None);
 		assert_eq!(RcLeaseReserve::<T>::get((block, para_id, &pot)), None);
-		assert_eq!(T::Currency::free_balance(&pot), ed);
+		assert_eq!(<T as crate::Config>::Currency::free_balance(&pot), ed);
 	}
 
 	#[benchmark]
 	fn unreserve_crowdloan_reserve() {
 		let sender = account("sender", 0, 0);
-		let ed = <T::Currency as Currency<_>>::minimum_balance();
-		let _ = T::Currency::deposit_creating(&sender, ed + ed);
-		let _ = T::Currency::reserve(&sender, ed);
+		let ed = <<T as crate::Config>::Currency as Currency<_>>::minimum_balance();
+		let _ = <T as crate::Config>::Currency::deposit_creating(&sender, ed + ed);
+		let _ = <T as crate::Config>::Currency::reserve(&sender, ed);
 		let block = T::RcBlockNumberProvider::current_block_number();
 		let para_id = ParaId::from(1u32);
 		RcCrowdloanReserve::<T>::insert((block, para_id, &sender), ed);
 
-		assert_eq!(T::Currency::reserved_balance(&sender), ed);
+		assert_eq!(<T as crate::Config>::Currency::reserved_balance(&sender), ed);
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(sender.clone()), block, None, para_id);
 
-		assert_eq!(T::Currency::reserved_balance(&sender), 0);
+		assert_eq!(<T as crate::Config>::Currency::reserved_balance(&sender), 0);
 		assert_eq!(RcCrowdloanReserve::<T>::get((block, para_id, &sender)), None);
 	}
 

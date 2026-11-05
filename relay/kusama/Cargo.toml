@@ -12,6 +12,9 @@ version.workspace = true
 
 # Asset Hub Migration concerning deps
 pallet-rc-migrator = { workspace = true }
+# Behind the `ahm-v2` feature; see `src/ahm_v2.rs`.
+pallet-rc2-migrator = { workspace = true }
+migrator-types = { workspace = true }
 # End: Asset Hub Migration concerning deps
 
 codec = { features = ["derive", "max-encoded-len"], workspace = true }
@@ -42,6 +45,7 @@ sp-block-builder = { workspace = true }
 sp-npos-elections = { workspace = true }
 
 pallet-asset-rate = { workspace = true }
+pallet-accumulate-and-forward = { workspace = true }
 pallet-authority-discovery = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-babe = { workspace = true }
@@ -57,7 +61,7 @@ pallet-nomination-pools-runtime-api = { workspace = true }
 pallet-conviction-voting = { workspace = true }
 pallet-delegated-staking = { workspace = true }
 pallet-staking-async-ah-client = { workspace = true }
-pallet-staking-async-rc-client = { workspace = true }
+pallet-staking-async-rc-client = { workspace = true, features = ["xcm-sender"] }
 pallet-election-provider-multi-phase = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 frame-executive = { workspace = true }
@@ -112,9 +116,9 @@ xcm-builder = { workspace = true }
 xcm-runtime-apis = { workspace = true }
 
 sp-debug-derive = { workspace = true }
-relay-common = { workspace = true }
 
 [dev-dependencies]
+pallet-ct-migrator = { workspace = true, default-features = true }
 sp-keyring = { workspace = true }
 sp-trie = { workspace = true }
 separator = { workspace = true }
@@ -131,6 +135,7 @@ substrate-wasm-builder = { workspace = true, optional = true }
 default = ["std"]
 no_std = []
 kusama-ahm = ["pallet-rc-migrator/kusama-ahm"]
+ahm-v2 = []
 std = [
 	"authority-discovery-primitives/std",
 	"babe-primitives/std",
@@ -149,6 +154,8 @@ std = [
 	"hex/std",
 	"kusama-runtime-constants/std",
 	"log/std",
+	"migrator-types/std",
+	"pallet-accumulate-and-forward/std",
 	"pallet-asset-rate/std",
 	"pallet-authority-discovery/std",
 	"pallet-authorship/std",
@@ -180,6 +187,7 @@ std = [
 	"pallet-proxy/std",
 	"pallet-ranked-collective/std",
 	"pallet-rc-migrator/std",
+	"pallet-rc2-migrator/std",
 	"pallet-recovery/std",
 	"pallet-referenda/std",
 	"pallet-scheduler/std",
@@ -201,7 +209,6 @@ std = [
 	"pallet-xcm/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
-	"relay-common/std",
 	"runtime-parachains/std",
 	"scale-info/std",
 	"serde_json/std",
@@ -237,6 +244,7 @@ runtime-benchmarks = [
 	"frame-system-benchmarking/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
+	"pallet-accumulate-and-forward/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-babe/runtime-benchmarks",
 	"pallet-bags-list/runtime-benchmarks",
@@ -245,6 +253,7 @@ runtime-benchmarks = [
 	"pallet-bounties/runtime-benchmarks",
 	"pallet-child-bounties/runtime-benchmarks",
 	"pallet-conviction-voting/runtime-benchmarks",
+	"pallet-ct-migrator/runtime-benchmarks",
 	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-election-provider-multi-phase/runtime-benchmarks",
 	"pallet-election-provider-support-benchmarking/runtime-benchmarks",
@@ -264,10 +273,12 @@ runtime-benchmarks = [
 	"pallet-proxy/runtime-benchmarks",
 	"pallet-ranked-collective/runtime-benchmarks",
 	"pallet-rc-migrator/runtime-benchmarks",
+	"pallet-rc2-migrator/runtime-benchmarks",
 	"pallet-recovery/runtime-benchmarks",
 	"pallet-referenda/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-session-benchmarking/runtime-benchmarks",
+	"pallet-session/runtime-benchmarks",
 	"pallet-society/runtime-benchmarks",
 	"pallet-staking-async-ah-client/runtime-benchmarks",
 	"pallet-staking-async-rc-client/runtime-benchmarks",
@@ -282,7 +293,6 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
-	"relay-common/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"sp-staking/runtime-benchmarks",
@@ -298,6 +308,7 @@ try-runtime = [
 	"frame-system/try-runtime",
 	"frame-try-runtime",
 	"frame-try-runtime/try-runtime",
+	"pallet-accumulate-and-forward/try-runtime",
 	"pallet-asset-rate/try-runtime",
 	"pallet-authority-discovery/try-runtime",
 	"pallet-authorship/try-runtime",
@@ -309,6 +320,7 @@ try-runtime = [
 	"pallet-bounties/try-runtime",
 	"pallet-child-bounties/try-runtime",
 	"pallet-conviction-voting/try-runtime",
+	"pallet-ct-migrator/try-runtime",
 	"pallet-delegated-staking/try-runtime",
 	"pallet-election-provider-multi-phase/try-runtime",
 	"pallet-fast-unstake/try-runtime",
@@ -325,6 +337,7 @@ try-runtime = [
 	"pallet-proxy/try-runtime",
 	"pallet-ranked-collective/try-runtime",
 	"pallet-rc-migrator/try-runtime",
+	"pallet-rc2-migrator/try-runtime",
 	"pallet-recovery/try-runtime",
 	"pallet-referenda/try-runtime",
 	"pallet-scheduler/try-runtime",

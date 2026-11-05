@@ -17,17 +17,19 @@
 
 use crate::*;
 
-use asset_hub_polkadot_runtime::ExistentialDeposit;
+use asset_hub_polkadot_runtime::{
+	xcm_config::XcmConfig as AssetHubPolkadotXcmConfig, ExistentialDeposit,
+};
 use integration_tests_helpers::test_chain_can_claim_assets;
 
 #[test]
 fn assets_can_be_claimed() {
 	let amount = ExistentialDeposit::get();
-	let assets: Assets = (Parent, amount).into();
+	let assets: Asset = (Parent, amount).into();
 
 	test_chain_can_claim_assets!(
 		AssetHubPolkadot,
-		RuntimeCall,
+		AssetHubPolkadotXcmConfig,
 		NetworkId::Polkadot,
 		assets,
 		amount

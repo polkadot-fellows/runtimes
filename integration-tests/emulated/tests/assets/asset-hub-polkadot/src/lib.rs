@@ -35,10 +35,13 @@ pub use xcm::{
 pub use xcm_executor::traits::TransferType;
 
 // Cumulus
-pub use asset_hub_polkadot_runtime::xcm_config::XcmConfig as AssetHubPolkadotXcmConfig;
+pub use asset_hub_polkadot_runtime::xcm_config::{
+	DotLocation, XcmConfig as AssetHubPolkadotXcmConfig,
+};
 pub use asset_test_utils::xcm_helpers;
 pub use emulated_integration_tests_common::{
-	test_parachain_is_trusted_teleporter,
+	create_foreign_pool_with_native_on, create_foreign_pool_with_parent_native_on,
+	local_penpal_asset, test_parachain_is_trusted_teleporter,
 	xcm_emulator::{
 		assert_expected_events, bx, helpers::weight_within_threshold, Chain, Parachain as Para,
 		RelayChain as Relay, Test, TestArgs, TestContext, TestExt,
@@ -47,14 +50,15 @@ pub use emulated_integration_tests_common::{
 	PROOF_SIZE_THRESHOLD, REF_TIME_THRESHOLD, XCM_V4,
 };
 pub use integration_tests_helpers::{
+	asset_exists_on, assets_balance_on, foreign_balance_on,
 	test_parachain_is_trusted_teleporter_for_relay, test_relay_is_trusted_teleporter,
 };
 pub use parachains_common::{AccountId, Balance};
-pub use polkadot_runtime::xcm_config::UniversalLocation as PolkadotUniversalLocation;
+pub use polkadot_runtime::{xcm_config::UniversalLocation as PolkadotUniversalLocation, Dmp};
 pub use polkadot_system_emulated_network::{
 	asset_hub_polkadot_emulated_chain::{
 		genesis::{AssetHubPolkadotAssetOwner, ED as ASSET_HUB_POLKADOT_ED},
-		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet,
+		AssetHubPolkadotParaPallet as AssetHubPolkadotPallet, ForeignAssetReserveData,
 	},
 	bridge_hub_polkadot_emulated_chain::BridgeHubPolkadotParaPallet as BridgeHubPolkadotPallet,
 	collectives_polkadot_emulated_chain::{
@@ -63,6 +67,13 @@ pub use polkadot_system_emulated_network::{
 	},
 	coretime_polkadot_emulated_chain::CoretimePolkadotParaPallet as CoretimePolkadotPallet,
 	penpal_emulated_chain::{
+		penpal_runtime::xcm_config::{
+			LocalPen2Asset as PenpalLocalPen2Asset,
+			LocalReservableFromAssetHub as PenpalLocalReservableFromAssetHub,
+			LocalTeleportableToAssetHub as PenpalLocalTeleportableToAssetHub,
+			UniversalLocation as PenpalUniversalLocation,
+			UsdtFromAssetHub as PenpalUsdtFromAssetHub,
+		},
 		CustomizableAssetFromSystemAssetHub, PenpalAParaPallet as PenpalAPallet, PenpalAssetOwner,
 		PenpalBParaPallet as PenpalBPallet, ED as PENPAL_ED,
 	},
@@ -86,14 +97,16 @@ pub const ASSET_MIN_BALANCE: u128 = 1000;
 // `Assets` pallet index
 pub const ASSETS_PALLET_ID: u8 = 50;
 
+pub type RelayToSystemParaTest = Test<Polkadot, AssetHubPolkadot>;
 pub type RelayToParaTest = Test<Polkadot, PenpalB>;
 pub type ParaToRelayTest = Test<PenpalA, Polkadot>;
 pub type SystemParaToRelayTest = Test<AssetHubPolkadot, Polkadot>;
-pub type SystemParaToParaTest = Test<AssetHubPolkadot, PenpalB>;
-pub type ParaToSystemParaTest = Test<PenpalB, AssetHubPolkadot>;
-pub type ParaToParaThroughRelayTest = Test<PenpalB, PenpalA, Polkadot>;
-pub type ParaToParaThroughAHTest = Test<PenpalB, PenpalA, AssetHubPolkadot>;
+pub type SystemParaToParaTest = Test<AssetHubPolkadot, PenpalB, (), TestArgs<Location>>;
+pub type ParaToSystemParaTest = Test<PenpalB, AssetHubPolkadot, (), TestArgs<Location>>;
+pub type ParaToParaThroughRelayTest = Test<PenpalB, PenpalA, Polkadot, TestArgs<Location>>;
+pub type ParaToParaThroughAHTest = Test<PenpalB, PenpalA, AssetHubPolkadot, TestArgs<Location>>;
 pub type RelayToParaThroughAHTest = Test<Polkadot, PenpalB, AssetHubPolkadot>;
+pub type PenpalToRelayThroughAHTest = Test<PenpalB, Polkadot, AssetHubPolkadot>;
 
 #[cfg(test)]
 mod tests;

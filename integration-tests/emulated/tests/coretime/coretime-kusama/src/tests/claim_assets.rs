@@ -17,12 +17,19 @@
 
 use crate::*;
 
+use coretime_kusama_runtime::xcm_config::XcmConfig as CoretimeKusamaXcmConfig;
 use integration_tests_helpers::test_chain_can_claim_assets;
 
 #[test]
 fn assets_can_be_claimed() {
 	let amount = CoretimeExistentialDeposit::get();
-	let assets: Assets = (Parent, amount).into();
+	let assets: Asset = (Parent, amount).into();
 
-	test_chain_can_claim_assets!(CoretimeKusama, RuntimeCall, NetworkId::Kusama, assets, amount);
+	test_chain_can_claim_assets!(
+		CoretimeKusama,
+		CoretimeKusamaXcmConfig,
+		NetworkId::Kusama,
+		assets,
+		amount
+	);
 }

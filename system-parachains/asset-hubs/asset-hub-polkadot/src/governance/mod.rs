@@ -19,13 +19,14 @@
 use super::*;
 use crate::xcm_config::FellowshipLocation;
 use frame_system::EnsureRootWithSuccess;
-use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
-use xcm::latest::BodyId;
+use pallet_xcm::EnsureXcm;
+use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 
 mod origins;
 pub use origins::{
 	pallet_custom_origins, AuctionAdmin, FellowshipAdmin, GeneralAdmin, LeaseAdmin,
-	ReferendumCanceller, ReferendumKiller, Spender, StakingAdmin, Treasurer, WhitelistedCaller,
+	ProsperityEmergency, ReferendumCanceller, ReferendumKiller, Spender, StakingAdmin,
+	TechnicalMaintenance, Treasurer, WhitelistedCaller,
 };
 mod tracks;
 pub use tracks::TracksInfo;
@@ -60,18 +61,13 @@ pub type TreasurySpender = EitherOf<EnsureRootWithSuccess<AccountId, MaxBalance>
 
 impl origins::pallet_custom_origins::Config for Runtime {}
 
-parameter_types! {
-	// Fellows pluralistic body.
-	pub const FellowsBodyId: BodyId = BodyId::Technical;
-}
-
 impl pallet_whitelist::Config for Runtime {
 	type WeightInfo = weights::pallet_whitelist::WeightInfo<Self>;
 	type RuntimeCall = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type WhitelistOrigin = EitherOfDiverse<
 		EnsureRoot<Self::AccountId>,
-		EnsureXcm<IsVoiceOfBody<FellowshipLocation, FellowsBodyId>>,
+		EnsureXcm<IsFellowshipVoice<FellowshipLocation>>,
 	>;
 	type DispatchWhitelistedOrigin = EitherOf<EnsureRoot<Self::AccountId>, WhitelistedCaller>;
 	type Preimages = Preimage;
@@ -86,7 +82,7 @@ impl pallet_referenda::Config for Runtime {
 	type SubmitOrigin = frame_system::EnsureSigned<AccountId>;
 	type CancelOrigin = EitherOf<EnsureRoot<AccountId>, ReferendumCanceller>;
 	type KillOrigin = EitherOf<EnsureRoot<AccountId>, ReferendumKiller>;
-	type Slash = Treasury;
+	type Slash = pallet_dap::DapLegacyAdapter<Runtime, Balances>;
 	type Votes = pallet_conviction_voting::VotesOf<Runtime>;
 	type Tally = pallet_conviction_voting::TallyOf<Runtime>;
 	type SubmissionDeposit = SubmissionDeposit;
