@@ -250,8 +250,6 @@ fn next_block_rc_with(inbound: InboundMessages) {
 		let weight = <network::relay::MessageQueue as OnInitialize<_>>::on_initialize(now);
 		let weight = weight
 			.saturating_add(<network::relay::Rc2Migrator as OnInitialize<_>>::on_initialize(now));
-		let weight = weight
-			.saturating_add(<network::relay::Treasury as OnInitialize<_>>::on_initialize(now));
 		<network::relay::MessageQueue as OnFinalize<_>>::on_finalize(now);
 		// The timestamp inherent is an extrinsic, so it lands after `on_initialize`: a block's
 		// hooks see the previous block's clock.
@@ -521,11 +519,7 @@ pub fn walk_migration(
 		};
 		probe_rc();
 
-		// After the warm-up, the migrator may wait for the Coretime chain to claim on-demand
-		// revenue. The broker does not run here, so jump past that wait too. The accounts stage
-		// clears any unclaimed revenue from the record.
-		let grace = <RelayRuntime as pallet_rc2_migrator::Config>::RevenueClaimGrace::get();
-		set_block_number_rc(end_at + grace - 1);
+		set_block_number_rc(end_at - 1);
 		next_block_rc();
 		assert_eq!(rc_stage(), RcStage::AccountsInit);
 	});

@@ -24,7 +24,7 @@ pub mod lockdown;
 
 use crate::{
 	xcm_config::{Broker, XcmRouter},
-	AccountId, AccumulateForwardPalletId, BlockNumber, BrokerId, BrokerPalletId, CrowdloanId,
+	AccountId, AccumulateForwardPalletId, BrokerId, BrokerPalletId, CrowdloanId,
 	DelegatedStakingPalletId, OnDemandPalletId, PoolsPalletId, ProxyType, Runtime, RuntimeEvent,
 	SocietyPalletId, Timestamp, TransparentProxyType, TreasuryPalletId,
 };
@@ -34,10 +34,7 @@ use frame_support::{
 	traits::{Equals, Get},
 };
 use frame_system::EnsureRoot;
-use kusama_runtime_constants::{
-	currency::UNITS,
-	system_parachain::{coretime::TIMESLICE_PERIOD, ASSET_HUB_ID},
-};
+use kusama_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
 use migrator_types::PortableProxyType;
 use pallet_xcm::EnsureXcm;
 use sp_runtime::traits::AccountIdConversion;
@@ -45,10 +42,7 @@ use sp_runtime::traits::AccountIdConversion;
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
 	pub const CtFreeBuffer: u128 = UNITS;
-	/// Two timeslices: the Coretime broker requests on-demand revenue once per timeslice.
-	pub const RevenueClaimGrace: BlockNumber = 2 * TIMESLICE_PERIOD;
-	/// The treasury on Asset Hub. Its pallet id is the same there, `py/trsry`, so this is also
-	/// the address of this chain's own treasury pot.
+	/// The treasury on Asset Hub.
 	pub SweepBeneficiary: AccountId = TreasuryPalletId::get().into_account_truncating();
 }
 
@@ -86,7 +80,6 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type PostMigrationCalls = lockdown::CallsEnabledAfterMigration;
 	type SweptAccounts = SweptAccounts;
 	type SweepBeneficiary = SweepBeneficiary;
-	type RevenueClaimGrace = RevenueClaimGrace;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so

@@ -24,9 +24,9 @@ pub mod lockdown;
 
 use crate::{
 	xcm_config::{CoretimeLocation, XcmRouter},
-	AccountId, BlockNumber, BrokerId, BrokerPalletId, CrowdloanId, DelegatedStakingPalletId,
-	OnDemandPalletId, PoolsPalletId, ProxyType, Runtime, RuntimeEvent, Timestamp,
-	TransparentProxyType, TreasuryPalletId,
+	AccountId, BrokerId, BrokerPalletId, CrowdloanId, DelegatedStakingPalletId, OnDemandPalletId,
+	PoolsPalletId, ProxyType, Runtime, RuntimeEvent, Timestamp, TransparentProxyType,
+	TreasuryPalletId,
 };
 use alloc::vec::Vec;
 use frame_support::{
@@ -37,28 +37,20 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use migrator_types::PortableProxyType;
 use pallet_xcm::EnsureXcm;
-use polkadot_runtime_constants::{
-	currency::UNITS,
-	system_parachain::{coretime::TIMESLICE_PERIOD, ASSET_HUB_ID},
-};
+use polkadot_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
 use sp_runtime::traits::AccountIdConversion;
 
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
 	pub const CtFreeBuffer: u128 = UNITS;
-	/// Two timeslices: the Coretime broker requests on-demand revenue once per timeslice.
-	pub const RevenueClaimGrace: BlockNumber = 2 * TIMESLICE_PERIOD;
 	/// The pot of the retired `pallet-dap-satellite`. Its old id is `dap/satl`; the replacement
 	/// uses `acf/dott` as of paritytech/polkadot-sdk#11881.
 	pub const DapSatellitePalletId: PalletId = PalletId(*b"dap/satl");
 	/// The DAP staging account on Asset Hub, derived like `DapStagingLocation` in the system
 	/// parachain constants.
 	///
-	/// The DAP has two accounts: staging, where funds arrive, and the buffer, where they are
-	/// kept. `pallet-dap` moves funds from staging into the buffer and marks them inactive on the
-	/// way, so they are left out of the active issuance that referendum support is measured
-	/// against. Funds deposited straight into the buffer are never marked inactive. This is why
-	/// the swept balance goes to staging and not to the buffer.
+	/// Moved to the staging account rather than the buffer since the pallet eventually correctly
+	/// marks them as inactive when it moves them from staging into the buffer.
 	pub SweepBeneficiary: AccountId =
 		sp_dap::DAP_PALLET_ID.into_sub_account_truncating(sp_dap::DAP_STAGING_ACCOUNT_ID);
 }
@@ -96,7 +88,6 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type PostMigrationCalls = lockdown::CallsEnabledAfterMigration;
 	type SweptAccounts = SweptAccounts;
 	type SweepBeneficiary = SweepBeneficiary;
-	type RevenueClaimGrace = RevenueClaimGrace;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so

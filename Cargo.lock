@@ -13874,7 +13874,6 @@ dependencies = [
  "pallet-session",
  "pallet-staking-async-ah-client",
  "pallet-timestamp",
- "pallet-treasury",
  "pallet-xcm",
  "parity-scale-codec",
  "polkadot-runtime",

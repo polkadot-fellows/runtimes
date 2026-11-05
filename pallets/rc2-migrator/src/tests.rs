@@ -899,100 +899,36 @@ fn teleport_trust_ends_when_the_migration_starts() {
 	});
 }
 
-#[test]
-fn the_warm_up_waits_for_revenue_the_pot_can_pay_until_it_is_claimed() {
-	new_test_ext().execute_with(|| {
-		// GIVEN a warm-up about to end, with on-demand revenue the Coretime chain has not claimed.
-		fund(&ALICE, 500);
-		let pot = OnDemand::account_id();
-		fund(&pot, 30);
-		record_on_demand_revenue(vec![0, 30]);
-		let end_at = System::block_number() + 2;
-		set_stage(Stage::WarmUp { end_at });
-
-		// WHEN its end passes. THEN it keeps warming up, and `RcMigratedBalance` is not set up yet.
-		run_blocks(5);
-		assert_stage(Stage::WarmUp { end_at });
-		assert!(!crate::RcMigratedBalance::<Test>::exists());
-
-		// WHEN a claim by the Coretime chain is simulated, removing the revenue from the pot.
-		assert_eq!(OnDemand::claim_revenue_until(System::block_number() + 1), 30);
-		fund(&pot, 0);
-
-		// THEN the warm-up ends, and `RcMigratedBalance` starts from the issuance after the
-		// claim.
-		run_blocks(1);
-		assert_stage(Stage::AccountsInit);
-		run_blocks(1);
-		assert_eq!(crate::RcMigratedBalance::<Test>::get().kept, 500);
-		assert_eq!(total_issuance(), 500);
-	});
-}
-
-/// `(amount, pot)` of every `OnDemandRevenueCleared` event so far.
-fn cleared_revenue_events() -> Vec<(u128, u128)> {
+/// `amount` of every `OnDemandRevenueCleared` event so far.
+fn cleared_revenue_events() -> Vec<u128> {
 	System::events()
 		.into_iter()
 		.filter_map(|record| match record.event {
-			RuntimeEvent::Rc2Migrator(Event::OnDemandRevenueCleared { amount, pot }) =>
-				Some((amount, pot)),
+			RuntimeEvent::Rc2Migrator(Event::OnDemandRevenueCleared { amount }) => Some(amount),
 			_ => None,
 		})
 		.collect()
 }
 
 #[test]
-fn the_warm_up_does_not_wait_for_revenue_the_pot_cannot_pay() {
+fn the_accounts_stage_clears_unclaimed_on_demand_revenue() {
 	new_test_ext().execute_with(|| {
-		// GIVEN a warm-up about to end and recorded on-demand revenue that the pot cannot cover.
-		// A claim for the full amount cannot succeed with this pot balance.
+		// GIVEN on-demand revenue the Coretime chain has not claimed, more than the pot holds.
 		fund(&ALICE, 500);
 		let pot = OnDemand::account_id();
 		fund(&pot, 10);
 		record_on_demand_revenue(vec![0, 30]);
-		let end_at = System::block_number() + 2;
-		set_stage(Stage::WarmUp { end_at });
 
-		// WHEN its end passes. THEN it ends on time.
-		run_blocks(2);
-		assert_stage(Stage::AccountsInit);
-
-		// WHEN the accounts stage starts. THEN the revenue record is cleared before
-		// `RcMigratedBalance` is set up, the pot is left for Sweep, and the issuance did not move.
+		// WHEN the accounts stage starts.
+		set_stage(Stage::AccountsInit);
 		run_blocks(1);
-		assert_eq!(cleared_revenue_events(), vec![(30, 10)]);
+
+		// THEN the record is cleared before `RcMigratedBalance` is set up, the pot is left for
+		// Sweep, and the issuance did not move.
+		assert_eq!(cleared_revenue_events(), vec![30]);
 		assert_eq!(OnDemand::claim_revenue_until(System::block_number() + 1), 0);
 		assert_eq!(free(&pot), 10);
 		assert_eq!(crate::RcMigratedBalance::<Test>::get().kept, 510);
-	});
-}
-
-#[test]
-fn the_warm_up_stops_waiting_for_a_claim_that_never_comes() {
-	new_test_ext().execute_with(|| {
-		// GIVEN a warm-up about to end, and on-demand revenue the pot can pay but that the
-		// Coretime chain never claims.
-		let pot = OnDemand::account_id();
-		fund(&pot, 30);
-		record_on_demand_revenue(vec![0, 30]);
-		let end_at = System::block_number() + 2;
-		set_stage(Stage::WarmUp { end_at });
-
-		// WHEN its end passes. THEN it waits for the claim, up to the grace period.
-		run_blocks(2 + REVENUE_CLAIM_GRACE - 1);
-		assert_stage(Stage::WarmUp { end_at });
-
-		// WHEN the grace period is over. THEN it ends, and the accounts stage clears the record.
-		run_blocks(1);
-		assert_stage(Stage::AccountsInit);
-		run_blocks(1);
-		assert_eq!(cleared_revenue_events(), vec![(30, 30)]);
-
-		// AND Sweep empties the on-demand pot.
-		set_stage(Stage::Sweep);
-		run_blocks(1);
-		assert_stage(Stage::SweepDust { last_key: None });
-		assert_eq!(free(&pot), 0);
 	});
 }
 

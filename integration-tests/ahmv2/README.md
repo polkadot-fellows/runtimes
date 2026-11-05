@@ -52,19 +52,14 @@ externalities without reloading from disk.
 
 ## What the harness does not run
 
-During simulated blocks, the harness runs `MessageQueue`, `Rc2Migrator` and `Treasury` hooks on
-the Relay Chain, and `MessageQueue` hooks on the Coretime chain and Asset Hub. Other pallet hooks
-do not run during those blocks, including:
+During simulated blocks, the harness runs `MessageQueue` and `Rc2Migrator` hooks on the Relay
+Chain, and `MessageQueue` hooks on the Coretime chain and Asset Hub. Other pallet hooks do not
+run during those blocks, including:
 
-- the on-demand, session and parachain hooks on the Relay Chain;
+- the treasury, on-demand, session and parachain hooks on the Relay Chain;
 - the broker hook on the Coretime chain, so nothing claims on-demand revenue;
 - the DAP and treasury hooks on Asset Hub. `SweepChecker` runs the DAP hook on Polkadot or the
   treasury hook on Kusama once at the end to check inactive issuance.
-
-Calls are dispatched directly, so there are no transaction fees. The block number jumps over the
-warm-up and any wait for on-demand revenue claims. A passing test does not show how omitted hooks
-or fees affect the migration. On chain, the migrator's per-block check reports a mismatch between
-the recorded remaining balance and total issuance, but cannot detect transfers between accounts.
 
 Every produced block asserts that consumed weight stays below 80% of the block limit and, unless
 a test opts out to judge one message itself, that no `MessageQueue` failure event was emitted. Every shuttled message is decoded

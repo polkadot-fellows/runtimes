@@ -52,11 +52,7 @@ use frame_support::{
 	pallet_prelude::*,
 	sp_runtime::traits::Saturating,
 	storage::with_storage_layer,
-	traits::{
-		fungible::Inspect,
-		tokens::{Fortitude, Preservation},
-		Contains, EnsureOrigin, GetCallMetadata, Time,
-	},
+	traits::{Contains, EnsureOrigin, GetCallMetadata, Time},
 };
 use frame_system::pallet_prelude::*;
 use migrator_types::{PortableAccount, PortableProxyType};
@@ -178,13 +174,11 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// to receive the migration data.
 	WaitingForCt,
 	WarmUp {
-		/// The earliest block at which the warm-up can end. A pause does not change it.
+		/// The block number at which the warm-up period will end. It is absolute and a pause
+		/// does not move it.
 		///
-		/// At or after this block, the warm-up waits for the Coretime chain to claim the recorded
-		/// on-demand revenue if the pot can pay the full amount. It waits at most
-		/// [`Config::RevenueClaimGrace`] blocks past this block; a pause does not extend that
-		/// deadline. Once the warm-up ends, the Relay Chain starts sending migration data to the
-		/// Coretime chain.
+		/// After the warm-up period ends, the Relay Chain will start to send the migration data
+		/// to the Coretime chain.
 		end_at: BlockNumber,
 	},
 	/// Initializing the account migration process.
@@ -304,8 +298,7 @@ pub mod pallet {
 		> + pallet_balances::Config<Balance = u128>
 		+ paras_registrar::Config<Currency = pallet_balances::Pallet<Self>>
 		+ runtime_parachains::hrmp::Config
-		// The warm-up waits for the Coretime chain to claim on-demand revenue the pot can pay, and
-		// `AccountsInit` clears what is left of the record.
+		// `AccountsInit` clears the on-demand revenue record.
 		+ runtime_parachains::on_demand::Config<Currency = pallet_balances::Pallet<Self>>
 		// The runtime says which proxy permissions have a meaning on the Coretime chain.
 		+ pallet_proxy::Config<
@@ -359,12 +352,6 @@ pub mod pallet {
 		/// The account on Asset Hub that receives swept pot balances and the portion of Asset Hub's
 		/// Relay Chain sovereign balance destined for Asset Hub.
 		type SweepBeneficiary: Get<Self::AccountId>;
-
-		/// The maximum extra time, in blocks, that the warm-up waits for the Coretime chain to
-		/// claim on-demand revenue the pot can pay. The Coretime broker requests revenue once per
-		/// timeslice, so two timeslices allow more than one attempt. `AccountsInit` clears any
-		/// unclaimed revenue from the record.
-		type RevenueClaimGrace: Get<BlockNumberFor<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -495,9 +482,8 @@ pub mod pallet {
 		/// A pot was emptied. Its balance is sent to the sweep beneficiary with the other swept
 		/// balances.
 		PotSwept { who: T::AccountId, amount: u128 },
-		/// Unclaimed on-demand revenue was cleared from the on-demand pallet's record. `pot` is
-		/// the pot's balance at that point; Sweep empties it later.
-		OnDemandRevenueCleared { amount: u128, pot: u128 },
+		/// Unclaimed on-demand revenue was cleared from the on-demand pallet's record.
+		OnDemandRevenueCleared { amount: u128 },
 	}
 
 	#[pallet::hooks]
@@ -515,10 +501,9 @@ pub mod pallet {
 		/// - `start`: The wall-clock time at which the migration will start.
 		/// - `warm_up`: Duration in blocks used to prepare for the migration. Calls are filtered
 		///   during this period. It is intended to give enough time for UMP and DMP queues to
-		///   empty. Counted from the transition to the warm-up stage. Should be longer than one
+		///   empty. Counted from the transition to the warm-up stage. Must be longer than one
 		///   Coretime timeslice: on-demand orders close at the start, and the Coretime chain claims
-		///   the revenue earned before it at its next timeslice boundary. If the pot can pay the
-		///   unclaimed revenue, the warm-up may extend by up to [`Config::RevenueClaimGrace`].
+		///   the revenue earned before it at its next timeslice boundary.
 		/// - `cool_off`: Duration in blocks of the post migration cool-off period. Counted from the
 		///   transition to the cool-off stage.
 		///
@@ -719,38 +704,17 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(3, 3)
 				},
 				MigrationStage::WarmUp { end_at } if now >= end_at => {
-					// Give the Coretime chain time to claim the on-demand revenue, so it reaches
-					// the broker. A claim takes it out of the on-demand pot and fails whole if the
-					// pot cannot pay it, so only revenue the pot can pay is worth waiting for, and
-					// only for a while: the Coretime chain might never claim. `AccountsInit` clears
-					// whatever is left.
-					let unclaimed = Self::unclaimed_on_demand_revenue(now);
-					let payable = unclaimed != 0 && unclaimed <= Self::on_demand_pot_reducible();
-					let waited_enough = now >= end_at.saturating_add(T::RevenueClaimGrace::get());
-					if payable && !waited_enough {
-						log::info!(
-							target: LOG_TARGET,
-							"Warm-up waits for {unclaimed} of on-demand revenue to be claimed"
-						);
-						return T::DbWeight::get().reads_writes(4, 0);
-					}
 					Self::transition(MigrationStage::AccountsInit);
-					T::DbWeight::get().reads_writes(4, 1)
+					T::DbWeight::get().reads_writes(1, 1)
 				},
 				// Explicit invariant, from here until `MigrationDone`: only this pallet transfers
 				// balance between accounts or changes the total issuance.
-				// TODO(ahm-v2): transaction fees break the invariant. Any account can submit a call
-				// to this pallet, because its calls check their origin themselves, and a signed
-				// transaction pays its fee even if the call fails. The fee goes to the treasury pot
-				// and to the block author, whose account may already have been emptied. Once Sweep
-				// has removed the treasury account, a fee share below the existential deposit is
-				// burned without being recorded. Tips are charged even on calls that waive their
-				// fee. For now, `check_kept_equals_issuance` reports any effect on the total
-				// issuance. To fix it, refuse signed transactions during the migration, except
-				// the manager's, and make the manager's calls free.
-				// TODO(ahm-v2): We currently have some deposits locked for AH HRMP channels which
-				// were opened before we made channel opening free for system parachains. Do we want
-				// to poke these channels here to free up to reclaim these deposits?
+				// TODO(ahm-v2): transaction fees break the invariant: they go to the treasury pot
+				// and the block author. To fix it, refuse signed transactions during the migration,
+				// except the manager's, and make the manager's calls free.
+				// TODO(ahm-v2): should channels with a system chain that still hold deposits from
+				// before such channels became free be poked here, so the deposits are refunded?
+				// Picked for now: no, the deposits go to the Coretime chain as holds.
 				MigrationStage::AccountsInit => {
 					// Clear the on-demand revenue record before `kept` is set. Otherwise a later
 					// claim could withdraw from the on-demand pot without this pallet recording it.
@@ -833,8 +797,6 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::Sweep => {
-					// `AccountsInit` cleared the on-demand revenue record, so no claim can take
-					// anything out of the on-demand pot once it is burned here.
 					// Burns and the send commit or roll back together.
 					match with_storage_layer(Self::sweep_pots) {
 						Ok(()) => Self::transition(MigrationStage::SweepDust { last_key: None }),
@@ -918,49 +880,18 @@ pub mod pallet {
 			Ok(last_key)
 		}
 
-		/// On-demand revenue recorded on this chain that the Coretime chain has not claimed yet.
-		///
-		/// The on-demand pallet's revenue record is private. A hypothetical claim reads the amount
-		/// and rolls back the claim's changes. Claiming until `now + 1` covers every recorded
-		/// block.
-		fn unclaimed_on_demand_revenue(now: BlockNumberFor<T>) -> u128 {
-			frame_support::hypothetically!(
-				runtime_parachains::on_demand::Pallet::<T>::claim_revenue_until(
-					now.saturating_add(1u32.into())
-				)
-			)
-		}
-
-		/// What a claim could take out of the on-demand pot: it withdraws the way the XCM
-		/// fungible adapter does, expendable and polite.
-		fn on_demand_pot_reducible() -> u128 {
-			<pallet_balances::Pallet<T> as Inspect<T::AccountId>>::reducible_balance(
-				&runtime_parachains::on_demand::Pallet::<T>::account_id(),
-				Preservation::Expendable,
-				Fortitude::Polite,
-			)
-		}
-
 		/// Clear unclaimed on-demand revenue from the record before `RcMigratedBalance` is set up.
-		/// The pot's balance stays on the Relay Chain for Sweep.
-		// TODO(ahm-v2): should revenue the pot can pay, but that nobody claimed, go to the broker
-		// instead of the sweep beneficiary? And should the Coretime chain be told what is
-		// cleared? Nothing keeps the record backed by the pot: an order paid with credits adds its
-		// price to the record, but the credits were paid for on the Coretime chain, so nothing
-		// reaches the pot, and a claim of it fails whole. Picked for now: clear the record here and
-		// report it with `OnDemandRevenueCleared`; Sweep sends the pot to the beneficiary, and the
-		// warm-up waits for claims the pot can pay to keep that rare. The failing claim is to be
-		// reported upstream.
+		/// The pot's balance stays here for Sweep.
+		// TODO(ahm-v2): should unclaimed revenue go to the broker instead of the sweep
+		// beneficiary, and should the Coretime chain be told? Picked for now: clear it and report
+		// it with `OnDemandRevenueCleared`.
 		fn clear_on_demand_revenue(now: BlockNumberFor<T>) {
 			let amount = runtime_parachains::on_demand::Pallet::<T>::claim_revenue_until(
 				now.saturating_add(1u32.into()),
 			);
 			if amount != 0 {
-				let pot = <pallet_balances::Pallet<T> as Inspect<T::AccountId>>::total_balance(
-					&runtime_parachains::on_demand::Pallet::<T>::account_id(),
-				);
 				log::warn!(target: LOG_TARGET, "Cleared {amount} of unclaimed on-demand revenue");
-				Self::deposit_event(Event::OnDemandRevenueCleared { amount, pot });
+				Self::deposit_event(Event::OnDemandRevenueCleared { amount });
 			}
 		}
 
@@ -983,20 +914,11 @@ pub mod pallet {
 			}
 		}
 
-		/// Stop this chain's treasury hook from spending out of its pot.
+		/// Stop the treasury's spend periods, which burn or pay out of its pot without this pallet
+		/// recording it. Removing `LastSpendPeriod` would not work: the hook sets it again.
 		///
-		/// Once a whole spend period has passed since `pallet_treasury::LastSpendPeriod`, the
-		/// treasury hook may fund approved bounties and proposals or burn or redirect a share of
-		/// the pot. These actions move balance without this pallet recording it in
-		/// `RcMigratedBalance`, so `kept` could exceed total issuance or balance could reach
-		/// accounts already migrated. Setting `LastSpendPeriod` to the highest block number stops
-		/// further spend periods unless the value is changed again. Removing it would not work:
-		/// the hook sets it again when missing. The rest of the hook keeps running.
-		///
-		/// The migration does not restore the value afterwards. AHM v1 moved the treasury's
-		/// proposals, spends and bounties to Asset Hub, and the runtime's `PostAhmFilter` blocks
-		/// ordinary Treasury and Bounties calls. Sweep also empties the pot. Restoring
-		/// the value would allow a later spend period to burn or move any funds that reach it.
+		/// Not restored after the migration: since AHM v1 the treasury has nothing to pay out here,
+		/// and a spend period would only burn whatever reaches the pot.
 		fn stop_treasury_spending() {
 			pallet_treasury::LastSpendPeriod::<T>::put(
 				<pallet_treasury::BlockNumberFor<T> as Bounded>::max_value(),
@@ -1032,11 +954,6 @@ pub mod pallet {
 		}
 
 		/// Teleport balances to Asset Hub, with one deposit per beneficiary.
-		///
-		/// In the accounts stage every amount is at least this chain's existential deposit, which
-		/// is above Asset Hub's, so each deposit can create its account there. Sweep's total has no
-		/// such floor, because a pot can hold less than the existential deposit. A deposit below
-		/// Asset Hub's existential deposit only lands if the account already exists there.
 		fn send_teleport(beneficiaries: Vec<(T::AccountId, u128)>) -> Result<(), Error<T>> {
 			// the native token, as Asset Hub names it
 			let native = |amount: u128| Asset {

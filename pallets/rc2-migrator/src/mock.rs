@@ -353,8 +353,6 @@ pub const AH_PARA_ID: u32 = 1000;
 pub const CT_FREE_BUFFER: u128 = 100;
 pub const WARM_UP: u64 = 4;
 pub const COOL_OFF: u64 = 10;
-/// How long past its end the warm-up waits for on-demand revenue the pot can pay.
-pub const REVENUE_CLAIM_GRACE: u64 = 8;
 /// Relay-chain block time
 pub const BLOCK_TIME_MS: u64 = 6_000;
 
@@ -418,7 +416,6 @@ parameter_types! {
 	pub MockPots: Vec<AccountId> =
 		vec![pallet_account(), other_pot(), TreasuryAccount::get(), OnDemand::account_id()];
 	pub const SweepBeneficiary: AccountId = SWEEP_BENEFICIARY;
-	pub const RevenueClaimGrace: u64 = REVENUE_CLAIM_GRACE;
 }
 
 impl pallet_rc2_migrator::Config for Test {
@@ -435,7 +432,6 @@ impl pallet_rc2_migrator::Config for Test {
 	type PostMigrationCalls = TaggedRemark<POST_MIGRATION>;
 	type SweptAccounts = MockPots;
 	type SweepBeneficiary = SweepBeneficiary;
-	type RevenueClaimGrace = RevenueClaimGrace;
 }
 
 /// Tags for [`TaggedRemark`], one per call set.

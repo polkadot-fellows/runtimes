@@ -46,28 +46,20 @@ impl<T: Config> SweepMigrator<T> {
 
 	/// Burn everything `pot` holds and return the amount.
 	///
-	/// The pot is emptied by writing its storage directly, not through the balances pallet. The
-	/// balances pallet refuses to release a hold if the free balance would stay below the
-	/// existential deposit, and destroys a balance below it as dust without this pallet recording
-	/// it. Writing the storage directly cannot fail and creates no dust.
-	///
-	/// The empty account is removed, unless another pallet still references it or provides for
-	/// it, as the on-demand pallet does for its pot. It then stays as a record with no balance.
+	/// Writes the pot's storage directly: the balances pallet can refuse to release a hold, or
+	/// destroy a balance below the existential deposit as dust, and this must not fail.
 	fn burn_pot(pot: &T::AccountId) -> u128 {
 		if !frame_system::Account::<T>::contains_key(pot) {
 			return 0;
 		}
-		// All of a pot goes to the beneficiary: its reserves, holds, locks and freezes are burned
-		// with its free balance. They do not go to the Coretime chain as holds, as an account's
-		// deposits do in the accounts stage.
+		// all of it goes to the beneficiary, deposits included; nothing goes to the Coretime chain
 
-		// The reference counts below follow the balances pallet's current rules. This brings an
-		// account it has not touched since those rules came in up to date. It cannot fail.
+		// so the reference counts below follow the balances pallet's current rules
 		NativeCurrency::<T>::ensure_upgraded(pot);
 		let balance = frame_system::Account::<T>::get(pot).data;
 		let total = balance.free.saturating_add(balance.reserved);
-		// The balances pallet holds a provider reference while the free balance is at least the
-		// existential deposit, and one consumer reference while anything is reserved or frozen.
+		// the balances pallet's references: a provider while free is at least the existential
+		// deposit, a consumer while anything is reserved or frozen
 		let balances_provides =
 			balance.free >= <NativeCurrency<T> as Inspect<T::AccountId>>::minimum_balance();
 		let balances_consumes = !balance.reserved.is_zero() || !balance.frozen.is_zero();

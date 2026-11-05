@@ -15,7 +15,7 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 //! Checks of the Sweep stage: the Relay Chain pots end empty, the beneficiary's balance matches
-//! the expected range, and inactive issuance changes as expected on both chains.
+//! the expected range, and Asset Hub marks what arrived inactive.
 
 use crate::{
 	checks::{ParaMigrationCheck, RcMigrationCheck},
@@ -38,9 +38,6 @@ pub struct RcSweepPre {
 	/// The whole balance of Asset Hub's own sovereign here. The accounts stage sends part of it to
 	/// the same beneficiary.
 	pub ah_sovereign: u128,
-	/// What the treasury had marked inactive, and the chain's inactive issuance.
-	pub treasury_deactivated: u128,
-	pub inactive_issuance: u128,
 }
 
 fn total<T>(who: &AccountId32) -> u128
@@ -53,7 +50,7 @@ where
 	frame_system::Account::<T>::get(who).data.total()
 }
 
-/// Check the pots, the beneficiary's balance and the change in inactive issuance.
+/// Check the pots, the beneficiary's balance and what Asset Hub marks inactive.
 pub struct SweepChecker;
 
 impl RcMigrationCheck for SweepChecker {
@@ -75,8 +72,6 @@ impl RcMigrationCheck for SweepChecker {
 			pots,
 			beneficiary: <Rc as pallet_rc2_migrator::Config>::SweepBeneficiary::get(),
 			ah_sovereign: total::<Rc>(&ah_sovereign),
-			treasury_deactivated: pallet_treasury::Deactivated::<Rc>::get(),
-			inactive_issuance: pallet_balances::InactiveIssuance::<Rc>::get(),
 		}
 	}
 
@@ -84,14 +79,6 @@ impl RcMigrationCheck for SweepChecker {
 		for (pot, _) in &rc_pre.pots {
 			assert_eq!(total::<Rc>(pot), 0, "pot {pot:?} should be empty");
 		}
-
-		// Once its pot is empty, the treasury's hook undoes its mark and clears its record. No
-		// other inactive issuance moved.
-		assert_eq!(pallet_treasury::Deactivated::<Rc>::get(), 0);
-		assert_eq!(
-			pallet_balances::InactiveIssuance::<Rc>::get(),
-			rc_pre.inactive_issuance.saturating_sub(rc_pre.treasury_deactivated),
-		);
 
 		let swept = rc_pre.pots.iter().map(|(_, amount)| amount).sum();
 		log::info!(
