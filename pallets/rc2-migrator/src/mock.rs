@@ -142,6 +142,7 @@ impl parachains_hrmp::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type ChannelManager = EnsureRoot<AccountId>;
 	type Currency = Balances;
+	type DepositProvider = Hrmp;
 	type DefaultChannelSizeAndCapacityWithSystem = DefaultChannelSizeAndCapacityWithSystem;
 	type VersionWrapper = ();
 	type WeightInfo = parachains_hrmp::TestWeightInfo;

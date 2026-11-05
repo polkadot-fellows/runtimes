@@ -19,7 +19,9 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{Config, Error, Event, ExpectedReserves, Limits, Pallet, LOG_TARGET};
+use crate::{
+	hrmp::HrmpMigrator, Config, Error, Event, ExpectedReserves, Limits, Pallet, LOG_TARGET,
+};
 use alloc::vec::Vec;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use core::marker::PhantomData;
@@ -34,11 +36,12 @@ use frame_support::{
 	BoundedVec,
 };
 use migrator_types::{
-	MaxPortableHolds, PortableAccount, PortableHold, PortableHoldReason, PortableProxyType,
+	DepositKey, MaxPortableHolds, PortableAccount, PortableHold, PortableHoldReason,
+	PortableProxyType,
 };
-use polkadot_parachain_primitives::primitives::IsSystem;
+use polkadot_parachain_primitives::primitives::Id as ParaId;
 use polkadot_runtime_common::paras_registrar;
-use runtime_parachains::{configuration, hrmp};
+use runtime_parachains::hrmp;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, Zero},
@@ -153,38 +156,25 @@ impl<T: Config> AccountsMigrator<T> {
 		}
 
 		// HRMP channel deposits, reserved on both sovereigns. A channel about to close returns
-		// them, so they are refunded.
+		// them, so they are refunded. Read as the HRMP stage sends them, so the holds cover
+		// what arrives.
 		for (id, channel) in hrmp::HrmpChannels::<T>::iter() {
-			let kind = if hrmp::HrmpCloseChannelRequests::<T>::contains_key(&id) {
+			let kind = if HrmpMigrator::<T>::is_closing(&id) {
 				DepositKind::Refund
 			} else {
 				DepositKind::Hrmp
 			};
-			Self::add_expected(id.sender.into_account_truncating(), kind, channel.sender_deposit);
-			Self::add_expected(
-				id.recipient.into_account_truncating(),
-				kind,
-				channel.recipient_deposit,
-			);
+			for deposit in HrmpMigrator::<T>::of_channel(&id, &channel) {
+				Self::add_expected(Self::payer(&deposit.key), kind, deposit.amount);
+			}
 			records += 1;
 		}
 
-		// HRMP open-request deposits. The recipient's is reserved on acceptance at the active
-		// configuration's value and only recorded once the channel opens; zero when either side
-		// is a system chain.
-		let recipient_deposit = configuration::ActiveConfig::<T>::get().hrmp_recipient_deposit;
+		// HRMP open-request deposits, the recipient's included once accepted.
+		let recipient_deposit = HrmpMigrator::<T>::recipient_deposit();
 		for (id, request) in hrmp::HrmpOpenChannelRequests::<T>::iter() {
-			Self::add_expected(
-				id.sender.into_account_truncating(),
-				DepositKind::Hrmp,
-				request.sender_deposit,
-			);
-			if request.confirmed && !id.sender.is_system() && !id.recipient.is_system() {
-				Self::add_expected(
-					id.recipient.into_account_truncating(),
-					DepositKind::Hrmp,
-					recipient_deposit,
-				);
+			for deposit in HrmpMigrator::<T>::of_request(&id, &request, recipient_deposit) {
+				Self::add_expected(Self::payer(&deposit.key), DepositKind::Hrmp, deposit.amount);
 			}
 			records += 1;
 		}
@@ -266,6 +256,11 @@ impl<T: Config> AccountsMigrator<T> {
 		defs.iter()
 			.find(|d| Self::portable(&d.proxy_type) == Some(PortableProxyType::Any))
 			.map(|d| &d.delegate)
+	}
+
+	/// The Relay Chain sovereign of the para that pays an HRMP deposit, `para` + id.
+	fn payer(key: &DepositKey) -> T::AccountId {
+		ParaId::from(key.para()).into_account_truncating()
 	}
 
 	/// Add `amount` to `who`'s expected reserve of `kind`.
