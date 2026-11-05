@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Asset Hub Polkadot: add the `dotns_maintenance` OpenGov track for the operational values of dotNS: reservation and release timings, claim windows and size caps of the dotNS contracts, and the dotNS limits of the gateway pallet ([#TBD](https://github.com/polkadot-fellows/runtimes/pull/TBD)).
+- Asset Hub Polkadot: add the `dotns_maintenance` OpenGov track for the maintenance of dotNS operational values ([#1350](https://github.com/polkadot-fellows/runtimes/pull/1350)).
 
 ### Changed
 

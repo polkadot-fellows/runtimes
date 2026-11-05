@@ -81,13 +81,8 @@ pub mod pallet_custom_origins {
 		/// goes wrong. Wider administrative powers, such as fees, debt ceilings and asset
 		/// composition, stay on stricter paths until deliberately wired here.
 		ProsperityEmergency,
-		/// Origin for maintenance of dotNS operational values: reservation and release timings,
-		/// claim windows and size caps of the dotNS contracts, and the dotNS limits of the
-		/// gateway pallet.
-		///
-		/// Each of these values is bounded by a constant in its contract or in the runtime. The
-		/// origin decides no name, moves no funds, sets no prices and cannot upgrade or rewire
-		/// dotNS: those stay on Root.
+		/// Origin for maintenance of dotNS operational values, in its contracts and in the
+		/// runtime: durations, windows, size caps, call limits and similar settings.
 		DotnsMaintenance,
 	}
 
