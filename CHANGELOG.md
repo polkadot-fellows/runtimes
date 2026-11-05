@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Asset Hub Polkadot and Kusama: the Fellowship controls the `Scheduler` and `MessageQueue` technical parameters ([#1346](https://github.com/polkadot-fellows/runtimes/pull/1346)).
+- All runtimes: proxy types list every allowed call explicitly instead of allowing whole pallets. No proxy type gains or loses a call today, but a call added by a future pallet upgrade is denied until it is added to the list ([#1347](https://github.com/polkadot-fellows/runtimes/issues/1347)).
 
 ### Fixed
 

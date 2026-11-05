@@ -198,31 +198,237 @@ pub enum ProxyType {
 	BazaarEdit,
 }
 
+macro_rules! collator_selection_calls {
+	() => {
+		pallet_collator_selection::Call::set_invulnerables { .. } |
+			pallet_collator_selection::Call::set_desired_candidates { .. } |
+			pallet_collator_selection::Call::set_candidacy_bond { .. } |
+			pallet_collator_selection::Call::register_as_candidate { .. } |
+			pallet_collator_selection::Call::leave_intent { .. } |
+			pallet_collator_selection::Call::add_invulnerable { .. } |
+			pallet_collator_selection::Call::remove_invulnerable { .. } |
+			pallet_collator_selection::Call::update_bond { .. } |
+			pallet_collator_selection::Call::take_candidate_slot { .. }
+	};
+}
+
+macro_rules! collective_calls {
+	() => {
+		pallet_collective::Call::set_members { .. } |
+			pallet_collective::Call::execute { .. } |
+			pallet_collective::Call::propose { .. } |
+			pallet_collective::Call::vote { .. } |
+			pallet_collective::Call::disapprove_proposal { .. } |
+			pallet_collective::Call::close { .. } |
+			pallet_collective::Call::kill { .. } |
+			pallet_collective::Call::release_proposal_cost { .. }
+	};
+}
+
+macro_rules! cumulus_pallet_parachain_system_calls {
+	() => {
+		cumulus_pallet_parachain_system::Call::set_validation_data { .. } |
+			cumulus_pallet_parachain_system::Call::sudo_send_upward_message { .. }
+	};
+}
+
+macro_rules! encointer_bazaar_calls {
+	() => {
+		pallet_encointer_bazaar::Call::create_business { .. } |
+			pallet_encointer_bazaar::Call::update_business { .. } |
+			pallet_encointer_bazaar::Call::delete_business { .. } |
+			pallet_encointer_bazaar::Call::create_offering { .. } |
+			pallet_encointer_bazaar::Call::update_offering { .. } |
+			pallet_encointer_bazaar::Call::delete_offering { .. }
+	};
+}
+
+macro_rules! encointer_ceremonies_calls {
+	() => {
+		pallet_encointer_ceremonies::Call::register_participant { .. } |
+			pallet_encointer_ceremonies::Call::upgrade_registration { .. } |
+			pallet_encointer_ceremonies::Call::unregister_participant { .. } |
+			pallet_encointer_ceremonies::Call::attest_attendees { .. } |
+			pallet_encointer_ceremonies::Call::endorse_newcomer { .. } |
+			pallet_encointer_ceremonies::Call::claim_rewards { .. } |
+			pallet_encointer_ceremonies::Call::set_inactivity_timeout { .. } |
+			pallet_encointer_ceremonies::Call::set_endorsement_tickets_per_bootstrapper { .. } |
+			pallet_encointer_ceremonies::Call::set_endorsement_tickets_per_reputable { .. } |
+			pallet_encointer_ceremonies::Call::set_reputation_lifetime { .. } |
+			pallet_encointer_ceremonies::Call::set_meetup_time_offset { .. } |
+			pallet_encointer_ceremonies::Call::set_time_tolerance { .. } |
+			pallet_encointer_ceremonies::Call::set_location_tolerance { .. } |
+			pallet_encointer_ceremonies::Call::purge_community_ceremony { .. }
+	};
+}
+
+macro_rules! encointer_communities_calls {
+	() => {
+		pallet_encointer_communities::Call::new_community { .. } |
+			pallet_encointer_communities::Call::add_location { .. } |
+			pallet_encointer_communities::Call::remove_location { .. } |
+			pallet_encointer_communities::Call::update_community_metadata { .. } |
+			pallet_encointer_communities::Call::update_demurrage { .. } |
+			pallet_encointer_communities::Call::update_nominal_income { .. } |
+			pallet_encointer_communities::Call::set_min_solar_trip_time_s { .. } |
+			pallet_encointer_communities::Call::set_max_speed_mps { .. } |
+			pallet_encointer_communities::Call::purge_community { .. }
+	};
+}
+
+macro_rules! encointer_democracy_calls {
+	() => {
+		pallet_encointer_democracy::Call::submit_proposal { .. } |
+			pallet_encointer_democracy::Call::vote { .. } |
+			pallet_encointer_democracy::Call::update_proposal_state { .. }
+	};
+}
+
+macro_rules! encointer_faucet_calls {
+	() => {
+		pallet_encointer_faucet::Call::create_faucet { .. } |
+			pallet_encointer_faucet::Call::drip { .. } |
+			pallet_encointer_faucet::Call::dissolve_faucet { .. } |
+			pallet_encointer_faucet::Call::close_faucet { .. } |
+			pallet_encointer_faucet::Call::set_reserve_amount { .. }
+	};
+}
+
+macro_rules! encointer_offline_payment_calls {
+	() => {
+		pallet_encointer_offline_payment::Call::register_offline_identity { .. } |
+			pallet_encointer_offline_payment::Call::submit_offline_payment { .. } |
+			pallet_encointer_offline_payment::Call::submit_native_offline_payment { .. } |
+			pallet_encointer_offline_payment::Call::set_verification_key { .. }
+	};
+}
+
+macro_rules! encointer_reputation_commitments_calls {
+	() => {
+		pallet_encointer_reputation_commitments::Call::register_purpose { .. } |
+			pallet_encointer_reputation_commitments::Call::commit_reputation { .. }
+	};
+}
+
+macro_rules! encointer_reputation_rings_calls {
+	() => {
+		pallet_encointer_reputation_rings::Call::register_bandersnatch_key { .. } |
+			pallet_encointer_reputation_rings::Call::initiate_rings { .. } |
+			pallet_encointer_reputation_rings::Call::continue_ring_computation { .. }
+	};
+}
+
+macro_rules! encointer_scheduler_calls {
+	() => {
+		pallet_encointer_scheduler::Call::next_phase { .. } |
+			pallet_encointer_scheduler::Call::push_by_one_day { .. } |
+			pallet_encointer_scheduler::Call::set_phase_duration { .. } |
+			pallet_encointer_scheduler::Call::set_next_phase_timestamp { .. }
+	};
+}
+
+macro_rules! encointer_treasuries_calls {
+	() => {
+		pallet_encointer_treasuries::Call::swap_native { .. } |
+			pallet_encointer_treasuries::Call::swap_asset { .. }
+	};
+}
+
+macro_rules! frame_system_calls {
+	() => {
+		frame_system::Call::remark { .. } |
+			frame_system::Call::set_heap_pages { .. } |
+			frame_system::Call::set_code { .. } |
+			frame_system::Call::set_code_without_checks { .. } |
+			frame_system::Call::set_storage { .. } |
+			frame_system::Call::kill_storage { .. } |
+			frame_system::Call::kill_prefix { .. } |
+			frame_system::Call::remark_with_event { .. } |
+			frame_system::Call::authorize_upgrade { .. } |
+			frame_system::Call::authorize_upgrade_without_checks { .. } |
+			frame_system::Call::apply_authorized_upgrade { .. }
+	};
+}
+
+macro_rules! membership_calls {
+	() => {
+		pallet_membership::Call::add_member { .. } |
+			pallet_membership::Call::remove_member { .. } |
+			pallet_membership::Call::swap_member { .. } |
+			pallet_membership::Call::reset_members { .. } |
+			pallet_membership::Call::change_key { .. } |
+			pallet_membership::Call::set_prime { .. } |
+			pallet_membership::Call::clear_prime { .. }
+	};
+}
+
+macro_rules! proxy_calls {
+	() => {
+		pallet_proxy::Call::proxy { .. } |
+			pallet_proxy::Call::add_proxy { .. } |
+			pallet_proxy::Call::remove_proxy { .. } |
+			pallet_proxy::Call::remove_proxies { .. } |
+			pallet_proxy::Call::create_pure { .. } |
+			pallet_proxy::Call::kill_pure { .. } |
+			pallet_proxy::Call::announce { .. } |
+			pallet_proxy::Call::remove_announcement { .. } |
+			pallet_proxy::Call::reject_announcement { .. } |
+			pallet_proxy::Call::proxy_announced { .. } |
+			pallet_proxy::Call::poke_deposit { .. }
+	};
+}
+
+macro_rules! session_calls {
+	() => {
+		pallet_session::Call::set_keys { .. } | pallet_session::Call::purge_keys { .. }
+	};
+}
+
+macro_rules! timestamp_calls {
+	() => {
+		pallet_timestamp::Call::set { .. }
+	};
+}
+
+macro_rules! utility_calls {
+	() => {
+		pallet_utility::Call::batch { .. } |
+			pallet_utility::Call::as_derivative { .. } |
+			pallet_utility::Call::batch_all { .. } |
+			pallet_utility::Call::dispatch_as { .. } |
+			pallet_utility::Call::force_batch { .. } |
+			pallet_utility::Call::with_weight { .. } |
+			pallet_utility::Call::if_else { .. } |
+			pallet_utility::Call::dispatch_as_fallible { .. }
+	};
+}
+
 impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::System(_) |
-					RuntimeCall::ParachainSystem(_) |
-					RuntimeCall::Timestamp(_) |
-					RuntimeCall::CollatorSelection(_) |
-					RuntimeCall::Session(_) |
-					RuntimeCall::Utility(_) |
-					RuntimeCall::Proxy(_) |
-					RuntimeCall::Collective(_) |
-					RuntimeCall::Membership(_) |
-					RuntimeCall::EncointerScheduler(_) |
-					RuntimeCall::EncointerCeremonies(_) |
-					RuntimeCall::EncointerCommunities(_) |
-					RuntimeCall::EncointerBazaar(_) |
-					RuntimeCall::EncointerReputationCommitments(_) |
-					RuntimeCall::EncointerFaucet(_) |
-					RuntimeCall::EncointerDemocracy(_) |
-					RuntimeCall::EncointerTreasuries(_) |
-					RuntimeCall::EncointerOfflinePayment(_) |
-					RuntimeCall::EncointerReputationRings(_)
+				RuntimeCall::System(frame_system_calls!()) |
+					RuntimeCall::ParachainSystem(cumulus_pallet_parachain_system_calls!()) |
+					RuntimeCall::Timestamp(timestamp_calls!()) |
+					RuntimeCall::CollatorSelection(collator_selection_calls!()) |
+					RuntimeCall::Session(session_calls!()) |
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Proxy(proxy_calls!()) |
+					RuntimeCall::Collective(collective_calls!()) |
+					RuntimeCall::Membership(membership_calls!()) |
+					RuntimeCall::EncointerScheduler(encointer_scheduler_calls!()) |
+					RuntimeCall::EncointerCeremonies(encointer_ceremonies_calls!()) |
+					RuntimeCall::EncointerCommunities(encointer_communities_calls!()) |
+					RuntimeCall::EncointerBazaar(encointer_bazaar_calls!()) |
+					RuntimeCall::EncointerReputationCommitments(
+						encointer_reputation_commitments_calls!()
+					) | RuntimeCall::EncointerFaucet(encointer_faucet_calls!()) |
+					RuntimeCall::EncointerDemocracy(encointer_democracy_calls!()) |
+					RuntimeCall::EncointerTreasuries(encointer_treasuries_calls!()) |
+					RuntimeCall::EncointerOfflinePayment(encointer_offline_payment_calls!()) |
+					RuntimeCall::EncointerReputationRings(encointer_reputation_rings_calls!())
 			),
 			ProxyType::BazaarEdit => matches!(
 				c,

@@ -357,77 +357,264 @@ macro_rules! own_salary_call {
 	};
 }
 
+macro_rules! alliance_calls {
+	() => {
+		pallet_alliance::Call::propose { .. } |
+			pallet_alliance::Call::vote { .. } |
+			pallet_alliance::Call::init_members { .. } |
+			pallet_alliance::Call::disband { .. } |
+			pallet_alliance::Call::set_rule { .. } |
+			pallet_alliance::Call::announce { .. } |
+			pallet_alliance::Call::remove_announcement { .. } |
+			pallet_alliance::Call::join_alliance { .. } |
+			pallet_alliance::Call::nominate_ally { .. } |
+			pallet_alliance::Call::elevate_ally { .. } |
+			pallet_alliance::Call::give_retirement_notice { .. } |
+			pallet_alliance::Call::retire { .. } |
+			pallet_alliance::Call::kick_member { .. } |
+			pallet_alliance::Call::add_unscrupulous_items { .. } |
+			pallet_alliance::Call::remove_unscrupulous_items { .. } |
+			pallet_alliance::Call::close { .. } |
+			pallet_alliance::Call::abdicate_fellow_status { .. }
+	};
+}
+
+macro_rules! collator_selection_calls {
+	() => {
+		pallet_collator_selection::Call::set_invulnerables { .. } |
+			pallet_collator_selection::Call::set_desired_candidates { .. } |
+			pallet_collator_selection::Call::set_candidacy_bond { .. } |
+			pallet_collator_selection::Call::register_as_candidate { .. } |
+			pallet_collator_selection::Call::leave_intent { .. } |
+			pallet_collator_selection::Call::add_invulnerable { .. } |
+			pallet_collator_selection::Call::remove_invulnerable { .. } |
+			pallet_collator_selection::Call::update_bond { .. } |
+			pallet_collator_selection::Call::take_candidate_slot { .. }
+	};
+}
+
+macro_rules! collective_calls {
+	() => {
+		pallet_collective::Call::set_members { .. } |
+			pallet_collective::Call::execute { .. } |
+			pallet_collective::Call::propose { .. } |
+			pallet_collective::Call::vote { .. } |
+			pallet_collective::Call::disapprove_proposal { .. } |
+			pallet_collective::Call::close { .. } |
+			pallet_collective::Call::kill { .. } |
+			pallet_collective::Call::release_proposal_cost { .. }
+	};
+}
+
+macro_rules! core_fellowship_calls {
+	() => {
+		pallet_core_fellowship::Call::bump { .. } |
+			pallet_core_fellowship::Call::set_params { .. } |
+			pallet_core_fellowship::Call::set_active { .. } |
+			pallet_core_fellowship::Call::approve { .. } |
+			pallet_core_fellowship::Call::induct { .. } |
+			pallet_core_fellowship::Call::promote { .. } |
+			pallet_core_fellowship::Call::promote_fast { .. } |
+			pallet_core_fellowship::Call::offboard { .. } |
+			pallet_core_fellowship::Call::submit_evidence { .. } |
+			pallet_core_fellowship::Call::import { .. } |
+			pallet_core_fellowship::Call::import_member { .. } |
+			pallet_core_fellowship::Call::set_partial_params { .. }
+	};
+}
+
+macro_rules! cumulus_pallet_parachain_system_calls {
+	() => {
+		cumulus_pallet_parachain_system::Call::set_validation_data { .. } |
+			cumulus_pallet_parachain_system::Call::sudo_send_upward_message { .. }
+	};
+}
+
+macro_rules! frame_system_calls {
+	() => {
+		frame_system::Call::remark { .. } |
+			frame_system::Call::set_heap_pages { .. } |
+			frame_system::Call::set_code { .. } |
+			frame_system::Call::set_code_without_checks { .. } |
+			frame_system::Call::set_storage { .. } |
+			frame_system::Call::kill_storage { .. } |
+			frame_system::Call::kill_prefix { .. } |
+			frame_system::Call::remark_with_event { .. } |
+			frame_system::Call::authorize_upgrade { .. } |
+			frame_system::Call::authorize_upgrade_without_checks { .. } |
+			frame_system::Call::apply_authorized_upgrade { .. }
+	};
+}
+
+macro_rules! multisig_calls {
+	() => {
+		pallet_multisig::Call::as_multi_threshold_1 { .. } |
+			pallet_multisig::Call::as_multi { .. } |
+			pallet_multisig::Call::approve_as_multi { .. } |
+			pallet_multisig::Call::cancel_as_multi { .. } |
+			pallet_multisig::Call::poke_deposit { .. }
+	};
+}
+
+macro_rules! preimage_calls {
+	() => {
+		pallet_preimage::Call::note_preimage { .. } |
+			pallet_preimage::Call::unnote_preimage { .. } |
+			pallet_preimage::Call::request_preimage { .. } |
+			pallet_preimage::Call::unrequest_preimage { .. } |
+			pallet_preimage::Call::ensure_updated { .. }
+	};
+}
+
+macro_rules! proxy_calls {
+	() => {
+		pallet_proxy::Call::proxy { .. } |
+			pallet_proxy::Call::add_proxy { .. } |
+			pallet_proxy::Call::remove_proxy { .. } |
+			pallet_proxy::Call::remove_proxies { .. } |
+			pallet_proxy::Call::create_pure { .. } |
+			pallet_proxy::Call::kill_pure { .. } |
+			pallet_proxy::Call::announce { .. } |
+			pallet_proxy::Call::remove_announcement { .. } |
+			pallet_proxy::Call::reject_announcement { .. } |
+			pallet_proxy::Call::proxy_announced { .. } |
+			pallet_proxy::Call::poke_deposit { .. }
+	};
+}
+
+macro_rules! ranked_collective_calls {
+	() => {
+		pallet_ranked_collective::Call::add_member { .. } |
+			pallet_ranked_collective::Call::promote_member { .. } |
+			pallet_ranked_collective::Call::demote_member { .. } |
+			pallet_ranked_collective::Call::remove_member { .. } |
+			pallet_ranked_collective::Call::vote { .. } |
+			pallet_ranked_collective::Call::cleanup_poll { .. } |
+			pallet_ranked_collective::Call::exchange_member { .. }
+	};
+}
+
+macro_rules! referenda_calls {
+	() => {
+		pallet_referenda::Call::submit { .. } |
+			pallet_referenda::Call::place_decision_deposit { .. } |
+			pallet_referenda::Call::refund_decision_deposit { .. } |
+			pallet_referenda::Call::cancel { .. } |
+			pallet_referenda::Call::kill { .. } |
+			pallet_referenda::Call::nudge_referendum { .. } |
+			pallet_referenda::Call::one_fewer_deciding { .. } |
+			pallet_referenda::Call::refund_submission_deposit { .. } |
+			pallet_referenda::Call::set_metadata { .. }
+	};
+}
+
+macro_rules! session_calls {
+	() => {
+		pallet_session::Call::set_keys { .. } | pallet_session::Call::purge_keys { .. }
+	};
+}
+
+macro_rules! timestamp_calls {
+	() => {
+		pallet_timestamp::Call::set { .. }
+	};
+}
+
+macro_rules! treasury_calls {
+	() => {
+		pallet_treasury::Call::spend_local { .. } |
+			pallet_treasury::Call::remove_approval { .. } |
+			pallet_treasury::Call::spend { .. } |
+			pallet_treasury::Call::payout { .. } |
+			pallet_treasury::Call::check_status { .. } |
+			pallet_treasury::Call::void_spend { .. }
+	};
+}
+
+macro_rules! utility_calls {
+	() => {
+		pallet_utility::Call::batch { .. } |
+			pallet_utility::Call::as_derivative { .. } |
+			pallet_utility::Call::batch_all { .. } |
+			pallet_utility::Call::dispatch_as { .. } |
+			pallet_utility::Call::force_batch { .. } |
+			pallet_utility::Call::with_weight { .. } |
+			pallet_utility::Call::if_else { .. } |
+			pallet_utility::Call::dispatch_as_fallible { .. }
+	};
+}
+
 impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::System(_) |
-					RuntimeCall::ParachainSystem(_) |
-					RuntimeCall::Timestamp(_) |
-					RuntimeCall::CollatorSelection(_) |
-					RuntimeCall::Session(_) |
-					RuntimeCall::Utility(_) |
-					RuntimeCall::Multisig(_) |
-					RuntimeCall::Proxy(_) |
-					RuntimeCall::Preimage(_) |
-					RuntimeCall::Alliance(_) |
-					RuntimeCall::AllianceMotion(_) |
-					RuntimeCall::FellowshipCollective(_) |
-					RuntimeCall::FellowshipReferenda(_) |
-					RuntimeCall::FellowshipCore(_) |
+				RuntimeCall::System(frame_system_calls!()) |
+					RuntimeCall::ParachainSystem(cumulus_pallet_parachain_system_calls!()) |
+					RuntimeCall::Timestamp(timestamp_calls!()) |
+					RuntimeCall::CollatorSelection(collator_selection_calls!()) |
+					RuntimeCall::Session(session_calls!()) |
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!()) |
+					RuntimeCall::Proxy(proxy_calls!()) |
+					RuntimeCall::Preimage(preimage_calls!()) |
+					RuntimeCall::Alliance(alliance_calls!()) |
+					RuntimeCall::AllianceMotion(collective_calls!()) |
+					RuntimeCall::FellowshipCollective(ranked_collective_calls!()) |
+					RuntimeCall::FellowshipReferenda(referenda_calls!()) |
+					RuntimeCall::FellowshipCore(core_fellowship_calls!()) |
 					RuntimeCall::FellowshipSalary(own_salary_call!()) |
-					RuntimeCall::FellowshipTreasury(_) |
-					RuntimeCall::AmbassadorCollective(_) |
-					RuntimeCall::AmbassadorReferenda(_) |
-					RuntimeCall::AmbassadorCore(_) |
+					RuntimeCall::FellowshipTreasury(treasury_calls!()) |
+					RuntimeCall::AmbassadorCollective(ranked_collective_calls!()) |
+					RuntimeCall::AmbassadorReferenda(referenda_calls!()) |
+					RuntimeCall::AmbassadorCore(core_fellowship_calls!()) |
 					RuntimeCall::AmbassadorSalary(own_salary_call!()) |
-					RuntimeCall::AmbassadorTreasury(_)
+					RuntimeCall::AmbassadorTreasury(treasury_calls!())
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
 				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 			ProxyType::Collator => matches!(
 				c,
-				RuntimeCall::CollatorSelection { .. } |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::CollatorSelection(collator_selection_calls!()) |
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 			ProxyType::Alliance => matches!(
 				c,
-				RuntimeCall::AllianceMotion { .. } |
-					RuntimeCall::Alliance { .. } |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::AllianceMotion(collective_calls!()) |
+					RuntimeCall::Alliance(alliance_calls!()) |
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 			ProxyType::Fellowship => matches!(
 				c,
-				RuntimeCall::FellowshipCollective { .. } |
-					RuntimeCall::FellowshipReferenda { .. } |
-					RuntimeCall::FellowshipCore { .. } |
+				RuntimeCall::FellowshipCollective(ranked_collective_calls!()) |
+					RuntimeCall::FellowshipReferenda(referenda_calls!()) |
+					RuntimeCall::FellowshipCore(core_fellowship_calls!()) |
 					RuntimeCall::FellowshipSalary(own_salary_call!()) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 			ProxyType::Ambassador => matches!(
 				c,
-				RuntimeCall::AmbassadorCollective { .. } |
-					RuntimeCall::AmbassadorReferenda { .. } |
-					RuntimeCall::AmbassadorCore { .. } |
+				RuntimeCall::AmbassadorCollective(ranked_collective_calls!()) |
+					RuntimeCall::AmbassadorReferenda(referenda_calls!()) |
+					RuntimeCall::AmbassadorCore(core_fellowship_calls!()) |
 					RuntimeCall::AmbassadorSalary(own_salary_call!()) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 			ProxyType::Secretary => matches!(
 				c,
-				RuntimeCall::SecretaryCollective { .. } |
+				RuntimeCall::SecretaryCollective(ranked_collective_calls!()) |
 					RuntimeCall::SecretarySalary(own_salary_call!()) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 		}
 	}
