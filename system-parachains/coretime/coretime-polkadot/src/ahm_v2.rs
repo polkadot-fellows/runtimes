@@ -34,8 +34,8 @@ impl pallet_ct_migrator::Config for Runtime {
 	type PreMigrationCalls = lockdown::CallsEnabledBeforeMigration;
 	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
 	type PostMigrationCalls = frame_support::traits::Everything;
-	// TODO(ahm-v2): `HrmpPara` once it is in the runtime. Until then every migrated HRMP deposit
-	// is parked in `FailedHrmpDeposits`, its `HrmpDeposit` hold left in place.
+	// TODO(ahm-v2): `HrmpPara` once it is in the runtime. Until then `()` refuses every migrated
+	// HRMP deposit: it is logged, and its `HrmpDeposit` hold is left in place.
 	type HrmpDeposits = ();
 }
 

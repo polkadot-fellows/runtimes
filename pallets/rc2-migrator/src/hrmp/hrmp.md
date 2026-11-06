@@ -17,4 +17,4 @@ The amounts are the ones the accounts stage indexed the reserves with, so the `H
 
 ## On the Coretime chain
 
-`receive_hrmp_deposits` takes each deposit in its own transaction: releases up to its amount from the para's `HrmpDeposit` hold, then `pallet-hrmp-para` holds or releases so that the side holds the amount, or as much as the para can cover. A failure is rolled back and logged, the batch continues; governance reconciles as above. Since a side is set rather than added to, a deposit delivered twice, after a rewind, is held once.
+`receive_hrmp_deposits` takes each deposit in its own transaction: releases up to its amount from the para's `HrmpDeposit` hold, then `pallet-hrmp-para` holds or releases so that the side holds the amount, or as much as the para can cover, and what it leaves, because the side held it already, goes back under the `HrmpDeposit` hold. A failure is rolled back and logged, the batch continues; governance reconciles as above. Since a side is set rather than added to, a deposit delivered twice, after a rewind, is held once, and the para's other deposits stay covered.

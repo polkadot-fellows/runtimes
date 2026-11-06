@@ -798,24 +798,31 @@ pub mod pallet {
 						.saturating_add(T::DbWeight::get().reads_writes(1, 1))
 				},
 				MigrationStage::HrmpOngoing { last_key } => {
-					let block = with_storage_layer(|| -> Result<_, DispatchError> {
-						let hrmp::BlockHrmpDeposits { deposits, last_key } =
-							hrmp::HrmpMigrator::<T>::migrate_many(last_key);
-						Self::send_hrmp_deposits(deposits)?;
-						Ok(last_key)
-					});
-					match block {
-						Ok(None) => Self::transition(MigrationStage::HrmpDone),
-						Ok(last_key) => Self::transition(MigrationStage::HrmpOngoing { last_key }),
+					// The reads change nothing; sends and transition commit together.
+					let hrmp::BlockHrmpDeposits { deposits, channels, last_key } =
+						hrmp::HrmpMigrator::<T>::migrate_many(last_key);
+					let messages = match with_storage_layer(|| Self::send_hrmp_deposits(deposits)) {
+						Ok(messages) => {
+							match last_key {
+								None => Self::transition(MigrationStage::HrmpDone),
+								last_key =>
+									Self::transition(MigrationStage::HrmpOngoing { last_key }),
+							}
+							messages
+						},
 						Err(e) => {
 							log::error!(target: LOG_TARGET, "HRMP block failed, retrying: {e:?}");
+							Limits::<T>::get().xcm_per_block.into()
 						},
-					}
-					// two reads per channel, the record and its close request, one channel per
-					// deposit at worst; the stage writes nothing
+					};
+					// TODO(ahm-v2): benchmark the HRMP stage rather than counting its operations.
+					// Two reads per channel, the record and its close request, the limits, and each
+					// message sent, as in `HrmpInit`.
 					T::DbWeight::get()
-						.reads(2)
-						.saturating_mul(Limits::<T>::get().items_per_block().into())
+						.reads(u64::from(channels).saturating_mul(2).saturating_add(1))
+						.saturating_add(
+							T::DbWeight::get().reads_writes(3, 3).saturating_mul(messages),
+						)
 						.saturating_add(T::DbWeight::get().reads_writes(1, 1))
 				},
 				MigrationStage::HrmpDone => {

@@ -193,6 +193,33 @@ fn a_deposit_delivered_twice_is_held_once() {
 }
 
 #[test]
+fn a_deposit_delivered_twice_leaves_the_other_deposits_held() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a para whose hold covers two deposits, one of which was delivered.
+		migrate_account(PARA, 10, 90);
+		let first = vec![deposit(key(PARA, OTHER, DepositSide::Sender), 50)];
+		CtMigrator::do_receive_hrmp_deposits(first.clone());
+		assert_eq!(channel_held(PARA), 50);
+		assert_eq!(held(HoldReason::HrmpDeposit, &sov(PARA)), 40);
+
+		// WHEN it arrives again. THEN the other deposit stays held, nothing is freed.
+		CtMigrator::do_receive_hrmp_deposits(first);
+		assert_eq!(channel_held(PARA), 50);
+		assert_eq!(held(HoldReason::HrmpDeposit, &sov(PARA)), 40);
+		assert_eq!(free(&sov(PARA)), 10);
+
+		// WHEN the other deposit arrives. THEN it is held out of what was left.
+		CtMigrator::do_receive_hrmp_deposits(vec![deposit(
+			key(OTHER, PARA, DepositSide::Recipient),
+			40,
+		)]);
+		assert_eq!(channel_held(PARA), 90);
+		assert_eq!(held(HoldReason::HrmpDeposit, &sov(PARA)), 0);
+		assert_eq!(free(&sov(PARA)), 10);
+	});
+}
+
+#[test]
 fn only_root_receives_hrmp_deposits() {
 	new_test_ext().execute_with(|| {
 		let deposits = vec![deposit(key(PARA, OTHER, DepositSide::Sender), 50)];

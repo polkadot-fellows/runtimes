@@ -144,6 +144,29 @@ fn migrate_many_skips_a_closing_channel_and_resumes_from_cursor() {
 }
 
 #[test]
+fn migrate_many_bounds_the_channels_read_when_none_pays() {
+	new_test_ext().execute_with(|| {
+		// GIVEN 3 system channels, which pay nothing, and 2 items a block.
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 2, xcm_per_block: 1 });
+		for recipient in [2010, 2011, 2012] {
+			open_channel(SYSTEM_PARA, recipient, 0, 0);
+		}
+
+		// WHEN a block runs. THEN it reads 2 channels, finds no deposit, and leaves a cursor.
+		let out = Migrator::migrate_many(None);
+		assert_eq!(out.channels, 2);
+		assert_eq!(out.deposits, vec![]);
+		assert!(out.last_key.is_some());
+
+		// WHEN the next block runs. THEN it reads the last channel and ends the stage.
+		let out = Migrator::migrate_many(out.last_key);
+		assert_eq!(out.channels, 1);
+		assert_eq!(out.deposits, vec![]);
+		assert_eq!(out.last_key, None);
+	});
+}
+
+#[test]
 fn hrmp_stage_sends_the_requests_then_the_channels_in_chunks() {
 	new_test_ext().execute_with(|| {
 		// GIVEN a pending request, 3 channels, and limits of 2 deposits a message and 1 message

@@ -32,6 +32,8 @@ use sp_runtime::traits::Zero;
 pub(crate) struct BlockHrmpDeposits {
 	/// The deposits to hold on the Coretime chain.
 	pub(crate) deposits: Vec<PortableHrmpDeposit>,
+	/// The channels read, each with its close request, for the block's weight.
+	pub(crate) channels: u32,
 	/// Where the next block continues from; `None` once every channel has been visited.
 	pub(crate) last_key: Option<HrmpChannelId>,
 }
@@ -50,20 +52,25 @@ impl<T: Config> HrmpMigrator<T> {
 			.collect()
 	}
 
-	/// Read the channels after `last_key` until the block's [`Limits`] of deposits is reached,
-	/// and return the deposits. Writes nothing.
+	/// Read the channels after `last_key` until the block's [`Limits`] is reached, in channels
+	/// read or in deposits found, and return the deposits. Writes nothing.
+	///
+	/// Both are bounded: a channel may yield no deposit, a system channel or a closing one, so a
+	/// bound on the deposits alone would read without limit.
 	pub(crate) fn migrate_many(last_key: Option<HrmpChannelId>) -> BlockHrmpDeposits {
 		let mut iter = match last_key {
 			Some(last_key) => hrmp::HrmpChannels::<T>::iter_from_key(last_key),
 			None => hrmp::HrmpChannels::<T>::iter(),
 		};
 
+		let limit = Limits::<T>::get().items_per_block();
 		let mut out = BlockHrmpDeposits::default();
-		while out.deposits.len() < Limits::<T>::get().items_per_block() as usize {
+		while out.channels < limit && out.deposits.len() < limit as usize {
 			let Some((id, channel)) = iter.next() else {
 				out.last_key = None;
 				return out;
 			};
+			out.channels += 1;
 			if !Self::is_closing(&id) {
 				out.deposits.extend(Self::of_channel(&id, &channel));
 			}

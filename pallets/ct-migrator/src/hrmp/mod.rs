@@ -31,7 +31,10 @@ use frame_support::traits::{
 };
 use hrmp_primitives::ReceiveMigratedDeposits;
 use migrator_types::{sibling_account, PortableHrmpDeposit};
-use sp_runtime::{traits::Zero, DispatchResult, SaturatedConversion};
+use sp_runtime::{
+	traits::{Saturating, Zero},
+	DispatchResult, SaturatedConversion,
+};
 
 impl<T: Config> Pallet<T> {
 	/// Hold a batch of deposits, each in a transaction of its own. A failed deposit is logged.
@@ -52,16 +55,30 @@ impl<T: Config> Pallet<T> {
 		Self::deposit_event(Event::HrmpDepositsReceived { count_good, count_bad });
 	}
 
-	/// Release up to the deposit from the paying para's `HrmpDeposit` hold, and hand the deposit
-	/// to `Config::HrmpDeposits`, which holds as much of it as the para can cover.
+	/// Hand the deposit to `Config::HrmpDeposits`, which holds as much of it as the para can
+	/// cover, out of the paying para's `HrmpDeposit` hold.
+	///
+	/// The hold covers every deposit of the para, and only the receiver knows what the side held
+	/// before. So the hold is released up to the deposit for the receiver to take, and what the
+	/// receiver leaves, because the side held it already, is held again. A deposit delivered
+	/// twice thus frees nothing the second time, and the para's other deposits stay covered.
 	fn do_receive_hrmp_deposit(deposit: &PortableHrmpDeposit) -> DispatchResult {
 		let who = sibling_account::<T::AccountId>(deposit.key.para());
 		let reason: T::RuntimeHoldReason = HoldReason::HrmpDeposit.into();
 		let amount: BalanceOf<T> = deposit.amount.saturated_into();
-		let migrated = T::Currency::balance_on_hold(&reason, &who).min(amount);
-		if !migrated.is_zero() {
-			T::Currency::release(&reason, &who, migrated, Precision::Exact)?;
+		let released = T::Currency::balance_on_hold(&reason, &who).min(amount);
+		let held_before = T::Currency::total_balance_on_hold(&who);
+		if !released.is_zero() {
+			T::Currency::release(&reason, &who, released, Precision::Exact)?;
 		}
-		T::HrmpDeposits::receive_deposit(deposit.key, deposit.amount)
+		T::HrmpDeposits::receive_deposit(deposit.key, deposit.amount)?;
+		let taken = T::Currency::total_balance_on_hold(&who)
+			.saturating_add(released)
+			.saturating_sub(held_before);
+		let left = released.saturating_sub(taken);
+		if !left.is_zero() {
+			T::Currency::hold(&reason, &who, left)?;
+		}
+		Ok(())
 	}
 }
