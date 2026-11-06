@@ -253,6 +253,8 @@ impl pallet_preimage::Config for Test {
 
 /// What the active configuration makes a recipient reserve when it accepts a channel request.
 pub const HRMP_RECIPIENT_DEPOSIT: u128 = 20;
+/// The downward message size limit, as Polkadot's host configuration sets it.
+pub const DMP_MESSAGE_SIZE: u32 = 51_200;
 
 /// The registrar deposit, reserved on a para's manager.
 pub const PARA_DEPOSIT: u128 = 300;
@@ -404,7 +406,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		// Block 0 does not record events.
 		System::set_block_number(1);
 		configuration::ActiveConfig::<Test>::mutate(|c| {
-			c.hrmp_recipient_deposit = HRMP_RECIPIENT_DEPOSIT
+			c.hrmp_recipient_deposit = HRMP_RECIPIENT_DEPOSIT;
+			c.max_downward_message_size = DMP_MESSAGE_SIZE;
 		});
 	});
 	ext

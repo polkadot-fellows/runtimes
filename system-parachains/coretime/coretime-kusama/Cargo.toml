@@ -37,6 +37,7 @@ pallet-message-queue = { workspace = true }
 pallet-broker = { workspace = true }
 # Behind the `ahm-v2` feature; see `src/ahm_v2.rs`.
 pallet-ct-migrator = { workspace = true }
+migrator-types = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-session = { workspace = true }
@@ -92,6 +93,7 @@ substrate-wasm-builder = { optional = true, workspace = true }
 default = ["std"]
 ahm-v2 = []
 std = [
+	"migrator-types/std",
 	"pallet-ct-migrator/std",
 
 	"codec/std",
