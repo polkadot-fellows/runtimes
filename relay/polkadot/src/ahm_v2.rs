@@ -28,9 +28,11 @@ use crate::{
 	PoolsPalletId, ProxyType, Runtime, RuntimeEvent, Timestamp, TransparentProxyType,
 	TreasuryPalletId,
 };
+use alloc::vec::Vec;
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Equals},
+	traits::{Equals, Get},
+	PalletId,
 };
 use frame_system::EnsureRoot;
 use migrator_types::PortableProxyType;
@@ -41,22 +43,34 @@ use sp_runtime::traits::AccountIdConversion;
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
 	pub const CtFreeBuffer: u128 = UNITS;
+	/// The pot of the retired `pallet-dap-satellite`. Its old id is `dap/satl`; the replacement
+	/// uses `acf/dott` as of paritytech/polkadot-sdk#11881.
+	pub const DapSatellitePalletId: PalletId = PalletId(*b"dap/satl");
+	/// The DAP staging account on Asset Hub, derived like `DapStagingLocation` in the system
+	/// parachain constants.
+	///
+	/// Moved to the staging account rather than the buffer since the pallet eventually correctly
+	/// marks them as inactive when it moves them from staging into the buffer.
+	pub SweepBeneficiary: AccountId =
+		sp_dap::DAP_PALLET_ID.into_sub_account_truncating(sp_dap::DAP_STAGING_ACCOUNT_ID);
 }
 
 /// The pots of this chain, left for Sweep.
 pub struct SweptAccounts;
-impl Contains<AccountId> for SweptAccounts {
-	fn contains(who: &AccountId) -> bool {
+impl Get<Vec<AccountId>> for SweptAccounts {
+	fn get() -> Vec<AccountId> {
 		[
 			TreasuryPalletId::get(),
+			DapSatellitePalletId::get(),
 			BrokerPalletId::get(),
 			OnDemandPalletId::get(),
 			CrowdloanId::get(),
 			PoolsPalletId::get(),
 			DelegatedStakingPalletId::get(),
 		]
-		.into_iter()
-		.any(|id| AccountIdConversion::<AccountId>::into_account_truncating(&id) == *who)
+		.iter()
+		.map(AccountIdConversion::<AccountId>::into_account_truncating)
+		.collect()
 	}
 }
 
@@ -73,6 +87,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
 	type PostMigrationCalls = lockdown::CallsEnabledAfterMigration;
 	type SweptAccounts = SweptAccounts;
+	type SweepBeneficiary = SweepBeneficiary;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so

@@ -24,13 +24,14 @@ pub mod lockdown;
 
 use crate::{
 	xcm_config::{Broker, XcmRouter},
-	AccountId, BrokerId, BrokerPalletId, CrowdloanId, DelegatedStakingPalletId, OnDemandPalletId,
-	PoolsPalletId, ProxyType, Runtime, RuntimeEvent, SocietyPalletId, Timestamp,
-	TransparentProxyType, TreasuryPalletId,
+	AccountId, AccumulateForwardPalletId, BrokerId, BrokerPalletId, CrowdloanId,
+	DelegatedStakingPalletId, OnDemandPalletId, PoolsPalletId, ProxyType, Runtime, RuntimeEvent,
+	SocietyPalletId, Timestamp, TransparentProxyType, TreasuryPalletId,
 };
+use alloc::vec::Vec;
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Equals},
+	traits::{Equals, Get},
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
@@ -41,12 +42,14 @@ use sp_runtime::traits::AccountIdConversion;
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
 	pub const CtFreeBuffer: u128 = UNITS;
+	/// The treasury on Asset Hub.
+	pub SweepBeneficiary: AccountId = TreasuryPalletId::get().into_account_truncating();
 }
 
 /// The pots of this chain, left for Sweep.
 pub struct SweptAccounts;
-impl Contains<AccountId> for SweptAccounts {
-	fn contains(who: &AccountId) -> bool {
+impl Get<Vec<AccountId>> for SweptAccounts {
+	fn get() -> Vec<AccountId> {
 		[
 			TreasuryPalletId::get(),
 			SocietyPalletId::get(),
@@ -55,9 +58,11 @@ impl Contains<AccountId> for SweptAccounts {
 			CrowdloanId::get(),
 			PoolsPalletId::get(),
 			DelegatedStakingPalletId::get(),
+			AccumulateForwardPalletId::get(),
 		]
-		.into_iter()
-		.any(|id| AccountIdConversion::<AccountId>::into_account_truncating(&id) == *who)
+		.iter()
+		.map(AccountIdConversion::<AccountId>::into_account_truncating)
+		.collect()
 	}
 }
 
@@ -74,6 +79,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
 	type PostMigrationCalls = lockdown::CallsEnabledAfterMigration;
 	type SweptAccounts = SweptAccounts;
+	type SweepBeneficiary = SweepBeneficiary;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so
