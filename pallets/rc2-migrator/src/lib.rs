@@ -712,9 +712,6 @@ pub mod pallet {
 				// TODO(ahm-v2): transaction fees break the invariant: they go to the treasury pot
 				// and the block author. To fix it, refuse signed transactions during the migration,
 				// except the manager's, and make the manager's calls free.
-				// TODO(ahm-v2): should channels with a system chain that still hold deposits from
-				// before such channels became free be poked here, so the deposits are refunded?
-				// Picked for now: no, the deposits go to the Coretime chain as holds.
 				MigrationStage::AccountsInit => {
 					// Clear the on-demand revenue record before `kept` is set. Otherwise a later
 					// claim could withdraw from the on-demand pot without this pallet recording it.
