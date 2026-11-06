@@ -52,7 +52,8 @@ pub type PeoplePolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
 pub type BulletinPolkadotChainSpec = sc_chain_spec::GenericChainSpec<Extensions>;
 
-#[cfg(feature = "asset-hub-polkadot")]
+// The release wasm has no `GenesisBuilder` API to build this spec from.
+#[cfg(all(feature = "asset-hub-polkadot", not(feature = "on-chain-release-build")))]
 pub fn asset_hub_polkadot_local_testnet_config() -> Result<Box<dyn sc_chain_spec::ChainSpec>, String>
 {
 	let mut properties = sc_chain_spec::Properties::new();
