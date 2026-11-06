@@ -645,15 +645,18 @@ impl<T: frame_system::Config> pallet_revive::WeightInfo for WeightInfo<T> {
 	/// Storage: `Revive::ImmutableDataOf` (r:0 w:1)
 	/// Proof: `Revive::ImmutableDataOf` (`max_values`: None, `max_size`: Some(4118), added: 6593, mode: `Measured`)
 	/// The range of component `n` is `[1, 4096]`.
+	// NOTE: kept from the previous benchmark run. The regenerated weights made `pallet_revive`'s
+	// integrity test fail ("Maximal storage size 202921027 exceeds the storage limit 201326592").
+	// Overestimating is safe; re-check when re-benchmarking.
 	fn seal_set_immutable_data(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 1_569_000 picoseconds.
-		Weight::from_parts(1_743_720, 0)
+		// Minimum execution time: 1_990_000 picoseconds.
+		Weight::from_parts(2_593_668, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 4
-			.saturating_add(Weight::from_parts(385, 0).saturating_mul(n.into()))
+			// Standard Error: 12
+			.saturating_add(Weight::from_parts(900, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn seal_value_transferred() -> Weight {
