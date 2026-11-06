@@ -679,13 +679,18 @@ fn send_token_from_ethereum_to_asset_hub_with_empty_asset_hub_sovereign_preserve
 		);
 	});
 
+	// The message reached Asset Hub and was processed, i.e. delivery was not blocked by the empty
+	// sovereign. Only delivery is asserted: the register-token fixture encodes the Sepolia chain id
+	// (11155111), so Asset Hub Polkadot rejects its `UniversalOrigin` with `InvalidLocation`.
 	AssetHubPolkadot::execute_with(|| {
 		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
 
 		assert_expected_events!(
 			AssetHubPolkadot,
 			vec![
-				RuntimeEvent::ForeignAssets(pallet_assets::Event::Created { .. }) => {},
+				RuntimeEvent::MessageQueue(pallet_message_queue::Event::Processed { id, .. }) => {
+					id: *id == H256(hex!("5f7060e971b0dc81e63f0aa41831091847d97c1a4693ac450cc128c7214e65e0")),
+				},
 			]
 		);
 	});
