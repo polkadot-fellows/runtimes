@@ -153,7 +153,7 @@ pub fn sent_call(n: usize) -> crate::Rc2RuntimeCall {
 	let (_, Xcm(instructions)) = sent().get(n).expect("message was sent").clone();
 	for instruction in instructions {
 		if let Instruction::Transact { call, .. } = instruction {
-			return crate::Rc2RuntimeCall::decode(&mut &call.into_encoded()[..])
+			return crate::Rc2RuntimeCall::decode(&mut call.encoded())
 				.expect("payload decodes as a relay-chain call");
 		}
 	}

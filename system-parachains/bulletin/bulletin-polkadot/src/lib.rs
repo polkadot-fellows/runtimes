@@ -66,8 +66,6 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiAddress, Perbill,
 };
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
 	async_backing::{AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT},
@@ -172,12 +170,6 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	transaction_version: 2,
 	system_version: 1,
 };
-
-/// The version information used to identify this runtime when compiled natively.
-#[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion {
-	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
-}
 
 /// We allow for 90% of the block to be consumed by normal transactions.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(90);

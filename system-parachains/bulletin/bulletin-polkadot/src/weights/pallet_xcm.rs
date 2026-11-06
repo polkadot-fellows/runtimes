@@ -352,22 +352,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 	/// Proof: `PolkadotXcm::ShouldRecordXcm` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
 	/// Storage: `PolkadotXcm::AssetTraps` (r:1 w:1)
 	/// Proof: `PolkadotXcm::AssetTraps` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	fn claim_assets() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `24`
-		//  Estimated: `3489`
-		// Minimum execution time: 36_059_000 picoseconds.
-		Weight::from_parts(39_221_000, 0)
-			.saturating_add(Weight::from_parts(0, 3489))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
-	/// Storage: `PolkadotXcm::ShouldRecordXcm` (r:1 w:0)
-	/// Proof: `PolkadotXcm::ShouldRecordXcm` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
-	/// Storage: `PolkadotXcm::AssetTraps` (r:1 w:1)
-	/// Proof: `PolkadotXcm::AssetTraps` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	/// The range of component `n` is `[1, 20]`.
-	fn claim_assets_by_size(n: u32, ) -> Weight {
+	fn claim_assets(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `24`
 		//  Estimated: `3489`
@@ -407,16 +393,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
-	fn weigh_message() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 10_510_000 picoseconds.
-		Weight::from_parts(10_810_000, 0)
-			.saturating_add(Weight::from_parts(0, 0))
-	}
 	/// The range of component `n` is `[0, 8192]`.
-	fn weigh_message_by_size(n: u32, ) -> Weight {
+	fn weigh_message(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
