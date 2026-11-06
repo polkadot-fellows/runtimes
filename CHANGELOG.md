@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Asset Hub Polkadot and Kusama: the Fellowship controls the `Scheduler` and `MessageQueue` technical parameters ([#1346](https://github.com/polkadot-fellows/runtimes/pull/1346)).
+- Asset Hub Polkadot: `on-chain-release-build` no longer includes the `GenesisBuilder` runtime API or the genesis presets, which makes the production runtime smaller. Build without that feature to generate chain specs ([#1333](https://github.com/polkadot-fellows/runtimes/issues/1333)).
 
 ### Fixed
 
