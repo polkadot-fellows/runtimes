@@ -24,8 +24,8 @@ use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
 
 mod origins;
 pub use origins::{
-	pallet_custom_origins, AuctionAdmin, FellowshipAdmin, GeneralAdmin, LeaseAdmin,
-	ProsperityEmergency, ReferendumCanceller, ReferendumKiller, Spender, StakingAdmin,
+	pallet_custom_origins, AuctionAdmin, DotnsMaintenance, FellowshipAdmin, GeneralAdmin,
+	LeaseAdmin, ProsperityEmergency, ReferendumCanceller, ReferendumKiller, Spender, StakingAdmin,
 	TechnicalMaintenance, Treasurer, WhitelistedCaller,
 };
 mod tracks;
