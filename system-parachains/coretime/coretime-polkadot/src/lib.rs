@@ -596,20 +596,142 @@ pub enum ProxyType {
 	Collator,
 }
 
+macro_rules! broker_calls {
+	() => {
+		pallet_broker::Call::configure { .. } |
+			pallet_broker::Call::reserve { .. } |
+			pallet_broker::Call::unreserve { .. } |
+			pallet_broker::Call::set_lease { .. } |
+			pallet_broker::Call::start_sales { .. } |
+			pallet_broker::Call::purchase { .. } |
+			pallet_broker::Call::renew { .. } |
+			pallet_broker::Call::transfer { .. } |
+			pallet_broker::Call::partition { .. } |
+			pallet_broker::Call::interlace { .. } |
+			pallet_broker::Call::assign { .. } |
+			pallet_broker::Call::pool { .. } |
+			pallet_broker::Call::claim_revenue { .. } |
+			pallet_broker::Call::purchase_credit { .. } |
+			pallet_broker::Call::drop_region { .. } |
+			pallet_broker::Call::drop_contribution { .. } |
+			pallet_broker::Call::drop_history { .. } |
+			pallet_broker::Call::drop_renewal { .. } |
+			pallet_broker::Call::request_core_count { .. } |
+			pallet_broker::Call::notify_core_count { .. } |
+			pallet_broker::Call::notify_revenue { .. } |
+			pallet_broker::Call::enable_auto_renew { .. } |
+			pallet_broker::Call::disable_auto_renew { .. } |
+			pallet_broker::Call::force_reserve { .. } |
+			pallet_broker::Call::remove_lease { .. } |
+			pallet_broker::Call::remove_assignment { .. } |
+			pallet_broker::Call::remove_potential_renewal { .. } |
+			pallet_broker::Call::force_transfer { .. } |
+			pallet_broker::Call::swap_leases { .. }
+	};
+}
+
+macro_rules! collator_selection_calls {
+	() => {
+		pallet_collator_selection::Call::set_invulnerables { .. } |
+			pallet_collator_selection::Call::set_desired_candidates { .. } |
+			pallet_collator_selection::Call::set_candidacy_bond { .. } |
+			pallet_collator_selection::Call::register_as_candidate { .. } |
+			pallet_collator_selection::Call::leave_intent { .. } |
+			pallet_collator_selection::Call::add_invulnerable { .. } |
+			pallet_collator_selection::Call::remove_invulnerable { .. } |
+			pallet_collator_selection::Call::update_bond { .. } |
+			pallet_collator_selection::Call::take_candidate_slot { .. }
+	};
+}
+
+macro_rules! cumulus_pallet_parachain_system_calls {
+	() => {
+		cumulus_pallet_parachain_system::Call::set_validation_data { .. } |
+			cumulus_pallet_parachain_system::Call::sudo_send_upward_message { .. }
+	};
+}
+
+macro_rules! frame_system_calls {
+	() => {
+		frame_system::Call::remark { .. } |
+			frame_system::Call::set_heap_pages { .. } |
+			frame_system::Call::set_code { .. } |
+			frame_system::Call::set_code_without_checks { .. } |
+			frame_system::Call::set_storage { .. } |
+			frame_system::Call::kill_storage { .. } |
+			frame_system::Call::kill_prefix { .. } |
+			frame_system::Call::remark_with_event { .. } |
+			frame_system::Call::authorize_upgrade { .. } |
+			frame_system::Call::authorize_upgrade_without_checks { .. } |
+			frame_system::Call::apply_authorized_upgrade { .. }
+	};
+}
+
+macro_rules! multisig_calls {
+	() => {
+		pallet_multisig::Call::as_multi_threshold_1 { .. } |
+			pallet_multisig::Call::as_multi { .. } |
+			pallet_multisig::Call::approve_as_multi { .. } |
+			pallet_multisig::Call::cancel_as_multi { .. } |
+			pallet_multisig::Call::poke_deposit { .. }
+	};
+}
+
+macro_rules! proxy_calls {
+	() => {
+		pallet_proxy::Call::proxy { .. } |
+			pallet_proxy::Call::add_proxy { .. } |
+			pallet_proxy::Call::remove_proxy { .. } |
+			pallet_proxy::Call::remove_proxies { .. } |
+			pallet_proxy::Call::create_pure { .. } |
+			pallet_proxy::Call::kill_pure { .. } |
+			pallet_proxy::Call::announce { .. } |
+			pallet_proxy::Call::remove_announcement { .. } |
+			pallet_proxy::Call::reject_announcement { .. } |
+			pallet_proxy::Call::proxy_announced { .. } |
+			pallet_proxy::Call::poke_deposit { .. }
+	};
+}
+
+macro_rules! session_calls {
+	() => {
+		pallet_session::Call::set_keys { .. } | pallet_session::Call::purge_keys { .. }
+	};
+}
+
+macro_rules! timestamp_calls {
+	() => {
+		pallet_timestamp::Call::set { .. }
+	};
+}
+
+macro_rules! utility_calls {
+	() => {
+		pallet_utility::Call::batch { .. } |
+			pallet_utility::Call::as_derivative { .. } |
+			pallet_utility::Call::batch_all { .. } |
+			pallet_utility::Call::dispatch_as { .. } |
+			pallet_utility::Call::force_batch { .. } |
+			pallet_utility::Call::with_weight { .. } |
+			pallet_utility::Call::if_else { .. } |
+			pallet_utility::Call::dispatch_as_fallible { .. }
+	};
+}
+
 impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::System(_) |
-					RuntimeCall::ParachainSystem(_) |
-					RuntimeCall::Timestamp(_) |
-					RuntimeCall::CollatorSelection(_) |
-					RuntimeCall::Session(_) |
-					RuntimeCall::Utility(_) |
-					RuntimeCall::Multisig(_) |
-					RuntimeCall::Proxy(_) |
+				RuntimeCall::System(frame_system_calls!()) |
+					RuntimeCall::ParachainSystem(cumulus_pallet_parachain_system_calls!()) |
+					RuntimeCall::Timestamp(timestamp_calls!()) |
+					RuntimeCall::CollatorSelection(collator_selection_calls!()) |
+					RuntimeCall::Session(session_calls!()) |
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!()) |
+					RuntimeCall::Proxy(proxy_calls!()) |
 					// We don't allow `purchase`, `renew`, `transfer`, `purchase_credit`,
 					// `pool` doesn't transfer, but it defines the account to be paid for contributions,
 					// `assign` is essentially a transfer of a region NFT.
@@ -622,38 +744,38 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::CancelProxy => matches!(
 				c,
 				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 			ProxyType::Broker => {
 				matches!(
 					c,
-					RuntimeCall::Broker { .. } |
-						RuntimeCall::Utility { .. } |
-						RuntimeCall::Multisig { .. }
+					RuntimeCall::Broker(broker_calls!()) |
+						RuntimeCall::Utility(utility_calls!()) |
+						RuntimeCall::Multisig(multisig_calls!())
 				)
 			},
 			ProxyType::CoretimeRenewer => {
 				matches!(
 					c,
 					RuntimeCall::Broker(pallet_broker::Call::renew { .. }) |
-						RuntimeCall::Utility { .. } |
-						RuntimeCall::Multisig { .. }
+						RuntimeCall::Utility(utility_calls!()) |
+						RuntimeCall::Multisig(multisig_calls!())
 				)
 			},
 			ProxyType::OnDemandPurchaser => {
 				matches!(
 					c,
 					RuntimeCall::Broker(pallet_broker::Call::purchase_credit { .. }) |
-						RuntimeCall::Utility { .. } |
-						RuntimeCall::Multisig { .. }
+						RuntimeCall::Utility(utility_calls!()) |
+						RuntimeCall::Multisig(multisig_calls!())
 				)
 			},
 			ProxyType::Collator => matches!(
 				c,
-				RuntimeCall::CollatorSelection { .. } |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::CollatorSelection(collator_selection_calls!()) |
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 		}
 	}

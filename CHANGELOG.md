@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update all runtimes to `polkadot-sdk` `stable2606-5`.
 - Update Individuality pallets from [`e69b079e`](https://github.com/paritytech/individuality-community/commit/e69b079ef93b6b0224ca81b96d4385f6dd4c8e22) to [`sdk-2606-5-3004004`](https://github.com/paritytech/individuality-community/tree/sdk-2606-5-3004004), which updates them to `polkadot-sdk` `stable2606-5`.
 - Asset Hub Polkadot and Kusama: the Fellowship controls the `Scheduler` and `MessageQueue` technical parameters ([#1346](https://github.com/polkadot-fellows/runtimes/pull/1346)).
+- All runtimes: proxy types list every allowed call explicitly instead of allowing whole pallets. No proxy type gains or loses a call today, but a call added by a future pallet upgrade is denied until it is added to the list ([#1347](https://github.com/polkadot-fellows/runtimes/issues/1347)).
 
 ### Fixed
 
