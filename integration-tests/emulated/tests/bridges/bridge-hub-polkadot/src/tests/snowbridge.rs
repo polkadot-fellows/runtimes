@@ -518,18 +518,213 @@ fn register_weth_token_in_asset_hub_fail_for_insufficient_fee() {
 	});
 }
 
+/// Channel the `make_register_token_message` fixture is delivered on (primary governance).
+const INBOUND_FIXTURE_CHANNEL_ID: [u8; 32] =
+	hex!("c173fac324158e77fb5840738a1a541f633cbec8884c6a601c567d2b376a0539");
+
+type BridgeHubBalances = pallet_balances::Pallet<Runtime>;
+
+fn asset_hub_sovereign_on_bridge_hub() -> AccountId {
+	BridgeHubPolkadot::sovereign_account_id_of(BridgeHubPolkadot::sibling_location_of(
+		AssetHubPolkadot::para_id(),
+	))
+}
+
+fn inbound_fixture_channel_nonce() -> u64 {
+	snowbridge_pallet_inbound_queue::Nonce::<Runtime>::get(snowbridge_core::ChannelId::from(
+		INBOUND_FIXTURE_CHANNEL_ID,
+	))
+}
+
+fn force_set_bridge_hub_balance(who: AccountId, amount: u128) {
+	assert_ok!(BridgeHubBalances::force_set_balance(
+		RuntimeOrigin::root(),
+		sp_runtime::MultiAddress::Id(who),
+		amount,
+	));
+}
+
+fn set_ethereum_gateway_address() {
+	assert_ok!(<BridgeHubPolkadot as Chain>::System::set_storage(
+		RuntimeOrigin::root(),
+		vec![(EthereumGatewayAddress::key().to_vec(), H160(GATEWAY_ADDRESS).encode())],
+	));
+}
+
+/// Returns the `fee_burned` of the `MessageReceived` event for `nonce`, if one was emitted.
+fn inbound_fee_burned(nonce: u64) -> Option<u128> {
+	type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
+	BridgeHubPolkadot::events().iter().find_map(|event| match event {
+		RuntimeEvent::EthereumInboundQueue(
+			snowbridge_pallet_inbound_queue::Event::MessageReceived {
+				nonce: n, fee_burned, ..
+			},
+		) if *n == nonce => Some(*fee_burned),
+		_ => None,
+	})
+}
+
+/// Since polkadot-sdk#12569 (backported to stable2606 in #13493) the teleported Asset Hub
+/// execution fee is fronted by the relayer, and the Asset Hub sovereign only reimburses the relayer
+/// best-effort afterwards. So when *both* the relayer and the Asset Hub sovereign are underfunded,
+/// the fee cannot be burned and the whole extrinsic must revert, including the nonce increment.
+/// Once the relayer is funded, the very same message can be resubmitted, so the channel does not
+/// stall.
 #[test]
 fn send_token_from_ethereum_to_asset_hub_fail_for_insufficient_fund() {
-	// Insufficient fund
-	BridgeHubPolkadot::fund_para_sovereign(AssetHubPolkadot::para_id(), 1_000);
+	let assethub_sovereign = asset_hub_sovereign_on_bridge_hub();
+	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
 
 	BridgeHubPolkadot::execute_with(|| {
-		assert_ok!(<BridgeHubPolkadot as Chain>::System::set_storage(
-			<BridgeHubPolkadot as Chain>::RuntimeOrigin::root(),
-			vec![(EthereumGatewayAddress::key().to_vec(), H160(GATEWAY_ADDRESS).encode())],
-		));
+		set_ethereum_gateway_address();
 
-		assert_err!(send_inbound_message(make_register_token_message()), Token(FundsUnavailable));
+		// Both the relayer and the AH sovereign hold only the existential deposit, well below the
+		// fee required by the message.
+		force_set_bridge_hub_balance(BridgeHubPolkadotSender::get(), BRIDGE_HUB_POLKADOT_ED);
+		force_set_bridge_hub_balance(assethub_sovereign.clone(), BRIDGE_HUB_POLKADOT_ED);
+		assert_eq!(inbound_fixture_channel_nonce(), 0);
+
+		// Dispatch inside a storage layer to mimic the on-chain transactional revert.
+		assert_err!(
+			frame_support::storage::with_storage_layer(|| send_inbound_message(
+				make_register_token_message()
+			)),
+			Token(FundsUnavailable)
+		);
+
+		// Everything was reverted.
+		assert_eq!(inbound_fixture_channel_nonce(), 0, "nonce must not advance on failure");
+		assert_eq!(
+			BridgeHubBalances::free_balance(BridgeHubPolkadotSender::get()),
+			BRIDGE_HUB_POLKADOT_ED
+		);
+		assert_eq!(BridgeHubBalances::free_balance(&assethub_sovereign), BRIDGE_HUB_POLKADOT_ED);
+		assert!(inbound_fee_burned(1).is_none());
+
+		// A funded relayer can now resubmit the same message: the channel is not stalled.
+		force_set_bridge_hub_balance(BridgeHubPolkadotSender::get(), INITIAL_FUND);
+		assert_ok!(send_inbound_message(make_register_token_message()));
+		assert_eq!(inbound_fixture_channel_nonce(), 1);
+		assert!(inbound_fee_burned(1).is_some());
+	});
+}
+
+/// If the relayer cannot front the teleported Asset Hub execution fee, the message is rejected
+/// even when the Asset Hub sovereign is well funded: the sovereign is no longer the account the fee
+/// is burned from. The nonce does not advance.
+#[test]
+fn send_token_from_ethereum_to_asset_hub_fails_when_relayer_cannot_front_fee() {
+	let assethub_sovereign = asset_hub_sovereign_on_bridge_hub();
+	// Fund the AH sovereign so the only possible cause of failure is the relayer's shortfall.
+	BridgeHubPolkadot::fund_accounts(vec![(assethub_sovereign.clone(), INITIAL_FUND)]);
+
+	BridgeHubPolkadot::execute_with(|| {
+		set_ethereum_gateway_address();
+
+		force_set_bridge_hub_balance(BridgeHubPolkadotSender::get(), BRIDGE_HUB_POLKADOT_ED);
+		let sovereign_balance_before = BridgeHubBalances::free_balance(&assethub_sovereign);
+		assert_eq!(inbound_fixture_channel_nonce(), 0);
+
+		assert_err!(
+			frame_support::storage::with_storage_layer(|| send_inbound_message(
+				make_register_token_message()
+			)),
+			Token(FundsUnavailable)
+		);
+
+		assert_eq!(inbound_fixture_channel_nonce(), 0, "nonce must not advance on failure");
+		assert_eq!(
+			BridgeHubBalances::free_balance(BridgeHubPolkadotSender::get()),
+			BRIDGE_HUB_POLKADOT_ED
+		);
+		assert_eq!(BridgeHubBalances::free_balance(&assethub_sovereign), sovereign_balance_before);
+	});
+}
+
+/// An empty Asset Hub sovereign on Bridge Hub must not stall the Ethereum -> Polkadot channel:
+/// the funded relayer fronts the fee, the message is processed and forwarded to Asset Hub, and the
+/// relayer simply goes unreimbursed.
+#[test]
+fn send_token_from_ethereum_to_asset_hub_with_empty_asset_hub_sovereign_preserves_liveness() {
+	let assethub_sovereign = asset_hub_sovereign_on_bridge_hub();
+	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
+
+	BridgeHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
+
+		set_ethereum_gateway_address();
+
+		force_set_bridge_hub_balance(assethub_sovereign.clone(), 0);
+		force_set_bridge_hub_balance(BridgeHubPolkadotSender::get(), INITIAL_FUND);
+		let relayer_balance_before =
+			BridgeHubBalances::free_balance(BridgeHubPolkadotSender::get());
+
+		assert_ok!(send_inbound_message(make_register_token_message()));
+
+		let fee_burned = inbound_fee_burned(1).expect("inbound message received");
+		assert!(fee_burned > 0);
+		assert_eq!(inbound_fixture_channel_nonce(), 1, "message nonce advanced");
+		assert_eq!(
+			BridgeHubBalances::free_balance(BridgeHubPolkadotSender::get()),
+			relayer_balance_before - fee_burned,
+			"relayer fronted the fee and was not reimbursed"
+		);
+		assert_eq!(BridgeHubBalances::free_balance(&assethub_sovereign), 0);
+
+		assert_expected_events!(
+			BridgeHubPolkadot,
+			vec![
+				RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. }) => {},
+			]
+		);
+	});
+
+	AssetHubPolkadot::execute_with(|| {
+		type RuntimeEvent = <AssetHubPolkadot as Chain>::RuntimeEvent;
+
+		assert_expected_events!(
+			AssetHubPolkadot,
+			vec![
+				RuntimeEvent::ForeignAssets(pallet_assets::Event::Created { .. }) => {},
+			]
+		);
+	});
+}
+
+/// With a funded Asset Hub sovereign the economics are unchanged for the relayer: it fronts the
+/// fee, and is reimbursed from the sovereign for the burned fee plus the delivery reward.
+#[test]
+fn send_token_from_ethereum_to_asset_hub_reimburses_relayer_from_asset_hub_sovereign() {
+	let assethub_sovereign = asset_hub_sovereign_on_bridge_hub();
+	BridgeHubPolkadot::fund_accounts(vec![(assethub_sovereign.clone(), INITIAL_FUND)]);
+	AssetHubPolkadot::fund_accounts(vec![(ethereum_sovereign_account(), INITIAL_FUND)]);
+
+	BridgeHubPolkadot::execute_with(|| {
+		set_ethereum_gateway_address();
+
+		let fixture = make_register_token_message();
+		let delivery_cost =
+			EthereumInboundQueue::calculate_delivery_cost(fixture.event.encode().len() as u32);
+		assert!(delivery_cost > 0);
+		let relayer_balance_before =
+			BridgeHubBalances::free_balance(BridgeHubPolkadotSender::get());
+		let sovereign_balance_before = BridgeHubBalances::free_balance(&assethub_sovereign);
+
+		assert_ok!(send_inbound_message(fixture));
+
+		let fee_burned = inbound_fee_burned(1).expect("inbound message received");
+		assert!(fee_burned > 0);
+		assert_eq!(inbound_fixture_channel_nonce(), 1);
+		assert_eq!(
+			BridgeHubBalances::free_balance(BridgeHubPolkadotSender::get()),
+			relayer_balance_before + delivery_cost,
+			"relayer was reimbursed for the burned fee and rewarded"
+		);
+		assert_eq!(
+			BridgeHubBalances::free_balance(&assethub_sovereign),
+			sovereign_balance_before - fee_burned - delivery_cost,
+			"sovereign paid the full fee refund and reward"
+		);
 	});
 }
 
