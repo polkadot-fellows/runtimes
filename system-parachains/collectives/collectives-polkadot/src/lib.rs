@@ -912,7 +912,34 @@ pub mod migrations {
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
 		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
+		// TODO: review. polkadot-sdk#6978: `pallet-core-fellowship` storage v1 -> v2. Both
+		// instances keep using the local block number, so stored block numbers are carried over
+		// unchanged.
+		pallet_core_fellowship::migration::MigrateV1ToV2<
+			Runtime,
+			KeepLocalBlockNumber,
+			fellowship::FellowshipCoreInstance,
+		>,
+		pallet_core_fellowship::migration::MigrateV1ToV2<
+			Runtime,
+			KeepLocalBlockNumber,
+			ambassador::AmbassadorCoreInstance,
+		>,
 	);
+
+	/// `pallet-core-fellowship` v2 block number converter for runtimes that keep
+	/// `BlockNumberProvider = System`: the identity.
+	pub struct KeepLocalBlockNumber;
+	impl pallet_core_fellowship::migration::v2::ConvertBlockNumber<BlockNumber, BlockNumber>
+		for KeepLocalBlockNumber
+	{
+		fn equivalent_moment_in_time(local_moment: BlockNumber) -> BlockNumber {
+			local_moment
+		}
+		fn equivalent_block_duration(local_duration: BlockNumber) -> BlockNumber {
+			local_duration
+		}
+	}
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;

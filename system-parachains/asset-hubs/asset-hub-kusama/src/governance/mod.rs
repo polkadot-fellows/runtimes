@@ -77,6 +77,10 @@ impl pallet_whitelist::Config for Runtime {
 		EitherOfDiverse<EnsureRoot<Self::AccountId>, EnsureXcm<IsFellowshipVoice>>;
 	type DispatchWhitelistedOrigin = EitherOf<EnsureRoot<Self::AccountId>, WhitelistedCaller>;
 	type Preimages = Preimage;
+	// TODO: review the expiry. Deferred dispatch (polkadot-sdk#11336): same 28 days as Westend, in
+	// relay blocks.
+	type DeferredDispatchExpiration = ConstU32<{ 28 * RC_DAYS }>;
+	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
 
 impl pallet_referenda::Config for Runtime {

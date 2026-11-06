@@ -1118,4 +1118,40 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 			.saturating_add(T::DbWeight::get().writes(79))
 			.saturating_add(Weight::from_parts(0, 83).saturating_mul(v.into()))
 	}
+	/// TODO: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
+	/// Storage: `Staking::ChillInactiveThreshold` (r:1 w:0)
+	/// Proof: `Staking::ChillInactiveThreshold` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `Measured`)
+	/// Storage: `Staking::ActiveEra` (r:1 w:0)
+	/// Proof: `Staking::ActiveEra` (`max_values`: Some(1), `max_size`: Some(13), added: 508, mode: `Measured`)
+	/// Storage: `Staking::ErasStakersOverview` (r:84 w:0)
+	/// Proof: `Staking::ErasStakersOverview` (`max_values`: None, `max_size`: Some(92), added: 2567, mode: `Measured`)
+	/// Storage: `Staking::ErasRewardPoints` (r:84 w:0)
+	/// Proof: `Staking::ErasRewardPoints` (`max_values`: None, `max_size`: Some(36018), added: 38493, mode: `Measured`)
+	/// Storage: `Staking::Validators` (r:1 w:1)
+	/// Proof: `Staking::Validators` (`max_values`: None, `max_size`: Some(45), added: 2520, mode: `Measured`)
+	/// Storage: `Staking::CounterForValidators` (r:1 w:1)
+	/// Proof: `Staking::CounterForValidators` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `Measured`)
+	/// Storage: `VoterList::Lock` (r:1 w:0)
+	/// Proof: `VoterList::Lock` (`max_values`: Some(1), `max_size`: Some(0), added: 495, mode: `Measured`)
+	/// Storage: `VoterList::ListNodes` (r:1 w:1)
+	/// Proof: `VoterList::ListNodes` (`max_values`: None, `max_size`: Some(154), added: 2629, mode: `Measured`)
+	/// Storage: `VoterList::ListBags` (r:1 w:1)
+	/// Proof: `VoterList::ListBags` (`max_values`: None, `max_size`: Some(82), added: 2557, mode: `Measured`)
+	/// Storage: `VoterList::CounterForListNodes` (r:1 w:1)
+	/// Proof: `VoterList::CounterForListNodes` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `Measured`)
+	/// The range of component `l` is `[2, 84]`.
+	fn chill_inactive(l: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1595 + l * (36096 ±0)`
+		//  Estimated: `5061 + l * (38571 ±0)`
+		// Minimum execution time: 317_146_000 picoseconds.
+		Weight::from_parts(234_579_525, 0)
+			.saturating_add(Weight::from_parts(0, 5061))
+			// Standard Error: 158_048
+			.saturating_add(Weight::from_parts(71_707_836, 0).saturating_mul(l.into()))
+			.saturating_add(T::DbWeight::get().reads(8))
+			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(l.into())))
+			.saturating_add(T::DbWeight::get().writes(5))
+			.saturating_add(Weight::from_parts(0, 38571).saturating_mul(l.into()))
+	}
 }

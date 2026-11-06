@@ -209,4 +209,46 @@ impl<T: frame_system::Config> pallet_asset_conversion::WeightInfo for WeightInfo
 			.saturating_add(Weight::from_parts(0, 4273))
 			.saturating_add(T::DbWeight::get().reads(4))
 	}
+	/// TODO: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
+	/// Storage: `AssetConversion::Pools` (r:1 w:1)
+	/// Proof: `AssetConversion::Pools` (`max_values`: None, `max_size`: Some(1224), added: 3699, mode: `MaxEncodedLen`)
+	/// Storage: `ForeignAssets::Asset` (r:1 w:0)
+	/// Proof: `ForeignAssets::Asset` (`max_values`: None, `max_size`: Some(808), added: 3283, mode: `MaxEncodedLen`)
+	/// Storage: `AssetConversion::NextPoolAssetId` (r:1 w:1)
+	/// Proof: `AssetConversion::NextPoolAssetId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `PoolAssets::Asset` (r:1 w:1)
+	/// Proof: `PoolAssets::Asset` (`max_values`: None, `max_size`: Some(210), added: 2685, mode: `MaxEncodedLen`)
+	/// Storage: `PoolAssets::NextAssetId` (r:1 w:0)
+	/// Proof: `PoolAssets::NextAssetId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
+	/// Storage: `System::Account` (r:1 w:0)
+	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
+	/// Storage: `PoolAssets::Account` (r:1 w:1)
+	/// Proof: `PoolAssets::Account` (`max_values`: None, `max_size`: Some(134), added: 2609, mode: `MaxEncodedLen`)
+	/// Storage: `AssetConversion::PoolFees` (r:0 w:1)
+	/// Proof: `AssetConversion::PoolFees` (`max_values`: None, `max_size`: Some(1224), added: 3699, mode: `MaxEncodedLen`)
+	fn create_pool_with_fee() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1551`
+		//  Estimated: `4689`
+		// Minimum execution time: 78_503_000 picoseconds.
+		Weight::from_parts(84_322_000, 0)
+			.saturating_add(Weight::from_parts(0, 4689))
+			.saturating_add(T::DbWeight::get().reads(7))
+			.saturating_add(T::DbWeight::get().writes(5))
+	}
+	/// TODO: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
+	/// Storage: `AssetConversion::Pools` (r:1 w:0)
+	/// Proof: `AssetConversion::Pools` (`max_values`: None, `max_size`: Some(1224), added: 3699, mode: `MaxEncodedLen`)
+	/// Storage: `AssetConversion::PoolFees` (r:0 w:1)
+	/// Proof: `AssetConversion::PoolFees` (`max_values`: None, `max_size`: Some(1224), added: 3699, mode: `MaxEncodedLen`)
+	fn set_pool_fee() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `158`
+		//  Estimated: `4689`
+		// Minimum execution time: 18_708_000 picoseconds.
+		Weight::from_parts(20_503_000, 0)
+			.saturating_add(Weight::from_parts(0, 4689))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }

@@ -27,7 +27,11 @@ use bp_bridge_hub_polkadot::snowbridge::{
 	InboundQueueV2PalletInstance, Parameters, SetReservesCall,
 };
 pub use bp_bridge_hub_polkadot::snowbridge::{EthereumLocation, EthereumNetwork};
-use frame_support::{parameter_types, traits::Contains, weights::ConstantMultiplier};
+use frame_support::{
+	parameter_types,
+	traits::{Contains, Equals, EverythingBut},
+	weights::ConstantMultiplier,
+};
 use frame_system::EnsureRootWithSuccess;
 use hex_literal::hex;
 use pallet_xcm::EnsureXcm;
@@ -48,7 +52,7 @@ use snowbridge_outbound_queue_primitives::{
 };
 use sp_core::H160;
 use sp_runtime::traits::{ConstU32, ConstU8, Keccak256};
-use system_parachains_constants::polkadot::fee::WeightToFee;
+use system_parachains_constants::polkadot::{fee::WeightToFee, locations::AssetHubLocation};
 use xcm::prelude::{GlobalConsensus, InteriorLocation, Location, PalletInstance, Parachain};
 use xcm_executor::XcmExecutor;
 
@@ -69,6 +73,9 @@ pub type SnowbridgeExporterV2 = EthereumBlobExporterV2<
 	EthereumOutboundQueueV2,
 	EthereumSystemV2,
 	AssetHubParaId,
+	// TODO: review. polkadot-sdk#12159: reject `AliasOrigin` to the Asset Hub location (same as
+	// Westend).
+	EverythingBut<Equals<AssetHubLocation>>,
 >;
 
 parameter_types! {

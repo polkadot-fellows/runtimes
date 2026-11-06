@@ -206,6 +206,10 @@ pub type FellowshipCoreInstance = pallet_core_fellowship::Instance1;
 
 impl pallet_core_fellowship::Config<FellowshipCoreInstance> for Runtime {
 	type WeightInfo = weights::pallet_core_fellowship_fellowship_core::WeightInfo<Runtime>;
+	// TODO: review. polkadot-sdk#6978: keep the local block number, as before (see
+	// `migrations::KeepLocalBlockNumber`). Westend switched to `RelaychainDataProvider` with a
+	// converting migration.
+	type BlockNumberProvider = crate::System;
 	type RuntimeEvent = RuntimeEvent;
 	type Members = pallet_ranked_collective::Pallet<Runtime, FellowshipCollectiveInstance>;
 	type Balance = Balance;

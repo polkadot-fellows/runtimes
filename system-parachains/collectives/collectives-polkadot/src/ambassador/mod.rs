@@ -211,6 +211,10 @@ pub type AmbassadorCoreInstance = pallet_core_fellowship::Instance2;
 
 impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	type WeightInfo = weights::pallet_core_fellowship_ambassador_core::WeightInfo<Runtime>;
+	// TODO: review. polkadot-sdk#6978: keep the local block number, as before (see
+	// `migrations::KeepLocalBlockNumber`). Westend switched to `RelaychainDataProvider` with a
+	// converting migration.
+	type BlockNumberProvider = crate::System;
 	type RuntimeEvent = RuntimeEvent;
 	type Members = pallet_ranked_collective::Pallet<Runtime, AmbassadorCollectiveInstance>;
 	type Balance = Balance;

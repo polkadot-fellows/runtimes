@@ -246,6 +246,13 @@ impl multi_block::signed::Config for Runtime {
 	type RewardBase = RewardBase;
 	type MaxSubmissions = MaxSignedSubmissions;
 	type EstimateCallFee = TransactionPayment;
+	type MaxFeeRefund = multi_block::signed::FullSubmissionFee<Runtime, TransactionPayment>;
+	// polkadot-sdk#12843: keep the pre-2609 behaviour (slashed deposits are burned, rewards are
+	// minted). Westend instead routes both through the DAP (`Slash = Dap`,
+	// `RewardSource = ReactivatingPot<SignedRewardPot, Balances>`).
+	// TODO: decide whether to route these through the DAP here too.
+	type Slash = ();
+	type RewardSource = multi_block::signed::ActivePot<frame_support::traits::GetDefault>;
 	type WeightInfo = weights::pallet_election_provider_multi_block_signed::WeightInfo<Self>;
 }
 
@@ -381,6 +388,11 @@ parameter_types! {
 
 impl pallet_staking_async::Config for Runtime {
 	type Filter = ();
+	// TODO: review. polkadot-sdk#12381: a validator is inactive in an era if it earned no era
+	// points. This makes the permissionless `chill_inactive` call live, with
+	// `ChillInactiveThreshold` defaulting to `HistoryDepth` eras (governance can change it via
+	// `set_staking_configs`).
+	type IsValidatorInactive = ();
 	type OldCurrency = Balances;
 	type Currency = Balances;
 	type CurrencyBalance = Balance;
