@@ -254,6 +254,8 @@ parameter_types! {
 	pub EjectGraceRatio: Perbill = Perbill::from_percent(100);
 	/// 5 DOT as the reward for the best signed submission.
 	pub RewardBase: Balance = UNITS * 5;
+	/// The DAP buffer account.
+	pub SignedRewardPot: Option<AccountId> = Some(Dap::buffer_account());
 }
 
 impl multi_block::signed::Config for Runtime {
@@ -267,12 +269,10 @@ impl multi_block::signed::Config for Runtime {
 	type MaxSubmissions = MaxSignedSubmissions;
 	type EstimateCallFee = TransactionPayment;
 	type MaxFeeRefund = multi_block::signed::FullSubmissionFee<Runtime, TransactionPayment>;
-	// polkadot-sdk#12843: keep the pre-2609 behaviour (slashed deposits are burned, rewards are
-	// minted). Westend instead routes both through the DAP (`Slash = Dap`,
-	// `RewardSource = ReactivatingPot<SignedRewardPot, Balances>`).
-	// TODO: decide whether to route these through the DAP here too.
-	type Slash = ();
-	type RewardSource = multi_block::signed::ActivePot<frame_support::traits::GetDefault>;
+	// Slashed deposits go to the DAP. Rewards and fee refunds are paid from the DAP buffer, which
+	// holds inactive issuance, so each payout is reactivated.
+	type Slash = Dap;
+	type RewardSource = multi_block::signed::ReactivatingPot<SignedRewardPot, Balances>;
 	type WeightInfo = weights::pallet_election_provider_multi_block_signed::WeightInfo<Runtime>;
 }
 
@@ -440,10 +440,11 @@ parameter_types! {
 
 impl pallet_staking_async::Config for Runtime {
 	type Filter = ();
-	// TODO: review. polkadot-sdk#12381: a validator is inactive in an era if it earned no era
-	// points. This makes the permissionless `chill_inactive` call live, with
-	// `ChillInactiveThreshold` defaulting to `HistoryDepth` eras (governance can change it via
-	// `set_staking_configs`).
+	// A validator is inactive in an era if it earned no era points. This makes the permissionless
+	// `chill_inactive` call live, with `ChillInactiveThreshold` defaulting to `HistoryDepth` eras
+	// (governance can change it via `set_staking_configs`).
+	// TODO: switch to `pallet_staking_async::AllZero` once the SDK includes polkadot-sdk#13536,
+	// which makes `()` mean "never inactive".
 	type IsValidatorInactive = ();
 	type OldCurrency = Balances;
 	type Currency = Balances;
