@@ -45,18 +45,25 @@ impl<T: Config> SweepMigrator<T> {
 	}
 
 	/// Burn everything `pot` holds and return the amount.
-	///
-	/// Writes the pot's storage directly: the balances pallet can refuse to release a hold, or
-	/// destroy a balance below the existential deposit as dust, and this must not fail.
 	fn burn_pot(pot: &T::AccountId) -> u128 {
 		if !frame_system::Account::<T>::contains_key(pot) {
 			return 0;
 		}
 		// all of it goes to the beneficiary, deposits included; nothing goes to the Coretime chain
+		let total = Self::burn_account(pot);
+		Pallet::<T>::deposit_event(Event::PotSwept { who: pot.clone(), amount: total });
+		total
+	}
 
+	/// Burn everything `who` holds, drop the balances pallet's references to it, and return the
+	/// amount.
+	///
+	/// Writes the account's storage directly: the balances pallet can refuse to release a hold,
+	/// or destroy a balance below the existential deposit as dust, and this must not fail.
+	fn burn_account(who: &T::AccountId) -> u128 {
 		// so the reference counts below follow the balances pallet's current rules
-		NativeCurrency::<T>::ensure_upgraded(pot);
-		let balance = frame_system::Account::<T>::get(pot).data;
+		NativeCurrency::<T>::ensure_upgraded(who);
+		let balance = frame_system::Account::<T>::get(who).data;
 		let total = balance.free.saturating_add(balance.reserved);
 		// the balances pallet's references: a provider while free is at least the existential
 		// deposit, a consumer while anything is reserved or frozen
@@ -64,30 +71,29 @@ impl<T: Config> SweepMigrator<T> {
 			balance.free >= <NativeCurrency<T> as Inspect<T::AccountId>>::minimum_balance();
 		let balances_consumes = !balance.reserved.is_zero() || !balance.frozen.is_zero();
 
-		// empty the pot and its balance records, and burn what it held
-		frame_system::Account::<T>::mutate(pot, |account| {
+		// empty the account and its balance records, and burn what it held
+		frame_system::Account::<T>::mutate(who, |account| {
 			account.data.free = Zero::zero();
 			account.data.reserved = Zero::zero();
 			account.data.frozen = Zero::zero();
 		});
-		pallet_balances::Holds::<T>::remove(pot);
-		pallet_balances::Reserves::<T>::remove(pot);
-		pallet_balances::Locks::<T>::remove(pot);
-		pallet_balances::Freezes::<T>::remove(pot);
+		pallet_balances::Holds::<T>::remove(who);
+		pallet_balances::Reserves::<T>::remove(who);
+		pallet_balances::Locks::<T>::remove(who);
+		pallet_balances::Freezes::<T>::remove(who);
 		pallet_balances::TotalIssuance::<T>::mutate(|issuance| {
 			*issuance = issuance.saturating_sub(total)
 		});
 
 		// drop the balances pallet's references; dropping the last provider removes the account
 		if balances_consumes {
-			frame_system::Pallet::<T>::dec_consumers(pot);
+			frame_system::Pallet::<T>::dec_consumers(who);
 		}
 		if balances_provides {
 			// fails only if another pallet still references the account, which then stays
-			let _ = frame_system::Pallet::<T>::dec_providers(pot);
+			let _ = frame_system::Pallet::<T>::dec_providers(who);
 		}
 
-		Pallet::<T>::deposit_event(Event::PotSwept { who: pot.clone(), amount: total });
 		total
 	}
 }
