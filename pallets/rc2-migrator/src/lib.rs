@@ -217,11 +217,10 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// [`Config::SweepBeneficiary`] on Asset Hub in one message. A failed send rolls back the
 	/// stage and is retried in the next block.
 	Sweep,
-	/// Reap the accounts left below the existential deposit, and the zero-balance husks.
+	/// Empty the accounts left below the existential deposit, and remove those nothing else
+	/// needs.
 	///
-	/// Runs after the accounts stage because most of what it reaps does not exist until the
-	/// earlier stages have run, and because [`Self::TiCorrection`] reads its output: burning the
-	/// issuance no account holds is only safe once the husks are gone.
+	/// Runs before [`Self::TiCorrection`], which assumes only the manager still holds balance.
 	SweepDust {
 		last_key: Option<AccountId>,
 	},

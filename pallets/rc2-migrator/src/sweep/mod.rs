@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-//! The Sweep stage sends balances from listed Relay Chain pallet accounts to Asset Hub.
+//! The Sweep and Sweep Dust stages send the balances the accounts stage leaves to Asset Hub.
 //!
 //! The accounts stage leaves the pots in [`Config::SweptAccounts`] for Sweep. Sweep burns each
 //! pot's balance on the Relay Chain and teleports the total to [`Config::SweepBeneficiary`] on
@@ -22,6 +22,10 @@
 //!
 //! Sweep handles the whole list in one block. If sending the teleport fails, the entire stage
 //! is rolled back and retried in the next block.
+//!
+//! Sweep Dust then goes through the accounts left, a block's worth at a time, and empties those
+//! below the existential deposit, sending the balance to its owner on Asset Hub or to the sweep
+//! beneficiary. See [`SweepMigrator::sweep_dust`].
 
 #[cfg(test)]
 mod tests;
@@ -139,8 +143,8 @@ impl<T: Config> SweepMigrator<T> {
 				out.last_key = Some(who);
 				continue;
 			}
-			// TODO(ahm-v2): Is it possible at this stage to have any accounts which have more
-			// balance than the ED (ignoring the manager)?
+			// An account at or above the existential deposit can still be here, if the accounts
+			// stage failed to withdraw it or fees refilled it. It is not dust.
 			if info.data.total() < rc_ed {
 				let amount = Self::burn_account(&who);
 				let pot = pots.contains(&who);
