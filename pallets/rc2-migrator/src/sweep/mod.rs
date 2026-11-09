@@ -26,12 +26,22 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{Config, Event, Pallet};
+use crate::{accounts::AccountsMigrator, Config, Event, Limits, Pallet};
+use alloc::vec::Vec;
 use core::marker::PhantomData;
 use frame_support::traits::{fungible::Inspect, Get};
-use sp_runtime::traits::Zero;
+use sp_runtime::{traits::Zero, AccountId32};
 
 type NativeCurrency<T> = pallet_balances::Pallet<T>;
+
+/// The dust one block swept.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct BlockDust {
+	/// Balance to teleport to Asset Hub, per account.
+	pub to_ah: Vec<(AccountId32, u128)>,
+	/// Where the next block continues from; `None` once every account has been visited.
+	pub last_key: Option<AccountId32>,
+}
 
 pub struct SweepMigrator<T>(PhantomData<T>);
 
@@ -95,5 +105,72 @@ impl<T: Config> SweepMigrator<T> {
 		}
 
 		total
+	}
+
+	/// Sweep the dust of the accounts after `last_key`, as many as [`items_per_block`] allows.
+	///
+	/// An account below the existential deposit, other than the `manager`, is emptied. Its balance
+	/// goes to its owner on Asset Hub if it is at least Asset Hub's existential deposit, and to
+	/// the [`SweepBeneficiary`] otherwise. A pot's always goes to the sweep beneficiary, like the
+	/// rest of the pots, and so does a pure proxy's, since nobody controls a pure proxy on Asset
+	/// Hub. The account is then removed, unless it is a pot or something else still needs it.
+	///
+	/// [`items_per_block`]: crate::BlockLimits::items_per_block
+	/// [`SweepBeneficiary`]: Config::SweepBeneficiary
+	pub fn sweep_dust(last_key: Option<AccountId32>, manager: Option<&AccountId32>) -> BlockDust {
+		let rc_ed = <NativeCurrency<T> as Inspect<T::AccountId>>::minimum_balance();
+		let ah_ed = T::AhExistentialDeposit::get();
+		let pots = T::SweptAccounts::get();
+
+		let mut iter = last_key
+			.map(frame_system::Account::<T>::iter_from_key)
+			.unwrap_or_else(frame_system::Account::<T>::iter);
+
+		let mut out = BlockDust { to_ah: Vec::new(), last_key: None };
+		let mut to_beneficiary = 0u128;
+		for _ in 0..Limits::<T>::get().items_per_block() {
+			let Some((who, info)) = iter.next() else {
+				out.last_key = None;
+				break;
+			};
+			// Always skip the account if it's the manager; it's not handled in this step.
+			if manager == Some(&who) {
+				out.last_key = Some(who);
+				continue;
+			}
+			// TODO(ahm-v2): Is it possible at this stage to have any accounts which have more
+			// balance than the ED (ignoring the manager)?
+			if info.data.total() < rc_ed {
+				let amount = Self::burn_account(&who);
+				let pot = pots.contains(&who);
+				if !amount.is_zero() {
+					let owned = !pot && !AccountsMigrator::<T>::is_pure_proxy(&who, &info);
+					if owned && amount >= ah_ed {
+						out.to_ah.push((AccountsMigrator::<T>::ah_destination(&who), amount));
+					} else {
+						to_beneficiary = to_beneficiary.saturating_add(amount);
+					}
+					Pallet::<T>::deposit_event(Event::DustSwept { who: who.clone(), amount });
+				}
+				if !pot {
+					Self::remove_if_unreferenced(&who);
+				}
+			}
+			out.last_key = Some(who);
+		}
+		if !to_beneficiary.is_zero() {
+			out.to_ah.push((T::SweepBeneficiary::get(), to_beneficiary));
+		}
+		out
+	}
+
+	/// Remove `who` if one provider reference is all that keeps it. An account with more, or with
+	/// a consumer reference such as a validator's session keys, stays.
+	fn remove_if_unreferenced(who: &T::AccountId) {
+		let account = frame_system::Account::<T>::get(who);
+		if (account.providers, account.consumers, account.sufficients) == (1, 0, 0) {
+			// cannot fail with these references
+			let _ = frame_system::Pallet::<T>::dec_providers(who);
+		}
 	}
 }

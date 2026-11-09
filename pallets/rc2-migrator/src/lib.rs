@@ -486,6 +486,9 @@ pub mod pallet {
 		/// A pot was emptied. Its balance is sent to the sweep beneficiary with the other swept
 		/// balances.
 		PotSwept { who: T::AccountId, amount: u128 },
+		/// An account below the existential deposit was emptied. Its balance is sent to its owner
+		/// on Asset Hub or to the sweep beneficiary.
+		DustSwept { who: T::AccountId, amount: u128 },
 		/// Unclaimed on-demand revenue was cleared from the on-demand pallet's record.
 		OnDemandRevenueCleared { amount: u128 },
 	}
@@ -810,9 +813,18 @@ pub mod pallet {
 						.reads_writes(3, 3)
 						.saturating_add(T::DbWeight::get().reads_writes(6 * pots, 6 * pots))
 				},
-				MigrationStage::SweepDust { .. } => {
-					Self::transition(MigrationStage::TiCorrection);
-					T::DbWeight::get().reads_writes(1, 1)
+				MigrationStage::SweepDust { last_key } => {
+					// Burns and sends commit or roll back together.
+					match with_storage_layer(|| Self::sweep_dust_block(last_key)) {
+						Ok(None) => Self::transition(MigrationStage::TiCorrection),
+						Ok(last_key) => Self::transition(MigrationStage::SweepDust { last_key }),
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "Sweep Dust block failed, retrying: {e:?}");
+						},
+					}
+					T::DbWeight::get()
+						.reads_writes(6, 6)
+						.saturating_mul(Limits::<T>::get().items_per_block().into())
 				},
 				MigrationStage::TiCorrection => {
 					Self::transition(MigrationStage::CoolOff {
@@ -942,6 +954,31 @@ pub mod pallet {
 			});
 			Self::send_teleport(vec![(T::SweepBeneficiary::get(), total)])?;
 			Ok(())
+		}
+
+		/// Sweep one block of dust, record it as moved to Asset Hub, and send it there. Return
+		/// where the next block continues from.
+		///
+		/// The caller runs it in a storage transaction, so an `Err` rolls the burns back too.
+		fn sweep_dust_block(
+			last_key: Option<T::AccountId>,
+		) -> Result<Option<T::AccountId>, DispatchError> {
+			let manager = Manager::<T>::get();
+			let sweep::BlockDust { to_ah, last_key } =
+				sweep::SweepMigrator::<T>::sweep_dust(last_key, manager.as_ref());
+
+			let total: u128 = to_ah.iter().map(|(_, amount)| amount).sum();
+			RcMigratedBalance::<T>::mutate(|migrated| {
+				defensive_assert!(migrated.kept >= total, "burned more than is kept");
+				migrated.kept = migrated.kept.saturating_sub(total);
+				migrated.ah_free = migrated.ah_free.saturating_add(total);
+			});
+
+			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
+			for chunk in to_ah.chunks(per_xcm) {
+				Self::send_teleport(chunk.to_vec())?;
+			}
+			Ok(last_key)
 		}
 
 		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.

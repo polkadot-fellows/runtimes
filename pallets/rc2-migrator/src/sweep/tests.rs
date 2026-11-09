@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{mock::*, Event, MigratedBalances, RcMigratedBalance, RcMigrationStage};
+use crate::{
+	mock::*, BlockLimits, Event, Limits, Manager, MigratedBalances, RcMigratedBalance,
+	RcMigrationStage,
+};
 use frame_support::traits::{
 	fungible::{Mutate, MutateHold},
 	tokens::{Fortitude, Precision, Preservation},
@@ -42,20 +45,26 @@ fn swept_events() -> Vec<(AccountId, u128)> {
 		.collect()
 }
 
+/// The expected teleport message to Asset Hub, with one deposit per `(account, amount)`.
+fn teleport(deposits: &[(AccountId, u128)]) -> (Location, Xcm<()>) {
+	let total: u128 = deposits.iter().map(|(_, amount)| amount).sum();
+	let mut message = vec![
+		UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+		ReceiveTeleportedAsset((Location::parent(), total).into()),
+	];
+	message.extend(deposits.iter().map(|(who, amount)| DepositAsset {
+		assets: AssetFilter::Definite((Location::parent(), *amount).into()),
+		beneficiary: Location::new(
+			0,
+			[Junction::AccountId32 { network: None, id: who.clone().into() }],
+		),
+	}));
+	(ah_dest(), Xcm(message))
+}
+
 /// The expected teleport message to the sweep beneficiary on Asset Hub.
 fn teleport_to_beneficiary(amount: u128) -> (Location, Xcm<()>) {
-	let message = Xcm(vec![
-		UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
-		ReceiveTeleportedAsset((Location::parent(), amount).into()),
-		DepositAsset {
-			assets: AssetFilter::Definite((Location::parent(), amount).into()),
-			beneficiary: Location::new(
-				0,
-				[Junction::AccountId32 { network: None, id: SWEEP_BENEFICIARY.into() }],
-			),
-		},
-	]);
-	(ah_dest(), message)
+	teleport(&[(SWEEP_BENEFICIARY, amount)])
 }
 
 #[test]
@@ -317,5 +326,272 @@ fn a_pot_below_the_existential_deposit_is_swept_not_lost_as_dust() {
 		);
 		assert_eq!(total_issuance(), 0);
 		assert_eq!(balance_and_refs(&pot), ((0, 0, 0), (2, 0)));
+	});
+}
+
+/// Start Sweep Dust with the recorded balance set to the current Relay Chain issuance.
+fn at_sweep_dust() {
+	RcMigratedBalance::<Test>::put(MigratedBalances {
+		kept: total_issuance(),
+		..Default::default()
+	});
+	RcMigrationStage::<Test>::put(Stage::SweepDust { last_key: None });
+}
+
+/// `(account, amount)` of every `DustSwept` event so far, sorted: accounts are visited in storage
+/// order.
+fn dust_events() -> Vec<(AccountId, u128)> {
+	let mut events: Vec<_> = System::events()
+		.into_iter()
+		.filter_map(|record| match record.event {
+			RuntimeEvent::Rc2Migrator(Event::DustSwept { who, amount }) => Some((who, amount)),
+			_ => None,
+		})
+		.collect();
+	events.sort();
+	events
+}
+
+fn exists(who: &AccountId) -> bool {
+	frame_system::Account::<Test>::contains_key(who)
+}
+
+#[test]
+fn dust_of_at_least_asset_hubs_existential_deposit_goes_to_its_owner() {
+	new_test_ext().execute_with(|| {
+		// GIVEN an account below the relay's existential deposit but not below Asset Hub's.
+		force_below_ed(&ALICE, AH_ED);
+		at_sweep_dust();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN the balance is teleported to the same account on Asset Hub, the account is
+		// removed, and the stage moves on.
+		assert_stage(Stage::TiCorrection);
+		assert_eq!(sent(), vec![teleport(&[(ALICE, AH_ED)])]);
+		assert_eq!(dust_events(), vec![(ALICE, AH_ED)]);
+		assert!(!exists(&ALICE));
+		assert_eq!(total_issuance(), 0);
+		assert_eq!(
+			RcMigratedBalance::<Test>::get(),
+			MigratedBalances { kept: 0, ah_free: AH_ED, ..Default::default() }
+		);
+	});
+}
+
+#[test]
+fn dust_below_asset_hubs_existential_deposit_goes_to_the_beneficiary() {
+	new_test_ext().execute_with(|| {
+		// GIVEN two accounts below Asset Hub's existential deposit.
+		force_below_ed(&ALICE, AH_ED - 1);
+		force_below_ed(&BOB, AH_ED - 2);
+		at_sweep_dust();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN both balances go to the sweep beneficiary in one deposit, and both accounts are
+		// removed.
+		assert_stage(Stage::TiCorrection);
+		assert_eq!(sent(), vec![teleport_to_beneficiary(2 * AH_ED - 3)]);
+		assert_eq!(dust_events(), vec![(ALICE, AH_ED - 1), (BOB, AH_ED - 2)]);
+		assert!(!exists(&ALICE) && !exists(&BOB));
+		assert_eq!(total_issuance(), 0);
+		assert_eq!(
+			RcMigratedBalance::<Test>::get(),
+			MigratedBalances { kept: 0, ah_free: 2 * AH_ED - 3, ..Default::default() }
+		);
+	});
+}
+
+#[test]
+fn a_pure_proxys_and_a_pots_dust_goes_to_the_beneficiary() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a pure proxy and a pot, each with dust Asset Hub would accept.
+		fund(&IVAN, 1_000);
+		let pure = create_pure(&IVAN);
+		force_below_ed(&pure, AH_ED);
+		let pot = pallet_account();
+		force_below_ed(&pot, AH_ED);
+		at_sweep_dust();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN both go to the sweep beneficiary.
+		assert_stage(Stage::TiCorrection);
+		assert_eq!(sent(), vec![teleport_to_beneficiary(2 * AH_ED)]);
+		assert_eq!(
+			RcMigratedBalance::<Test>::get(),
+			MigratedBalances { kept: 1_000, ah_free: 2 * AH_ED, ..Default::default() }
+		);
+		// AND the pure proxy is removed, but the pot stays, empty, for its pallet.
+		assert!(!exists(&pure));
+		assert_eq!(balance_and_refs(&pot), ((0, 0, 0), (1, 0)));
+		// AND the pure's creator, above the existential deposit, is left alone.
+		assert_eq!(frame_system::Account::<Test>::get(&IVAN).data.total(), 1_000);
+	});
+}
+
+#[test]
+fn a_referenced_account_is_emptied_and_kept() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a validator below the existential deposit, whose session keys reference it.
+		force_below_ed(&DAVE, AH_ED);
+		add_consumer(&DAVE);
+		at_sweep_dust();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN its balance goes to its owner, and the record stays, empty, for the session
+		// pallet.
+		assert_stage(Stage::TiCorrection);
+		assert_eq!(sent(), vec![teleport(&[(DAVE, AH_ED)])]);
+		assert_eq!(balance_and_refs(&DAVE), ((0, 0, 0), (1, 1)));
+		assert_eq!(total_issuance(), 0);
+	});
+}
+
+#[test]
+fn an_empty_account_is_removed_if_one_provider_reference_keeps_it() {
+	new_test_ext().execute_with(|| {
+		// GIVEN an empty account kept alive by one old provider reference, and one kept alive by
+		// two.
+		force_below_ed(&EVE, 0);
+		force_below_ed(&FRANK, 0);
+		frame_system::Pallet::<Test>::inc_providers(&FRANK);
+		at_sweep_dust();
+		let migrated = RcMigratedBalance::<Test>::get();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN the first is removed and the second stays as it was. Nothing is sent, reported or
+		// recorded.
+		assert_stage(Stage::TiCorrection);
+		assert!(!exists(&EVE));
+		assert_eq!(balance_and_refs(&FRANK), ((0, 0, 0), (2, 0)));
+		assert!(sent().is_empty());
+		assert!(dust_events().is_empty());
+		assert_eq!(RcMigratedBalance::<Test>::get(), migrated);
+	});
+}
+
+#[test]
+fn dust_is_swept_whole_whatever_form_it_is_in() {
+	new_test_ext().execute_with(|| {
+		// GIVEN an account below the existential deposit with free balance, a reserve and a named
+		// hold, kept alive by another pallet's provider reference.
+		frame_system::Pallet::<Test>::inc_providers(&GRACE);
+		fund(&GRACE, 20);
+		reserve(&GRACE, 4);
+		stray_hold(&GRACE, 3);
+		spend(&GRACE, 12);
+		assert_eq!(balance_and_refs(&GRACE).0, (1, 7, 0));
+		at_sweep_dust();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN all of it goes to its owner, and the account is removed with its balance records.
+		assert_stage(Stage::TiCorrection);
+		assert_eq!(sent(), vec![teleport(&[(GRACE, 8)])]);
+		assert!(!exists(&GRACE));
+		assert!(pallet_balances::Holds::<Test>::get(&GRACE).is_empty());
+		assert_eq!(total_issuance(), 0);
+	});
+}
+
+#[test]
+fn the_manager_and_accounts_at_the_existential_deposit_are_left_alone() {
+	new_test_ext().execute_with(|| {
+		// GIVEN an account at the existential deposit, and a manager below it.
+		fund(&HEIDI, ED);
+		force_below_ed(&IVAN, AH_ED);
+		Manager::<Test>::put(IVAN);
+		at_sweep_dust();
+
+		// WHEN the stage runs. THEN neither is touched, and the stage moves on.
+		run_blocks(1);
+		assert_stage(Stage::TiCorrection);
+		assert!(sent().is_empty());
+		assert_eq!((free(&HEIDI), free(&IVAN)), (ED, AH_ED));
+	});
+}
+
+#[test]
+fn sweep_dust_continues_where_the_last_block_stopped() {
+	new_test_ext().execute_with(|| {
+		// GIVEN three dust accounts and room for one account per block.
+		for who in [ALICE, BOB, CHARLIE] {
+			force_below_ed(&who, AH_ED);
+		}
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 1, xcm_per_block: 1 });
+		at_sweep_dust();
+
+		// WHEN three blocks run. THEN each sweeps one account, and the stage goes on.
+		run_blocks(3);
+		assert!(matches!(RcMigrationStage::<Test>::get(), Stage::SweepDust { last_key: Some(_) }));
+		assert_eq!(sent().len(), 3);
+		assert_eq!(dust_events(), vec![(ALICE, AH_ED), (BOB, AH_ED), (CHARLIE, AH_ED)]);
+
+		// WHEN the next block runs. THEN it finds nothing left, and the stage moves on.
+		run_blocks(1);
+		assert_stage(Stage::TiCorrection);
+		assert_eq!(sent().len(), 3);
+		assert_eq!(total_issuance(), 0);
+	});
+}
+
+#[test]
+fn sweep_dust_retries_when_the_send_fails() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a dust account and a router that refuses everything.
+		force_below_ed(&ALICE, AH_ED);
+		at_sweep_dust();
+		let migrated = RcMigratedBalance::<Test>::get();
+		SendFails::set(true);
+
+		// WHEN the stage runs. THEN the burn is rolled back with the send, and the stage stays.
+		run_blocks(1);
+		assert_stage(Stage::SweepDust { last_key: None });
+		assert_eq!(free(&ALICE), AH_ED);
+		assert_eq!(total_issuance(), AH_ED);
+		assert_eq!(RcMigratedBalance::<Test>::get(), migrated);
+		assert!(dust_events().is_empty());
+
+		// WHEN the router recovers. THEN the next block sweeps it.
+		SendFails::set(false);
+		run_blocks(1);
+		assert_stage(Stage::TiCorrection);
+		assert_eq!(sent(), vec![teleport(&[(ALICE, AH_ED)])]);
+		assert_eq!(total_issuance(), 0);
+	});
+}
+
+#[test]
+fn a_block_that_ends_on_the_manager_does_not_end_the_stage() {
+	new_test_ext().execute_with(|| {
+		// GIVEN two accounts below the existential deposit, the first in storage order being the
+		// manager, and room for one account per block.
+		force_below_ed(&ALICE, AH_ED);
+		force_below_ed(&BOB, AH_ED);
+		let manager = frame_system::Account::<Test>::iter_keys().next().expect("two accounts");
+		let other = if manager == ALICE { BOB } else { ALICE };
+		Manager::<Test>::put(manager.clone());
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 1, xcm_per_block: 1 });
+		at_sweep_dust();
+
+		// WHEN a block visits only the manager. THEN the stage continues after it.
+		run_blocks(1);
+		assert_stage(Stage::SweepDust { last_key: Some(manager.clone()) });
+
+		// WHEN the next blocks run. THEN the other account is swept and the stage moves on.
+		run_blocks(2);
+		assert_stage(Stage::TiCorrection);
+		assert_eq!(dust_events(), vec![(other, AH_ED)]);
+		assert_eq!(free(&manager), AH_ED);
 	});
 }

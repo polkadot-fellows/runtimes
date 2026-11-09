@@ -20,6 +20,7 @@ use crate::{
 	checks::{ParaMigrationCheck, RcMigrationCheck},
 	mock::{network, AssetHubPara, CoretimePara},
 };
+use frame_support::traits::Get;
 use migrator_types::translate_destination;
 use pallet_rc2_migrator::accounts::AccountsMigrator;
 use sp_runtime::AccountId32;
@@ -148,11 +149,22 @@ impl RcMigrationCheck for AccountsChecker {
 	}
 
 	fn post_check(rc_pre: &Self::RcPrePayload) -> Self::RcPostPayload {
+		let manager = pallet_rc2_migrator::Manager::<Rc>::get();
+		let ed = <Rc as pallet_balances::Config>::ExistentialDeposit::get();
 		for (who, account) in &rc_pre.accounts {
 			let data = account_data::<Rc>(who);
 			if account.deferred {
 				// Sweep empties the pots; its checker checks them.
 				if AccountsMigrator::<Rc>::is_swept(who) {
+					continue;
+				}
+				// Sweep Dust empties every other account below the existential deposit.
+				if account.total < ed && manager.as_ref() != Some(who) {
+					assert_eq!(
+						(data.free, data.reserved),
+						(0, 0),
+						"dust on {who:?} should have been swept"
+					);
 					continue;
 				}
 				assert_eq!(
