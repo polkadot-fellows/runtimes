@@ -319,3 +319,64 @@ fn a_pot_below_the_existential_deposit_is_swept_not_lost_as_dust() {
 		assert_eq!(balance_and_refs(&pot), ((0, 0, 0), (2, 0)));
 	});
 }
+
+/// Write `who` in the balances pallet's old account format, with no references, and add its
+/// balance to the issuance.
+fn old_format_account(who: &AccountId, free: u128, reserved: u128) {
+	frame_system::Account::<Test>::insert(
+		who,
+		frame_system::AccountInfo {
+			data: pallet_balances::AccountData {
+				free,
+				reserved,
+				flags: pallet_balances::ExtraFlags::old_logic(),
+				..Default::default()
+			},
+			..Default::default()
+		},
+	);
+	pallet_balances::TotalIssuance::<Test>::mutate(|issuance| *issuance += free + reserved);
+}
+
+#[test]
+fn an_old_format_pot_with_a_reserve_is_swept_for_what_it_holds() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a pot in the old format with only a reserve and no provider reference. Upgrading
+		// it raises its free balance to the existential deposit, which the issuance does not
+		// include.
+		let pot = pallet_account();
+		old_format_account(&pot, 0, 5);
+		at_sweep();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN only what it held is burned and teleported, and the pot is reaped.
+		assert_stage(Stage::SweepDust { last_key: None });
+		assert_eq!(swept_events(), vec![(pot.clone(), 5)]);
+		assert_eq!(sent(), vec![teleport_to_beneficiary(5)]);
+		assert_eq!(total_issuance(), 0);
+		assert!(!frame_system::Account::<Test>::contains_key(&pot), "the pot is reaped");
+	});
+}
+
+#[test]
+fn an_old_format_pot_nothing_references_is_swept_for_what_it_holds() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a pot in the old format with free balance and no references. Upgrading it removes
+		// the record, balance included.
+		let pot = pallet_account();
+		old_format_account(&pot, 7, 0);
+		at_sweep();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN its balance is still burned and teleported, and no record is left.
+		assert_stage(Stage::SweepDust { last_key: None });
+		assert_eq!(swept_events(), vec![(pot.clone(), 7)]);
+		assert_eq!(sent(), vec![teleport_to_beneficiary(7)]);
+		assert_eq!(total_issuance(), 0);
+		assert!(!frame_system::Account::<Test>::contains_key(&pot), "no record is left");
+	});
+}

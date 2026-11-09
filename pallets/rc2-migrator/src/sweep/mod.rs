@@ -53,11 +53,14 @@ impl<T: Config> SweepMigrator<T> {
 			return 0;
 		}
 		// all of it goes to the beneficiary, deposits included; nothing goes to the Coretime chain
+		let before = frame_system::Account::<T>::get(pot).data;
+		let total = before.free.saturating_add(before.reserved);
 
-		// so the reference counts below follow the balances pallet's current rules
+		// so the reference counts below follow the balances pallet's current rules. Upgrading an
+		// account in the old format can raise its free balance to the existential deposit, or
+		// remove a record nothing references, which is why `total` is read before.
 		NativeCurrency::<T>::ensure_upgraded(pot);
 		let balance = frame_system::Account::<T>::get(pot).data;
-		let total = balance.free.saturating_add(balance.reserved);
 		// the balances pallet's references: a provider while free is at least the existential
 		// deposit, a consumer while anything is reserved or frozen
 		let balances_provides =
@@ -65,10 +68,12 @@ impl<T: Config> SweepMigrator<T> {
 		let balances_consumes = !balance.reserved.is_zero() || !balance.frozen.is_zero();
 
 		// empty the pot and its balance records, and burn what it held
-		frame_system::Account::<T>::mutate(pot, |account| {
-			account.data.free = Zero::zero();
-			account.data.reserved = Zero::zero();
-			account.data.frozen = Zero::zero();
+		frame_system::Account::<T>::mutate_exists(pot, |account| {
+			if let Some(account) = account {
+				account.data.free = Zero::zero();
+				account.data.reserved = Zero::zero();
+				account.data.frozen = Zero::zero();
+			}
 		});
 		pallet_balances::Holds::<T>::remove(pot);
 		pallet_balances::Reserves::<T>::remove(pot);
