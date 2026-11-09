@@ -912,32 +912,63 @@ pub mod migrations {
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
 		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
-		// TODO 2609-review: polkadot-sdk#6978: `pallet-core-fellowship` storage v1 -> v2. Both
-		// instances keep using the local block number, so stored block numbers are carried over
-		// unchanged.
+		// `pallet-core-fellowship` storage v1 -> v2 (polkadot-sdk#6978): both instances switch
+		// from local to Relay Chain block numbers.
 		pallet_core_fellowship::migration::MigrateV1ToV2<
 			Runtime,
-			KeepLocalBlockNumber,
+			CoreFellowshipToRelayBlockNumber,
 			fellowship::FellowshipCoreInstance,
 		>,
 		pallet_core_fellowship::migration::MigrateV1ToV2<
 			Runtime,
-			KeepLocalBlockNumber,
+			CoreFellowshipToRelayBlockNumber,
 			ambassador::AmbassadorCoreInstance,
 		>,
 	);
 
-	/// `pallet-core-fellowship` v2 block number converter for runtimes that keep
-	/// `BlockNumberProvider = System`: the identity.
-	pub struct KeepLocalBlockNumber;
-	impl pallet_core_fellowship::migration::v2::ConvertBlockNumber<BlockNumber, BlockNumber>
-		for KeepLocalBlockNumber
+	/// Relay Chain blocks per local block: this chain builds at most one block per slot, and its
+	/// slots are twice as long as the Relay Chain's.
+	pub const RELAY_BLOCKS_PER_LOCAL_BLOCK: BlockNumber =
+		(SLOT_DURATION / RELAY_CHAIN_SLOT_DURATION_MILLIS as u64) as BlockNumber;
+	// The conversion below relies on one block per slot and on each block waiting for the
+	// previous one to be included (no async backing).
+	const _: () = assert!(
+		BLOCK_PROCESSING_VELOCITY == 1 &&
+			UNINCLUDED_SEGMENT_CAPACITY == 1 &&
+			SLOT_DURATION % RELAY_CHAIN_SLOT_DURATION_MILLIS as u64 == 0
+	);
+
+	type RelayBlockNumber = <cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime> as
+		sp_runtime::traits::BlockNumberProvider>::BlockNumber;
+
+	/// Converts `pallet-core-fellowship` block numbers from local to Relay Chain blocks.
+	///
+	/// Durations (the periods in `Params`) are the intended lengths of time, so they scale
+	/// exactly: `n` local blocks become `n * RELAY_BLOCKS_PER_LOCAL_BLOCK` relay blocks.
+	///
+	/// Moments (each member's `last_promotion` and `last_proof`) must never move earlier than
+	/// they really were, or members could be demoted or kept from promotion too soon. A moment
+	/// is placed its converted distance before the current relay block. Each local block is
+	/// built on a relay parent at least two relay blocks after the previous one's, because it
+	/// waits for that block's inclusion. So the converted distance never exceeds the real one,
+	/// and any missed slots only move the moment later, in the member's favor.
+	pub struct CoreFellowshipToRelayBlockNumber;
+	impl pallet_core_fellowship::migration::v2::ConvertBlockNumber<BlockNumber, RelayBlockNumber>
+		for CoreFellowshipToRelayBlockNumber
 	{
-		fn equivalent_moment_in_time(local_moment: BlockNumber) -> BlockNumber {
-			local_moment
+		fn equivalent_moment_in_time(local_moment: BlockNumber) -> RelayBlockNumber {
+			let local_now = System::block_number();
+			let relay_now = ParachainSystem::last_relay_block_number();
+			let relay_distance = Self::equivalent_block_duration(local_now.abs_diff(local_moment));
+			if local_moment <= local_now {
+				relay_now.saturating_sub(relay_distance)
+			} else {
+				relay_now.saturating_add(relay_distance)
+			}
 		}
-		fn equivalent_block_duration(local_duration: BlockNumber) -> BlockNumber {
-			local_duration
+
+		fn equivalent_block_duration(local_duration: BlockNumber) -> RelayBlockNumber {
+			local_duration.saturating_mul(RELAY_BLOCKS_PER_LOCAL_BLOCK)
 		}
 	}
 
@@ -1602,4 +1633,67 @@ fn alliance_deposit_matches_documented_curve() {
 			proposals, expected, actual
 		);
 	}
+}
+
+#[test]
+fn core_fellowship_migrates_to_relay_block_numbers() {
+	use frame_support::traits::{GetStorageVersion, OnRuntimeUpgrade, StorageVersion};
+	use pallet_core_fellowship::{
+		migration::{v1, v2::ConvertBlockNumber, MigrateV1ToV2},
+		MemberStatus,
+	};
+	use sp_runtime::BoundedVec;
+
+	type Converter = migrations::CoreFellowshipToRelayBlockNumber;
+	type Instance = fellowship::FellowshipCoreInstance;
+
+	sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+		// One 12s local block is two 6s relay blocks.
+		assert_eq!(migrations::RELAY_BLOCKS_PER_LOCAL_BLOCK, 2);
+
+		let local_now = 10_000;
+		let relay_now = 1_000_000;
+		System::set_block_number(local_now);
+		cumulus_pallet_parachain_system::LastRelayChainBlockNumber::<Runtime>::put(relay_now);
+
+		// Durations double; moments keep their converted distance from now.
+		assert_eq!(Converter::equivalent_block_duration(300), 600);
+		assert_eq!(Converter::equivalent_moment_in_time(local_now), relay_now);
+		assert_eq!(Converter::equivalent_moment_in_time(9_000), relay_now - 2_000);
+		assert_eq!(Converter::equivalent_moment_in_time(10_500), relay_now + 1_000);
+		assert_eq!(Converter::equivalent_moment_in_time(0), relay_now - 20_000);
+
+		// The full v1 -> v2 migration.
+		let who = AccountId::from([1u8; 32]);
+		v1::Params::<Runtime, Instance>::put(v1::ParamsOf::<Runtime, Instance> {
+			active_salary: BoundedVec::truncate_from(vec![10, 20]),
+			passive_salary: BoundedVec::truncate_from(vec![5, 10]),
+			demotion_period: BoundedVec::truncate_from(vec![100, 200]),
+			min_promotion_period: BoundedVec::truncate_from(vec![0, 300]),
+			offboard_timeout: 50,
+		});
+		v1::Member::<Runtime, Instance>::insert(
+			&who,
+			MemberStatus { is_active: true, last_promotion: 4_000, last_proof: 9_000 },
+		);
+		StorageVersion::new(1).put::<FellowshipCore>();
+
+		MigrateV1ToV2::<Runtime, Converter, Instance>::on_runtime_upgrade();
+
+		assert_eq!(FellowshipCore::on_chain_storage_version(), StorageVersion::new(2));
+		let params = pallet_core_fellowship::Params::<Runtime, Instance>::get();
+		assert_eq!(params.active_salary.into_inner(), vec![10, 20]);
+		assert_eq!(params.passive_salary.into_inner(), vec![5, 10]);
+		assert_eq!(params.demotion_period.into_inner(), vec![200, 400]);
+		assert_eq!(params.min_promotion_period.into_inner(), vec![0, 600]);
+		assert_eq!(params.offboard_timeout, 100);
+		assert_eq!(
+			pallet_core_fellowship::Member::<Runtime, Instance>::get(&who),
+			Some(MemberStatus {
+				is_active: true,
+				last_promotion: relay_now - 12_000,
+				last_proof: relay_now - 2_000,
+			})
+		);
+	});
 }
