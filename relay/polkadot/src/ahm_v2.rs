@@ -37,11 +37,16 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use migrator_types::PortableProxyType;
 use pallet_xcm::EnsureXcm;
-use polkadot_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
+use polkadot_runtime_constants::{
+	currency::{EXISTENTIAL_DEPOSIT, UNITS},
+	system_parachain::ASSET_HUB_ID,
+};
 use sp_runtime::traits::AccountIdConversion;
 
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
+	/// Asset Hub's existential deposit, a hundredth of this chain's.
+	pub const AhExistentialDeposit: u128 = EXISTENTIAL_DEPOSIT / 100;
 	pub const CtFreeBuffer: u128 = UNITS;
 	/// The pot of the retired `pallet-dap-satellite`. Its old id is `dap/satl`; the replacement
 	/// uses `acf/dott` as of paritytech/polkadot-sdk#11881.
@@ -79,6 +84,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type SendXcm = XcmRouter;
 	type CtParaId = BrokerId;
 	type AhParaId = AhParaId;
+	type AhExistentialDeposit = AhExistentialDeposit;
 	type CtFreeBuffer = CtFreeBuffer;
 	type TimeProvider = Timestamp;
 	type CtOrigin = EnsureXcm<Equals<CoretimeLocation>>;

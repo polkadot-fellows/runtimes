@@ -349,6 +349,8 @@ pub const SWEEP_BENEFICIARY: AccountId = AccountId32::new([16; 32]);
 
 pub const CT_PARA_ID: u32 = 1005;
 pub const AH_PARA_ID: u32 = 1000;
+/// Asset Hub's existential deposit, lower than the relay's as on the live networks.
+pub const AH_ED: u128 = 5;
 /// Free balance that follows a deposit to the Coretime chain.
 pub const CT_FREE_BUFFER: u128 = 100;
 pub const WARM_UP: u64 = 4;
@@ -359,6 +361,7 @@ pub const BLOCK_TIME_MS: u64 = 6_000;
 parameter_types! {
 	pub const CtParaId: u32 = CT_PARA_ID;
 	pub const AhParaId: u32 = AH_PARA_ID;
+	pub const AhExistentialDeposit: u128 = AH_ED;
 	pub const CtFreeBuffer: u128 = CT_FREE_BUFFER;
 
 	/// Every message the pallet successfully sent, in order.
@@ -423,6 +426,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type SendXcm = RecordingRouter;
 	type CtParaId = CtParaId;
 	type AhParaId = AhParaId;
+	type AhExistentialDeposit = AhExistentialDeposit;
 	type CtFreeBuffer = CtFreeBuffer;
 	type TimeProvider = MockTime;
 	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId>;

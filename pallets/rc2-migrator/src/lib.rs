@@ -322,6 +322,10 @@ pub mod pallet {
 		/// Para id of Asset Hub, where free balance is teleported to.
 		type AhParaId: Get<u32>;
 
+		/// Asset Hub's existential deposit.
+		#[pallet::constant]
+		type AhExistentialDeposit: Get<u128>;
+
 		/// Free balance that follows a migrated deposit to the Coretime chain, so the owner can
 		/// pay fees there without a teleport first.
 		#[pallet::constant]

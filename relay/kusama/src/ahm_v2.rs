@@ -34,13 +34,18 @@ use frame_support::{
 	traits::{Equals, Get},
 };
 use frame_system::EnsureRoot;
-use kusama_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
+use kusama_runtime_constants::{
+	currency::{EXISTENTIAL_DEPOSIT, UNITS},
+	system_parachain::ASSET_HUB_ID,
+};
 use migrator_types::PortableProxyType;
 use pallet_xcm::EnsureXcm;
 use sp_runtime::traits::AccountIdConversion;
 
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
+	/// Asset Hub's existential deposit, a hundredth of this chain's.
+	pub const AhExistentialDeposit: u128 = EXISTENTIAL_DEPOSIT / 100;
 	pub const CtFreeBuffer: u128 = UNITS;
 	/// The treasury on Asset Hub.
 	pub SweepBeneficiary: AccountId = TreasuryPalletId::get().into_account_truncating();
@@ -71,6 +76,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type SendXcm = XcmRouter;
 	type CtParaId = BrokerId;
 	type AhParaId = AhParaId;
+	type AhExistentialDeposit = AhExistentialDeposit;
 	type CtFreeBuffer = CtFreeBuffer;
 	type TimeProvider = Timestamp;
 	type CtOrigin = EnsureXcm<Equals<Broker>>;
