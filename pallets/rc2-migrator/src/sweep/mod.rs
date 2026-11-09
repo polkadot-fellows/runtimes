@@ -75,10 +75,14 @@ impl<T: Config> SweepMigrator<T> {
 	/// Writes the account's storage directly: the balances pallet can refuse to release a hold,
 	/// or destroy a balance below the existential deposit as dust, and this must not fail.
 	fn burn_account(who: &T::AccountId) -> u128 {
-		// so the reference counts below follow the balances pallet's current rules
+		let before = frame_system::Account::<T>::get(who).data;
+		let total = before.free.saturating_add(before.reserved);
+
+		// so the reference counts below follow the balances pallet's current rules. Upgrading an
+		// account in the old format can raise its free balance to the existential deposit, or
+		// remove a record nothing references, which is why `total` is read before.
 		NativeCurrency::<T>::ensure_upgraded(who);
 		let balance = frame_system::Account::<T>::get(who).data;
-		let total = balance.free.saturating_add(balance.reserved);
 		// the balances pallet's references: a provider while free is at least the existential
 		// deposit, a consumer while anything is reserved or frozen
 		let balances_provides =
@@ -86,10 +90,12 @@ impl<T: Config> SweepMigrator<T> {
 		let balances_consumes = !balance.reserved.is_zero() || !balance.frozen.is_zero();
 
 		// empty the account and its balance records, and burn what it held
-		frame_system::Account::<T>::mutate(who, |account| {
-			account.data.free = Zero::zero();
-			account.data.reserved = Zero::zero();
-			account.data.frozen = Zero::zero();
+		frame_system::Account::<T>::mutate_exists(who, |account| {
+			if let Some(account) = account {
+				account.data.free = Zero::zero();
+				account.data.reserved = Zero::zero();
+				account.data.frozen = Zero::zero();
+			}
 		});
 		pallet_balances::Holds::<T>::remove(who);
 		pallet_balances::Reserves::<T>::remove(who);
