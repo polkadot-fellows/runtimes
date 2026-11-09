@@ -1392,8 +1392,7 @@ impl pallet_message_queue::Config for Runtime {
 }
 
 impl parachains_dmp::Config for Runtime {
-	// TODO: no generated weights yet; Westend also uses `()` (polkadot-sdk#11909).
-	type WeightInfo = ();
+	type WeightInfo = weights::runtime_parachains_dmp::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -2059,6 +2058,7 @@ mod benches {
 		[runtime_parachains::configuration, Configuration]
 		[runtime_parachains::disputes, ParasDisputes]
 		[runtime_parachains::disputes::slashing, ParasSlashing]
+		[runtime_parachains::dmp, Dmp]
 		[runtime_parachains::hrmp, Hrmp]
 		[runtime_parachains::inclusion, ParaInclusion]
 		[runtime_parachains::initializer, Initializer]
