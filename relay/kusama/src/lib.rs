@@ -2204,6 +2204,9 @@ pub mod migrations {
 	pub type SingleBlockMigrations = Unreleased;
 
 	/// Multi-block migrations to apply on runtime upgrade.
+	///
+	/// XCM delivery and `Transact` execution are not paused during MBMs. Migrations must tolerate
+	/// them or explicitly pause the affected paths.
 	pub type MbmMigrations = (parachains_dmp::migration::MigrateV0ToV1<Runtime>,);
 }
 
