@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Collectives Polkadot: the Fellowship and Ambassador core-fellowship pallets measure time in Relay Chain blocks instead of Collectives blocks, so promotion and demotion periods keep their length in real time if the Collectives block time changes. A migration converts the stored periods and member timestamps: one 12-second Collectives block counts as two Relay Chain blocks ([SDK #6978](https://github.com/paritytech/polkadot-sdk/pull/6978), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 - Polkadot and Kusama relays: add `pallet-migrations` to service multi-block migrations ([#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+- Polkadot and Kusama relays: migrate DMP queues to paged storage ([SDK #11909](https://github.com/paritytech/polkadot-sdk/pull/11909), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 
 ### Fixed
 

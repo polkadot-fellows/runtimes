@@ -2053,7 +2053,7 @@ pub mod migrations {
 	pub type SingleBlockMigrations = Unreleased;
 
 	/// Multi-block migrations to apply on runtime upgrade.
-	pub type MbmMigrations = ();
+	pub type MbmMigrations = (parachains_dmp::migration::MigrateV0ToV1<Runtime>,);
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
