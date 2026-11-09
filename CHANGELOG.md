@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Asset Hub Polkadot and Kusama: a migration frees the referenda deciding slots that the Asset Hub Migration left taken (Kusama track 1, Polkadot track 32) and removes cancelled referenda from track queues (Polkadot #693 in the Root queue) ([#1323](https://github.com/polkadot-fellows/runtimes/issues/1323)).
+
 ## [2.5.3] 06.11.2026
 
 ### Changed
