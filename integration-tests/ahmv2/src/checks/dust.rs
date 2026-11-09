@@ -110,10 +110,12 @@ impl RcMigrationCheck for SweepDustChecker {
 				(0, 0),
 				"dust on {who:?} should have been swept"
 			);
-			assert_ne!(
-				(account.providers, account.consumers, account.sufficients),
-				(1, 0, 0),
-				"{who:?} has nothing but one provider reference and should have been removed"
+			assert!(
+				!matches!(
+					(account.providers, account.consumers, account.sufficients),
+					(1, 0, 0) | (0, 0, 0)
+				),
+				"{who:?} has at most one provider reference and should have been removed"
 			);
 		}
 

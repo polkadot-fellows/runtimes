@@ -175,13 +175,18 @@ impl<T: Config> SweepMigrator<T> {
 		out
 	}
 
-	/// Remove `who` if one provider reference is all that keeps it. An account with more, or with
-	/// a consumer reference such as a validator's session keys, stays.
+	/// Remove `who` if at most one provider reference keeps it. An account with more, or with a
+	/// consumer or sufficient reference, stays.
 	fn remove_if_unreferenced(who: &T::AccountId) {
 		let account = frame_system::Account::<T>::get(who);
-		if (account.providers, account.consumers, account.sufficients) == (1, 0, 0) {
-			// cannot fail with these references
-			let _ = frame_system::Pallet::<T>::dec_providers(who);
+		match (account.providers, account.consumers, account.sufficients) {
+			(1, 0, 0) => {
+				// cannot fail with these references
+				let _ = frame_system::Pallet::<T>::dec_providers(who);
+			},
+			// `dec_providers` would remove it too, but log an underflow
+			(0, 0, 0) => frame_system::Account::<T>::remove(who),
+			_ => {},
 		}
 	}
 }

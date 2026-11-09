@@ -33,7 +33,7 @@ Every deposit on the Relay Chain is an unnamed reserve. When the stage starts, t
 | Pure proxies: never signed, and have an `Any` delegate | The whole balance goes to the Coretime chain as free balance: the delegate keeps control only where the definitions are recreated. |
 | Accounts another pallet references (validators' session keys) | Drained to a zero-balance shell: the record stays, the balance leaves like any other. Reported with `AccountShellDrained`. |
 | The runtime's `SweptAccounts`: its pots | Left for Sweep, which sends all of each pot, deposits included, to `SweepBeneficiary` on Asset Hub. The list includes pots of pallets that have since been removed or renamed, such as Polkadot's `dap/satl`. |
-| Accounts below the existential deposit | Not withdrawn here. Sweep Dust burns all of it, deposits included. Dust of at least Asset Hub's existential deposit goes to its owner there; the rest, and a pure proxy's, goes to `SweepBeneficiary`. The account is then removed if one provider reference is all that keeps it, so a validator's record stays, empty. |
+| Accounts below the existential deposit | Not withdrawn here. Sweep Dust burns all of it, deposits included. Dust of at least Asset Hub's existential deposit goes to its owner there; the rest, and a pure proxy's, goes to `SweepBeneficiary`. The account is then removed if at most one provider reference keeps it. One with more, or with a consumer reference, stays, empty. |
 | The migration manager | Not withdrawn here. It pays for the calls that drive the migration and is reaped at Cool Off. |
 
 Issuance that no account holds is not an account; TI Correction burns it.

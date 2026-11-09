@@ -608,3 +608,24 @@ fn a_block_that_ends_on_the_manager_does_not_end_the_stage() {
 		assert_eq!(free(&manager), AH_ED);
 	});
 }
+
+#[test]
+fn a_record_nothing_references_is_removed() {
+	new_test_ext().execute_with(|| {
+		// GIVEN an empty record with no references at all, as exist on the live chains.
+		frame_system::Account::<Test>::insert(&EVE, frame_system::AccountInfo::default());
+		assert_eq!(balance_and_refs(&EVE), ((0, 0, 0), (0, 0)));
+		at_sweep_dust();
+		let migrated = RcMigratedBalance::<Test>::get();
+
+		// WHEN the stage runs.
+		run_blocks(1);
+
+		// THEN the record is removed, and nothing is sent, reported or recorded.
+		assert_stage(Stage::TiCorrection);
+		assert!(!exists(&EVE));
+		assert!(sent().is_empty());
+		assert!(dust_events().is_empty());
+		assert_eq!(RcMigratedBalance::<Test>::get(), migrated);
+	});
+}
