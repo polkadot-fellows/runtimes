@@ -27,13 +27,14 @@ parameter_types! {
 	pub const PoolsPalletId: PalletId = PalletId(*b"py/nopls");
 	// Allow pools that got slashed up to 90% to remain operational.
 	pub const MaxPointsToBalance: u8 = 10;
-	/// Bound for `pallet_nomination_pools::SubPools::with_era`, kept at its historical maximum of
-	/// `BondingDuration + 4 = 32`.
+	/// Maximum number of era-keyed unbonding sub-pools (`SubPools::with_era`) per pool.
 	///
-	/// Since polkadot-sdk#12323 the pallet takes this bound directly instead of deriving it from
-	/// `nominator_bonding_duration()`, so it no longer shrinks (32 -> 6) when `AreNominatorsSlashable`
-	/// is set to `false` (bugbounty report #90). After that flip the merge window is `32 - 2 = 30`
-	/// eras, long enough for deferred pre-flip slashes (`SlashDeferDuration = 27`) to still apply.
+	/// Derived from the validator `BondingDuration`, which does not depend on
+	/// `AreNominatorsSlashable`, so the storage bound stays fixed: a lower bound would make existing
+	/// sub-pools undecodable. A sub-pool is merged into `SubPools::no_era` once
+	/// `MaxUnbondingPools - nominator_bonding_duration()` eras have passed since its unlock era: 4
+	/// eras while nominators are slashable, 30 with fast unbonding. 30 eras cover
+	/// `SlashDeferDuration`, so a deferred slash still applies to the sub-pool it belongs to.
 	pub MaxUnbondingPools: u32 = BondingDuration::get().saturating_add(4);
 }
 

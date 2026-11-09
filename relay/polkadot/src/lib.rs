@@ -1588,8 +1588,9 @@ parameter_types! {
 	pub const PoolsPalletId: PalletId = PalletId(*b"py/nopls");
 	// Allow pools that got slashed up to 90% to remain operational.
 	pub const MaxPointsToBalance: u8 = 10;
-	/// Bound for `SubPools::with_era`: the bonding duration plus the legacy 4-era post-unbonding
-	/// window (polkadot-sdk#12323 replaced `PostUnbondingPoolsWindow` with this total).
+	/// Maximum number of era-keyed unbonding sub-pools (`SubPools::with_era`) per pool: the bonding
+	/// duration plus 4 eras during which an unlocked sub-pool keeps its own points-to-balance ratio
+	/// before it is merged into `SubPools::no_era`.
 	pub NominationPoolsMaxUnbondingPools: u32 = BondingDuration::get().saturating_add(4);
 }
 
