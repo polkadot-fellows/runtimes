@@ -121,6 +121,7 @@ impl<T: Config> SweepMigrator<T> {
 		let rc_ed = <NativeCurrency<T> as Inspect<T::AccountId>>::minimum_balance();
 		let ah_ed = T::AhExistentialDeposit::get();
 		let pots = T::SweptAccounts::get();
+		let beneficiary = T::SweepBeneficiary::get();
 
 		let mut iter = last_key
 			.map(frame_system::Account::<T>::iter_from_key)
@@ -145,12 +146,18 @@ impl<T: Config> SweepMigrator<T> {
 				let pot = pots.contains(&who);
 				if !amount.is_zero() {
 					let owned = !pot && !AccountsMigrator::<T>::is_pure_proxy(&who, &info);
-					if owned && amount >= ah_ed {
-						out.to_ah.push((AccountsMigrator::<T>::ah_destination(&who), amount));
+					let to = if owned && amount >= ah_ed {
+						AccountsMigrator::<T>::ah_destination(&who)
 					} else {
+						beneficiary.clone()
+					};
+					// the beneficiary's dust is sent in one deposit at the end of the block
+					if to == beneficiary {
 						to_beneficiary = to_beneficiary.saturating_add(amount);
+					} else {
+						out.to_ah.push((to.clone(), amount));
 					}
-					Pallet::<T>::deposit_event(Event::DustSwept { who: who.clone(), amount });
+					Pallet::<T>::deposit_event(Event::DustSwept { who: who.clone(), amount, to });
 				}
 				if !pot {
 					Self::remove_if_unreferenced(&who);
@@ -159,7 +166,7 @@ impl<T: Config> SweepMigrator<T> {
 			out.last_key = Some(who);
 		}
 		if !to_beneficiary.is_zero() {
-			out.to_ah.push((T::SweepBeneficiary::get(), to_beneficiary));
+			out.to_ah.push((beneficiary, to_beneficiary));
 		}
 		out
 	}

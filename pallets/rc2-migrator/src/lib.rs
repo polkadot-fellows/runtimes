@@ -486,9 +486,9 @@ pub mod pallet {
 		/// A pot was emptied. Its balance is sent to the sweep beneficiary with the other swept
 		/// balances.
 		PotSwept { who: T::AccountId, amount: u128 },
-		/// An account below the existential deposit was emptied. Its balance is sent to its owner
-		/// on Asset Hub or to the sweep beneficiary.
-		DustSwept { who: T::AccountId, amount: u128 },
+		/// An account below the existential deposit was emptied. Its balance is sent to `to` on
+		/// Asset Hub: its owner's account there, or the sweep beneficiary.
+		DustSwept { who: T::AccountId, amount: u128, to: T::AccountId },
 		/// Unclaimed on-demand revenue was cleared from the on-demand pallet's record.
 		OnDemandRevenueCleared { amount: u128 },
 	}

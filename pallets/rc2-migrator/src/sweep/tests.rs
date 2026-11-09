@@ -338,13 +338,14 @@ fn at_sweep_dust() {
 	RcMigrationStage::<Test>::put(Stage::SweepDust { last_key: None });
 }
 
-/// `(account, amount)` of every `DustSwept` event so far, sorted: accounts are visited in storage
-/// order.
-fn dust_events() -> Vec<(AccountId, u128)> {
+/// `(account, amount, destination)` of every `DustSwept` event so far, sorted: accounts are visited
+/// in storage order.
+fn dust_events() -> Vec<(AccountId, u128, AccountId)> {
 	let mut events: Vec<_> = System::events()
 		.into_iter()
 		.filter_map(|record| match record.event {
-			RuntimeEvent::Rc2Migrator(Event::DustSwept { who, amount }) => Some((who, amount)),
+			RuntimeEvent::Rc2Migrator(Event::DustSwept { who, amount, to }) =>
+				Some((who, amount, to)),
 			_ => None,
 		})
 		.collect();
@@ -370,7 +371,7 @@ fn dust_of_at_least_asset_hubs_existential_deposit_goes_to_its_owner() {
 		// removed, and the stage moves on.
 		assert_stage(Stage::TiCorrection);
 		assert_eq!(sent(), vec![teleport(&[(ALICE, AH_ED)])]);
-		assert_eq!(dust_events(), vec![(ALICE, AH_ED)]);
+		assert_eq!(dust_events(), vec![(ALICE, AH_ED, ALICE)]);
 		assert!(!exists(&ALICE));
 		assert_eq!(total_issuance(), 0);
 		assert_eq!(
@@ -395,7 +396,10 @@ fn dust_below_asset_hubs_existential_deposit_goes_to_the_beneficiary() {
 		// removed.
 		assert_stage(Stage::TiCorrection);
 		assert_eq!(sent(), vec![teleport_to_beneficiary(2 * AH_ED - 3)]);
-		assert_eq!(dust_events(), vec![(ALICE, AH_ED - 1), (BOB, AH_ED - 2)]);
+		assert_eq!(
+			dust_events(),
+			vec![(ALICE, AH_ED - 1, SWEEP_BENEFICIARY), (BOB, AH_ED - 2, SWEEP_BENEFICIARY)]
+		);
 		assert!(!exists(&ALICE) && !exists(&BOB));
 		assert_eq!(total_issuance(), 0);
 		assert_eq!(
@@ -422,6 +426,10 @@ fn a_pure_proxys_and_a_pots_dust_goes_to_the_beneficiary() {
 		// THEN both go to the sweep beneficiary.
 		assert_stage(Stage::TiCorrection);
 		assert_eq!(sent(), vec![teleport_to_beneficiary(2 * AH_ED)]);
+		let mut expected =
+			vec![(pure.clone(), AH_ED, SWEEP_BENEFICIARY), (pot.clone(), AH_ED, SWEEP_BENEFICIARY)];
+		expected.sort();
+		assert_eq!(dust_events(), expected);
 		assert_eq!(
 			RcMigratedBalance::<Test>::get(),
 			MigratedBalances { kept: 1_000, ah_free: 2 * AH_ED, ..Default::default() }
@@ -449,6 +457,7 @@ fn a_referenced_account_is_emptied_and_kept() {
 		// pallet.
 		assert_stage(Stage::TiCorrection);
 		assert_eq!(sent(), vec![teleport(&[(DAVE, AH_ED)])]);
+		assert_eq!(dust_events(), vec![(DAVE, AH_ED, DAVE)]);
 		assert_eq!(balance_and_refs(&DAVE), ((0, 0, 0), (1, 1)));
 		assert_eq!(total_issuance(), 0);
 	});
@@ -498,6 +507,7 @@ fn dust_is_swept_whole_whatever_form_it_is_in() {
 		// THEN all of it goes to its owner, and the account is removed with its balance records.
 		assert_stage(Stage::TiCorrection);
 		assert_eq!(sent(), vec![teleport(&[(GRACE, 8)])]);
+		assert_eq!(dust_events(), vec![(GRACE, 8, GRACE)]);
 		assert!(!exists(&GRACE));
 		assert!(pallet_balances::Holds::<Test>::get(&GRACE).is_empty());
 		assert_eq!(total_issuance(), 0);
@@ -535,7 +545,10 @@ fn sweep_dust_continues_where_the_last_block_stopped() {
 		run_blocks(3);
 		assert!(matches!(RcMigrationStage::<Test>::get(), Stage::SweepDust { last_key: Some(_) }));
 		assert_eq!(sent().len(), 3);
-		assert_eq!(dust_events(), vec![(ALICE, AH_ED), (BOB, AH_ED), (CHARLIE, AH_ED)]);
+		assert_eq!(
+			dust_events(),
+			vec![(ALICE, AH_ED, ALICE), (BOB, AH_ED, BOB), (CHARLIE, AH_ED, CHARLIE)]
+		);
 
 		// WHEN the next block runs. THEN it finds nothing left, and the stage moves on.
 		run_blocks(1);
@@ -591,7 +604,7 @@ fn a_block_that_ends_on_the_manager_does_not_end_the_stage() {
 		// WHEN the next blocks run. THEN the other account is swept and the stage moves on.
 		run_blocks(2);
 		assert_stage(Stage::TiCorrection);
-		assert_eq!(dust_events(), vec![(other, AH_ED)]);
+		assert_eq!(dust_events(), vec![(other.clone(), AH_ED, other)]);
 		assert_eq!(free(&manager), AH_ED);
 	});
 }
