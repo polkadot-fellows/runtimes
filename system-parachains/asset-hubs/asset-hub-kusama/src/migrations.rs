@@ -24,6 +24,7 @@ pub type Unreleased = (
 	MigrateBountyAccountAssets,
 	cumulus_pallet_parachain_system::migration::Migration<crate::Runtime>,
 	pallet_staking_async::migrations::SetWeightedPointsFormulaStartEra<crate::Runtime>,
+	pallet_society::migrations::ReconcilePayoutsAccount<crate::Runtime>,
 );
 
 /// All single block migrations that will run on the next runtime upgrade.

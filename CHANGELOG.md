@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Asset Hub Kusama: top up the Society payouts account so it matches the recorded pending payouts ([polkadot-sdk#12590](https://github.com/paritytech/polkadot-sdk/pull/12590)).
+
 ## [2.5.3] 06.11.2026
 
 ### Changed
