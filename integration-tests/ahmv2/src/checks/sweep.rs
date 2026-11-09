@@ -38,6 +38,8 @@ pub struct RcSweepPre {
 	/// The whole balance of Asset Hub's own sovereign here. The accounts stage sends part of it to
 	/// the same beneficiary.
 	pub ah_sovereign: u128,
+	/// The dust Sweep Dust sends to the same beneficiary.
+	pub dust: u128,
 }
 
 fn total<T>(who: &AccountId32) -> u128
@@ -72,6 +74,7 @@ impl RcMigrationCheck for SweepChecker {
 			pots,
 			beneficiary: <Rc as pallet_rc2_migrator::Config>::SweepBeneficiary::get(),
 			ah_sovereign: total::<Rc>(&ah_sovereign),
+			dust: crate::checks::dust::expected_dust().to_beneficiary,
 		}
 	}
 
@@ -136,15 +139,23 @@ impl ParaMigrationCheck<AssetHubPara> for SweepChecker {
 		swept: &Self::RcPostPayload,
 		ah_pre: Self::PrePayload,
 	) {
-		// The beneficiary must gain at least the pots' snapshot balance. It may also receive free
-		// balance from Asset Hub's own sovereign account in the accounts stage.
+		// The beneficiary must gain at least the pots' snapshot balance and the dust sent to it.
+		// It may also receive free balance from Asset Hub's own sovereign account in the accounts
+		// stage.
 		let arrived = total::<Ah>(&rc_pre.beneficiary)
 			.checked_sub(ah_pre)
 			.expect("the beneficiary did not shrink");
-		assert!(arrived >= *swept, "the beneficiary got {arrived}, less than the {swept} swept");
+		let least = swept + rc_pre.dust;
 		assert!(
-			arrived <= swept + rc_pre.ah_sovereign,
-			"the beneficiary got {arrived}, more than the {swept} swept and Asset Hub's sovereign"
+			arrived >= least,
+			"the beneficiary got {arrived}, less than the {swept} swept and {} of dust",
+			rc_pre.dust
+		);
+		assert!(
+			arrived <= least + rc_pre.ah_sovereign,
+			"the beneficiary got {arrived}, more than the {swept} swept, {} of dust and Asset \
+			 Hub's sovereign",
+			rc_pre.dust
 		);
 
 		// The beneficiary's pallet must mark at least the swept amount inactive, allowing for one

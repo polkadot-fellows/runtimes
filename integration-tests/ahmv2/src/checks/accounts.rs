@@ -158,13 +158,9 @@ impl RcMigrationCheck for AccountsChecker {
 				if AccountsMigrator::<Rc>::is_swept(who) {
 					continue;
 				}
-				// Sweep Dust empties every other account below the existential deposit.
+				// Sweep Dust empties every other account below the existential deposit; its checker
+				// checks them.
 				if account.total < ed && manager.as_ref() != Some(who) {
-					assert_eq!(
-						(data.free, data.reserved),
-						(0, 0),
-						"dust on {who:?} should have been swept"
-					);
 					continue;
 				}
 				assert_eq!(

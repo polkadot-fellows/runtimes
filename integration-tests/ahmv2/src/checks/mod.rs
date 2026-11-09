@@ -25,6 +25,7 @@
 //! Each stage adds its checker as one module here and one entry in the test's checker tuple.
 
 pub mod accounts;
+pub mod dust;
 pub mod issuance;
 pub mod session;
 pub mod sweep;
