@@ -220,7 +220,8 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	/// Empty the accounts left below the existential deposit, and remove those nothing else
 	/// needs.
 	///
-	/// Runs before [`Self::TiCorrection`], which assumes only the manager still holds balance.
+	/// Runs before [`Self::TiCorrection`]. Afterwards, balance is left only on the manager and on
+	/// accounts at or above the existential deposit.
 	SweepDust {
 		last_key: Option<AccountId>,
 	},

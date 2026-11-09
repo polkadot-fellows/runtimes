@@ -41,7 +41,8 @@ type NativeCurrency<T> = pallet_balances::Pallet<T>;
 /// The dust one block swept.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct BlockDust {
-	/// Balance to teleport to Asset Hub, per account.
+	/// Balance to teleport to Asset Hub: one entry per owner, then the beneficiary's dust in one
+	/// entry.
 	pub to_ah: Vec<(AccountId32, u128)>,
 	/// Where the next block continues from; `None` once every account has been visited.
 	pub last_key: Option<AccountId32>,
@@ -124,6 +125,9 @@ impl<T: Config> SweepMigrator<T> {
 	/// the [`SweepBeneficiary`] otherwise. A pot's always goes to the sweep beneficiary, like the
 	/// rest of the pots, and so does a pure proxy's, since nobody controls a pure proxy on Asset
 	/// Hub. The account is then removed, unless it is a pot or something else still needs it.
+	///
+	/// Pots are the accounts in [`Config::SweptAccounts`], not every `modl…` address: anyone can
+	/// create an address with that prefix.
 	///
 	/// [`items_per_block`]: crate::BlockLimits::items_per_block
 	/// [`SweepBeneficiary`]: Config::SweepBeneficiary
