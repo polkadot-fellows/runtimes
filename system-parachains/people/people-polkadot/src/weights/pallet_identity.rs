@@ -583,7 +583,7 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	/// TODO: copied from People Westend (stable2609-1); regenerate with the bench bot.
+	/// TODO 2609-bench: copied from People Westend (stable2609-1); regenerate with the bench bot.
 	/// Storage: `Identity::Registrars` (r:1 w:1)
 	/// Proof: `Identity::Registrars` (`max_values`: Some(1), `max_size`: Some(1141), added: 1636, mode: `MaxEncodedLen`)
 	/// The range of component `r` is `[1, 19]`.

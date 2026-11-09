@@ -73,8 +73,8 @@ pub type SnowbridgeExporterV2 = EthereumBlobExporterV2<
 	EthereumOutboundQueueV2,
 	EthereumSystemV2,
 	AssetHubParaId,
-	// TODO: review. polkadot-sdk#12159: reject `AliasOrigin` to the Asset Hub location (same as
-	// Westend).
+	// TODO 2609-review: polkadot-sdk#12159: reject `AliasOrigin` to the Asset Hub location (same
+	// as Westend).
 	EverythingBut<Equals<AssetHubLocation>>,
 >;
 

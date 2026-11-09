@@ -124,7 +124,7 @@ impl<T: frame_system::Config> pallet_whitelist::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
-	/// TODO: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
+	/// TODO 2609-bench: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
 	/// Storage: `Whitelist::WhitelistedCall` (r:1 w:0)
 	/// Proof: `Whitelist::WhitelistedCall` (`max_values`: None, `max_size`: Some(40), added: 2515, mode: `MaxEncodedLen`)
 	/// Storage: `ParachainSystem::ValidationData` (r:1 w:0)
@@ -146,7 +146,7 @@ impl<T: frame_system::Config> pallet_whitelist::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	/// TODO: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
+	/// TODO 2609-bench: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
 	/// Storage: `Whitelist::DeferredDispatch` (r:1 w:1)
 	/// Proof: `Whitelist::DeferredDispatch` (`max_values`: None, `max_size`: Some(44), added: 2519, mode: `MaxEncodedLen`)
 	/// Storage: `ParachainSystem::ValidationData` (r:1 w:0)

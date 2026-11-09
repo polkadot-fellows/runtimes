@@ -912,7 +912,7 @@ pub mod migrations {
 		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
 		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
-		// TODO: review. polkadot-sdk#6978: `pallet-core-fellowship` storage v1 -> v2. Both
+		// TODO 2609-review: polkadot-sdk#6978: `pallet-core-fellowship` storage v1 -> v2. Both
 		// instances keep using the local block number, so stored block numbers are carried over
 		// unchanged.
 		pallet_core_fellowship::migration::MigrateV1ToV2<

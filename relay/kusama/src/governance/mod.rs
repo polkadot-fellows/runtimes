@@ -72,7 +72,8 @@ impl pallet_whitelist::Config for Runtime {
 		EitherOf<EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>, Fellows>;
 	type DispatchWhitelistedOrigin = EitherOf<EnsureRoot<Self::AccountId>, WhitelistedCaller>;
 	type Preimages = Preimage;
-	// TODO: review the expiry. Deferred dispatch (polkadot-sdk#11336): same 28 days as Westend.
+	// TODO 2609-review: deferred dispatches (polkadot-sdk#11336) expire after 28 days, same as
+	// Westend.
 	type DeferredDispatchExpiration = ConstU32<{ 28 * DAYS }>;
 	type BlockNumberProvider = System;
 }

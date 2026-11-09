@@ -1118,7 +1118,7 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 			.saturating_add(T::DbWeight::get().writes(79))
 			.saturating_add(Weight::from_parts(0, 83).saturating_mul(v.into()))
 	}
-	/// TODO: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
+	/// TODO 2609-bench: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
 	/// Storage: `Staking::ChillInactiveThreshold` (r:1 w:0)
 	/// Proof: `Staking::ChillInactiveThreshold` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `Measured`)
 	/// Storage: `Staking::ActiveEra` (r:1 w:0)

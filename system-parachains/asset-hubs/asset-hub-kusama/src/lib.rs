@@ -373,7 +373,7 @@ parameter_types! {
 	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
 	pub LpFee: Permill = Permill::from_rational(3u32, 1_000u32);
 	/// Upper bound for per-pool swap fees set by `AdminOrigin` (polkadot-sdk#12369).
-	/// TODO: review; same as Westend.
+	/// TODO 2609-review: maximum per-pool swap fee (polkadot-sdk#12369), same as Westend.
 	pub MaxSwapFee: Permill = Permill::from_percent(2);
 	// Storage deposit for pool setup within asset conversion pallet
 	// and pool's lp token creation within assets pallet.

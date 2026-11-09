@@ -264,7 +264,7 @@ impl<T: frame_system::Config> pallet_bounties::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
-	/// TODO: copied from pallet-bounties default weights (stable2609-1); regenerate with the bench bot.
+	/// TODO 2609-bench: copied from pallet-bounties default weights (stable2609-1); regenerate with the bench bot.
 	/// Storage: `Bounties::Bounties` (r:1 w:0)
 	/// Proof: `Bounties::Bounties` (`max_values`: None, `max_size`: Some(177), added: 2652, mode: `MaxEncodedLen`)
 	/// Storage: `System::Account` (r:2 w:2)

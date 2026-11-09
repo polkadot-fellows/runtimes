@@ -209,7 +209,7 @@ impl<T: frame_system::Config> pallet_asset_conversion::WeightInfo for WeightInfo
 			.saturating_add(Weight::from_parts(0, 4273))
 			.saturating_add(T::DbWeight::get().reads(4))
 	}
-	/// TODO: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
+	/// TODO 2609-bench: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
 	/// Storage: `AssetConversion::Pools` (r:1 w:1)
 	/// Proof: `AssetConversion::Pools` (`max_values`: None, `max_size`: Some(1224), added: 3699, mode: `MaxEncodedLen`)
 	/// Storage: `ForeignAssets::Asset` (r:1 w:0)
@@ -236,7 +236,7 @@ impl<T: frame_system::Config> pallet_asset_conversion::WeightInfo for WeightInfo
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
-	/// TODO: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
+	/// TODO 2609-bench: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
 	/// Storage: `AssetConversion::Pools` (r:1 w:0)
 	/// Proof: `AssetConversion::Pools` (`max_values`: None, `max_size`: Some(1224), added: 3699, mode: `MaxEncodedLen`)
 	/// Storage: `AssetConversion::PoolFees` (r:0 w:1)

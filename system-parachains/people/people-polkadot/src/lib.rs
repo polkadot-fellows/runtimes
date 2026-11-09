@@ -762,7 +762,7 @@ parameter_types! {
 		<pallet_collator_selection::StakingPotAccountId<Runtime> as frame_support::traits::TypedGet>::get();
 	pub LpFee: Permill = Permill::from_rational(3u32, 1_000u32);
 	/// Upper bound for per-pool swap fees set by `AdminOrigin` (polkadot-sdk#12369).
-	/// TODO: review; same as Westend.
+	/// TODO 2609-review: maximum per-pool swap fee (polkadot-sdk#12369), same as Westend.
 	pub MaxSwapFee: Permill = Permill::from_percent(2);
 	pub const PoolSetupFee: Balance = system_para_deposit(1, 4) + assets::AssetDeposit::get();
 }

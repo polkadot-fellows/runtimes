@@ -207,7 +207,7 @@ impl<T: frame_system::Config> pallet_election_provider_multi_block::signed::Weig
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(p.into())))
 			.saturating_add(Weight::from_parts(0, 2507).saturating_mul(p.into()))
 	}
-	/// TODO: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
+	/// TODO 2609-bench: copied from Asset Hub Westend (stable2609-1); regenerate with the bench bot.
 	/// Storage: `MultiBlockElectionSigned::UnpaidRewards` (r:1 w:1)
 	/// Proof: `MultiBlockElectionSigned::UnpaidRewards` (`max_values`: Some(1), `max_size`: Some(833), added: 1328, mode: `Measured`)
 	/// Storage: `System::Account` (r:1 w:1)
