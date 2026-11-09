@@ -280,10 +280,30 @@ impl frame_system::Config for Runtime {
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 	type SingleBlockMigrations = migrations::SingleBlockMigrations;
-	type MultiBlockMigrator = ();
+	type MultiBlockMigrator = MultiBlockMigrations;
 	type PreInherents = ();
 	type PostInherents = ();
 	type PostTransactions = ();
+}
+
+parameter_types! {
+	pub MbmServiceWeight: Weight = Perbill::from_percent(80) * BlockWeights::get().max_block;
+}
+
+impl pallet_migrations::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type Migrations = migrations::MbmMigrations;
+	// Benchmarks need mocked migrations to guarantee that they succeed.
+	#[cfg(feature = "runtime-benchmarks")]
+	type Migrations = pallet_migrations::mock_helpers::MockedMigrations;
+	type CursorMaxLen = ConstU32<65_536>;
+	type IdentifierMaxLen = ConstU32<256>;
+	type MigrationStatusHandler = ();
+	type FailedMigrationHandler = frame_support::migrations::ForceUnstuckOnFailedMigration;
+	type MaxServiceWeight = MbmServiceWeight;
+	// TODO 2609-bench: generate relay-specific weights with the bench bot.
+	type WeightInfo = pallet_migrations::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1948,6 +1968,9 @@ construct_runtime! {
 		// Asset rate.
 		AssetRate: pallet_asset_rate = 101,
 
+		// Multi-block migrations.
+		MultiBlockMigrations: pallet_migrations = 102,
+
 		// BEEFY Bridges support.
 		Beefy: pallet_beefy = 200,
 		// MMR leaf construction must be after session in order to have a leaf's next_auth_set
@@ -2028,6 +2051,9 @@ pub mod migrations {
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;
+
+	/// Multi-block migrations to apply on runtime upgrade.
+	pub type MbmMigrations = ();
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -2079,6 +2105,7 @@ mod benches {
 		[pallet_fast_unstake, FastUnstake]
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
+		[pallet_migrations, MultiBlockMigrations]
 		[pallet_multisig, Multisig]
 		[pallet_offences, OffencesBench::<Runtime>]
 		[pallet_parameters, Parameters]

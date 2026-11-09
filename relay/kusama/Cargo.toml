@@ -70,6 +70,7 @@ pallet-grandpa = { workspace = true }
 pallet-nis = { workspace = true }
 pallet-indices = { workspace = true }
 pallet-message-queue = { workspace = true }
+pallet-migrations = { workspace = true }
 pallet-mmr = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-nomination-pools = { workspace = true }
@@ -174,6 +175,7 @@ std = [
 	"pallet-grandpa/std",
 	"pallet-indices/std",
 	"pallet-message-queue/std",
+	"pallet-migrations/std",
 	"pallet-mmr/std",
 	"pallet-multisig/std",
 	"pallet-nis/std",
@@ -261,6 +263,7 @@ runtime-benchmarks = [
 	"pallet-grandpa/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
+	"pallet-migrations/runtime-benchmarks",
 	"pallet-mmr/runtime-benchmarks",
 	"pallet-multisig/runtime-benchmarks",
 	"pallet-nis/runtime-benchmarks",
@@ -327,6 +330,7 @@ try-runtime = [
 	"pallet-grandpa/try-runtime",
 	"pallet-indices/try-runtime",
 	"pallet-message-queue/try-runtime",
+	"pallet-migrations/try-runtime",
 	"pallet-mmr/try-runtime",
 	"pallet-multisig/try-runtime",
 	"pallet-nis/try-runtime",
