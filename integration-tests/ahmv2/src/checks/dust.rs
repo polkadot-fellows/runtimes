@@ -14,8 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-//! Checks of the Sweep Dust stage: every account below the existential deposit ends empty, and its
-//! balance arrives on Asset Hub where the stage's rules send it.
+//! Checks of the Sweep Dust stage: every account below the existential deposit ends empty, its
+//! balance arrives on Asset Hub where the stage's rules send it, and no empty record is left that
+//! nothing needs.
 
 use crate::{
 	checks::{ParaMigrationCheck, RcMigrationCheck},
@@ -104,18 +105,28 @@ impl RcMigrationCheck for SweepDustChecker {
 
 	fn post_check(rc_pre: &Self::RcPrePayload) -> Self::RcPostPayload {
 		for who in &rc_pre.accounts {
-			let Ok(account) = frame_system::Account::<Rc>::try_get(who) else { continue };
+			let data = frame_system::Account::<Rc>::get(who).data;
 			assert_eq!(
-				(account.data.free, account.data.reserved),
+				(data.free, data.reserved),
 				(0, 0),
 				"dust on {who:?} should have been swept"
 			);
+		}
+
+		// No empty record is left that at most one provider reference keeps, whichever stage
+		// emptied it. The manager and the pots are not for Sweep Dust to remove.
+		let manager = pallet_rc2_migrator::Manager::<Rc>::get();
+		let pots = <Rc as pallet_rc2_migrator::Config>::SweptAccounts::get();
+		for (who, account) in frame_system::Account::<Rc>::iter() {
+			if account.data.total() != 0 || manager.as_ref() == Some(&who) || pots.contains(&who) {
+				continue;
+			}
 			assert!(
 				!matches!(
 					(account.providers, account.consumers, account.sufficients),
 					(1, 0, 0) | (0, 0, 0)
 				),
-				"{who:?} has at most one provider reference and should have been removed"
+				"{who:?} is empty with at most one provider reference and should have been removed"
 			);
 		}
 

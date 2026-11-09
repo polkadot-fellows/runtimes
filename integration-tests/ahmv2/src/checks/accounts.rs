@@ -89,6 +89,9 @@ pub struct RcAccountsPre {
 	/// The same accounts grouped by destination on Asset Hub. This differs for Asset Hub's own
 	/// sovereign account, whose free balance goes to the sweep beneficiary.
 	pub ah_destinations: BTreeMap<AccountId32, Expected>,
+	/// The dust Sweep Dust sends to owners on Asset Hub. Two Relay Chain accounts can share a
+	/// destination there, so some of it can land on one of the accounts above.
+	pub dust: BTreeMap<AccountId32, u128>,
 }
 
 /// How much `who`'s balance grew from `before` to `after`. Panics if it shrank, which no step of
@@ -145,7 +148,8 @@ impl RcMigrationCheck for AccountsChecker {
 			})
 			.collect();
 
-		RcAccountsPre { accounts, ct_destinations, ah_destinations }
+		let dust = crate::checks::dust::expected_dust().to_owners;
+		RcAccountsPre { accounts, ct_destinations, ah_destinations, dust }
 	}
 
 	fn post_check(rc_pre: &Self::RcPrePayload) -> Self::RcPostPayload {
@@ -277,16 +281,22 @@ impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
 
 	fn post_check(rc_pre: &Self::RcPrePayload, _: &Self::RcPostPayload, ah_pre: Self::PrePayload) {
 		// `IssuanceChecker` checks the total received by Asset Hub, including other stages. The
-		// sweep beneficiary also receives pot balances, so `SweepChecker` checks its growth.
+		// sweep beneficiary also receives pot balances, so `SweepChecker` checks its growth. A
+		// destination can also receive dust from another account, which Sweep Dust sends.
 		let beneficiary = <Rc as pallet_rc2_migrator::Config>::SweepBeneficiary::get();
 		for (dest, expected) in &rc_pre.ah_destinations {
 			let delta = grown(dest, ah_pre.balances[dest], account_data::<Ah>(dest).total());
+			let dust = rc_pre.dust.get(dest).copied().unwrap_or_default();
 
 			if expected.all_plain && *dest != beneficiary {
-				assert_eq!(delta, expected.total, "plain account {dest:?} must land on AH whole");
+				assert_eq!(
+					delta,
+					expected.total + dust,
+					"plain account {dest:?} must land on AH whole"
+				);
 			}
 			if expected.all_pure_like {
-				assert_eq!(delta, 0, "pure-like {dest:?} must not land on AH");
+				assert_eq!(delta, dust, "pure-like {dest:?} must not land on AH");
 			}
 		}
 	}
