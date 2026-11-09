@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Coretime Polkadot and Kusama: bulk sales carry a sequential `sale_index` in `SaleInfo` and the `SaleInitialized` event. A migration back-fills it for the ongoing sale (28 on Polkadot, 33 on Kusama) ([SDK #10188](https://github.com/paritytech/polkadot-sdk/pull/10188), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+
 ## [2.5.3] 06.11.2026
 
 ### Changed

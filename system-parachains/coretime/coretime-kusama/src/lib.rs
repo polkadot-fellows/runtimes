@@ -130,6 +130,7 @@ pub mod migrations {
 		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 		coretime::RetireCoretimeBurnAccount,
+		pallet_broker::migration::MigrateV4ToV5<Runtime, BrokerFirstSaleRegion>,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
@@ -223,6 +224,19 @@ impl pallet_broker::migration::v4::BlockToRelayHeightConversion<Runtime>
 
 	fn convert_block_length_to_relay_length(input_block_length: u32) -> u32 {
 		input_block_length * 2
+	}
+}
+
+/// `region_begin` of the first bulk sale, from the second `broker.SaleInitialized` event
+/// (block 86_947). `start_sales` ran twice and the first sale (block 53_793) was replaced
+/// before it rotated. Anchors the broker v5 migration's `sale_index` reconstruction.
+const CORETIME_KUSAMA_FIRST_SALE_REGION_BEGIN: u32 = 290_808;
+
+pub struct BrokerFirstSaleRegion;
+
+impl pallet_broker::migration::v5::FirstSaleRegion for BrokerFirstSaleRegion {
+	fn region_begin() -> u32 {
+		CORETIME_KUSAMA_FIRST_SALE_REGION_BEGIN
 	}
 }
 
