@@ -16,8 +16,9 @@
 
 use super::*;
 use crate::{
-	mock::*, BlockLimits, CtMigratorCall, CtRuntimeCall, Error, Event, ExpectedReserves, Limits,
-	MigratedBalances, RcMigratedBalance, RcMigrationStage,
+	mock::*, BlockLimits, CtMigratorCall, CtRuntimeCall, Error, Event, ExpectedReserves,
+	IssuanceAudit, Limits, Manager, MigratedBalances, RcIssuanceAudit, RcMigratedBalance,
+	RcMigrationStage,
 };
 use frame_support::{assert_noop, assert_ok, traits::ReservableCurrency};
 use migrator_types::{sibling_account, PortableHoldReason};
@@ -100,6 +101,48 @@ fn account(i: u32) -> AccountId {
 	let mut id = [0u8; 32];
 	id[..4].copy_from_slice(&i.to_le_bytes());
 	AccountId32::new(id)
+}
+
+/// Issuance that no account holds, added on top of the balances.
+const PHANTOM: u128 = 7;
+
+fn add_phantom_issuance() {
+	pallet_balances::TotalIssuance::<Test>::mutate(|ti| *ti += PHANTOM);
+}
+
+/// Run blocks until the machine reaches `stage`.
+fn run_until(stage: Stage) {
+	for _ in 0..100 {
+		if RcMigrationStage::<Test>::get() == stage {
+			return;
+		}
+		run_blocks(1);
+	}
+	panic!("{stage:?} not reached");
+}
+
+/// Run the accounts stage from its start to its end.
+fn run_accounts_stage() {
+	RcMigrationStage::<Test>::put(Stage::AccountsInit);
+	run_until(Stage::AccountsDone);
+}
+
+/// Run the `TiCorrection` stage on its own, as one block.
+fn run_ti_correction() {
+	RcMigrationStage::<Test>::put(Stage::TiCorrection);
+	run_blocks(1);
+	assert!(matches!(RcMigrationStage::<Test>::get(), Stage::CoolOff { .. }));
+}
+
+/// The amount of every `IssuanceCorrected` event so far.
+fn burned_events() -> Vec<u128> {
+	System::events()
+		.into_iter()
+		.filter_map(|record| match record.event {
+			RuntimeEvent::Rc2Migrator(Event::IssuanceCorrected { burned }) => Some(burned),
+			_ => None,
+		})
+		.collect()
 }
 
 /// One account per row of the table in `accounts.md`.
@@ -646,6 +689,185 @@ fn accounts_stage_retries_a_block_whose_send_failed() {
 		assert_stage(Stage::AccountsDone);
 		assert_eq!(sent().len(), 1);
 		assert_eq!(total_issuance(), 0);
+	});
+}
+
+/// The accounts stage reads every balance, and TI Correction burns only what the total issuance
+/// counts beyond them.
+#[test]
+fn ti_correction_burns_the_issuance_no_account_held() {
+	new_test_ext().execute_with(|| {
+		// GIVEN 2 accounts a block: accounts the stage withdraws, accounts it leaves for later
+		// stages, and issuance that no account holds on top.
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 2, xcm_per_block: 1 });
+		fund(&ALICE, 100); // free balance
+		fund(&FRANK, 1_000); // a deposit, reserved
+		register_para(FRANKS_PARA, &FRANK);
+		fund(&BOB, 500); // a lock, which is part of the free balance
+		lock(&BOB, 200);
+		let pot = pallet_account(); // left for Sweep
+		fund(&pot, 100);
+		force_below_ed(&CHARLIE, ED - 1); // left for Sweep Dust
+		fund(&DAVE, 100); // the manager, left for Cool Off
+		Manager::<Test>::put(DAVE);
+		let balances = 100 + 1_000 + 500 + 100 + (ED - 1) + 100;
+		add_phantom_issuance();
+		assert_eq!(total_issuance(), balances + PHANTOM);
+
+		// WHEN the accounts stage runs. THEN it read every balance once, the lock not on top.
+		run_accounts_stage();
+		assert_eq!(
+			RcIssuanceAudit::<Test>::get(),
+			IssuanceAudit { issuance: balances + PHANTOM, balances, finished: true }
+		);
+
+		// WHEN TI Correction runs. THEN it burns the issuance no account held, and what is left
+		// is what the later stages handle.
+		run_ti_correction();
+		assert_eq!(burned_events(), vec![PHANTOM]);
+		assert_eq!(total_issuance(), 100 + (ED - 1) + 100);
+		let migrated = RcMigratedBalance::<Test>::get();
+		assert_eq!((migrated.kept, migrated.ti_corrected), (total_issuance(), PHANTOM));
+		assert!(!RcIssuanceAudit::<Test>::exists());
+	});
+}
+
+/// A rewind to `AccountsInit` starts the audit again, so no balance is counted twice.
+#[test]
+fn ti_correction_after_a_rewind_counts_each_balance_once() {
+	new_test_ext().execute_with(|| {
+		// GIVEN 2 accounts a block: accounts the stage withdraws, a pot it leaves, and issuance
+		// that no account holds.
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 2, xcm_per_block: 1 });
+		for i in 0..4 {
+			fund(&account(i), 100);
+		}
+		fund(&pallet_account(), 100);
+		add_phantom_issuance();
+
+		// WHEN the stage starts and one block withdraws part of the accounts.
+		RcMigrationStage::<Test>::put(Stage::AccountsInit);
+		run_blocks(2);
+		assert!(matches!(
+			RcMigrationStage::<Test>::get(),
+			Stage::AccountsOngoing { last_key: Some(_) }
+		));
+
+		// AND the stage is set back to its init, as `force_set_stage` does, and runs to its end.
+		let issuance = total_issuance();
+		run_accounts_stage();
+
+		// THEN the second walk read each balance still on chain once.
+		assert_eq!(
+			RcIssuanceAudit::<Test>::get(),
+			IssuanceAudit { issuance, balances: issuance - PHANTOM, finished: true }
+		);
+		run_ti_correction();
+		assert_eq!(burned_events(), vec![PHANTOM]);
+		assert_eq!(total_issuance(), 100);
+	});
+}
+
+/// A block whose send fails rolls back what it added to the audit with everything else.
+#[test]
+fn ti_correction_after_a_failed_send_counts_each_balance_once() {
+	new_test_ext().execute_with(|| {
+		// GIVEN 1 account a block, 3 accounts, and issuance that no account holds.
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 1, xcm_per_block: 1 });
+		for who in [&ALICE, &BOB, &CHARLIE] {
+			fund(who, 100);
+		}
+		add_phantom_issuance();
+
+		// WHEN the stage starts and its first block withdraws one account.
+		RcMigrationStage::<Test>::put(Stage::AccountsInit);
+		run_blocks(2);
+		let audit = RcIssuanceAudit::<Test>::get();
+		assert_eq!(audit.balances, 100);
+
+		// AND the next block fails to send. THEN what it read is rolled back too.
+		SendFails::set(true);
+		run_blocks(1);
+		assert_eq!(RcIssuanceAudit::<Test>::get(), audit);
+
+		// WHEN the stage runs to its end with a working router, and TI Correction runs. THEN
+		// each balance was read once.
+		SendFails::set(false);
+		run_until(Stage::AccountsDone);
+		run_ti_correction();
+		assert_eq!(burned_events(), vec![PHANTOM]);
+		assert_eq!(total_issuance(), 0);
+	});
+}
+
+/// A walk cut short read only part of the balances, so TI Correction burns nothing.
+#[test]
+fn ti_correction_burns_nothing_after_a_walk_cut_short() {
+	new_test_ext().execute_with(|| {
+		// GIVEN 1 account a block, 3 accounts, and issuance that no account holds.
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 1, xcm_per_block: 1 });
+		for who in [&ALICE, &BOB, &CHARLIE] {
+			fund(who, 100);
+		}
+		add_phantom_issuance();
+
+		// WHEN one account is withdrawn and the stage is set past the rest, as
+		// `force_set_stage` can.
+		RcMigrationStage::<Test>::put(Stage::AccountsInit);
+		run_blocks(2);
+		assert!(!RcIssuanceAudit::<Test>::get().finished);
+		let issuance = total_issuance();
+		run_ti_correction();
+
+		// THEN nothing is burned, and the audit is gone.
+		assert!(burned_events().is_empty());
+		assert_eq!(total_issuance(), issuance);
+		assert_eq!(RcMigratedBalance::<Test>::get().ti_corrected, 0);
+		assert!(!RcIssuanceAudit::<Test>::exists());
+	});
+}
+
+/// When the accounts held more than the total issuance, there is nothing to burn.
+#[test]
+fn ti_correction_burns_nothing_when_accounts_hold_more_than_the_issuance() {
+	new_test_ext().execute_with(|| {
+		// GIVEN an account the stage withdraws, a pot it leaves, and a total issuance below
+		// what they hold.
+		fund(&ALICE, 100);
+		fund(&pallet_account(), 100);
+		pallet_balances::TotalIssuance::<Test>::mutate(|ti| *ti -= PHANTOM);
+
+		// WHEN the accounts stage and TI Correction run.
+		run_accounts_stage();
+		let issuance = total_issuance();
+		run_ti_correction();
+
+		// THEN nothing is burned, and the audit is gone.
+		assert!(burned_events().is_empty());
+		assert_eq!(total_issuance(), issuance);
+		assert_eq!(RcMigratedBalance::<Test>::get().ti_corrected, 0);
+		assert!(!RcIssuanceAudit::<Test>::exists());
+	});
+}
+
+/// TI Correction takes the audit, so running it again burns nothing more.
+#[test]
+fn ti_correction_burns_once() {
+	new_test_ext().execute_with(|| {
+		// GIVEN the accounts stage ran over a pot it leaves, with issuance that no account
+		// holds.
+		fund(&pallet_account(), 100);
+		add_phantom_issuance();
+		run_accounts_stage();
+
+		// WHEN TI Correction runs twice.
+		run_ti_correction();
+		run_ti_correction();
+
+		// THEN it burned once.
+		assert_eq!(burned_events(), vec![PHANTOM]);
+		assert_eq!(total_issuance(), 100);
+		assert_eq!(RcMigratedBalance::<Test>::get().ti_corrected, PHANTOM);
 	});
 }
 
