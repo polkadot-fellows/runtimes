@@ -863,14 +863,11 @@ pub mod pallet {
 			send: impl Fn(Vec<I>) -> Result<(), Error<T>>,
 		) -> Result<(), Error<T>> {
 			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
-			let mut items = items.into_iter();
-			loop {
-				let batch: Vec<I> = items.by_ref().take(per_xcm).collect();
-				if batch.is_empty() {
-					return Ok(());
-				}
-				send(batch)?;
+			let mut items = items.into_iter().peekable();
+			while items.peek().is_some() {
+				send(items.by_ref().take(per_xcm).collect())?;
 			}
+			Ok(())
 		}
 
 		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.
