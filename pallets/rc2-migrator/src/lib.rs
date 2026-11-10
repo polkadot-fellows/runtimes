@@ -499,7 +499,7 @@ pub mod pallet {
 		/// retry it.
 		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
 		/// Issuance that no account held was burned.
-		IssuanceCorrected { amount: u128 },
+		IssuanceCorrected { burned: u128 },
 	}
 
 	#[pallet::hooks]
@@ -894,22 +894,22 @@ pub mod pallet {
 				);
 				return;
 			}
-			if audit.balances > audit.issuance {
+			let Some(burned) = audit.issuance.checked_sub(audit.balances) else {
 				log::warn!(
 					target: LOG_TARGET,
-					"Accounts held {} more than the total issuance",
+					"Accounts held {} more than the total issuance, no issuance burned",
 					audit.balances - audit.issuance
 				);
-			}
+				return;
+			};
 
-			let amount = audit.issuance.saturating_sub(audit.balances);
-			pallet_balances::TotalIssuance::<T>::mutate(|ti| *ti = ti.saturating_sub(amount));
+			pallet_balances::TotalIssuance::<T>::mutate(|ti| *ti = ti.saturating_sub(burned));
 			RcMigratedBalance::<T>::mutate(|migrated| {
-				defensive_assert!(migrated.kept >= amount, "burned more than is kept");
-				migrated.kept = migrated.kept.saturating_sub(amount);
-				migrated.ti_corrected = migrated.ti_corrected.saturating_add(amount);
+				defensive_assert!(migrated.kept >= burned, "burned more than is kept");
+				migrated.kept = migrated.kept.saturating_sub(burned);
+				migrated.ti_corrected = migrated.ti_corrected.saturating_add(burned);
 			});
-			Self::deposit_event(Event::IssuanceCorrected { amount });
+			Self::deposit_event(Event::IssuanceCorrected { burned });
 		}
 
 		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.
