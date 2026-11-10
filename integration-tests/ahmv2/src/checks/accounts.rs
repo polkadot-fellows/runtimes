@@ -156,11 +156,11 @@ impl RcMigrationCheck for AccountsChecker {
 		}
 
 		// Everything the accounts left with is booked, split by destination, and the issuance
-		// fell by exactly that.
+		// fell by exactly that and what TI Correction burned.
 		let booked = pallet_rc2_migrator::RcMigratedBalance::<Rc>::get();
 		assert_eq!(booked.ct_reserved + booked.ct_free + booked.ah_free, migrated);
 		let issuance = pallet_balances::TotalIssuance::<Rc>::get();
-		assert_eq!(issuance, rc_pre.total_issuance - migrated);
+		assert_eq!(issuance, rc_pre.total_issuance - migrated - booked.ti_corrected);
 		assert_eq!(booked.kept, issuance);
 
 		// No preimage deposit survives the stage's init.
