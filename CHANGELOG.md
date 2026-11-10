@@ -10,6 +10,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Polkadot & Kusama: remove `pallet-election-provider-multi-phase` and the on-chain election from the relay runtimes. Staking elections run on Asset Hub since the AHM, and a migration clears the pallet's storage ([#1313](https://github.com/polkadot-fellows/runtimes/pull/1313)).
 
+## [2.5.3] 06.11.2026
+
+### Changed
+
+- Update all runtimes to `polkadot-sdk` `stable2606-5`.
+- Update Individuality pallets from [`e69b079e`](https://github.com/paritytech/individuality-community/commit/e69b079ef93b6b0224ca81b96d4385f6dd4c8e22) to [`sdk-2606-5-3004004`](https://github.com/paritytech/individuality-community/tree/sdk-2606-5-3004004), which updates them to `polkadot-sdk` `stable2606-5`.
+- Asset Hub Polkadot and Kusama: the Fellowship controls the `Scheduler` and `MessageQueue` technical parameters ([#1346](https://github.com/polkadot-fellows/runtimes/pull/1346)).
+
+### Fixed
+
+- Asset Hub Polkadot and Kusama: `NonTransfer` proxies can call `CollatorSelection` again, as on the other system parachains. It was unintentionally dropped from the allowlist while `NonTransfer` still claimed to be a superset of `Collator` ([#1341](https://github.com/polkadot-fellows/runtimes/pull/1341)).
+- Collectives Polkadot: only `Any` proxies can call `pallet_salary::payout_other`, so other proxies can no longer pay the proxied account's salary to another account. `NonTransfer` proxies are no longer a superset of `Secretary` proxies ([#1341](https://github.com/polkadot-fellows/runtimes/pull/1341)).
+
 ## [2.5.2] 27.10.2026
 
 ### Fixed
