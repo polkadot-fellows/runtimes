@@ -302,8 +302,7 @@ impl pallet_migrations::Config for Runtime {
 	type MigrationStatusHandler = ();
 	type FailedMigrationHandler = frame_support::migrations::ForceUnstuckOnFailedMigration;
 	type MaxServiceWeight = MbmServiceWeight;
-	// TODO 2609-bench: generate relay-specific weights with the bench bot.
-	type WeightInfo = pallet_migrations::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = weights::pallet_migrations::WeightInfo<Runtime>;
 }
 
 parameter_types! {
