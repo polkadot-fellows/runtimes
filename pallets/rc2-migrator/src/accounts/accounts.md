@@ -36,7 +36,7 @@ Every deposit on the Relay Chain is an unnamed reserve. When the stage starts, t
 | Accounts below the existential deposit | Not withdrawn here. Sweep Dust reaps them. |
 | The migration manager | Not withdrawn here. It pays for the calls that drive the migration and is reaped at Cool Off. |
 
-Issuance that no account holds is not an account; TI Correction burns it.
+Issuance that no account holds is not an account. The stage adds up the free and reserved balance of every account it visits, deferred ones included, before withdrawing it. TI Correction burns what the total issuance at the start of the walk exceeds that sum by (`RcIssuanceAudit`).
 
 An account that cannot be withdrawn is left as it was and reported with `AccountNotWithdrawn`; a rewind to `AccountsInit` retries it.
 
