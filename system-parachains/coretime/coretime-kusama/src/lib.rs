@@ -650,6 +650,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Multisig { .. }
 			),
 			// TODO(ahm-v2): the registrar calls, once the control plane is on this chain.
+			// `NonTransfer` is a superset of this type, so it has to allow them as well.
 			ProxyType::ParaRegistration => false,
 		}
 	}
@@ -662,6 +663,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(ProxyType::Broker, ProxyType::CoretimeRenewer) => true,
 			(ProxyType::Broker, ProxyType::OnDemandPurchaser) => true,
 			(ProxyType::NonTransfer, ProxyType::Collator) => true,
+			(ProxyType::NonTransfer, ProxyType::ParaRegistration) => true,
 			_ => false,
 		}
 	}

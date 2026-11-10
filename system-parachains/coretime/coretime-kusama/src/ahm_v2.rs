@@ -63,6 +63,7 @@ impl pallet_ct_migrator::Config for Runtime {
 mod tests {
 	use crate::{AccountId, ProxyType, Runtime, RuntimeCall};
 	use codec::Encode;
+	use frame_support::traits::InstanceFilter;
 	use migrator_types::PortableProxyType;
 	use pallet_ct_migrator::{accounts::PortableAccountOf, proxy::PortableProxyOf};
 	use pallet_rc2_migrator::{CtMigratorCall, CtRuntimeCall};
@@ -122,5 +123,12 @@ mod tests {
 		for (portable, expected) in mapped {
 			assert_eq!(ProxyType::from(portable), expected);
 		}
+	}
+
+	/// `NonTransfer` can add and remove a `ParaRegistration` definition, as on the Relay Chain.
+	#[test]
+	fn non_transfer_is_a_superset_of_para_registration() {
+		assert!(ProxyType::NonTransfer.is_superset(&ProxyType::ParaRegistration));
+		assert!(!ProxyType::ParaRegistration.is_superset(&ProxyType::NonTransfer));
 	}
 }
