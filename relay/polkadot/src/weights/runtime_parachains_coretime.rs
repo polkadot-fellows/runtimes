@@ -108,6 +108,23 @@ impl<T: frame_system::Config> runtime_parachains::coretime::WeightInfo for Weigh
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
+	/// TODO: copied from the Westend `stable2606-4` weights (`polkadot-sdk#13009`); regenerate
+	/// with the bench bot.
+	/// Storage: `OnDemand::OrderStatus` (r:1 w:1)
+	/// Proof: `OnDemand::OrderStatus` (`max_values`: Some(1), `max_size`: None, mode: `Measured`)
+	/// The range of component `s` is `[0, 100]`.
+	fn queue_on_demand_batch(s: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `80156`
+		//  Estimated: `81641`
+		// Minimum execution time: 128_480_000 picoseconds.
+		Weight::from_parts(144_956_852, 0)
+			.saturating_add(Weight::from_parts(0, 81641))
+			// Standard Error: 1_279
+			.saturating_add(Weight::from_parts(16_204, 0).saturating_mul(s.into()))
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 	/// Storage: `OnDemand::Credits` (r:1 w:1)
 	/// Proof: `OnDemand::Credits` (`max_values`: None, `max_size`: None, mode: `Measured`)
 	fn credit_account() -> Weight {
