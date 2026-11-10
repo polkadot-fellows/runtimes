@@ -206,7 +206,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: Cow::Borrowed("statemint"),
 	spec_name: Cow::Borrowed("statemint"),
 	authoring_version: 1,
-	spec_version: 2_005_002,
+	spec_version: 2_005_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
@@ -670,6 +670,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::Scheduler(..) |
 				// Not on AH RuntimeCall::Babe(..) |
 				RuntimeCall::Timestamp(..) |
+				RuntimeCall::CollatorSelection(..) |
 				RuntimeCall::Indices(pallet_indices::Call::claim{..}) |
 				RuntimeCall::Indices(pallet_indices::Call::free{..}) |
 				RuntimeCall::Indices(pallet_indices::Call::freeze{..}) |
@@ -847,11 +848,18 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(ProxyType::Assets, ProxyType::AssetOwner) => true,
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
 			(ProxyType::Staking, ProxyType::StakingOperator) => true,
+			// Only list proxy types whose calls are all allowed by `NonTransfer`.
 			(
 				ProxyType::NonTransfer,
-				ProxyType::Assets | ProxyType::AssetOwner | ProxyType::AssetManager,
-			) => false,
-			(ProxyType::NonTransfer, _) => true,
+				ProxyType::CancelProxy |
+				ProxyType::Collator |
+				ProxyType::Governance |
+				ProxyType::Staking |
+				ProxyType::StakingOperator |
+				ProxyType::NominationPools |
+				ProxyType::Auction |
+				ProxyType::ParaRegistration,
+			) => true,
 			_ => false,
 		}
 	}
@@ -1404,7 +1412,7 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
-				WhitelistedCaller,
+				EnsureXcm<IsFellowshipVoice<FellowshipLocation>>,
 			>::ensure_origin(origin.clone())
 			.map(|_success| ()),
 		}
@@ -3251,6 +3259,86 @@ mod tests {
 		assert!(ProxyType::Staking.is_superset(&ProxyType::StakingOperator));
 	}
 
+	/// Every `is_superset` edge must be backed by the call filters, otherwise a proxy can
+	/// escalate itself by adding a "subset" proxy that allows more calls.
+	#[test]
+	fn proxy_type_superset_relation_matches_call_filters() {
+		use frame_support::traits::InstanceFilter;
+		use sp_runtime::MultiAddress;
+
+		let who = MultiAddress::Id(AccountId::from([0u8; 32]));
+		let remark = RuntimeCall::System(frame_system::Call::remark { remark: vec![] });
+		let calls = vec![
+			remark.clone(),
+			RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive {
+				dest: who.clone(),
+				value: 1,
+			}),
+			RuntimeCall::CollatorSelection(pallet_collator_selection::Call::leave_intent {}),
+			RuntimeCall::Session(pallet_session::Call::purge_keys {}),
+			RuntimeCall::Staking(pallet_staking_async::Call::chill {}),
+			RuntimeCall::StakingRcClient(pallet_staking_async_rc_client::Call::purge_keys {
+				max_delivery_and_remote_execution_fee: None,
+			}),
+			RuntimeCall::NominationPools(pallet_nomination_pools::Call::chill { pool_id: 0 }),
+			RuntimeCall::Treasury(pallet_treasury::Call::check_status { index: 0 }),
+			RuntimeCall::ConvictionVoting(pallet_conviction_voting::Call::remove_vote {
+				class: None,
+				index: 0,
+			}),
+			RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }),
+			RuntimeCall::Multisig(pallet_multisig::Call::as_multi_threshold_1 {
+				other_signatories: vec![],
+				call: Box::new(remark),
+			}),
+			RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement {
+				delegate: who.clone(),
+				call_hash: Default::default(),
+			}),
+			RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+				delegate: who.clone(),
+				proxy_type: ProxyType::StakingOperator,
+				delay: 0,
+			}),
+			RuntimeCall::Assets(TrustBackedAssetsCall::create {
+				id: 1.into(),
+				admin: who.clone(),
+				min_balance: 1,
+			}),
+			RuntimeCall::Assets(TrustBackedAssetsCall::mint {
+				id: 1.into(),
+				beneficiary: who,
+				amount: 1,
+			}),
+		];
+		let proxy_types = [
+			ProxyType::Any,
+			ProxyType::NonTransfer,
+			ProxyType::CancelProxy,
+			ProxyType::Assets,
+			ProxyType::AssetOwner,
+			ProxyType::AssetManager,
+			ProxyType::Collator,
+			ProxyType::Governance,
+			ProxyType::Staking,
+			ProxyType::NominationPools,
+			ProxyType::Auction,
+			ProxyType::ParaRegistration,
+			ProxyType::StakingOperator,
+		];
+
+		for sup in &proxy_types {
+			for sub in proxy_types.iter().filter(|sub| sup.is_superset(sub)) {
+				for call in calls.iter().filter(|call| sub.filter(call)) {
+					assert!(
+						sup.filter(call),
+						"{sup:?} is a superset of {sub:?}, but does not allow {call:?}"
+					);
+				}
+			}
+		}
+	}
+
 	#[test]
 	fn staking_operator_proxy_filter_works() {
 		use frame_support::traits::InstanceFilter;
@@ -3583,6 +3671,35 @@ mod tests {
 			}
 			// A governance origin the router accepts for another module.
 			assert!(DynamicParameterOrigin::try_origin(StakingAdmin.into(), key).is_err());
+		}
+	}
+
+	#[test]
+	fn only_root_or_fellowship_sets_scheduler_and_message_queue_parameters() {
+		use dynamic_params::{message_queue::*, scheduler::*};
+		use frame_support::traits::EnsureOriginWithArg;
+		use pallet_custom_origins::Origin::{StakingAdmin, WhitelistedCaller};
+		use xcm::latest::prelude::*;
+
+		let keys = [
+			RuntimeParametersKey::Scheduler(MaxScheduledPerBlock.into()),
+			RuntimeParametersKey::Scheduler(MaximumWeight.into()),
+			RuntimeParametersKey::MessageQueue(MaxOnInitWeight.into()),
+			RuntimeParametersKey::MessageQueue(MaxOnIdleWeight.into()),
+		];
+		let fellowship_voice = FellowshipLocation::get()
+			.pushed_with_interior(Plurality { id: BodyId::Technical, part: BodyPart::Voice })
+			.unwrap();
+
+		for key in &keys {
+			for origin in
+				[RuntimeOrigin::root(), pallet_xcm::Origin::Xcm(fellowship_voice.clone()).into()]
+			{
+				assert!(DynamicParameterOrigin::try_origin(origin, key).is_ok());
+			}
+			for origin in [WhitelistedCaller.into(), StakingAdmin.into()] {
+				assert!(DynamicParameterOrigin::try_origin(origin, key).is_err());
+			}
 		}
 	}
 }
