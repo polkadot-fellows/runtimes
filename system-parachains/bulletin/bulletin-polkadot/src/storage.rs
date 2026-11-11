@@ -162,7 +162,7 @@ impl pallet_bulletin_transaction_storage::Config for Runtime {
 	type MaxBlockTransactions = crate::ConstU32<{ DEFAULT_MAX_BLOCK_TRANSACTIONS }>;
 	type MaxTransactionSize = crate::ConstU32<{ DEFAULT_MAX_TRANSACTION_SIZE }>;
 	type AuthorizationPeriod = AuthorizationPeriod;
-	type AuthorizerRegistrarOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type AuthorizerRegistrarOrigin = crate::RootOrTechnicalMaintenance;
 	type Authorizer = EitherOf<
 		EitherOf<
 			// Root can do whatever.
