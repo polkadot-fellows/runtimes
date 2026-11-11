@@ -73,7 +73,8 @@ pub type SnowbridgeExporterV2 = EthereumBlobExporterV2<
 	EthereumOutboundQueueV2,
 	EthereumSystemV2,
 	AssetHubParaId,
-	// Defense-in-depth: Asset Hub's primary agent account on Ethereum is never allowed as an aliased origin.
+	// Defense-in-depth: Asset Hub's primary agent account on Ethereum is never allowed as an
+	// aliased origin.
 	EverythingBut<Equals<AssetHubLocation>>,
 >;
 
