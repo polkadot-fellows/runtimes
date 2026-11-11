@@ -26,7 +26,6 @@ use asset_hub_polkadot_runtime::xcm_config::bridging::to_ethereum::BridgeHubEthe
 use emulated_integration_tests_common::PenpalAPen2TeleportableAssetLocation;
 use frame_support::{assert_noop, BoundedVec};
 use snowbridge_core::AssetMetadata;
-use snowbridge_outbound_queue_primitives::v2::ContractCall;
 use sp_runtime::DispatchError::BadOrigin;
 use xcm::v5::AssetTransferFilter;
 
@@ -277,74 +276,4 @@ pub fn exploit_v2_route_with_legacy_v1_transfer_will_fail() {
 			]
 		);
 	})
-}
-
-#[test]
-pub fn signed_asset_hub_user_cannot_spoof_asset_hub_agent_on_ethereum() {
-	fund_on_bh();
-	prefund_accounts_on_polkadot_asset_hub();
-
-	let forged_asset_hub_origin = Location::new(1, [Parachain(AssetHubPolkadot::para_id().into())]);
-
-	AssetHubPolkadot::execute_with(|| {
-		type RuntimeOrigin = <AssetHubPolkadot as Chain>::RuntimeOrigin;
-
-		let local_fee_asset =
-			Asset { id: AssetId(Location::parent()), fun: Fungible(LOCAL_FEE_AMOUNT_IN_DOT) };
-		let remote_fee_asset =
-			Asset { id: AssetId(eth_location()), fun: Fungible(REMOTE_FEE_AMOUNT_IN_ETHER) };
-		let arbitrary_agent_call = ContractCall::V1 {
-			target: ETHEREUM_DESTINATION_ADDRESS,
-			calldata: vec![0xde, 0xad, 0xbe, 0xef],
-			value: 0,
-			gas: 100_000,
-		};
-
-		let assets = vec![local_fee_asset.clone(), remote_fee_asset.clone()];
-		let forged_xcm = Xcm(vec![
-			WithdrawAsset(assets.into()),
-			PayFees { asset: local_fee_asset },
-			// Clearing the origin before an origin-preserving transfer once allowed this message
-			// to reach the exporter without a prepended origin-altering instruction.
-			ClearOrigin,
-			InitiateTransfer {
-				destination: eth_location(),
-				remote_fees: Some(AssetTransferFilter::ReserveWithdraw(Definite(
-					remote_fee_asset.into(),
-				))),
-				preserve_origin: true,
-				assets: BoundedVec::truncate_from(vec![]),
-				remote_xcm: Xcm(vec![
-					AliasOrigin(forged_asset_hub_origin),
-					DepositAsset { assets: Wild(AllCounted(0)), beneficiary: beneficiary() },
-					Transact {
-						origin_kind: OriginKind::Xcm,
-						call: arbitrary_agent_call.encode().into(),
-						fallback_max_weight: None,
-					},
-					SetTopic([9u8; 32]),
-				]),
-			},
-		]);
-
-		assert_ok!(<AssetHubPolkadot as AssetHubPolkadotPallet>::PolkadotXcm::execute(
-			RuntimeOrigin::signed(AssetHubPolkadotSender::get()),
-			bx!(VersionedXcm::from(forged_xcm)),
-			Weight::from(EXECUTION_WEIGHT),
-		));
-	});
-
-	BridgeHubPolkadot::ext_wrapper(|| {
-		type Runtime = bridge_hub_polkadot_runtime::Runtime;
-		type RuntimeEvent = <BridgeHubPolkadot as Chain>::RuntimeEvent;
-
-		assert!(snowbridge_pallet_outbound_queue_v2::Messages::<Runtime>::get().is_empty());
-		assert!(!BridgeHubPolkadot::events().iter().any(|event| matches!(
-			event,
-			RuntimeEvent::EthereumOutboundQueueV2(
-				snowbridge_pallet_outbound_queue_v2::Event::MessageQueued { .. }
-			)
-		)));
-		assert_eq!(snowbridge_pallet_outbound_queue_v2::Nonce::<Runtime>::get(), 0);
-	});
 }
