@@ -73,8 +73,7 @@ pub type SnowbridgeExporterV2 = EthereumBlobExporterV2<
 	EthereumOutboundQueueV2,
 	EthereumSystemV2,
 	AssetHubParaId,
-	// TODO 2609-review: polkadot-sdk#12159: reject `AliasOrigin` to the Asset Hub location (same
-	// as Westend).
+	// Defense-in-depth: Asset Hub's primary agent account on Ethereum is never allowed as an aliased origin.
 	EverythingBut<Equals<AssetHubLocation>>,
 >;
 
