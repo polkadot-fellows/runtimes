@@ -77,8 +77,9 @@ impl pallet_whitelist::Config for Runtime {
 		EitherOfDiverse<EnsureRoot<Self::AccountId>, EnsureXcm<IsFellowshipVoice>>;
 	type DispatchWhitelistedOrigin = EitherOf<EnsureRoot<Self::AccountId>, WhitelistedCaller>;
 	type Preimages = Preimage;
-	// TODO 2609-review: deferred dispatches (polkadot-sdk#11336) expire after 28 days, same as
-	// Westend, in relay blocks.
+	// How long a call dispatched by the Whitelisted Caller before the Fellowship whitelists it
+	// stays executable by any signed origin (polkadot-sdk#11336).
+	// Measured in Relay Chain blocks.
 	type DeferredDispatchExpiration = ConstU32<{ 28 * RC_DAYS }>;
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 }
