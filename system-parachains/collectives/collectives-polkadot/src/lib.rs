@@ -931,7 +931,8 @@ pub mod migrations {
 	pub const RELAY_BLOCKS_PER_LOCAL_BLOCK: BlockNumber =
 		(SLOT_DURATION / RELAY_CHAIN_SLOT_DURATION_MILLIS as u64) as BlockNumber;
 	// The conversion below relies on one block per slot and on each block waiting for the
-	// previous one to be included (no async backing).
+	// previous one to be included (no async backing). Once the migration has run on-chain, remove
+	// it together with this assertion, the constant and the converter.
 	const _: () = assert!(
 		BLOCK_PROCESSING_VELOCITY == 1 &&
 			UNINCLUDED_SEGMENT_CAPACITY == 1 &&
@@ -944,14 +945,21 @@ pub mod migrations {
 	/// Converts `pallet-core-fellowship` block numbers from local to Relay Chain blocks.
 	///
 	/// Durations (the periods in `Params`) are the intended lengths of time, so they scale
-	/// exactly: `n` local blocks become `n * RELAY_BLOCKS_PER_LOCAL_BLOCK` relay blocks.
+	/// exactly: `n` local blocks become `n * RELAY_BLOCKS_PER_LOCAL_BLOCK` relay blocks. Past
+	/// drift (missed slots) is deliberately ignored: the Relay Chain keeps time more regularly
+	/// than this chain, so relay blocks are closer to the intended periods.
 	///
-	/// Moments (each member's `last_promotion` and `last_proof`) must never move earlier than
-	/// they really were, or members could be demoted or kept from promotion too soon. A moment
-	/// is placed its converted distance before the current relay block. Each local block is
-	/// built on a relay parent at least two relay blocks after the previous one's, because it
-	/// waits for that block's inclusion. So the converted distance never exceeds the real one,
-	/// and any missed slots only move the moment later, in the member's favor.
+	/// Moments (each member's `last_promotion` and `last_proof`) are placed their converted
+	/// distance before the current relay block. Each local block is built on a relay parent at
+	/// least two relay blocks after the previous one's, because it waits for that block's
+	/// inclusion. So the converted distance never exceeds the real one, and a converted moment
+	/// is never earlier than the real one; any missed slots only move it later.
+	///
+	/// For `last_proof` this favors the member: demotion can never come early. For
+	/// `last_promotion` it can delay promotion eligibility by the drift since the member's last
+	/// promotion, compared with real time. That is accepted: early demotion must be impossible,
+	/// a late promotion is tolerable, and at the upgrade every member's eligibility is exactly
+	/// what it was in local blocks.
 	pub struct CoreFellowshipToRelayBlockNumber;
 	impl pallet_core_fellowship::migration::v2::ConvertBlockNumber<BlockNumber, RelayBlockNumber>
 		for CoreFellowshipToRelayBlockNumber
