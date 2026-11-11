@@ -25,6 +25,9 @@ pub type Unreleased = (
 	cumulus_pallet_parachain_system::migration::Migration<crate::Runtime>,
 	pallet_staking_async::migrations::SetWeightedPointsFormulaStartEra<crate::Runtime>,
 	pallet_society::migrations::ReconcilePayoutsAccount<crate::Runtime>,
+	// EPMB signed: store the base deposit per submission, fixed at registration
+	// (polkadot-sdk#13722).
+	pallet_election_provider_multi_block::signed::migrations::v1::MigrateV0ToV1<crate::Runtime>,
 );
 
 /// All single block migrations that will run on the next runtime upgrade.
