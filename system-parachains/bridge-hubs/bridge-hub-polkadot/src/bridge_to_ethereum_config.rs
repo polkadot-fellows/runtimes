@@ -73,7 +73,7 @@ pub type SnowbridgeExporterV2 = EthereumBlobExporterV2<
 	EthereumOutboundQueueV2,
 	EthereumSystemV2,
 	AssetHubParaId,
-	// Prevent unprivileged users from spoofing the Asset Hub's primary agent account on Ethereum.
+	// Defense-in-depth: Asset Hub's primary agent account on Ethereum is never allowed as an aliased origin.
 	EverythingBut<Equals<AssetHubLocation>>,
 >;
 
