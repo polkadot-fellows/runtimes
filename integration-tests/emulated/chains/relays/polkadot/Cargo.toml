@@ -37,4 +37,5 @@ runtime-benchmarks = [
 	"polkadot-runtime-constants/runtime-benchmarks",
 	"polkadot-runtime/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks"
 ]

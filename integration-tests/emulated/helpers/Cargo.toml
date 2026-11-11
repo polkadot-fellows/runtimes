@@ -41,4 +41,5 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks"
 ]

@@ -76,4 +76,6 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"asset-test-utils/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks"
 ]

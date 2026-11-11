@@ -30,4 +30,5 @@ runtime-benchmarks = [
 	"kusama-emulated-chain/runtime-benchmarks",
 	"penpal-emulated-chain/runtime-benchmarks",
 	"people-kusama-emulated-chain/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks"
 ]

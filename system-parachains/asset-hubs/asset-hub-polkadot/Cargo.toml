@@ -287,6 +287,8 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"asset-test-utils/runtime-benchmarks",
+	"parachains-runtimes-test-utils/runtime-benchmarks"
 ]
 try-runtime = [
 	"asset-test-utils/try-runtime",
@@ -370,6 +372,7 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
 	"system-parachains-constants/try-runtime",
+	"parachains-runtimes-test-utils/try-runtime"
 ]
 std = [
 

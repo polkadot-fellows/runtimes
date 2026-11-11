@@ -33,4 +33,5 @@ runtime-benchmarks = [
 	"people-polkadot-runtime/runtime-benchmarks",
 	"polkadot-emulated-chain/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks"
 ]

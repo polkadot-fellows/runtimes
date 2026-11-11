@@ -49,4 +49,5 @@ runtime-benchmarks = [
 	"snowbridge-inbound-queue-primitives/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks"
 ]

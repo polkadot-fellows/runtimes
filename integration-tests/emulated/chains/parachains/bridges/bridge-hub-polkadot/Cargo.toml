@@ -33,4 +33,5 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks"
 ]

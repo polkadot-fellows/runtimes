@@ -34,9 +34,11 @@ runtime-benchmarks = [
 	"penpal-runtime/runtime-benchmarks",
 	"polkadot-emulated-chain/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks"
 ]
 try-runtime = [
 	"frame-support/try-runtime",
 	"parachains-common/try-runtime",
 	"penpal-runtime/try-runtime",
+	"emulated-integration-tests-common/try-runtime"
 ]

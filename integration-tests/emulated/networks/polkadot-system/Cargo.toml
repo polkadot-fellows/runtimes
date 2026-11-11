@@ -32,4 +32,5 @@ runtime-benchmarks = [
 	"penpal-emulated-chain/runtime-benchmarks",
 	"people-polkadot-emulated-chain/runtime-benchmarks",
 	"polkadot-emulated-chain/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks"
 ]

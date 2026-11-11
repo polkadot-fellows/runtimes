@@ -47,4 +47,5 @@ runtime-benchmarks = [
 	"polkadot-system-emulated-network/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks"
 ]

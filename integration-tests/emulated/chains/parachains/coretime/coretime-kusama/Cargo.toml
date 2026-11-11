@@ -27,4 +27,5 @@ runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks"
 ]
