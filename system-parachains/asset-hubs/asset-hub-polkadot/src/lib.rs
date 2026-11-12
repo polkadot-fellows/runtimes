@@ -65,6 +65,7 @@ compile_error!("Asset Hub migration requires the `polkadot-ahm` feature");
 extern crate alloc;
 
 pub mod bridge_to_ethereum_config;
+#[cfg(not(feature = "on-chain-release-build"))]
 pub mod genesis_config_presets;
 pub mod governance;
 pub mod individuality;
@@ -123,7 +124,6 @@ use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
 	dynamic_params::{dynamic_pallet_params, dynamic_params},
-	genesis_builder_helper::{build_state, get_preset},
 	migrations::ForceUnstuckOnFailedMigration,
 	parameter_types,
 	traits::{
@@ -2922,13 +2922,18 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 		}
 	}
 
+	// Only chain spec tooling builds genesis, so the on-chain runtime doesn't carry this code.
+	#[cfg(not(feature = "on-chain-release-build"))]
 	impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
 		fn build_state(config: Vec<u8>) -> sp_genesis_builder::Result {
-			build_state::<RuntimeGenesisConfig>(config)
+			frame_support::genesis_builder_helper::build_state::<RuntimeGenesisConfig>(config)
 		}
 
 		fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
-			get_preset::<RuntimeGenesisConfig>(id, &genesis_config_presets::get_preset)
+			frame_support::genesis_builder_helper::get_preset::<RuntimeGenesisConfig>(
+				id,
+				&genesis_config_presets::get_preset,
+			)
 		}
 
 		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
@@ -3116,6 +3121,14 @@ mod tests {
 	use sp_weights::WeightToFee as WeightToFeeT;
 
 	type WeightToFee = DotWeightToFee<Runtime>;
+
+	#[test]
+	fn genesis_builder_api_is_absent_from_release_builds() {
+		use sp_genesis_builder::runtime_decl_for_genesis_builder::ID;
+
+		let exposed = RUNTIME_API_VERSIONS.iter().any(|(id, _)| *id == ID);
+		assert_eq!(exposed, !cfg!(feature = "on-chain-release-build"));
+	}
 
 	/// Pin transaction extension version 0 and assert that version 1 appears in the metadata.
 	#[test]
