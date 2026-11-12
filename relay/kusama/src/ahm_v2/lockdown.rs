@@ -24,37 +24,76 @@ use frame_support::{
 };
 use kusama_runtime_constants::system_parachain::{ASSET_HUB_ID, BROKER_ID};
 use pallet_rc2_migrator::{MigrationPhase, RcMigrationStage};
-use xcm::latest::{Instruction, Junction::Parachain, Location};
+use xcm::latest::{
+	Instruction,
+	Junction::{Parachain, Plurality},
+	Location,
+};
 use xcm_executor::traits::{DenyExecution, Properties};
 
-/// Refuses every inbound message once the data migration starts, except from this chain, the
-/// Coretime chain and Asset Hub. Until then every message executes, from any chain, so what is in
-/// flight lands before accounts move.
+/// Refuses every inbound message once the data migration starts, unless it is sent by this chain,
+/// the Coretime chain, Asset Hub or one of Asset Hub's governance bodies. A message from an
+/// account on those chains is refused too. Until then every message executes, from any chain, so
+/// what is in flight lands before accounts move.
 pub struct DenyOnceDataMigrationStarts;
 impl DenyExecution for DenyOnceDataMigrationStarts {
 	fn deny_execution<RuntimeCall>(
 		origin: &Location,
-		_instructions: &mut [Instruction<RuntimeCall>],
+		instructions: &mut [Instruction<RuntimeCall>],
 		_max_weight: Weight,
 		_properties: &mut Properties,
 	) -> Result<(), ProcessMessageError> {
 		match RcMigrationStage::<Runtime>::get().phase() {
 			MigrationPhase::NotStarted | MigrationPhase::WarmUp => Ok(()),
-			MigrationPhase::DataMigration => only_from_self_coretime_or_asset_hub(origin),
+			MigrationPhase::DataMigration => only_from_trusted_senders(origin, instructions),
 			// TODO(ahm-v2): paras reach `HrmpRelay` and `RegistrarRelay` over XCM after the
 			// migration; let that envelope through here.
-			MigrationPhase::Done => only_from_self_coretime_or_asset_hub(origin),
+			MigrationPhase::Done => only_from_trusted_senders(origin, instructions),
 		}
 	}
 }
 
-/// CT assigns cores and answers the migrator. AH governance dispatches here as Root / admin body,
-/// and its staking sends the validator set and session keys.
-fn only_from_self_coretime_or_asset_hub(origin: &Location) -> Result<(), ProcessMessageError> {
-	match origin.unpack() {
-		(0, []) => Ok(()),
-		(0, [Parachain(id)]) if *id == BROKER_ID || *id == ASSET_HUB_ID => Ok(()),
-		_ => Err(ProcessMessageError::Unsupported),
+/// Admits a message only if every sender it runs as is trusted: the sender the barrier works out
+/// from the sending chain and the leading `DescendOrigin`s, and any `AliasOrigin` target.
+///
+/// An account on Asset Hub could otherwise pay from its balance here, crediting the block author,
+/// and deposit into accounts the migration has already passed. Asset Hub's `send` puts the
+/// account in a leading `DescendOrigin`; a transfer that keeps its origin switches to it with an
+/// `AliasOrigin`.
+fn only_from_trusted_senders<RuntimeCall>(
+	origin: &Location,
+	instructions: &[Instruction<RuntimeCall>],
+) -> Result<(), ProcessMessageError> {
+	let mut sender = origin.clone();
+	for instruction in instructions {
+		match instruction {
+			Instruction::DescendOrigin(interior) => sender
+				.append_with(interior.clone())
+				.map_err(|_| ProcessMessageError::Unsupported)?,
+			// A sender in another consensus system is never trusted.
+			Instruction::UniversalOrigin(_) => return Err(ProcessMessageError::Unsupported),
+			_ => break,
+		}
+	}
+	let aliases = instructions.iter().filter_map(|instruction| match instruction {
+		Instruction::AliasOrigin(target) => Some(target),
+		_ => None,
+	});
+	if core::iter::once(&sender).chain(aliases).all(is_trusted_sender) {
+		Ok(())
+	} else {
+		Err(ProcessMessageError::Unsupported)
+	}
+}
+
+/// CT assigns cores and answers the migrator. AH governance dispatches here as Root or as one of
+/// its bodies, and its staking sends the validator set and session keys.
+fn is_trusted_sender(sender: &Location) -> bool {
+	match sender.unpack() {
+		(0, []) => true,
+		(0, [Parachain(id)]) => *id == BROKER_ID || *id == ASSET_HUB_ID,
+		(0, [Parachain(id), Plurality { .. }]) => *id == ASSET_HUB_ID,
+		_ => false,
 	}
 }
 
@@ -506,8 +545,18 @@ mod tests {
 		origin: Location,
 		message: Xcm<RuntimeCall>,
 	) -> Result<(), XcmError> {
+		execute_paid_by(stage, origin.clone(), &origin, message)
+	}
+
+	/// Execute `message` from `origin`, with `payer`'s account on this chain funded.
+	fn execute_paid_by(
+		stage: &Stage,
+		origin: Location,
+		payer: &Location,
+		message: Xcm<RuntimeCall>,
+	) -> Result<(), XcmError> {
 		at(stage, || {
-			let account = SovereignAccountOf::convert_location(&origin).expect("origin converts");
+			let account = SovereignAccountOf::convert_location(payer).expect("payer converts");
 			assert_ok!(<Balances as Mutate<AccountId>>::mint_into(&account, 100 * UNITS));
 			XcmExecutor::<crate::xcm_config::XcmConfig>::prepare_and_execute(
 				origin,
@@ -592,6 +641,72 @@ mod tests {
 					assert_ok!(execute_from(&stage, origin, message.clone()));
 				}
 			}
+		}
+	}
+
+	/// An account on parachain `id`.
+	fn account_on(id: u32) -> Location {
+		Location::new(0, [Parachain(id), ACCOUNT])
+	}
+
+	/// The account of [`account_on`], below its chain.
+	const ACCOUNT: Junction = AccountId32 { network: None, id: [7; 32] };
+
+	/// `message` behind a `DescendOrigin(junction)`, as Asset Hub's `send` delivers a message from
+	/// a sender below the chain.
+	fn descend(junction: Junction, message: Xcm<RuntimeCall>) -> Xcm<RuntimeCall> {
+		Xcm([DescendOrigin([junction].into())].into_iter().chain(message.0).collect())
+	}
+
+	/// A transfer that keeps its sender: the sending chain pays, then the message switches to
+	/// `sender` with `AliasOrigin` and deposits the rest to Alice.
+	fn paid_then_alias(sender: Location) -> Xcm<RuntimeCall> {
+		Xcm(vec![
+			WithdrawAsset((Here, 10 * UNITS).into()),
+			BuyExecution { fees: (Here, UNITS).into(), weight_limit: Unlimited },
+			AliasOrigin(sender),
+			DepositAsset {
+				assets: AllCounted(1).into(),
+				beneficiary: AccountId32 { network: None, id: ALICE.into() }.into(),
+			},
+		])
+	}
+
+	#[test]
+	fn an_account_on_asset_hub_or_coretime_is_refused_once_the_data_migration_starts() {
+		for chain in [ASSET_HUB_ID, BROKER_ID] {
+			// The account's message as `send` delivers it, paying from the account's balance here,
+			// and a transfer the chain pays for that switches to the account.
+			let messages = [
+				(descend(ACCOUNT, paid()), account_on(chain)),
+				(paid_then_alias(account_on(chain)), para(chain)),
+			];
+
+			// GIVEN the data migration has not started. THEN both run.
+			for stage in stages_before_data_migration() {
+				for (message, payer) in messages.clone() {
+					assert_ok!(execute_paid_by(&stage, para(chain), &payer, message));
+				}
+			}
+
+			// GIVEN the data migration has started. THEN both are refused, also after it is done.
+			for stage in stages_from_data_migration() {
+				for (message, payer) in messages.clone() {
+					assert_err!(
+						execute_paid_by(&stage, para(chain), &payer, message),
+						XcmError::Barrier
+					);
+				}
+			}
+		}
+	}
+
+	#[test]
+	fn asset_hubs_governance_bodies_reach_this_chain_at_every_stage() {
+		let body = Plurality { id: BodyId::Administration, part: BodyPart::Voice };
+		for stage in stages_before_data_migration().into_iter().chain(stages_from_data_migration())
+		{
+			assert_ok!(execute_from(&stage, para(ASSET_HUB_ID), descend(body, unpaid())));
 		}
 	}
 }
