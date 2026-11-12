@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Polkadot Relay, Bridge Hub, Collectives and People: dust, treasury burns and slashes are no longer burnt or sent to the Relay Chain treasury. They accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub. ([#TBD](https://github.com/polkadot-fellows/runtimes/pull/TBD)).
+
 ## [2.5.3] 06.11.2026
 
 ### Changed

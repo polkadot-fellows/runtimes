@@ -55,7 +55,12 @@ pub fn genesis() -> sp_core::storage::Storage {
 	let genesis_config = polkadot_runtime::RuntimeGenesisConfig {
 		system: polkadot_runtime::SystemConfig::default(),
 		balances: polkadot_runtime::BalancesConfig {
-			balances: accounts::init_balances().iter().cloned().map(|k| (k, ENDOWMENT)).collect(),
+			balances: accounts::init_balances()
+				.into_iter()
+				.map(|k| (k, ENDOWMENT))
+				// Only the ED, as on chain: endowing it would forward on the first idle block.
+				.chain([(polkadot_runtime::AccumulateForward::accumulation_account(), ED)])
+				.collect(),
 			dev_accounts: None,
 		},
 		session: polkadot_runtime::SessionConfig {

@@ -14,10 +14,10 @@
 // limitations under the License.
 
 use super::{
-	assets::hollar::HollarFromHydration, AccountId, AllPalletsWithSystem, AssetRate,
-	Assets as AssetsPallet, Balance, Balances, CollatorSelection, DotWeightToFee as WeightToFee,
-	ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeHoldReason, RuntimeOrigin, XcmpQueue,
+	assets::hollar::HollarFromHydration, AccountId, AccumulateForward, AllPalletsWithSystem,
+	AssetRate, Assets as AssetsPallet, Balance, Balances, CollatorSelection,
+	DotWeightToFee as WeightToFee, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
+	RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, XcmpQueue,
 };
 use crate::{TransactionByteFee, CENTS};
 use assets_common::matching::RemoteAssetFromLocation;
@@ -87,6 +87,9 @@ parameter_types! {
 			.unwrap_or(TreasuryAccount::get());
 	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
+	/// The `pallet-accumulate-and-forward` account, as a local location.
+	pub AccumulateForwardLocation: Location =
+		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
 
 pub type PriceForParentDelivery = polkadot_runtime_common::xcm_sender::ExponentialPrice<
@@ -240,6 +243,8 @@ pub type WaivedLocations = (
 	Equals<RelayTreasuryLocation>,
 	FellowsPlurality,
 	LocalPlurality,
+	// Forwards of accumulated dust and identity slashes to the DAP.
+	Equals<AccumulateForwardLocation>,
 );
 
 /// Aliasing rules that are pure computation, so the `AllowExplicitUnpaidExecutionFrom` barrier can

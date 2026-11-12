@@ -17,9 +17,9 @@
 //! XCM configuration for Polkadot.
 
 use super::{
-	parachains_origin, AccountId, AllPalletsWithSystem, Balances, Dmp, FellowshipAdmin,
-	GeneralAdmin, ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, StakingAdmin,
-	TransactionByteFee, Treasurer, Treasury, WeightToFee, XcmPallet,
+	parachains_origin, AccountId, AccumulateForward, AllPalletsWithSystem, Balances, Dmp,
+	FellowshipAdmin, GeneralAdmin, ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	StakingAdmin, TransactionByteFee, Treasurer, Treasury, WeightToFee, XcmPallet,
 };
 use frame_support::{
 	parameter_types,
@@ -63,6 +63,9 @@ parameter_types! {
 	pub NoTeleportTracking: Option<(AccountId, MintLocation)> = None;
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
+	/// The `pallet-accumulate-and-forward` account, as a local location.
+	pub AccumulateForwardLocation: Location =
+		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
 
 /// The canonical means of converting a `Location` into an `AccountId`, used when we want to
@@ -215,7 +218,13 @@ pub type Barrier = TrailingSetTopicAsId<(
 
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations = (SystemParachains, Equals<RootLocation>, LocalPlurality);
+pub type WaivedLocations = (
+	SystemParachains,
+	Equals<RootLocation>,
+	LocalPlurality,
+	// Forwards of accumulated funds to Asset Hub.
+	Equals<AccumulateForwardLocation>,
+);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {

@@ -20,27 +20,11 @@ pub const INDIVIDUALITY_NETWORK_SUFFIX: &[u8] = b"polkadot";
 pub mod account {
 	use frame_support::PalletId;
 
-	/// Polkadot treasury pallet id, used to convert into AccountId
-	pub const POLKADOT_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/trsry");
-	/// Alliance pallet ID.
-	/// Used as a temporary place to deposit a slashed imbalance before teleporting to the Treasury.
-	pub const ALLIANCE_PALLET_ID: PalletId = PalletId(*b"py/allia");
-	/// Referenda pallet ID.
-	/// Used as a temporary place to deposit a slashed imbalance before teleporting to the Treasury.
-	pub const REFERENDA_PALLET_ID: PalletId = PalletId(*b"py/refer");
-	/// Ambassador Referenda pallet ID.
-	/// Used as a temporary place to deposit a slashed imbalance before teleporting to the Treasury.
-	pub const AMBASSADOR_REFERENDA_PALLET_ID: PalletId = PalletId(*b"py/amref");
-	/// Identity pallet ID.
-	/// Used as a temporary place to deposit a slashed imbalance before teleporting to the Treasury.
-	pub const IDENTITY_PALLET_ID: PalletId = PalletId(*b"py/ident");
 	/// Fellowship treasury pallet ID
 	pub const FELLOWSHIP_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/feltr");
 	/// Ambassador treasury pallet ID
 	pub const AMBASSADOR_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/ambtr");
-	/// Accumulate-and-forward pallet ID. Derives the account on a system chain that gathers sinks
-	/// (coretime revenue, dust, XCM fees) before they are forwarded to the DAP on Asset Hub.
-	pub const ACCUMULATE_FORWARD_PALLET_ID: PalletId = PalletId(*b"acf/dott");
+	pub use polkadot_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
 }
 
 /// Consensus-related.
@@ -145,8 +129,7 @@ pub mod fee {
 
 pub mod locations {
 	use frame_support::{parameter_types, traits::Contains};
-	use sp_runtime::traits::AccountIdConversion;
-	use xcm::latest::prelude::{InteriorLocation, Junction::*, Location, NetworkId};
+	use xcm::latest::prelude::{Junction::*, Location, NetworkId};
 
 	parameter_types! {
 		pub RelayChainLocation: Location = Location::parent();
@@ -158,15 +141,9 @@ pub mod locations {
 		pub GovernanceLocation: Location = Location::parent();
 
 		pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
-
-		/// The DAP staging account on Asset Hub. `pallet-dap` drains it into the DAP buffer and
-		/// deactivates the funds, so inflows meant for the DAP must target this account.
-		pub DapStagingLocation: InteriorLocation = AccountId32 {
-			network: None,
-			id: sp_dap::DAP_PALLET_ID.into_sub_account_truncating(sp_dap::DAP_STAGING_ACCOUNT_ID),
-		}
-		.into();
 	}
+
+	pub use polkadot_runtime_constants::xcm::DapStagingLocation;
 
 	/// `Contains` implementation for the asset hub location pluralities.
 	pub struct AssetHubPlurality;

@@ -20,7 +20,8 @@ use codec::Decode;
 use frame_support::{
 	assert_noop, assert_ok,
 	traits::{
-		fungible::{Inspect, InspectHold},
+		fungible::{Inspect, InspectHold, Mutate},
+		tokens::Preservation,
 		Get,
 	},
 };
@@ -147,4 +148,43 @@ pub fn session_key_deposit_works<Runtime>(
 		assert_eq!(free(&genesis_collator), ed + deposit);
 		assert_eq!(System::<Runtime>::consumers(&genesis_collator), consumers - 1);
 	});
+}
+
+/// Dust accumulates for the forward to Asset Hub instead of being burned here, where the burn would
+/// not show in the network total that Asset Hub tracks.
+///
+/// Runs in the caller's externalities. The accumulation account is funded with the ED first, as it
+/// is out of band before an upgrade: without it, dust is rejected and burned.
+pub fn dust_accumulates_instead_of_being_burned<Runtime>()
+where
+	Runtime: pallet_balances::Config + pallet_accumulate_and_forward::Config,
+	AccountIdOf<Runtime>: From<[u8; 32]>,
+{
+	type Balances<Runtime> = pallet_balances::Pallet<Runtime>;
+
+	// Given: a funded accumulation account and an account holding exactly the ED.
+	let ed = <Runtime as pallet_balances::Config>::ExistentialDeposit::get();
+	let accumulation_account =
+		pallet_accumulate_and_forward::Pallet::<Runtime>::accumulation_account();
+	assert_ok!(Balances::<Runtime>::mint_into(&accumulation_account, ed));
+	let alice = AccountIdOf::<Runtime>::from([1u8; 32]);
+	let bob = AccountIdOf::<Runtime>::from([2u8; 32]);
+	assert_ok!(Balances::<Runtime>::mint_into(&alice, ed));
+	assert_ok!(Balances::<Runtime>::mint_into(&bob, ed));
+	let issuance_before = Balances::<Runtime>::total_issuance();
+	let accumulated_before = Balances::<Runtime>::balance(&accumulation_account);
+
+	// When: Alice is reaped, leaving dust behind.
+	let dust = ed / 2u32.into();
+	assert_ok!(<Balances<Runtime> as Mutate<_>>::transfer(
+		&alice,
+		&bob,
+		ed - dust,
+		Preservation::Expendable,
+	));
+
+	// Then: the dust reaches the accumulation account and nothing is burned.
+	assert_eq!(Balances::<Runtime>::balance(&alice), Zero::zero());
+	assert_eq!(Balances::<Runtime>::balance(&accumulation_account), accumulated_before + dust);
+	assert_eq!(Balances::<Runtime>::total_issuance(), issuance_before, "the dust is not burned");
 }

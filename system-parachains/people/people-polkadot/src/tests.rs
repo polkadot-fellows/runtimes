@@ -17,7 +17,8 @@
 use crate::{
 	assets::hollar::HOLLAR_UNITS,
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Block, DotWeightToFee as WeightToFee, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys,
+	AccumulateForward, Balances, Block, DotWeightToFee as WeightToFee, ExistentialDeposit,
+	Identity, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys,
 };
 use codec::Encode;
 use cumulus_primitives_core::relay_chain::AccountId;
@@ -626,4 +627,57 @@ fn session_key_deposit_works() {
 		let generated = SessionKeys::generate(&owner.encode(), None);
 		(generated.keys, generated.proof.encode())
 	});
+}
+
+#[test]
+fn identity_slashes_accumulate_instead_of_being_burned() {
+	use crate::people::IdentityInfo;
+	use frame_support::traits::{
+		fungible::{Inspect, Mutate},
+		ReservableCurrency,
+	};
+	use pallet_identity::Data;
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		// GIVEN the accumulation account funded with its ED, as done out of band before upgrade.
+		let ed: crate::Balance = ExistentialDeposit::get();
+		let accumulation_account = AccumulateForward::accumulation_account();
+		assert_ok!(Balances::mint_into(&accumulation_account, ed));
+		let carol = AccountId::from([3u8; 32]);
+		assert_ok!(Balances::mint_into(&carol, 100 * crate::UNITS));
+		let info = IdentityInfo {
+			display: Data::Raw(b"carol".to_vec().try_into().unwrap()),
+			legal: Data::None,
+			web: Data::None,
+			matrix: Data::None,
+			email: Data::None,
+			pgp_fingerprint: None,
+			image: Data::None,
+			twitter: Data::None,
+			github: Data::None,
+			discord: Data::None,
+		};
+		assert_ok!(Identity::set_identity(RuntimeOrigin::signed(carol.clone()), Box::new(info)));
+		let deposit = <Balances as ReservableCurrency<_>>::reserved_balance(&carol);
+		assert!(deposit > 0);
+		let accumulated_before = Balances::balance(&accumulation_account);
+		let issuance_before = Balances::total_issuance();
+
+		// WHEN an identity is killed, slashing its deposit.
+		assert_ok!(Identity::kill_identity(RuntimeOrigin::root(), carol.clone().into()));
+
+		// THEN the slash reaches the accumulation account and is not burnt.
+		assert_eq!(Balances::balance(&accumulation_account), accumulated_before + deposit);
+		assert_eq!(Balances::total_issuance(), issuance_before);
+	});
+}
+
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(
+		system_parachains_test_utils::dust_accumulates_instead_of_being_burned::<Runtime>,
+	);
 }

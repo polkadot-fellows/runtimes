@@ -84,6 +84,7 @@ use sp_version::RuntimeVersion;
 use system_parachains_constants::{
 	async_backing::{AVERAGE_ON_INITIALIZE_RATIO, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO},
 	polkadot::{
+		account::ACCUMULATE_FORWARD_PALLET_ID,
 		consensus::{
 			elastic_scaling::{
 				BLOCK_PROCESSING_VELOCITY, RELAY_PARENT_OFFSET, UNINCLUDED_SEGMENT_CAPACITY,
@@ -92,6 +93,7 @@ use system_parachains_constants::{
 		},
 		currency::*,
 		fee::WeightToFee as DotWeightToFee,
+		locations::DapStagingLocation,
 	},
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
@@ -310,9 +312,31 @@ parameter_types! {
 	pub const ExistentialDeposit: Balance = SYSTEM_PARA_EXISTENTIAL_DEPOSIT;
 }
 
+parameter_types! {
+	pub const AccumulateForwardPalletId: PalletId = ACCUMULATE_FORWARD_PALLET_ID;
+	pub const ForwardPeriod: BlockNumber = polkadot_runtime_constants::time::HOURS;
+	pub const MinForwardAmount: Balance = UNITS;
+}
+
+impl pallet_accumulate_and_forward::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = AccumulateForwardPalletId;
+	type Forwarder = xcm_builder::TeleportForwarderForAccountId32<
+		xcm_config::XcmConfig,
+		AssetHubLocation,
+		xcm_config::RelayLocation,
+		DapStagingLocation,
+	>;
+	type TransferPeriod = ForwardPeriod;
+	type MinTransferAmount = MinForwardAmount;
+	// `ForwardPeriod` is counted in relay blocks.
+	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
+	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
+}
+
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type DustRemoval = ();
+	type DustRemoval = AccumulateForward;
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -844,6 +868,7 @@ construct_runtime!(
 		OriginRestriction: indiv_pallet_origin_restriction = 16,
 		AssetConversion: pallet_asset_conversion = 17,
 		PoolAssets: pallet_assets::<Instance1> = 18,
+		AccumulateForward: pallet_accumulate_and_forward = 19,
 
 		// Collator support. The order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -914,6 +939,7 @@ mod benches {
 		[pallet_assets, Pool]
 		[pallet_asset_conversion, AssetConversion]
 		[pallet_balances, Balances]
+		[pallet_accumulate_and_forward, AccumulateForward]
 		[pallet_identity, Identity]
 		[pallet_message_queue, MessageQueue]
 		[pallet_migrations, MultiBlockMigrations]

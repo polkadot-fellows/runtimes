@@ -20,13 +20,12 @@ mod origins;
 mod tracks;
 use crate::{
 	fellowship::origins::EnsureCanFastPromoteTo,
-	impls::ToParentTreasury,
 	parameters::{FellowshipSalaryAsset, SalaryAssetId},
 	weights,
-	xcm_config::{LocationToAccountId, TreasurerBodyId},
+	xcm_config::TreasurerBodyId,
 	AccountId, AssetHubLocation, AssetRateWithNative, Balance, Balances, FellowshipReferenda,
-	PolkadotTreasuryAccount, Preimage, RelayChainLocation, Runtime, RuntimeCall, RuntimeEvent,
-	RuntimeOrigin, Scheduler, DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
+	Preimage, RelayChainLocation, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, Scheduler,
+	DAYS, FELLOWSHIP_TREASURY_PALLET_ID,
 };
 use frame_support::{
 	parameter_types,
@@ -106,7 +105,7 @@ impl pallet_referenda::Config<FellowshipReferendaInstance> for Runtime {
 	>;
 	type CancelOrigin = Architects;
 	type KillOrigin = Masters;
-	type Slash = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
+	type Slash = pallet_accumulate_and_forward::LegacyAdapter<Runtime, Balances>;
 	type Votes = pallet_ranked_collective::Votes;
 	type Tally = pallet_ranked_collective::TallyOf<Runtime, FellowshipCollectiveInstance>;
 	type SubmissionDeposit = ConstU128<0>;
@@ -374,7 +373,7 @@ impl pallet_treasury::Config<FellowshipTreasuryInstance> for Runtime {
 	>;
 	type SpendPeriod = ConstU32<{ 7 * DAYS }>;
 	type Burn = Burn;
-	type BurnDestination = ();
+	type BurnDestination = pallet_accumulate_and_forward::LegacyAdapter<Runtime, Balances>;
 	type SpendFunds = ();
 	type MaxApprovals = ConstU32<100>;
 	type SpendOrigin = EitherOf<

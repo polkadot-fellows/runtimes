@@ -107,6 +107,20 @@ pub mod fee {
 
 /// XCM protocol related constants.
 pub mod xcm {
+	use ::xcm::latest::{InteriorLocation, Junction::AccountId32};
+	use frame_support::parameter_types;
+	use sp_runtime::traits::AccountIdConversion;
+
+	parameter_types! {
+		/// The DAP staging account on Asset Hub. `pallet-dap` drains it into the DAP buffer and
+		/// deactivates the funds, so inflows meant for the DAP must target this account.
+		pub DapStagingLocation: InteriorLocation = AccountId32 {
+			network: None,
+			id: sp_dap::DAP_PALLET_ID.into_sub_account_truncating(sp_dap::DAP_STAGING_ACCOUNT_ID),
+		}
+		.into();
+	}
+
 	/// Pluralistic bodies existing within the consensus.
 	pub mod body {
 		// Preallocated for the Root body.
@@ -210,6 +224,15 @@ pub mod system_parachain {
 
 /// Polkadot Treasury pallet instance.
 pub const TREASURY_PALLET_ID: u8 = 19;
+
+/// Account-related.
+pub mod account {
+	use frame_support::PalletId;
+
+	/// Accumulate-and-forward pallet ID. Derives the account on the relay and on system parachains
+	/// that gathers sinks before they are forwarded to the DAP on Asset Hub.
+	pub const ACCUMULATE_FORWARD_PALLET_ID: PalletId = PalletId(*b"acf/dott");
+}
 
 pub mod proxy {
 	use pallet_remote_proxy::ProxyDefinition;
