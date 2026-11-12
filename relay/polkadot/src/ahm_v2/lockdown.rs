@@ -176,23 +176,29 @@ pub fn call_allowed_status(call: &RuntimeCall) -> (bool, bool) {
 #[cfg(test)]
 mod tests {
 	use crate::{
-		xcm_config::SovereignAccountOf, AccountId, Balances, PostAhmFilter, Runtime, RuntimeCall,
-		RuntimeOrigin,
+		claims, xcm_config::SovereignAccountOf, AccountId, Balance, Balances, PostAhmFilter,
+		Runtime, RuntimeCall, RuntimeOrigin, TxExtension,
 	};
 	use codec::Encode;
 	use frame_support::{
 		assert_err, assert_noop, assert_ok,
+		dispatch::GetDispatchInfo,
 		traits::{fungible::Mutate, Contains},
 	};
 	use pallet_rc2_migrator::{
 		test_utils::{every_call, CallName},
-		MigrationStageOf, RcMigrationStage,
+		DenySignedOnceMigrationStarts, Manager, MigrationStageOf, RcMigrationStage,
 	};
 	use polkadot_runtime_constants::{
 		currency::UNITS,
 		system_parachain::{ASSET_HUB_ID, BRIDGE_HUB_ID, BROKER_ID},
 	};
-	use sp_runtime::{traits::Dispatchable, DispatchError};
+	use sp_runtime::{
+		generic::Era,
+		traits::{DispatchTransaction, Dispatchable},
+		transaction_validity::{InvalidTransaction, TransactionValidityError},
+		DispatchError,
+	};
 	use xcm::latest::prelude::*;
 	use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
@@ -200,6 +206,9 @@ mod tests {
 
 	/// Any account.
 	const ALICE: AccountId = AccountId::new([1; 32]);
+
+	/// The migration's manager, where a test appoints one.
+	const BOB: AccountId = AccountId::new([2; 32]);
 
 	/// Run `f` with the migration at `stage`.
 	fn at<R>(stage: &Stage, f: impl FnOnce() -> R) -> R {
@@ -347,6 +356,90 @@ mod tests {
 					frame_system::Error::<Runtime>::CallFiltered
 				);
 				assert_ok!(remark.clone().dispatch(RuntimeOrigin::root()));
+			});
+		}
+	}
+
+	/// This runtime's transaction extensions, for the first transaction of an account.
+	fn tx_ext() -> TxExtension {
+		(
+			frame_system::AuthorizeCall::<Runtime>::new(),
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckMortality::<Runtime>::from(Era::immortal()),
+			frame_system::CheckNonce::<Runtime>::from(0),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
+			claims::PrevalidateAttests::<Runtime>::new(),
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+			DenySignedOnceMigrationStarts::<Runtime>::new(),
+		)
+	}
+
+	/// Fund `who`, then send `call` signed by `who` through every transaction extension of this
+	/// runtime, signature check aside. Returns whether the transaction was valid, and the fee `who`
+	/// paid.
+	fn submit_signed(
+		who: &AccountId,
+		call: RuntimeCall,
+	) -> (Result<(), TransactionValidityError>, Balance) {
+		// the genesis hash an immortal transaction is checked against
+		frame_system::BlockHash::<Runtime>::insert(
+			0,
+			<Runtime as frame_system::Config>::Hash::default(),
+		);
+		assert_ok!(<Balances as Mutate<AccountId>>::mint_into(who, 100 * UNITS));
+		let before = Balances::free_balance(who);
+		let (info, len) = (call.get_dispatch_info(), call.encoded_size());
+		let outcome = tx_ext()
+			.dispatch_transaction(RuntimeOrigin::signed(who.clone()), call, &info, len, 0)
+			.map(|_| ());
+		(outcome, before - Balances::free_balance(who))
+	}
+
+	#[test]
+	fn a_signed_transaction_is_refused_before_it_pays_once_the_migration_starts() {
+		// A call the lockdown leaves enabled, which only the Coretime chain may make.
+		let call = || {
+			RuntimeCall::Coretime(runtime_parachains::coretime::Call::request_core_count {
+				count: 1,
+			})
+		};
+
+		// GIVEN the migration has not started. THEN the transaction goes in and pays a fee, though
+		// its call fails.
+		for stage in stages_before_start() {
+			at(&stage, || {
+				let (outcome, fee) = submit_signed(&ALICE, call());
+				assert_ok!(outcome);
+				assert!(fee > 0, "at {stage:?}");
+			});
+		}
+
+		// GIVEN the migration has started. THEN the transaction is refused and pays nothing.
+		for stage in stages_from_start() {
+			at(&stage, || {
+				assert_eq!(
+					submit_signed(&ALICE, call()),
+					(Err(InvalidTransaction::Call.into()), 0),
+					"at {stage:?}"
+				);
+			});
+		}
+	}
+
+	#[test]
+	fn the_manager_still_sends_migrator_calls_once_the_migration_starts() {
+		for stage in stages_from_start() {
+			at(&stage, || {
+				// GIVEN Bob is the manager.
+				Manager::<Runtime>::put(BOB);
+
+				// THEN his migrator call goes in.
+				let pause = RuntimeCall::Rc2Migrator(pallet_rc2_migrator::Call::pause_migration {});
+				assert_eq!(submit_signed(&BOB, pause).0, Ok(()), "at {stage:?}");
 			});
 		}
 	}

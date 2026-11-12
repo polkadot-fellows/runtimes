@@ -15,15 +15,20 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	mock::*, xcm_config::NothingOnceDataMigrationStarts, CtMigratorCall, CtRuntimeCall, Error,
-	Event, Manager, MigrationPhase, Paused, RcMigrationStage,
+	mock::*, xcm_config::NothingOnceDataMigrationStarts, CtMigratorCall, CtRuntimeCall,
+	DenySignedOnceMigrationStarts, Error, Event, Manager, MigrationPhase, Paused, RcMigrationStage,
 };
 use codec::Encode;
 use frame_support::{
 	assert_noop, assert_ok,
+	dispatch::GetDispatchInfo,
 	traits::{ContainsPair, Everything},
 };
-use sp_runtime::{traits::Dispatchable, DispatchError::BadOrigin};
+use sp_runtime::{
+	traits::{Dispatchable, TransactionExtension, TxBaseImplication},
+	transaction_validity::{InvalidTransaction, TransactionSource, TransactionValidityError},
+	DispatchError::BadOrigin,
+};
 use xcm::prelude::*;
 
 fn stage() -> Stage {
@@ -902,6 +907,75 @@ fn teleport_trust_ends_when_the_data_migration_starts() {
 				!stage.data_migration_started(),
 				"at {stage:?}"
 			);
+		}
+	});
+}
+
+/// What [`DenySignedOnceMigrationStarts`] says about `call` sent from `origin`.
+fn validate_tx(origin: RuntimeOrigin, call: &RuntimeCall) -> Result<(), TransactionValidityError> {
+	DenySignedOnceMigrationStarts::<Test>::new()
+		.validate(
+			origin,
+			call,
+			&call.get_dispatch_info(),
+			0,
+			(),
+			&TxBaseImplication(call),
+			TransactionSource::External,
+		)
+		.map(|_| ())
+}
+
+#[test]
+fn signed_transactions_are_refused_once_the_migration_starts() {
+	new_test_ext().execute_with(|| {
+		// A call the call filter lets through during the migration, and a migrator call.
+		let remark = tagged_remark(INTRA_MIGRATION);
+		let migrator_call = RuntimeCall::Rc2Migrator(crate::Call::pause_migration {});
+		for stage in all_stages() {
+			// GIVEN the machine at `stage`.
+			set_stage(stage.clone());
+
+			// THEN a signed account's transaction is valid only before the start, whatever it
+			// calls.
+			let expected =
+				if stage.has_started() { Err(InvalidTransaction::Call.into()) } else { Ok(()) };
+			for call in [&remark, &migrator_call] {
+				assert_eq!(
+					validate_tx(RuntimeOrigin::signed(ALICE), call),
+					expected,
+					"{call:?} at {stage:?}"
+				);
+			}
+
+			// THEN an unsigned transaction passes.
+			assert_ok!(validate_tx(RuntimeOrigin::none(), &remark));
+		}
+	});
+}
+
+#[test]
+fn the_manager_and_the_admin_origin_still_send_migrator_calls() {
+	new_test_ext().execute_with(|| {
+		// GIVEN Bob is the manager. The mock's admin origin is a signed account too.
+		Manager::<Test>::put(BOB);
+
+		let remark = tagged_remark(INTRA_MIGRATION);
+		let migrator_call = RuntimeCall::Rc2Migrator(crate::Call::pause_migration {});
+		for stage in all_stages() {
+			// GIVEN the machine at `stage`.
+			set_stage(stage.clone());
+
+			for who in [BOB, ADMIN] {
+				// THEN their migrator calls are valid at every stage.
+				assert_ok!(validate_tx(RuntimeOrigin::signed(who.clone()), &migrator_call));
+				// THEN their other calls are refused from the start, like anyone's.
+				assert_eq!(
+					validate_tx(RuntimeOrigin::signed(who.clone()), &remark).is_ok(),
+					!stage.has_started(),
+					"{who:?} at {stage:?}"
+				);
+			}
 		}
 	});
 }

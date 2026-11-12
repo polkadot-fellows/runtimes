@@ -1066,6 +1066,8 @@ where
 			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
 			claims::PrevalidateAttests::<Runtime>::new(),
 			frame_metadata_hash_extension::CheckMetadataHash::new(false),
+			#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+			pallet_rc2_migrator::DenySignedOnceMigrationStarts::<Runtime>::new(),
 		);
 		let raw_payload = SignedPayload::new(call, tx_ext)
 			.map_err(|e| {
@@ -1988,6 +1990,7 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// `BlockId` type as expected by this runtime.
 pub type BlockId = generic::BlockId<Block>;
 /// The `TransactionExtension` to the basic transaction logic.
+#[cfg(not(all(feature = "ahm-v2", not(feature = "on-chain-release-build"))))]
 pub type TxExtension = (
 	frame_system::AuthorizeCall<Runtime>,
 	frame_system::CheckNonZeroSender<Runtime>,
@@ -2000,6 +2003,23 @@ pub type TxExtension = (
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	claims::PrevalidateAttests<Runtime>,
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+);
+/// The `TransactionExtension` to the basic transaction logic. Once the AHM v2 migration starts,
+/// the last one refuses signed transactions before they pay a fee.
+#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+pub type TxExtension = (
+	frame_system::AuthorizeCall<Runtime>,
+	frame_system::CheckNonZeroSender<Runtime>,
+	frame_system::CheckSpecVersion<Runtime>,
+	frame_system::CheckTxVersion<Runtime>,
+	frame_system::CheckGenesis<Runtime>,
+	frame_system::CheckMortality<Runtime>,
+	frame_system::CheckNonce<Runtime>,
+	frame_system::CheckWeight<Runtime>,
+	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+	claims::PrevalidateAttests<Runtime>,
+	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+	pallet_rc2_migrator::DenySignedOnceMigrationStarts<Runtime>,
 );
 
 /// The runtime migrations per release.
@@ -3103,6 +3123,8 @@ mod test_fees {
 			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
 			claims::PrevalidateAttests::<Runtime>::new(),
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+			#[cfg(all(feature = "ahm-v2", not(feature = "on-chain-release-build")))]
+			pallet_rc2_migrator::DenySignedOnceMigrationStarts::<Runtime>::new(),
 		);
 		let uxt = UncheckedExtrinsic::new_signed(
 			call,

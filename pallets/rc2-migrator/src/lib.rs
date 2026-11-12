@@ -39,11 +39,13 @@ mod mock;
 pub mod test_utils;
 #[cfg(test)]
 mod tests;
+pub mod transaction_extension;
 pub mod xcm_config;
 
 pub mod accounts;
 
 pub use pallet::*;
+pub use transaction_extension::DenySignedOnceMigrationStarts;
 
 use alloc::{vec, vec::Vec};
 use frame_support::{
@@ -693,7 +695,7 @@ pub mod pallet {
 
 		/// Ensure that the origin is one accepted by [`Self::ensure_root_or_admin`] or signed by
 		/// the [`Manager`] account id.
-		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
+		pub(crate) fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			// TODO(ahm-v2): allow hardcoded local multisig to act as manager as well.
 			if let Ok(who) = ensure_signed(origin.clone()) {
 				if Manager::<T>::get().is_some_and(|manager| manager == who) {
