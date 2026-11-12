@@ -36,7 +36,6 @@ pub fn genesis() -> Storage {
 				.into_iter()
 				.chain([RelayTreasuryPalletAccount::get(), StakingPot::get()])
 				.map(|k| (k, ENDOWMENT))
-				// Only the ED, as on chain: endowing it would forward on the first idle block.
 				.chain([(people_polkadot_runtime::AccumulateForward::accumulation_account(), ED)])
 				.collect(),
 			dev_accounts: None,

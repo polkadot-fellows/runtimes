@@ -58,7 +58,6 @@ pub fn genesis() -> sp_core::storage::Storage {
 			balances: accounts::init_balances()
 				.into_iter()
 				.map(|k| (k, ENDOWMENT))
-				// Only the ED, as on chain: endowing it would forward on the first idle block.
 				.chain([(polkadot_runtime::AccumulateForward::accumulation_account(), ED)])
 				.collect(),
 			dev_accounts: None,

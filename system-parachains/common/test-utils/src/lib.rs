@@ -152,9 +152,6 @@ pub fn session_key_deposit_works<Runtime>(
 
 /// Dust accumulates for the forward to Asset Hub instead of being burned here, where the burn would
 /// not show in the network total that Asset Hub tracks.
-///
-/// Runs in the caller's externalities. The accumulation account is funded with the ED first, as it
-/// is out of band before an upgrade: without it, dust is rejected and burned.
 pub fn dust_accumulates_instead_of_being_burned<Runtime>()
 where
 	Runtime: pallet_balances::Config + pallet_accumulate_and_forward::Config,

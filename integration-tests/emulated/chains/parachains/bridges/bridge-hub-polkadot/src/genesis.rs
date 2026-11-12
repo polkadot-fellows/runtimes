@@ -33,7 +33,6 @@ pub fn genesis() -> sp_core::storage::Storage {
 				.into_iter()
 				.chain([TreasuryAccount::get(), StakingPot::get()])
 				.map(|k| (k, ED * 4096))
-				// Only the ED, as on chain: endowing it would forward on the first idle block.
 				.chain([(
 					bridge_hub_polkadot_runtime::AccumulateForward::accumulation_account(),
 					ED,

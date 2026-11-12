@@ -213,7 +213,6 @@ parameter_types! {
 		PalletInstance(<crate::AmbassadorSalary as PalletInfoAccess>::index() as u8).into();
 	pub AmbassadorTreasuryLocation: Location =
 		PalletInstance(<crate::AmbassadorTreasury as PalletInfoAccess>::index() as u8).into();
-	/// The `pallet-accumulate-and-forward` account, as a local location.
 	pub AccumulateForwardLocation: Location =
 		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }

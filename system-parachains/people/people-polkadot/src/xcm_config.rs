@@ -87,7 +87,6 @@ parameter_types! {
 			.unwrap_or(TreasuryAccount::get());
 	// TODO: replace this with DAP account (for collecting fees) #1137
 	pub StakingPot: AccountId = CollatorSelection::account_id();
-	/// The `pallet-accumulate-and-forward` account, as a local location.
 	pub AccumulateForwardLocation: Location =
 		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }

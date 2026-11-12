@@ -63,7 +63,6 @@ parameter_types! {
 	pub NoTeleportTracking: Option<(AccountId, MintLocation)> = None;
 	/// Account of the treasury pallet.
 	pub TreasuryAccount: AccountId = Treasury::account_id();
-	/// The `pallet-accumulate-and-forward` account, as a local location.
 	pub AccumulateForwardLocation: Location =
 		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
@@ -222,7 +221,6 @@ pub type WaivedLocations = (
 	SystemParachains,
 	Equals<RootLocation>,
 	LocalPlurality,
-	// Forwards of accumulated funds to Asset Hub.
 	Equals<AccumulateForwardLocation>,
 );
 
