@@ -22,6 +22,7 @@ extern crate alloc;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
 pub mod randomness;
+pub mod referenda_tracks;
 
 /// Extra runtime APIs.
 pub mod apis {
