@@ -177,7 +177,8 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		/// does not move it.
 		///
 		/// After the warm-up period ends, the Relay Chain will start to send the migration data
-		/// to the Coretime chain.
+		/// to the Coretime chain. Calls are filtered from `WaitingForCt` on; inbound messages and
+		/// teleports keep executing until then, so what other chains queued drains.
 		end_at: BlockNumber,
 	},
 	/// Initializing the account migration process.
@@ -233,25 +234,61 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	MigrationDone,
 }
 
+/// Where a [`MigrationStage`] falls in the migration. The call filter, the teleport filter and
+/// the inbound barrier key on the phase, not on single stages.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MigrationPhase {
+	/// [`MigrationStage::Pending`] and [`MigrationStage::Scheduled`]: only
+	/// [`Config::PreMigrationCalls`] pass, and a scheduled migration can still be cancelled.
+	NotStarted,
+	/// [`MigrationStage::WaitingForCt`] and [`MigrationStage::WarmUp`]: the Coretime chain has
+	/// been told to start and only [`Config::IntraMigrationCalls`] pass. Inbound messages and
+	/// teleports still execute, so what other chains sent before the start drains.
+	WarmUp,
+	/// [`MigrationStage::AccountsInit`] through [`MigrationStage::CoolOff`]: the data is
+	/// snapshotted and sent to the Coretime chain. Inbound messages are refused unless they come
+	/// from the Coretime chain or Asset Hub, and no teleport is trusted.
+	DataMigration,
+	/// [`MigrationStage::MigrationDone`]: what closed stays closed, except that
+	/// [`Config::PostMigrationCalls`] pass.
+	Done,
+}
+
 impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Moment> {
+	/// The phase this stage belongs to.
+	pub fn phase(&self) -> MigrationPhase {
+		match self {
+			Self::Pending | Self::Scheduled { .. } => MigrationPhase::NotStarted,
+			Self::WaitingForCt | Self::WarmUp { .. } => MigrationPhase::WarmUp,
+			Self::MigrationDone => MigrationPhase::Done,
+			_ => MigrationPhase::DataMigration,
+		}
+	}
+
 	/// Whether the migration is finished.
 	///
 	/// This is not the same as `!self.is_ongoing()` since it may not have started.
 	pub fn is_finished(&self) -> bool {
-		matches!(self, Self::MigrationDone)
+		self.phase() == MigrationPhase::Done
 	}
 
 	/// Whether the migration is ongoing.
 	///
 	/// This is not the same as `!self.is_finished()` since it may not have started.
 	pub fn is_ongoing(&self) -> bool {
-		!matches!(self, Self::Pending | Self::Scheduled { .. } | Self::MigrationDone)
+		matches!(self.phase(), MigrationPhase::WarmUp | MigrationPhase::DataMigration)
 	}
 
 	/// Whether the machine has left [`Self::Pending`]/[`Self::Scheduled`]. Stays true after
 	/// [`Self::MigrationDone`].
 	pub fn has_started(&self) -> bool {
-		self.is_ongoing() || self.is_finished()
+		self.phase() != MigrationPhase::NotStarted
+	}
+
+	/// Whether data has started moving: true from [`Self::AccountsInit`] on, and stays true
+	/// after [`Self::MigrationDone`].
+	pub fn data_migration_started(&self) -> bool {
+		matches!(self.phase(), MigrationPhase::DataMigration | MigrationPhase::Done)
 	}
 }
 
@@ -484,10 +521,10 @@ pub mod pallet {
 		/// ### Parameters:
 		/// - `start`: The wall-clock time at which the migration will start.
 		/// - `warm_up`: Duration in blocks used to prepare for the migration. Calls are filtered
-		///   during this period. It is intended to give enough time for UMP and DMP queues to
-		///   empty. Counted from the transition to the warm-up stage. Must be longer than one
-		///   Coretime timeslice: on-demand orders close at the start, and the Coretime chain claims
-		///   the revenue earned before it at its next timeslice boundary.
+		///   during this period, while inbound messages still execute so the UMP queues drain.
+		///   Counted from the transition to the warm-up stage. Must be longer than one Coretime
+		///   timeslice: on-demand orders close at the start, and the Coretime chain claims the
+		///   revenue earned before it at its next timeslice boundary.
 		/// - `cool_off`: Duration in blocks of the post migration cool-off period. Counted from the
 		///   transition to the cool-off stage.
 		///
