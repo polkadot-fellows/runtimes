@@ -16,13 +16,15 @@
 
 use crate::{
 	mock::*, xcm_config::NothingOnceDataMigrationStarts, CtMigratorCall, CtRuntimeCall,
-	DenySignedOnceMigrationStarts, Error, Event, Manager, MigrationPhase, Paused, RcMigrationStage,
+	DenySignedOnceMigrationStarts, Error, Event, Limits, Manager, MigrationPhase, Paused,
+	RcMigrationStage,
 };
 use codec::Encode;
 use frame_support::{
 	assert_noop, assert_ok,
-	dispatch::GetDispatchInfo,
-	traits::{ContainsPair, Everything},
+	dispatch::{GetDispatchInfo, Pays},
+	hypothetically,
+	traits::{ContainsPair, Everything, GetCallName, UnfilteredDispatchable},
 };
 use sp_runtime::{
 	traits::{Dispatchable, TransactionExtension, TxBaseImplication},
@@ -162,7 +164,8 @@ fn the_admin_origin_or_the_manager_schedules_and_only_into_the_future() {
 
 		// WHEN the manager schedules the present moment. THEN it is refused like it is for root.
 		assert_noop!(
-			Rc2Migrator::schedule_migration(RuntimeOrigin::signed(ALICE), now, WARM_UP, COOL_OFF),
+			Rc2Migrator::schedule_migration(RuntimeOrigin::signed(ALICE), now, WARM_UP, COOL_OFF)
+				.map_err(|e| e.error),
 			Error::<Test>::StartInPast
 		);
 
@@ -218,7 +221,8 @@ fn the_manager_drives_the_migration_but_cannot_appoint_one() {
 		// WHEN the manager appoints a manager. THEN it is refused, so the appointment stays with
 		// the admin origin alone.
 		assert_noop!(
-			Rc2Migrator::set_manager(RuntimeOrigin::signed(ALICE), Some(CORETIME)),
+			Rc2Migrator::set_manager(RuntimeOrigin::signed(ALICE), Some(CORETIME))
+				.map_err(|e| e.error),
 			BadOrigin
 		);
 
@@ -977,5 +981,60 @@ fn the_manager_and_the_admin_origin_still_send_migrator_calls() {
 				);
 			}
 		}
+	});
+}
+
+/// One of each call of this pallet.
+fn every_migrator_call() -> Vec<crate::Call<Test>> {
+	vec![
+		crate::Call::schedule_migration {
+			start: now_ms() + BLOCK_TIME_MS,
+			warm_up: WARM_UP,
+			cool_off: COOL_OFF,
+		},
+		crate::Call::force_set_stage { stage: Stage::WarmUp { end_at: 10 } },
+		crate::Call::ct_ready {},
+		crate::Call::cancel_migration {},
+		crate::Call::set_manager { new: None },
+		crate::Call::pause_migration {},
+		crate::Call::resume_migration {},
+		crate::Call::set_limits { limits: Limits::<Test>::get() },
+	]
+}
+
+#[test]
+fn the_manager_pays_no_fee_whether_its_call_succeeds_or_fails() {
+	new_test_ext().execute_with(|| {
+		// GIVEN Bob is the manager and the machine waits for the Coretime chain.
+		Manager::<Test>::put(BOB);
+		set_stage(Stage::WaitingForCt);
+
+		let calls = every_migrator_call();
+		let names: Vec<_> = calls.iter().map(|call| call.get_call_name()).collect();
+		assert_eq!(names, crate::Call::<Test>::get_call_names(), "a call is missing");
+
+		let mut manager_succeeded = vec![];
+		for call in calls {
+			for who in [BOB, ADMIN, ALICE] {
+				// WHEN `who` sends `call`.
+				let result = hypothetically!(call
+					.clone()
+					.dispatch_bypass_filter(RuntimeOrigin::signed(who.clone())));
+				let pays = match &result {
+					Ok(info) => info.pays_fee,
+					Err(e) => e.post_info.pays_fee,
+				};
+
+				// THEN the manager pays no fee, and anyone else pays.
+				let expected = if who == BOB { Pays::No } else { Pays::Yes };
+				assert_eq!(pays, expected, "{call:?} from {who:?}");
+				if who == BOB {
+					manager_succeeded.push(result.is_ok());
+				}
+			}
+		}
+
+		// The manager's calls above include ones that succeed and ones that fail.
+		assert!(manager_succeeded.contains(&true) && manager_succeeded.contains(&false));
 	});
 }

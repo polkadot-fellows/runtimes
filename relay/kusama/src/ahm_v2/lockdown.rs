@@ -196,7 +196,7 @@ mod tests {
 	};
 	use pallet_rc2_migrator::{
 		test_utils::{every_call, CallName},
-		DenySignedOnceMigrationStarts, Manager, MigrationStageOf, RcMigrationStage,
+		DenySignedOnceMigrationStarts, Manager, MigrationStageOf, Paused, RcMigrationStage,
 	};
 	use sp_runtime::{
 		generic::Era,
@@ -435,15 +435,17 @@ mod tests {
 	}
 
 	#[test]
-	fn the_manager_still_sends_migrator_calls_once_the_migration_starts() {
+	fn the_manager_sends_migrator_calls_for_free_once_the_migration_starts() {
 		for stage in stages_from_start() {
 			at(&stage, || {
 				// GIVEN Bob is the manager.
 				Manager::<Runtime>::put(BOB);
 
-				// THEN his migrator call goes in.
+				// WHEN he pauses the migration. THEN his transaction goes in and pays nothing,
+				// whether the pause succeeds while the migration runs or fails once it is done.
 				let pause = RuntimeCall::Rc2Migrator(pallet_rc2_migrator::Call::pause_migration {});
-				assert_eq!(submit_signed(&BOB, pause).0, Ok(()), "at {stage:?}");
+				assert_eq!(submit_signed(&BOB, pause), (Ok(()), 0), "at {stage:?}");
+				assert_eq!(Paused::<Runtime>::get(), stage.is_ongoing(), "at {stage:?}");
 			});
 		}
 	}
