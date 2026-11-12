@@ -258,8 +258,23 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 		match self {
 			Self::Pending | Self::Scheduled { .. } => MigrationPhase::NotStarted,
 			Self::WaitingForCt | Self::WarmUp { .. } => MigrationPhase::WarmUp,
+			Self::AccountsInit |
+			Self::AccountsOngoing { .. } |
+			Self::AccountsDone |
+			Self::ProxyInit |
+			Self::ProxyOngoing |
+			Self::ProxyDone |
+			Self::RegistrarInit |
+			Self::RegistrarOngoing { .. } |
+			Self::RegistrarDone |
+			Self::HrmpInit |
+			Self::HrmpOngoing { .. } |
+			Self::HrmpDone |
+			Self::Sweep |
+			Self::SweepDust { .. } |
+			Self::TiCorrection |
+			Self::CoolOff { .. } => MigrationPhase::DataMigration,
 			Self::MigrationDone => MigrationPhase::Done,
-			_ => MigrationPhase::DataMigration,
 		}
 	}
 
