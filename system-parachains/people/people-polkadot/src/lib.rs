@@ -562,20 +562,137 @@ pub enum ProxyType {
 	Collator,
 }
 
+macro_rules! collator_selection_calls {
+	() => {
+		pallet_collator_selection::Call::set_invulnerables { .. } |
+			pallet_collator_selection::Call::set_desired_candidates { .. } |
+			pallet_collator_selection::Call::set_candidacy_bond { .. } |
+			pallet_collator_selection::Call::register_as_candidate { .. } |
+			pallet_collator_selection::Call::leave_intent { .. } |
+			pallet_collator_selection::Call::add_invulnerable { .. } |
+			pallet_collator_selection::Call::remove_invulnerable { .. } |
+			pallet_collator_selection::Call::update_bond { .. } |
+			pallet_collator_selection::Call::take_candidate_slot { .. }
+	};
+}
+
+macro_rules! cumulus_pallet_parachain_system_calls {
+	() => {
+		cumulus_pallet_parachain_system::Call::set_validation_data { .. } |
+			cumulus_pallet_parachain_system::Call::sudo_send_upward_message { .. }
+	};
+}
+
+macro_rules! frame_system_calls {
+	() => {
+		frame_system::Call::remark { .. } |
+			frame_system::Call::set_heap_pages { .. } |
+			frame_system::Call::set_code { .. } |
+			frame_system::Call::set_code_without_checks { .. } |
+			frame_system::Call::set_storage { .. } |
+			frame_system::Call::kill_storage { .. } |
+			frame_system::Call::kill_prefix { .. } |
+			frame_system::Call::remark_with_event { .. } |
+			frame_system::Call::authorize_upgrade { .. } |
+			frame_system::Call::authorize_upgrade_without_checks { .. } |
+			frame_system::Call::apply_authorized_upgrade { .. }
+	};
+}
+
+macro_rules! identity_calls {
+	() => {
+		pallet_identity::Call::add_registrar { .. } |
+			pallet_identity::Call::set_identity { .. } |
+			pallet_identity::Call::set_subs { .. } |
+			pallet_identity::Call::clear_identity { .. } |
+			pallet_identity::Call::request_judgement { .. } |
+			pallet_identity::Call::cancel_request { .. } |
+			pallet_identity::Call::set_fee { .. } |
+			pallet_identity::Call::set_account_id { .. } |
+			pallet_identity::Call::set_fields { .. } |
+			pallet_identity::Call::provide_judgement { .. } |
+			pallet_identity::Call::kill_identity { .. } |
+			pallet_identity::Call::add_sub { .. } |
+			pallet_identity::Call::rename_sub { .. } |
+			pallet_identity::Call::remove_sub { .. } |
+			pallet_identity::Call::quit_sub { .. } |
+			pallet_identity::Call::add_username_authority { .. } |
+			pallet_identity::Call::remove_username_authority { .. } |
+			pallet_identity::Call::set_username_for { .. } |
+			pallet_identity::Call::accept_username { .. } |
+			pallet_identity::Call::remove_expired_approval { .. } |
+			pallet_identity::Call::set_primary_username { .. } |
+			pallet_identity::Call::unbind_username { .. } |
+			pallet_identity::Call::remove_username { .. } |
+			pallet_identity::Call::kill_username { .. }
+	};
+}
+
+macro_rules! multisig_calls {
+	() => {
+		pallet_multisig::Call::as_multi_threshold_1 { .. } |
+			pallet_multisig::Call::as_multi { .. } |
+			pallet_multisig::Call::approve_as_multi { .. } |
+			pallet_multisig::Call::cancel_as_multi { .. } |
+			pallet_multisig::Call::poke_deposit { .. }
+	};
+}
+
+macro_rules! proxy_calls {
+	() => {
+		pallet_proxy::Call::proxy { .. } |
+			pallet_proxy::Call::add_proxy { .. } |
+			pallet_proxy::Call::remove_proxy { .. } |
+			pallet_proxy::Call::remove_proxies { .. } |
+			pallet_proxy::Call::create_pure { .. } |
+			pallet_proxy::Call::kill_pure { .. } |
+			pallet_proxy::Call::announce { .. } |
+			pallet_proxy::Call::remove_announcement { .. } |
+			pallet_proxy::Call::reject_announcement { .. } |
+			pallet_proxy::Call::proxy_announced { .. } |
+			pallet_proxy::Call::poke_deposit { .. }
+	};
+}
+
+macro_rules! session_calls {
+	() => {
+		pallet_session::Call::set_keys { .. } | pallet_session::Call::purge_keys { .. }
+	};
+}
+
+macro_rules! timestamp_calls {
+	() => {
+		pallet_timestamp::Call::set { .. }
+	};
+}
+
+macro_rules! utility_calls {
+	() => {
+		pallet_utility::Call::batch { .. } |
+			pallet_utility::Call::as_derivative { .. } |
+			pallet_utility::Call::batch_all { .. } |
+			pallet_utility::Call::dispatch_as { .. } |
+			pallet_utility::Call::force_batch { .. } |
+			pallet_utility::Call::with_weight { .. } |
+			pallet_utility::Call::if_else { .. } |
+			pallet_utility::Call::dispatch_as_fallible { .. }
+	};
+}
+
 impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProxyType::Any => true,
 			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::System(_) |
-					RuntimeCall::ParachainSystem(_) |
-					RuntimeCall::Timestamp(_) |
-					RuntimeCall::CollatorSelection(_) |
-					RuntimeCall::Session(_) |
-					RuntimeCall::Utility(_) |
-					RuntimeCall::Multisig(_) |
-					RuntimeCall::Proxy(_) |
+				RuntimeCall::System(frame_system_calls!()) |
+					RuntimeCall::ParachainSystem(cumulus_pallet_parachain_system_calls!()) |
+					RuntimeCall::Timestamp(timestamp_calls!()) |
+					RuntimeCall::CollatorSelection(collator_selection_calls!()) |
+					RuntimeCall::Session(session_calls!()) |
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!()) |
+					RuntimeCall::Proxy(proxy_calls!()) |
 					// We don't allow:
 					// `request_judgement` puts up a deposit to transfer to a registrar,
 					// `set_subs` and `add_sub` will take and repatriate deposits from the proxied
@@ -603,28 +720,28 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::CancelProxy => matches!(
 				c,
 				RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 			ProxyType::Identity => {
 				matches!(
 					c,
-					RuntimeCall::Identity { .. } |
-						RuntimeCall::Utility { .. } |
-						RuntimeCall::Multisig { .. }
+					RuntimeCall::Identity(identity_calls!()) |
+						RuntimeCall::Utility(utility_calls!()) |
+						RuntimeCall::Multisig(multisig_calls!())
 				)
 			},
 			ProxyType::IdentityJudgement => matches!(
 				c,
 				RuntimeCall::Identity(pallet_identity::Call::provide_judgement { .. }) |
-					RuntimeCall::Utility(..) |
-					RuntimeCall::Multisig { .. }
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 			ProxyType::Collator => matches!(
 				c,
-				RuntimeCall::CollatorSelection { .. } |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::CollatorSelection(collator_selection_calls!()) |
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 		}
 	}

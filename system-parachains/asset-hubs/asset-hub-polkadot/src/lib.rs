@@ -659,6 +659,401 @@ pub enum ProxyType {
 	StakingOperator,
 }
 
+macro_rules! assets_calls {
+	() => {
+		pallet_assets::Call::create { .. } |
+			pallet_assets::Call::force_create { .. } |
+			pallet_assets::Call::start_destroy { .. } |
+			pallet_assets::Call::destroy_accounts { .. } |
+			pallet_assets::Call::destroy_approvals { .. } |
+			pallet_assets::Call::finish_destroy { .. } |
+			pallet_assets::Call::mint { .. } |
+			pallet_assets::Call::burn { .. } |
+			pallet_assets::Call::transfer { .. } |
+			pallet_assets::Call::transfer_keep_alive { .. } |
+			pallet_assets::Call::force_transfer { .. } |
+			pallet_assets::Call::freeze { .. } |
+			pallet_assets::Call::thaw { .. } |
+			pallet_assets::Call::freeze_asset { .. } |
+			pallet_assets::Call::thaw_asset { .. } |
+			pallet_assets::Call::transfer_ownership { .. } |
+			pallet_assets::Call::set_team { .. } |
+			pallet_assets::Call::set_metadata { .. } |
+			pallet_assets::Call::clear_metadata { .. } |
+			pallet_assets::Call::force_set_metadata { .. } |
+			pallet_assets::Call::force_clear_metadata { .. } |
+			pallet_assets::Call::force_asset_status { .. } |
+			pallet_assets::Call::approve_transfer { .. } |
+			pallet_assets::Call::cancel_approval { .. } |
+			pallet_assets::Call::force_cancel_approval { .. } |
+			pallet_assets::Call::transfer_approved { .. } |
+			pallet_assets::Call::touch { .. } |
+			pallet_assets::Call::refund { .. } |
+			pallet_assets::Call::set_min_balance { .. } |
+			pallet_assets::Call::touch_other { .. } |
+			pallet_assets::Call::refund_other { .. } |
+			pallet_assets::Call::block { .. } |
+			pallet_assets::Call::transfer_all { .. } |
+			pallet_assets::Call::set_reserves { .. }
+	};
+}
+
+macro_rules! bags_list_calls {
+	() => {
+		pallet_bags_list::Call::rebag { .. } |
+			pallet_bags_list::Call::put_in_front_of { .. } |
+			pallet_bags_list::Call::put_in_front_of_other { .. }
+	};
+}
+
+macro_rules! bounties_calls {
+	() => {
+		pallet_bounties::Call::propose_bounty { .. } |
+			pallet_bounties::Call::approve_bounty { .. } |
+			pallet_bounties::Call::propose_curator { .. } |
+			pallet_bounties::Call::unassign_curator { .. } |
+			pallet_bounties::Call::accept_curator { .. } |
+			pallet_bounties::Call::award_bounty { .. } |
+			pallet_bounties::Call::claim_bounty { .. } |
+			pallet_bounties::Call::close_bounty { .. } |
+			pallet_bounties::Call::extend_bounty_expiry { .. } |
+			pallet_bounties::Call::approve_bounty_with_curator { .. } |
+			pallet_bounties::Call::poke_deposit { .. }
+	};
+}
+
+macro_rules! child_bounties_calls {
+	() => {
+		pallet_child_bounties::Call::add_child_bounty { .. } |
+			pallet_child_bounties::Call::propose_curator { .. } |
+			pallet_child_bounties::Call::accept_curator { .. } |
+			pallet_child_bounties::Call::unassign_curator { .. } |
+			pallet_child_bounties::Call::award_child_bounty { .. } |
+			pallet_child_bounties::Call::claim_child_bounty { .. } |
+			pallet_child_bounties::Call::close_child_bounty { .. }
+	};
+}
+
+macro_rules! claims_calls {
+	() => {
+		pallet_claims::Call::claim { .. } |
+			pallet_claims::Call::mint_claim { .. } |
+			pallet_claims::Call::claim_attest { .. } |
+			pallet_claims::Call::attest { .. } |
+			pallet_claims::Call::move_claim { .. }
+	};
+}
+
+macro_rules! collator_selection_calls {
+	() => {
+		pallet_collator_selection::Call::set_invulnerables { .. } |
+			pallet_collator_selection::Call::set_desired_candidates { .. } |
+			pallet_collator_selection::Call::set_candidacy_bond { .. } |
+			pallet_collator_selection::Call::register_as_candidate { .. } |
+			pallet_collator_selection::Call::leave_intent { .. } |
+			pallet_collator_selection::Call::add_invulnerable { .. } |
+			pallet_collator_selection::Call::remove_invulnerable { .. } |
+			pallet_collator_selection::Call::update_bond { .. } |
+			pallet_collator_selection::Call::take_candidate_slot { .. }
+	};
+}
+
+macro_rules! conviction_voting_calls {
+	() => {
+		pallet_conviction_voting::Call::vote { .. } |
+			pallet_conviction_voting::Call::delegate { .. } |
+			pallet_conviction_voting::Call::undelegate { .. } |
+			pallet_conviction_voting::Call::unlock { .. } |
+			pallet_conviction_voting::Call::remove_vote { .. } |
+			pallet_conviction_voting::Call::remove_other_vote { .. }
+	};
+}
+
+macro_rules! frame_system_calls {
+	() => {
+		frame_system::Call::remark { .. } |
+			frame_system::Call::set_heap_pages { .. } |
+			frame_system::Call::set_code { .. } |
+			frame_system::Call::set_code_without_checks { .. } |
+			frame_system::Call::set_storage { .. } |
+			frame_system::Call::kill_storage { .. } |
+			frame_system::Call::kill_prefix { .. } |
+			frame_system::Call::remark_with_event { .. } |
+			frame_system::Call::authorize_upgrade { .. } |
+			frame_system::Call::authorize_upgrade_without_checks { .. } |
+			frame_system::Call::apply_authorized_upgrade { .. }
+	};
+}
+
+macro_rules! multi_asset_bounties_calls {
+	() => {
+		pallet_multi_asset_bounties::Call::fund_bounty { .. } |
+			pallet_multi_asset_bounties::Call::fund_child_bounty { .. } |
+			pallet_multi_asset_bounties::Call::propose_curator { .. } |
+			pallet_multi_asset_bounties::Call::accept_curator { .. } |
+			pallet_multi_asset_bounties::Call::unassign_curator { .. } |
+			pallet_multi_asset_bounties::Call::award_bounty { .. } |
+			pallet_multi_asset_bounties::Call::close_bounty { .. } |
+			pallet_multi_asset_bounties::Call::check_status { .. } |
+			pallet_multi_asset_bounties::Call::retry_payment { .. } |
+			pallet_multi_asset_bounties::Call::increase_value { .. }
+	};
+}
+
+macro_rules! multisig_calls {
+	() => {
+		pallet_multisig::Call::as_multi_threshold_1 { .. } |
+			pallet_multisig::Call::as_multi { .. } |
+			pallet_multisig::Call::approve_as_multi { .. } |
+			pallet_multisig::Call::cancel_as_multi { .. } |
+			pallet_multisig::Call::poke_deposit { .. }
+	};
+}
+
+macro_rules! nfts_calls {
+	() => {
+		pallet_nfts::Call::create { .. } |
+			pallet_nfts::Call::force_create { .. } |
+			pallet_nfts::Call::destroy { .. } |
+			pallet_nfts::Call::mint { .. } |
+			pallet_nfts::Call::force_mint { .. } |
+			pallet_nfts::Call::burn { .. } |
+			pallet_nfts::Call::transfer { .. } |
+			pallet_nfts::Call::redeposit { .. } |
+			pallet_nfts::Call::lock_item_transfer { .. } |
+			pallet_nfts::Call::unlock_item_transfer { .. } |
+			pallet_nfts::Call::lock_collection { .. } |
+			pallet_nfts::Call::transfer_ownership { .. } |
+			pallet_nfts::Call::set_team { .. } |
+			pallet_nfts::Call::force_collection_owner { .. } |
+			pallet_nfts::Call::force_collection_config { .. } |
+			pallet_nfts::Call::approve_transfer { .. } |
+			pallet_nfts::Call::cancel_approval { .. } |
+			pallet_nfts::Call::clear_all_transfer_approvals { .. } |
+			pallet_nfts::Call::lock_item_properties { .. } |
+			pallet_nfts::Call::set_attribute { .. } |
+			pallet_nfts::Call::force_set_attribute { .. } |
+			pallet_nfts::Call::clear_attribute { .. } |
+			pallet_nfts::Call::approve_item_attributes { .. } |
+			pallet_nfts::Call::cancel_item_attributes_approval { .. } |
+			pallet_nfts::Call::set_metadata { .. } |
+			pallet_nfts::Call::clear_metadata { .. } |
+			pallet_nfts::Call::set_collection_metadata { .. } |
+			pallet_nfts::Call::clear_collection_metadata { .. } |
+			pallet_nfts::Call::set_accept_ownership { .. } |
+			pallet_nfts::Call::set_collection_max_supply { .. } |
+			pallet_nfts::Call::update_mint_settings { .. } |
+			pallet_nfts::Call::set_price { .. } |
+			pallet_nfts::Call::buy_item { .. } |
+			pallet_nfts::Call::pay_tips { .. } |
+			pallet_nfts::Call::create_swap { .. } |
+			pallet_nfts::Call::cancel_swap { .. } |
+			pallet_nfts::Call::claim_swap { .. } |
+			pallet_nfts::Call::mint_pre_signed { .. } |
+			pallet_nfts::Call::set_attributes_pre_signed { .. }
+	};
+}
+
+macro_rules! nomination_pools_calls {
+	() => {
+		pallet_nomination_pools::Call::join { .. } |
+			pallet_nomination_pools::Call::bond_extra { .. } |
+			pallet_nomination_pools::Call::claim_payout { .. } |
+			pallet_nomination_pools::Call::unbond { .. } |
+			pallet_nomination_pools::Call::pool_withdraw_unbonded { .. } |
+			pallet_nomination_pools::Call::withdraw_unbonded { .. } |
+			pallet_nomination_pools::Call::create { .. } |
+			pallet_nomination_pools::Call::create_with_pool_id { .. } |
+			pallet_nomination_pools::Call::nominate { .. } |
+			pallet_nomination_pools::Call::set_state { .. } |
+			pallet_nomination_pools::Call::set_metadata { .. } |
+			pallet_nomination_pools::Call::set_configs { .. } |
+			pallet_nomination_pools::Call::update_roles { .. } |
+			pallet_nomination_pools::Call::chill { .. } |
+			pallet_nomination_pools::Call::bond_extra_other { .. } |
+			pallet_nomination_pools::Call::set_claim_permission { .. } |
+			pallet_nomination_pools::Call::claim_payout_other { .. } |
+			pallet_nomination_pools::Call::set_commission { .. } |
+			pallet_nomination_pools::Call::set_commission_max { .. } |
+			pallet_nomination_pools::Call::set_commission_change_rate { .. } |
+			pallet_nomination_pools::Call::claim_commission { .. } |
+			pallet_nomination_pools::Call::adjust_pool_deposit { .. } |
+			pallet_nomination_pools::Call::set_commission_claim_permission { .. } |
+			pallet_nomination_pools::Call::apply_slash { .. } |
+			pallet_nomination_pools::Call::migrate_delegation { .. } |
+			pallet_nomination_pools::Call::migrate_pool_to_delegate_stake { .. }
+	};
+}
+
+macro_rules! proxy_calls {
+	() => {
+		pallet_proxy::Call::proxy { .. } |
+			pallet_proxy::Call::add_proxy { .. } |
+			pallet_proxy::Call::remove_proxy { .. } |
+			pallet_proxy::Call::remove_proxies { .. } |
+			pallet_proxy::Call::create_pure { .. } |
+			pallet_proxy::Call::kill_pure { .. } |
+			pallet_proxy::Call::announce { .. } |
+			pallet_proxy::Call::remove_announcement { .. } |
+			pallet_proxy::Call::reject_announcement { .. } |
+			pallet_proxy::Call::proxy_announced { .. } |
+			pallet_proxy::Call::poke_deposit { .. }
+	};
+}
+
+macro_rules! referenda_calls {
+	() => {
+		pallet_referenda::Call::submit { .. } |
+			pallet_referenda::Call::place_decision_deposit { .. } |
+			pallet_referenda::Call::refund_decision_deposit { .. } |
+			pallet_referenda::Call::cancel { .. } |
+			pallet_referenda::Call::kill { .. } |
+			pallet_referenda::Call::nudge_referendum { .. } |
+			pallet_referenda::Call::one_fewer_deciding { .. } |
+			pallet_referenda::Call::refund_submission_deposit { .. } |
+			pallet_referenda::Call::set_metadata { .. }
+	};
+}
+
+macro_rules! scheduler_calls {
+	() => {
+		pallet_scheduler::Call::schedule { .. } |
+			pallet_scheduler::Call::cancel { .. } |
+			pallet_scheduler::Call::schedule_named { .. } |
+			pallet_scheduler::Call::cancel_named { .. } |
+			pallet_scheduler::Call::schedule_after { .. } |
+			pallet_scheduler::Call::schedule_named_after { .. } |
+			pallet_scheduler::Call::set_retry { .. } |
+			pallet_scheduler::Call::set_retry_named { .. } |
+			pallet_scheduler::Call::cancel_retry { .. } |
+			pallet_scheduler::Call::cancel_retry_named { .. }
+	};
+}
+
+macro_rules! session_calls {
+	() => {
+		pallet_session::Call::set_keys { .. } | pallet_session::Call::purge_keys { .. }
+	};
+}
+
+macro_rules! staking_async_calls {
+	() => {
+		pallet_staking_async::Call::bond { .. } |
+			pallet_staking_async::Call::bond_extra { .. } |
+			pallet_staking_async::Call::unbond { .. } |
+			pallet_staking_async::Call::withdraw_unbonded { .. } |
+			pallet_staking_async::Call::validate { .. } |
+			pallet_staking_async::Call::nominate { .. } |
+			pallet_staking_async::Call::chill { .. } |
+			pallet_staking_async::Call::set_payee { .. } |
+			pallet_staking_async::Call::set_controller { .. } |
+			pallet_staking_async::Call::set_validator_count { .. } |
+			pallet_staking_async::Call::increase_validator_count { .. } |
+			pallet_staking_async::Call::scale_validator_count { .. } |
+			pallet_staking_async::Call::force_no_eras { .. } |
+			pallet_staking_async::Call::force_new_era { .. } |
+			pallet_staking_async::Call::force_unstake { .. } |
+			pallet_staking_async::Call::force_new_era_always { .. } |
+			pallet_staking_async::Call::cancel_deferred_slash { .. } |
+			pallet_staking_async::Call::payout_stakers { .. } |
+			pallet_staking_async::Call::rebond { .. } |
+			pallet_staking_async::Call::reap_stash { .. } |
+			pallet_staking_async::Call::kick { .. } |
+			pallet_staking_async::Call::set_staking_configs { .. } |
+			pallet_staking_async::Call::chill_other { .. } |
+			pallet_staking_async::Call::force_apply_min_commission { .. } |
+			pallet_staking_async::Call::set_min_commission { .. } |
+			pallet_staking_async::Call::payout_stakers_by_page { .. } |
+			pallet_staking_async::Call::update_payee { .. } |
+			pallet_staking_async::Call::deprecate_controller_batch { .. } |
+			pallet_staking_async::Call::restore_ledger { .. } |
+			pallet_staking_async::Call::migrate_currency { .. } |
+			pallet_staking_async::Call::apply_slash { .. } |
+			pallet_staking_async::Call::prune_era_step { .. } |
+			pallet_staking_async::Call::set_max_commission { .. } |
+			pallet_staking_async::Call::set_validator_self_stake_incentive_config { .. }
+	};
+}
+
+macro_rules! staking_async_rc_client_calls {
+	() => {
+		pallet_staking_async_rc_client::Call::relay_session_report { .. } |
+			pallet_staking_async_rc_client::Call::relay_new_offence_paged { .. } |
+			pallet_staking_async_rc_client::Call::set_keys { .. } |
+			pallet_staking_async_rc_client::Call::purge_keys { .. }
+	};
+}
+
+macro_rules! timestamp_calls {
+	() => {
+		pallet_timestamp::Call::set { .. }
+	};
+}
+
+macro_rules! treasury_calls {
+	() => {
+		pallet_treasury::Call::spend_local { .. } |
+			pallet_treasury::Call::remove_approval { .. } |
+			pallet_treasury::Call::spend { .. } |
+			pallet_treasury::Call::payout { .. } |
+			pallet_treasury::Call::check_status { .. } |
+			pallet_treasury::Call::void_spend { .. }
+	};
+}
+
+macro_rules! uniques_calls {
+	() => {
+		pallet_uniques::Call::create { .. } |
+			pallet_uniques::Call::force_create { .. } |
+			pallet_uniques::Call::destroy { .. } |
+			pallet_uniques::Call::mint { .. } |
+			pallet_uniques::Call::burn { .. } |
+			pallet_uniques::Call::transfer { .. } |
+			pallet_uniques::Call::redeposit { .. } |
+			pallet_uniques::Call::freeze { .. } |
+			pallet_uniques::Call::thaw { .. } |
+			pallet_uniques::Call::freeze_collection { .. } |
+			pallet_uniques::Call::thaw_collection { .. } |
+			pallet_uniques::Call::transfer_ownership { .. } |
+			pallet_uniques::Call::set_team { .. } |
+			pallet_uniques::Call::approve_transfer { .. } |
+			pallet_uniques::Call::cancel_approval { .. } |
+			pallet_uniques::Call::force_item_status { .. } |
+			pallet_uniques::Call::set_attribute { .. } |
+			pallet_uniques::Call::clear_attribute { .. } |
+			pallet_uniques::Call::set_metadata { .. } |
+			pallet_uniques::Call::clear_metadata { .. } |
+			pallet_uniques::Call::set_collection_metadata { .. } |
+			pallet_uniques::Call::clear_collection_metadata { .. } |
+			pallet_uniques::Call::set_accept_ownership { .. } |
+			pallet_uniques::Call::set_collection_max_supply { .. } |
+			pallet_uniques::Call::set_price { .. } |
+			pallet_uniques::Call::buy_item { .. }
+	};
+}
+
+macro_rules! utility_calls {
+	() => {
+		pallet_utility::Call::batch { .. } |
+			pallet_utility::Call::as_derivative { .. } |
+			pallet_utility::Call::batch_all { .. } |
+			pallet_utility::Call::dispatch_as { .. } |
+			pallet_utility::Call::force_batch { .. } |
+			pallet_utility::Call::with_weight { .. } |
+			pallet_utility::Call::if_else { .. } |
+			pallet_utility::Call::dispatch_as_fallible { .. }
+	};
+}
+
+macro_rules! whitelist_calls {
+	() => {
+		pallet_whitelist::Call::whitelist_call { .. } |
+			pallet_whitelist::Call::remove_whitelisted_call { .. } |
+			pallet_whitelist::Call::dispatch_whitelisted_call { .. } |
+			pallet_whitelist::Call::dispatch_whitelisted_call_with_preimage { .. }
+	};
+}
+
 impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
@@ -666,63 +1061,63 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Auction => false, // Only for remote proxy
 			ProxyType::NonTransfer => matches!(
 				c,
-				RuntimeCall::System(..) |
-				RuntimeCall::Scheduler(..) |
+				RuntimeCall::System(frame_system_calls!()) |
+				RuntimeCall::Scheduler(scheduler_calls!()) |
 				// Not on AH RuntimeCall::Babe(..) |
-				RuntimeCall::Timestamp(..) |
-				RuntimeCall::CollatorSelection(..) |
+				RuntimeCall::Timestamp(timestamp_calls!()) |
+				RuntimeCall::CollatorSelection(collator_selection_calls!()) |
 				RuntimeCall::Indices(pallet_indices::Call::claim{..}) |
 				RuntimeCall::Indices(pallet_indices::Call::free{..}) |
 				RuntimeCall::Indices(pallet_indices::Call::freeze{..}) |
 				// Specifically omitting Indices `transfer`, `force_transfer`
 				// Specifically omitting the entire Balances pallet
-				RuntimeCall::Staking(..) |
-				RuntimeCall::StakingRcClient(..) |
-				RuntimeCall::Session(..) |
+				RuntimeCall::Staking(staking_async_calls!()) |
+				RuntimeCall::StakingRcClient(staking_async_rc_client_calls!()) |
+				RuntimeCall::Session(session_calls!()) |
 				// Not on AH RuntimeCall::Grandpa(..) |
-				RuntimeCall::Treasury(..) |
-				RuntimeCall::Bounties(..) |
-				RuntimeCall::ChildBounties(..) |
-				RuntimeCall::MultiAssetBounties(..) |
-				RuntimeCall::ConvictionVoting(..) |
-				RuntimeCall::Referenda(..) |
-				RuntimeCall::Whitelist(..) |
-				RuntimeCall::Claims(..) |
+				RuntimeCall::Treasury(treasury_calls!()) |
+				RuntimeCall::Bounties(bounties_calls!()) |
+				RuntimeCall::ChildBounties(child_bounties_calls!()) |
+				RuntimeCall::MultiAssetBounties(multi_asset_bounties_calls!()) |
+				RuntimeCall::ConvictionVoting(conviction_voting_calls!()) |
+				RuntimeCall::Referenda(referenda_calls!()) |
+				RuntimeCall::Whitelist(whitelist_calls!()) |
+				RuntimeCall::Claims(claims_calls!()) |
 				RuntimeCall::Vesting(pallet_vesting::Call::vest{..}) |
 				RuntimeCall::Vesting(pallet_vesting::Call::vest_other{..}) |
 				// Specifically omitting Vesting `vested_transfer`, and `force_vested_transfer`
-				RuntimeCall::Utility(..) |
-				RuntimeCall::Proxy(..) |
-				RuntimeCall::Multisig(..) |
+				RuntimeCall::Utility(utility_calls!()) |
+				RuntimeCall::Proxy(proxy_calls!()) |
+				RuntimeCall::Multisig(multisig_calls!()) |
 				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::register {..}) |
 				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::deregister {..}) |
 				// Not on AH RuntimeCall::Registrar(paras_registrar::Call::reserve {..}) |
 				// Not on AH RuntimeCall::Crowdloan(..) |
 				// Not on AH RuntimeCall::Slots(..) |
 				// Not on AH RuntimeCall::Auctions(..) |
-				RuntimeCall::VoterList(..) |
-				RuntimeCall::NominationPools(..) // Not on AH RuntimeCall::FastUnstake(..)
+				RuntimeCall::VoterList(bags_list_calls!()) |
+				RuntimeCall::NominationPools(nomination_pools_calls!()) /* Not on AH RuntimeCall::FastUnstake(..) */
 			),
 			ProxyType::Governance => matches!(
 				c,
-				RuntimeCall::Treasury(..) |
-					RuntimeCall::Bounties(..) |
-					RuntimeCall::Utility(..) |
-					RuntimeCall::ChildBounties(..) |
-					RuntimeCall::MultiAssetBounties(..) |
-					RuntimeCall::ConvictionVoting(..) |
-					RuntimeCall::Referenda(..) |
-					RuntimeCall::Whitelist(..)
+				RuntimeCall::Treasury(treasury_calls!()) |
+					RuntimeCall::Bounties(bounties_calls!()) |
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::ChildBounties(child_bounties_calls!()) |
+					RuntimeCall::MultiAssetBounties(multi_asset_bounties_calls!()) |
+					RuntimeCall::ConvictionVoting(conviction_voting_calls!()) |
+					RuntimeCall::Referenda(referenda_calls!()) |
+					RuntimeCall::Whitelist(whitelist_calls!())
 			),
 			ProxyType::Staking => matches!(
 				c,
-				RuntimeCall::Staking(..) |
-					RuntimeCall::StakingRcClient(..) |
-					RuntimeCall::Session(..) |
-					RuntimeCall::Utility(..) |
+				RuntimeCall::Staking(staking_async_calls!()) |
+					RuntimeCall::StakingRcClient(staking_async_rc_client_calls!()) |
+					RuntimeCall::Session(session_calls!()) |
+					RuntimeCall::Utility(utility_calls!()) |
 					// Not on AH RuntimeCall::FastUnstake(..) |
-					RuntimeCall::VoterList(..) |
-					RuntimeCall::NominationPools(..) |
+					RuntimeCall::VoterList(bags_list_calls!()) |
+					RuntimeCall::NominationPools(nomination_pools_calls!()) |
 					RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
 						proxy_type: ProxyType::StakingOperator,
 						..
@@ -745,14 +1140,18 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility(pallet_utility::Call::force_batch { .. })
 			),
 			ProxyType::NominationPools => {
-				matches!(c, RuntimeCall::NominationPools(..) | RuntimeCall::Utility(..))
+				matches!(
+					c,
+					RuntimeCall::NominationPools(nomination_pools_calls!()) |
+						RuntimeCall::Utility(utility_calls!())
+				)
 			},
 			ProxyType::CancelProxy => {
 				matches!(
 					c,
 					RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. }) |
-						RuntimeCall::Utility { .. } |
-						RuntimeCall::Multisig { .. }
+						RuntimeCall::Utility(utility_calls!()) |
+						RuntimeCall::Multisig(multisig_calls!())
 				)
 			},
 			ProxyType::ParaRegistration => false, // Only for remote proxy
@@ -760,11 +1159,11 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::Assets => {
 				matches!(
 					c,
-					RuntimeCall::Assets { .. } |
-						RuntimeCall::Utility { .. } |
-						RuntimeCall::Multisig { .. } |
-						RuntimeCall::Nfts { .. } |
-						RuntimeCall::Uniques { .. }
+					RuntimeCall::Assets(assets_calls!()) |
+						RuntimeCall::Utility(utility_calls!()) |
+						RuntimeCall::Multisig(multisig_calls!()) |
+						RuntimeCall::Nfts(nfts_calls!()) |
+						RuntimeCall::Uniques(uniques_calls!())
 				)
 			},
 			ProxyType::AssetOwner => matches!(
@@ -797,8 +1196,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Uniques(pallet_uniques::Call::clear_attribute { .. }) |
 					RuntimeCall::Uniques(pallet_uniques::Call::clear_collection_metadata { .. }) |
 					RuntimeCall::Uniques(pallet_uniques::Call::set_collection_max_supply { .. }) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 			ProxyType::AssetManager => matches!(
 				c,
@@ -828,14 +1227,14 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Uniques(pallet_uniques::Call::thaw { .. }) |
 					RuntimeCall::Uniques(pallet_uniques::Call::freeze_collection { .. }) |
 					RuntimeCall::Uniques(pallet_uniques::Call::thaw_collection { .. }) |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 			ProxyType::Collator => matches!(
 				c,
-				RuntimeCall::CollatorSelection { .. } |
-					RuntimeCall::Utility { .. } |
-					RuntimeCall::Multisig { .. }
+				RuntimeCall::CollatorSelection(collator_selection_calls!()) |
+					RuntimeCall::Utility(utility_calls!()) |
+					RuntimeCall::Multisig(multisig_calls!())
 			),
 		}
 	}
