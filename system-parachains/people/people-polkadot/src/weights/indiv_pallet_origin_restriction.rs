@@ -67,6 +67,8 @@ impl<T: frame_system::Config> indiv_pallet_origin_restriction::WeightInfo for We
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	/// TODO 2609-bench: the benchmark's excess pair is now the statement store slot holder, whose
+	/// allowance estimates the replacement fee on every validation; regenerate with the bench bot.
 	/// Storage: `Parameters::Parameters` (r:2 w:0)
 	/// Proof: `Parameters::Parameters` (`max_values`: None, `max_size`: Some(622), added: 3097, mode: `MaxEncodedLen`)
 	/// Storage: `ParachainSystem::ValidationData` (r:1 w:0)

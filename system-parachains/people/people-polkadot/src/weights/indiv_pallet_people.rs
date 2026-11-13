@@ -331,4 +331,24 @@ impl<T: frame_system::Config> indiv_pallet_people::WeightInfo for WeightInfo<T> 
 			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(n.into())))
 			.saturating_add(Weight::from_parts(0, 2595).saturating_mul(n.into()))
 	}
+	/// TODO 2609-bench: copied from Individuality's next-people-paseo runtime
+	/// (individuality-community#244); regenerate with the bench bot.
+	/// Storage: UNKNOWN KEY `0x43b4b15ea5f08d8e3af42ba6b1f2e2b84e7b9012096b41c4eb3aaf947f6ea429` (r:1 w:1)
+	/// Proof: UNKNOWN KEY `0x43b4b15ea5f08d8e3af42ba6b1f2e2b84e7b9012096b41c4eb3aaf947f6ea429` (r:1 w:1)
+	/// Storage: `Timestamp::Now` (r:1 w:0)
+	/// Proof: `Timestamp::Now` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Storage: `People::People` (r:2 w:1)
+	/// Proof: `People::People` (`max_values`: None, `max_size`: Some(235), added: 2710, mode: `MaxEncodedLen`)
+	/// Storage: `Members::Members` (r:1 w:0)
+	/// Proof: `Members::Members` (`max_values`: None, `max_size`: Some(93), added: 2568, mode: `MaxEncodedLen`)
+	fn migrate_person() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `556`
+		//  Estimated: `6410`
+		// Minimum execution time: 27_784_000 picoseconds.
+		Weight::from_parts(29_234_000, 0)
+			.saturating_add(Weight::from_parts(0, 6410))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
 }
