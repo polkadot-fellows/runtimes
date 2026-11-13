@@ -21,9 +21,11 @@ use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
-		fungible::{HoldConsideration, InspectHold, Mutate, MutateHold},
-		ConstU128, ConstU32, Contains, Equals, InstanceFilter, LinearStoragePrice,
-		LockableCurrency, OnInitialize, ReservableCurrency, Time, WithdrawReasons,
+		fungible::{HoldConsideration, InspectHold, Mutate, MutateFreeze, MutateHold},
+		tokens::{PayFromAccount, UnityAssetBalanceConversion},
+		ConstU128, ConstU32, ConstU64, Contains, InstanceFilter, LinearStoragePrice,
+		LockableCurrency, NeverEnsureOrigin, OnInitialize, ReservableCurrency, Time,
+		WithdrawReasons,
 	},
 	weights::Weight,
 	PalletId,
@@ -33,13 +35,14 @@ use migrator_types::PortableProxyType;
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::{
-	configuration, dmp, hrmp as parachains_hrmp, origin as parachains_origin, paras, shared,
+	configuration, dmp, hrmp as parachains_hrmp, on_demand, origin as parachains_origin, paras,
+	shared,
 };
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, BlakeTwo256, Hash, IdentityLookup},
 	transaction_validity::TransactionPriority,
-	AccountId32, BuildStorage,
+	AccountId32, BuildStorage, FixedU128, Permill,
 };
 use xcm::prelude::*;
 
@@ -63,6 +66,8 @@ frame_support::construct_runtime! {
 		Proxy: pallet_proxy,
 		Multisig: pallet_multisig,
 		Preimage: pallet_preimage,
+		Treasury: pallet_treasury,
+		OnDemand: on_demand,
 		Rc2Migrator: pallet_rc2_migrator,
 	}
 }
@@ -101,6 +106,9 @@ impl pallet_balances::Config for Test {
 	type Balance = u128;
 	type AccountStore = System;
 	type ExistentialDeposit = ConstU128<ED>;
+	// No pallet here freezes balance, so freezes get an identifier of their own.
+	type FreezeIdentifier = [u8; 8];
+	type MaxFreezes = ConstU32<2>;
 }
 
 // `paras_registrar` is what the tests need; it requires `paras`, which requires the rest.
@@ -251,6 +259,53 @@ impl pallet_preimage::Config for Test {
 	>;
 }
 
+parameter_types! {
+	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
+	pub TreasuryAccount: AccountId = Treasury::account_id();
+	/// What a spend period burns, so a spend shows in the pot and the issuance.
+	pub const TreasuryBurn: Permill = Permill::from_percent(10);
+}
+
+/// A treasury with nothing to spend on, but which burns a share of its pot every spend period.
+impl pallet_treasury::Config for Test {
+	type PalletId = TreasuryPalletId;
+	type Currency = Balances;
+	type RejectOrigin = EnsureRoot<AccountId>;
+	type RuntimeEvent = RuntimeEvent;
+	type SpendPeriod = ConstU64<1_000>;
+	type Burn = TreasuryBurn;
+	type BurnDestination = ();
+	type WeightInfo = ();
+	type SpendFunds = ();
+	type MaxApprovals = ConstU32<1>;
+	type SpendOrigin = NeverEnsureOrigin<u128>;
+	type AssetKind = ();
+	type Beneficiary = AccountId;
+	type BeneficiaryLookup = IdentityLookup<AccountId>;
+	type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
+	type BalanceConverter = UnityAssetBalanceConversion;
+	type PayoutPeriod = ConstU64<10>;
+	type BlockNumberProvider = System;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
+}
+
+parameter_types! {
+	pub const OnDemandTrafficDefaultValue: FixedU128 = FixedU128::from_u32(1);
+	pub const MaxHistoricalRevenue: u32 = 10;
+	pub const OnDemandPalletId: PalletId = PalletId(*b"py/ondmd");
+}
+
+/// The on-demand pallet, for the revenue the Coretime chain still has to claim.
+impl on_demand::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type TrafficDefaultValue = OnDemandTrafficDefaultValue;
+	type WeightInfo = on_demand::TestWeightInfo;
+	type MaxHistoricalRevenue = MaxHistoricalRevenue;
+	type PalletId = OnDemandPalletId;
+}
+
 /// What the active configuration makes a recipient reserve when it accepts a channel request.
 pub const HRMP_RECIPIENT_DEPOSIT: u128 = 20;
 
@@ -289,9 +344,13 @@ pub const NIAJ: AccountId = AccountId32::new([15; 32]);
 
 /// The account behind the admin origin.
 pub const ADMIN: AccountId = AccountId32::new([2; 32]);
+/// The account on Asset Hub that receives what has no owner there.
+pub const SWEEP_BENEFICIARY: AccountId = AccountId32::new([16; 32]);
 
 pub const CT_PARA_ID: u32 = 1005;
 pub const AH_PARA_ID: u32 = 1000;
+/// Asset Hub's existential deposit, lower than the relay's as on the live networks.
+pub const AH_ED: u128 = 5;
 /// Free balance that follows a deposit to the Coretime chain.
 pub const CT_FREE_BUFFER: u128 = 100;
 pub const WARM_UP: u64 = 4;
@@ -302,6 +361,7 @@ pub const BLOCK_TIME_MS: u64 = 6_000;
 parameter_types! {
 	pub const CtParaId: u32 = CT_PARA_ID;
 	pub const AhParaId: u32 = AH_PARA_ID;
+	pub const AhExistentialDeposit: u128 = AH_ED;
 	pub const CtFreeBuffer: u128 = CT_FREE_BUFFER;
 
 	/// Every message the pallet successfully sent, in order.
@@ -356,7 +416,9 @@ ord_parameter_types! {
 }
 
 parameter_types! {
-	pub MockPot: AccountId = pallet_account();
+	pub MockPots: Vec<AccountId> =
+		vec![pallet_account(), other_pot(), TreasuryAccount::get(), OnDemand::account_id()];
+	pub const SweepBeneficiary: AccountId = SWEEP_BENEFICIARY;
 }
 
 impl pallet_rc2_migrator::Config for Test {
@@ -364,6 +426,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type SendXcm = RecordingRouter;
 	type CtParaId = CtParaId;
 	type AhParaId = AhParaId;
+	type AhExistentialDeposit = AhExistentialDeposit;
 	type CtFreeBuffer = CtFreeBuffer;
 	type TimeProvider = MockTime;
 	type CtOrigin = EnsureSignedBy<CoretimeAccount, AccountId>;
@@ -371,7 +434,8 @@ impl pallet_rc2_migrator::Config for Test {
 	type PreMigrationCalls = TaggedRemark<PRE_MIGRATION>;
 	type IntraMigrationCalls = TaggedRemark<INTRA_MIGRATION>;
 	type PostMigrationCalls = TaggedRemark<POST_MIGRATION>;
-	type SweptAccounts = Equals<MockPot>;
+	type SweptAccounts = MockPots;
+	type SweepBeneficiary = SweepBeneficiary;
 }
 
 /// Tags for [`TaggedRemark`], one per call set.
@@ -481,6 +545,11 @@ pub fn child_sov(para: u32) -> AccountId {
 /// A pallet (module) account, `modl` + pallet id.
 pub fn pallet_account() -> AccountId {
 	PalletId(*b"mock/pot").into_account_truncating()
+}
+
+/// A second pot, so Sweep has more than one to add up.
+pub fn other_pot() -> AccountId {
+	PalletId(*b"mock/pt2").into_account_truncating()
 }
 
 /// Replicates an account below the existential deposit: the balances pallet refuses to create
@@ -633,6 +702,12 @@ pub fn free(who: &AccountId) -> u128 {
 	pallet_balances::Pallet::<Test>::free_balance(who)
 }
 
+/// Freeze part of `who`'s balance, as the relay chain's staking pallets do.
+pub fn freeze(who: &AccountId, amount: u128) {
+	<Balances as MutateFreeze<AccountId>>::set_freeze(b"testfrze", who, amount)
+		.expect("can freeze");
+}
+
 /// Lock part of `who`'s balance, as staking and vesting did before they left the Relay Chain.
 pub fn lock(who: &AccountId, amount: u128) {
 	<Balances as LockableCurrency<AccountId>>::set_lock(
@@ -647,4 +722,11 @@ pub fn lock(who: &AccountId, amount: u128) {
 /// their deposits on the Relay Chain: an unnamed reserve.
 pub fn reserve(who: &AccountId, amount: u128) {
 	<Balances as ReservableCurrency<AccountId>>::reserve(who, amount).unwrap();
+}
+
+/// Record on-demand revenue for the Coretime chain to claim, newest block first, as the on-demand
+/// pallet keeps it. Its storage is private to that pallet, so it is written raw.
+pub fn record_on_demand_revenue(per_block: Vec<u128>) {
+	let key = frame_support::storage::storage_prefix(b"OnDemand", b"Revenue");
+	frame_support::storage::unhashed::put(&key, &per_block);
 }

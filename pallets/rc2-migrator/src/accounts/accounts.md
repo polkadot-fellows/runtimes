@@ -28,12 +28,12 @@ Every deposit on the Relay Chain is an unnamed reserve. When the stage starts, t
 | Case | Rule |
 |------|------|
 | Para sovereign accounts, `para…` | Translated to the para's sibling account, `sibl…`, its address on Asset Hub and the Coretime chain. Otherwise like any account: deposits and the buffer to the Coretime chain, free balance to Asset Hub. |
-| Sovereign accounts of system paras | Translated like any para. Asset Hub's own lands on an account nothing there controls; it is to go to the sweep beneficiary instead (`TODO(ahm-v2)` in `destination`). |
+| Sovereign accounts of system paras | Translated like any para, except Asset Hub's own free balance: translated, it would land on an account nothing on Asset Hub controls, so it goes to `SweepBeneficiary`. |
 | Sibling-format accounts, `sibl…` | Pass through: the same bytes are that para's sovereign on Asset Hub. |
 | Pure proxies: never signed, and have an `Any` delegate | The whole balance goes to the Coretime chain as free balance: the delegate keeps control only where the definitions are recreated. |
 | Accounts another pallet references (validators' session keys) | Drained to a zero-balance shell: the record stays, the balance leaves like any other. Reported with `AccountShellDrained`. |
-| The runtime's `SweptAccounts`: its pots | Not withdrawn here. Sweep empties them. |
-| Accounts below the existential deposit | Not withdrawn here. Sweep Dust reaps them. |
+| The runtime's `SweptAccounts`: its pots | Left for Sweep, which sends all of each pot, deposits included, to `SweepBeneficiary` on Asset Hub. The list includes pots of pallets that have since been removed or renamed, such as Polkadot's `dap/satl`. Only these accounts are pots, not every `modl...` address: anyone can create an address with that prefix. |
+| Accounts below the existential deposit | Not withdrawn here. Sweep Dust burns all of it, deposits included. Dust of at least Asset Hub's existential deposit goes to its owner there; the rest, and a pure proxy's, goes to `SweepBeneficiary`. The account is then removed if at most one provider reference keeps it. One with more providers, or with a consumer or sufficient reference, stays, empty. |
 | The migration manager | Not withdrawn here. It pays for the calls that drive the migration and is reaped at Cool Off. |
 
 Issuance that no account holds is not an account; TI Correction burns it.
