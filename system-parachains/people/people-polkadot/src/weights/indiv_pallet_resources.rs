@@ -547,4 +547,81 @@ impl<T: frame_system::Config> indiv_pallet_resources::WeightInfo for WeightInfo<
 			.saturating_add(Weight::from_parts(0, 3517))
 			.saturating_add(T::DbWeight::get().reads(2))
 	}
+	/// TODO 2609-bench: copied from Individuality's next-people-paseo runtime
+	/// (individuality-community#244); regenerate with the bench bot.
+	/// Storage: `Resources::StatementStoreAllowances` (r:1 w:1)
+	/// Proof: `Resources::StatementStoreAllowances` (`max_values`: None, `max_size`: Some(104), added: 2579, mode: `MaxEncodedLen`)
+	/// Storage: `Timestamp::Now` (r:1 w:0)
+	/// Proof: `Timestamp::Now` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Storage: UNKNOWN KEY `0x3a73746174656d656e745f616c6c6f77616e63653a30ea23cebb6ae1aee09eec` (r:1 w:1)
+	/// Proof: UNKNOWN KEY `0x3a73746174656d656e745f616c6c6f77616e63653a30ea23cebb6ae1aee09eec` (r:1 w:1)
+	/// Storage: `Parameters::Parameters` (r:1 w:0)
+	/// Proof: `Parameters::Parameters` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
+	/// Storage: UNKNOWN KEY `0x3a73746174656d656e745f616c6c6f77616e63653ad861ea1ebf4800d4b89f4f` (r:1 w:1)
+	/// Proof: UNKNOWN KEY `0x3a73746174656d656e745f616c6c6f77616e63653ad861ea1ebf4800d4b89f4f` (r:1 w:1)
+	/// Storage: `Resources::StmtStoreAllowanceByAccount` (r:0 w:2)
+	/// Proof: `Resources::StmtStoreAllowanceByAccount` (`max_values`: None, `max_size`: Some(104), added: 2579, mode: `MaxEncodedLen`)
+	fn replace_statement_store_account() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `246`
+		//  Estimated: `3711`
+		// Minimum execution time: 31_076_000 picoseconds.
+		Weight::from_parts(32_666_000, 0)
+			.saturating_add(Weight::from_parts(0, 3711))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(5))
+	}
+	/// TODO 2609-bench: copied from Individuality's next-people-paseo runtime
+	/// (individuality-community#244); regenerate with the bench bot.
+	/// Storage: `Timestamp::Now` (r:1 w:0)
+	/// Proof: `Timestamp::Now` (`max_values`: Some(1), `max_size`: Some(8), added: 503, mode: `MaxEncodedLen`)
+	/// Storage: `Resources::StatementStoreAllowances` (r:1 w:0)
+	/// Proof: `Resources::StatementStoreAllowances` (`max_values`: None, `max_size`: Some(104), added: 2579, mode: `MaxEncodedLen`)
+	/// Storage: `NetworkSuffix::NetworkSuffix` (r:1 w:0)
+	/// Proof: `NetworkSuffix::NetworkSuffix` (`max_values`: Some(1), `max_size`: Some(17), added: 512, mode: `MaxEncodedLen`)
+	fn as_replace_stmt_store_account_tx_ext() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `281`
+		//  Estimated: `3569`
+		// Minimum execution time: 62_748_000 picoseconds.
+		Weight::from_parts(66_217_000, 0)
+			.saturating_add(Weight::from_parts(0, 3569))
+			.saturating_add(T::DbWeight::get().reads(3))
+	}
+	/// TODO 2609-bench: copied from Individuality's next-people-paseo runtime
+	/// (individuality-community#244); regenerate with the bench bot.
+	/// Storage: UNKNOWN KEY `0x2111e0df19de9563b58301e5f7e007434e7b9012096b41c4eb3aaf947f6ea429` (r:1 w:0)
+	/// Proof: UNKNOWN KEY `0x2111e0df19de9563b58301e5f7e007434e7b9012096b41c4eb3aaf947f6ea429` (r:1 w:0)
+	/// Storage: `Resources::StatementStoreAllowances` (r:2 w:1)
+	/// Proof: `Resources::StatementStoreAllowances` (`max_values`: None, `max_size`: Some(104), added: 2579, mode: `MaxEncodedLen`)
+	/// Storage: `Parameters::Parameters` (r:1 w:0)
+	/// Proof: `Parameters::Parameters` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
+	fn migrate_stmt_store_allowance_step() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `218`
+		//  Estimated: `6148`
+		// Minimum execution time: 16_505_000 picoseconds.
+		Weight::from_parts(17_687_000, 0)
+			.saturating_add(Weight::from_parts(0, 6148))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	/// TODO 2609-bench: copied from Individuality's next-people-paseo runtime
+	/// (individuality-community#244); regenerate with the bench bot.
+	/// Storage: UNKNOWN KEY `0x2111e0df19de9563b58301e5f7e007434e7b9012096b41c4eb3aaf947f6ea429` (r:1 w:0)
+	/// Proof: UNKNOWN KEY `0x2111e0df19de9563b58301e5f7e007434e7b9012096b41c4eb3aaf947f6ea429` (r:1 w:0)
+	/// Storage: `Resources::NotificationRegistrationByAlias` (r:2 w:1)
+	/// Proof: `Resources::NotificationRegistrationByAlias` (`max_values`: None, `max_size`: Some(93), added: 2568, mode: `MaxEncodedLen`)
+	/// Storage: `Parameters::Parameters` (r:1 w:0)
+	/// Proof: `Parameters::Parameters` (`max_values`: None, `max_size`: Some(52), added: 2527, mode: `MaxEncodedLen`)
+	fn migrate_notification_registration_step() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `208`
+		//  Estimated: `6126`
+		// Minimum execution time: 16_221_000 picoseconds.
+		Weight::from_parts(17_305_000, 0)
+			.saturating_add(Weight::from_parts(0, 6126))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }

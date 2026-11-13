@@ -198,7 +198,14 @@ pub mod migrations {
 	pub type SingleBlockMigrations = Unreleased;
 
 	/// MBM migrations to apply on runtime upgrade.
-	pub type MbmMigrations = ();
+	pub type MbmMigrations = (
+		// Single use! Remove once the upgrade carrying it is live.
+		indiv_pallet_people_lite::migration::v1::LazyMigrationV0ToV1<Runtime>,
+		// Single use! Remove once the upgrade carrying it is live.
+		indiv_pallet_people::migration::MigrateV0ToV1<Runtime>,
+		// Single use! Remove once the upgrade carrying it is live.
+		indiv_pallet_resources::migration::v1::RecordGrantedAllowances<Runtime>,
+	);
 }
 
 /// Executive: handles dispatch to the various modules.
