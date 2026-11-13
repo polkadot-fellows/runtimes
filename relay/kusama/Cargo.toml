@@ -62,7 +62,6 @@ pallet-conviction-voting = { workspace = true }
 pallet-delegated-staking = { workspace = true }
 pallet-staking-async-ah-client = { workspace = true }
 pallet-staking-async-rc-client = { workspace = true, features = ["xcm-sender"] }
-pallet-election-provider-multi-phase = { workspace = true }
 pallet-fast-unstake = { workspace = true }
 frame-executive = { workspace = true }
 frame-metadata-hash-extension = { workspace = true }
@@ -101,9 +100,9 @@ frame-benchmarking = { optional = true, workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
 pallet-offences-benchmarking = { optional = true, workspace = true }
 pallet-session-benchmarking = { optional = true, workspace = true }
+cumulus-pallet-session-benchmarking = { optional = true, workspace = true }
 pallet-nomination-pools-benchmarking = { optional = true, workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
-pallet-election-provider-support-benchmarking = { optional = true, workspace = true }
 hex-literal = { workspace = true }
 
 polkadot-runtime-common = { workspace = true }
@@ -142,6 +141,7 @@ std = [
 	"beefy-primitives/std",
 	"binary-merkle-tree/std",
 	"codec/std",
+	"cumulus-pallet-session-benchmarking?/std",
 	"frame-benchmarking?/std",
 	"frame-election-provider-support/std",
 	"frame-executive/std",
@@ -168,8 +168,6 @@ std = [
 	"pallet-child-bounties/std",
 	"pallet-conviction-voting/std",
 	"pallet-delegated-staking/std",
-	"pallet-election-provider-multi-phase/std",
-	"pallet-election-provider-support-benchmarking?/std",
 	"pallet-fast-unstake/std",
 	"pallet-grandpa/std",
 	"pallet-indices/std",
@@ -238,6 +236,7 @@ std = [
 	"xcm/std",
 ]
 runtime-benchmarks = [
+	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"frame-benchmarking/runtime-benchmarks",
 	"frame-election-provider-support/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
@@ -255,8 +254,6 @@ runtime-benchmarks = [
 	"pallet-conviction-voting/runtime-benchmarks",
 	"pallet-ct-migrator/runtime-benchmarks",
 	"pallet-delegated-staking/runtime-benchmarks",
-	"pallet-election-provider-multi-phase/runtime-benchmarks",
-	"pallet-election-provider-support-benchmarking/runtime-benchmarks",
 	"pallet-fast-unstake/runtime-benchmarks",
 	"pallet-grandpa/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
@@ -322,7 +319,6 @@ try-runtime = [
 	"pallet-conviction-voting/try-runtime",
 	"pallet-ct-migrator/try-runtime",
 	"pallet-delegated-staking/try-runtime",
-	"pallet-election-provider-multi-phase/try-runtime",
 	"pallet-fast-unstake/try-runtime",
 	"pallet-grandpa/try-runtime",
 	"pallet-indices/try-runtime",
