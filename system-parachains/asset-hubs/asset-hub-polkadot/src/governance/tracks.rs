@@ -80,8 +80,12 @@ const APP_PROSPERITY_EMERGENCY: Curve =
 	Curve::make_reciprocal(16, 28 * 24, percent(96), percent(50), percent(100));
 const SUP_PROSPERITY_EMERGENCY: Curve =
 	Curve::make_reciprocal(1, 28, percent(20), percent(5), percent(50));
+const APP_DOTNS_MAINTENANCE: Curve =
+	Curve::make_reciprocal(16, 28 * 24, percent(96), percent(50), percent(100));
+const SUP_DOTNS_MAINTENANCE: Curve =
+	Curve::make_reciprocal(12, 28, percent(1), percent(0), percent(50));
 
-const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 18] = [
+const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 19] = [
 	pallet_referenda::Track {
 		id: 0,
 		info: pallet_referenda::TrackInfo {
@@ -237,6 +241,20 @@ const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 18] = [
 		},
 	},
 	pallet_referenda::Track {
+		id: 18,
+		info: pallet_referenda::TrackInfo {
+			name: s("dotns_maintenance"),
+			max_deciding: 10,
+			decision_deposit: 10 * GRAND,
+			prepare_period: 30 * RC_MINUTES,
+			decision_period: 28 * RC_DAYS,
+			confirm_period: 3 * RC_HOURS,
+			min_enactment_period: 10 * RC_MINUTES,
+			min_approval: APP_DOTNS_MAINTENANCE,
+			min_support: SUP_DOTNS_MAINTENANCE,
+		},
+	},
+	pallet_referenda::Track {
 		id: 20,
 		info: pallet_referenda::TrackInfo {
 			name: s("referendum_canceller"),
@@ -364,6 +382,7 @@ impl pallet_referenda::TracksInfo<Balance, BlockNumber> for TracksInfo {
 				origins::Origin::AuctionAdmin => Ok(15),
 				origins::Origin::TechnicalMaintenance => Ok(16),
 				origins::Origin::ProsperityEmergency => Ok(17),
+				origins::Origin::DotnsMaintenance => Ok(18),
 				// Referendum admins
 				origins::Origin::ReferendumCanceller => Ok(20),
 				origins::Origin::ReferendumKiller => Ok(21),
@@ -396,7 +415,7 @@ mod tests {
 	#[test]
 	fn all_origins_map_to_their_declared_tracks() {
 		use origins::Origin::*;
-		let cases: [(origins::Origin, u16); 17] = [
+		let cases: [(origins::Origin, u16); 18] = [
 			(WhitelistedCaller, 1),
 			(WishForChange, 2),
 			(StakingAdmin, 10),
@@ -407,6 +426,7 @@ mod tests {
 			(AuctionAdmin, 15),
 			(TechnicalMaintenance, 16),
 			(ProsperityEmergency, 17),
+			(DotnsMaintenance, 18),
 			(ReferendumCanceller, 20),
 			(ReferendumKiller, 21),
 			(SmallTipper, 30),
