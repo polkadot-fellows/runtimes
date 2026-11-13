@@ -316,6 +316,13 @@ fn dust_accumulates_instead_of_being_burned() {
 }
 
 #[test]
+fn forward_period_counts_relay_blocks() {
+	ExtBuilder::<Runtime>::default()
+		.build()
+		.execute_with(system_parachains_test_utils::forward_period_counts_relay_blocks::<Runtime>);
+}
+
+#[test]
 fn session_key_deposit_works() {
 	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
 		let generated = SessionKeys::generate(&owner.encode(), None);

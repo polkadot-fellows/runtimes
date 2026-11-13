@@ -20436,6 +20436,7 @@ dependencies = [
 name = "system-parachains-test-utils"
 version = "1.0.0"
 dependencies = [
+ "cumulus-pallet-parachain-system",
  "frame-support",
  "frame-system",
  "pallet-accumulate-and-forward",

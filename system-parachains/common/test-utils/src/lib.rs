@@ -22,8 +22,9 @@ use frame_support::{
 	traits::{
 		fungible::{Inspect, InspectHold, Mutate},
 		tokens::Preservation,
-		Get,
+		Get, Hooks,
 	},
+	weights::Weight,
 };
 use frame_system::RawOrigin;
 use pallet_session::{HoldReason, NextKeys};
@@ -32,7 +33,7 @@ use parachains_runtimes_test_utils::{
 };
 use sp_keystore::{testing::MemoryKeystore, KeystoreExt};
 use sp_runtime::{
-	traits::{Dispatchable, TrailingZeroInput, Zero},
+	traits::{BlockNumberProvider, Dispatchable, TrailingZeroInput, Zero},
 	DispatchError, TokenError,
 };
 
@@ -184,4 +185,57 @@ where
 	assert_eq!(Balances::<Runtime>::balance(&alice), Zero::zero());
 	assert_eq!(Balances::<Runtime>::balance(&accumulation_account), accumulated_before + dust);
 	assert_eq!(Balances::<Runtime>::total_issuance(), issuance_before, "the dust is not burned");
+}
+
+/// The forward period is counted in relay chain blocks, whatever the local block number is.
+pub fn forward_period_counts_relay_blocks<Runtime>()
+where
+	Runtime: pallet_accumulate_and_forward::Config + cumulus_pallet_parachain_system::Config,
+	<Runtime as pallet_accumulate_and_forward::Config>::BlockNumberProvider:
+		BlockNumberProvider<BlockNumber = u32>,
+	<Runtime as pallet_accumulate_and_forward::Config>::Currency: Mutate<AccountIdOf<Runtime>>,
+{
+	type Relay<Runtime> = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
+	type Currency<Runtime> = <Runtime as pallet_accumulate_and_forward::Config>::Currency;
+	type AccumulateForward<Runtime> = pallet_accumulate_and_forward::Pallet<Runtime>;
+	let last_forward = pallet_accumulate_and_forward::LastForwardBlock::<Runtime>::get;
+	let on_idle = || {
+		<AccumulateForward<Runtime> as Hooks<_>>::on_idle(
+			frame_system::Pallet::<Runtime>::block_number(),
+			Weight::MAX,
+		)
+	};
+	let fund = || {
+		assert_ok!(Currency::<Runtime>::mint_into(
+			&AccumulateForward::<Runtime>::accumulation_account(),
+			Currency::<Runtime>::minimum_balance() +
+				<Runtime as pallet_accumulate_and_forward::Config>::MinTransferAmount::get(),
+		));
+	};
+	let period = <Runtime as pallet_accumulate_and_forward::Config>::TransferPeriod::get();
+	let start = 10 * period;
+
+	// Given: a funded accumulation account, and a local block number that differs from the relay
+	// one and never moves.
+	fund();
+	frame_system::Pallet::<Runtime>::set_block_number(1u32.into());
+
+	// When: `on_idle` runs at relay block `start`.
+	Relay::<Runtime>::set_block_number(start);
+	on_idle();
+	// Then: a forward is attempted and recorded at the relay block.
+	assert_eq!(last_forward(), Some(start));
+
+	// When: the relay is one block short of a full period later.
+	fund();
+	Relay::<Runtime>::set_block_number(start + period - 1);
+	on_idle();
+	// Then: no forward is attempted.
+	assert_eq!(last_forward(), Some(start));
+
+	// When: a full period of relay blocks has passed.
+	Relay::<Runtime>::set_block_number(start + period);
+	on_idle();
+	// Then: the next forward is attempted.
+	assert_eq!(last_forward(), Some(start + period));
 }

@@ -1557,4 +1557,11 @@ mod accumulate_and_forward_tests {
 			system_parachains_test_utils::dust_accumulates_instead_of_being_burned::<Runtime>,
 		);
 	}
+
+	#[test]
+	fn forward_period_counts_relay_blocks() {
+		ExtBuilder::<Runtime>::default().build().execute_with(
+			system_parachains_test_utils::forward_period_counts_relay_blocks::<Runtime>,
+		);
+	}
 }
