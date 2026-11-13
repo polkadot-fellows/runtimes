@@ -33,6 +33,7 @@ integration-tests-helpers = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks",
 	"encointer-kusama-runtime/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
@@ -41,5 +42,4 @@ runtime-benchmarks = [
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"emulated-integration-tests-common/runtime-benchmarks"
 ]

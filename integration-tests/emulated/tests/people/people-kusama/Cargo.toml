@@ -41,7 +41,9 @@ kusama-system-emulated-network = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"asset-hub-kusama-runtime/runtime-benchmarks",
+	"asset-test-utils/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
@@ -58,6 +60,4 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"asset-test-utils/runtime-benchmarks",
-	"emulated-integration-tests-common/runtime-benchmarks"
 ]

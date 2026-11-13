@@ -936,7 +936,7 @@ pub mod migrations {
 	const _: () = assert!(
 		BLOCK_PROCESSING_VELOCITY == 1 &&
 			UNINCLUDED_SEGMENT_CAPACITY == 1 &&
-			SLOT_DURATION % RELAY_CHAIN_SLOT_DURATION_MILLIS as u64 == 0
+			SLOT_DURATION.is_multiple_of(RELAY_CHAIN_SLOT_DURATION_MILLIS as u64)
 	);
 
 	type RelayBlockNumber = <cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime> as
