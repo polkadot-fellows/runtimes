@@ -409,7 +409,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type DustRemoval = ();
+	type DustRemoval = AccumulateForward;
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -422,6 +422,28 @@ impl pallet_balances::Config for Runtime {
 	type FreezeIdentifier = RuntimeFreezeReason;
 	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
+}
+
+parameter_types! {
+	pub const AccumulateForwardPalletId: PalletId =
+		polkadot_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
+	pub const ForwardPeriod: BlockNumber = HOURS;
+	pub const MinForwardAmount: Balance = 10 * UNITS;
+}
+
+impl pallet_accumulate_and_forward::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = AccumulateForwardPalletId;
+	type Forwarder = xcm_builder::TeleportForwarderForAccountId32<
+		xcm_config::XcmConfig,
+		AssetHubLocation,
+		xcm_config::TokenLocation,
+		polkadot_runtime_constants::xcm::DapStagingLocation,
+	>;
+	type TransferPeriod = ForwardPeriod;
+	type MinTransferAmount = MinForwardAmount;
+	type BlockNumberProvider = System;
+	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -912,7 +934,7 @@ impl pallet_treasury::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type SpendPeriod = SpendPeriod;
 	type Burn = Burn;
-	type BurnDestination = ();
+	type BurnDestination = pallet_accumulate_and_forward::LegacyAdapter<Runtime, Balances>;
 	type SpendFunds = Bounties;
 	type MaxApprovals = MaxApprovals;
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
@@ -1917,6 +1939,8 @@ construct_runtime! {
 		// Dynamic, configurable parameters.
 		Parameters: pallet_parameters = 46,
 
+		AccumulateForward: pallet_accumulate_and_forward = 49,
+
 		// Parachains pallets. Start indices at 50 to leave room.
 		ParachainsOrigin: parachains_origin = 50,
 		Configuration: parachains_configuration = 51,
@@ -2069,6 +2093,7 @@ mod benches {
 		[runtime_parachains::on_demand, OnDemand]
 		[runtime_parachains::coretime, Coretime]
 		// Substrate
+		[pallet_accumulate_and_forward, AccumulateForward]
 		[pallet_bags_list, VoterList]
 		[pallet_balances, Balances]
 		[pallet_beefy_mmr, BeefyMmrLeaf]
@@ -3727,6 +3752,88 @@ mod post_ahm_filter_tests {
 
 			let origin = RuntimeOrigin::signed(sender);
 			assert!(call.dispatch(origin).is_ok());
+		});
+	}
+}
+
+#[cfg(test)]
+mod accumulate_forward_tests {
+	use super::*;
+	use frame_support::{
+		assert_ok,
+		traits::{
+			fungible::{Inspect, Mutate},
+			tokens::Preservation,
+			OnInitialize,
+		},
+	};
+
+	const ALICE: [u8; 32] = [1u8; 32];
+	const BOB: [u8; 32] = [2u8; 32];
+
+	fn new_test_ext(balances: Vec<(AccountId, Balance)>) -> sp_io::TestExternalities {
+		let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+		// The accumulation account is funded out of band. Without the ED, deposits are burned.
+		pallet_balances::GenesisConfig::<Runtime> {
+			balances: balances
+				.into_iter()
+				.chain([(AccumulateForward::accumulation_account(), ExistentialDeposit::get())])
+				.collect(),
+			..Default::default()
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+		t.into()
+	}
+
+	fn accumulated() -> Balance {
+		<Balances as Inspect<_>>::balance(&AccumulateForward::accumulation_account())
+	}
+
+	#[test]
+	fn dust_accumulates_instead_of_being_burned() {
+		// GIVEN Alice and Bob hold exactly the ED.
+		let ed = ExistentialDeposit::get();
+		new_test_ext(vec![(AccountId::from(ALICE), ed), (AccountId::from(BOB), ed)]).execute_with(
+			|| {
+				let issuance_before = Balances::total_issuance();
+				let accumulated_before = accumulated();
+
+				// WHEN Alice is reaped, leaving dust behind.
+				let dust = ed / 2;
+				assert_ok!(<Balances as Mutate<_>>::transfer(
+					&AccountId::from(ALICE),
+					&AccountId::from(BOB),
+					ed - dust,
+					Preservation::Expendable,
+				));
+
+				// THEN the dust lands in the accumulation account and issuance is unchanged.
+				assert_eq!(<Balances as Inspect<_>>::balance(&AccountId::from(ALICE)), 0);
+				assert_eq!(accumulated(), accumulated_before + dust);
+				assert_eq!(Balances::total_issuance(), issuance_before);
+			},
+		);
+	}
+
+	#[test]
+	fn treasury_burn_accumulates_instead_of_being_burned() {
+		// GIVEN a funded treasury with no pending spends.
+		let treasury = Treasury::account_id();
+		new_test_ext(vec![(treasury.clone(), 1_000 * UNITS)]).execute_with(|| {
+			let issuance_before = Balances::total_issuance();
+			let accumulated_before = accumulated();
+			let burn = Burn::get() * Treasury::pot();
+
+			// WHEN a spend period elapses.
+			System::set_block_number(SpendPeriod::get());
+			<Treasury as OnInitialize<BlockNumber>>::on_initialize(SpendPeriod::get());
+
+			// THEN the burn lands in the accumulation account and issuance is unchanged.
+			assert!(burn > 0);
+			assert_eq!(accumulated(), accumulated_before + burn);
+			assert_eq!(<Balances as Inspect<_>>::balance(&treasury), 1_000 * UNITS - burn);
+			assert_eq!(Balances::total_issuance(), issuance_before);
 		});
 	}
 }

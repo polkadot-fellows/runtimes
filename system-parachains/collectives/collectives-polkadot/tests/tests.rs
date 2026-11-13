@@ -1,9 +1,19 @@
 use codec::Encode;
 use collectives_polkadot_runtime::{
+	ambassador::{AmbassadorReferendaInstance, AmbassadorTreasuryInstance},
+	fellowship::{FellowshipReferendaInstance, FellowshipTreasuryInstance},
 	xcm_config::{AssetHubLocation, RelayChainLocation},
-	ProxyType, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys,
+	AccumulateForward, Balances, ExistentialDeposit, ProxyType, Runtime, RuntimeCall,
+	RuntimeOrigin, SessionKeys,
 };
-use frame_support::{assert_err, assert_ok, traits::InstanceFilter};
+use frame_support::{
+	assert_err, assert_ok,
+	traits::{
+		fungible::{Inspect, Mutate},
+		InstanceFilter, OnUnbalanced,
+	},
+};
+use parachains_common::{AccountId, Balance};
 use parachains_runtimes_test_utils::GovernanceOrigin;
 use sp_runtime::{AccountId32, Either};
 use xcm::prelude::*;
@@ -175,4 +185,55 @@ fn proxy_type_superset_relation_matches_call_filters() {
 			}
 		}
 	}
+}
+
+type NegativeImbalance =
+	<Balances as frame_support::traits::Currency<AccountId>>::NegativeImbalance;
+
+/// Slashes `amount` from `who` and hands it to `Handler`, as a pallet does with a slashed deposit.
+fn slash_into<Handler: OnUnbalanced<NegativeImbalance>>(who: &AccountId, amount: Balance) {
+	use frame_support::traits::Currency;
+	Handler::on_unbalanced(<Balances as Currency<_>>::slash(who, amount).0);
+}
+
+/// Slashed deposits and treasury burns accumulate for the forward to the DAP on Asset Hub instead
+/// of being burned here, where the burn would not show in the network total that Asset Hub tracks.
+#[test]
+fn slashes_and_treasury_burns_accumulate_instead_of_being_burned() {
+	sp_io::TestExternalities::default().execute_with(|| {
+		// Given: the accumulation account holds the ED, as funded out of band.
+		let ed: Balance = ExistentialDeposit::get();
+		let accumulation_account = AccumulateForward::accumulation_account();
+		assert_ok!(Balances::mint_into(&accumulation_account, ed));
+		let alice = AccountId::from([1u8; 32]);
+		assert_ok!(Balances::mint_into(&alice, 10 * ed));
+		let issuance_before = Balances::total_issuance();
+
+		// When: every slash and burn handler receives a sub-ED amount.
+		let slash = ed / 4;
+		slash_into::<<Runtime as pallet_alliance::Config>::Slashed>(&alice, slash);
+		slash_into::<<Runtime as pallet_referenda::Config<FellowshipReferendaInstance>>::Slash>(
+			&alice, slash,
+		);
+		slash_into::<<Runtime as pallet_referenda::Config<AmbassadorReferendaInstance>>::Slash>(
+			&alice, slash,
+		);
+		slash_into::<
+			<Runtime as pallet_treasury::Config<FellowshipTreasuryInstance>>::BurnDestination,
+		>(&alice, slash);
+		slash_into::<
+			<Runtime as pallet_treasury::Config<AmbassadorTreasuryInstance>>::BurnDestination,
+		>(&alice, slash);
+
+		// Then: all of it reaches the accumulation account and nothing is burned.
+		assert_eq!(Balances::balance(&accumulation_account), ed + 5 * slash);
+		assert_eq!(Balances::total_issuance(), issuance_before);
+	});
+}
+
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	sp_io::TestExternalities::default().execute_with(
+		system_parachains_test_utils::dust_accumulates_instead_of_being_burned::<Runtime>,
+	);
 }

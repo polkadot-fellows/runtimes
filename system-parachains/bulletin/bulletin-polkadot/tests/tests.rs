@@ -19,9 +19,8 @@
 use bulletin_polkadot_runtime::{
 	storage::{StorageCallInspector, StoragePriorityBoost, ValidateBulletinCalls},
 	xcm_config::{GovernanceLocation, LocationToAccountId, PeopleLocation},
-	AccumulateForward, Balances, Block, Executive, ExistentialDeposit, HopPromotion, Runtime,
-	RuntimeCall, RuntimeOrigin, SessionKeys, System, TransactionStorage, TxExtension,
-	UncheckedExtrinsic,
+	Balances, Block, Executive, HopPromotion, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys,
+	System, TransactionStorage, TxExtension, UncheckedExtrinsic,
 };
 use bulletin_transaction_storage_primitives::cids::{
 	calculate_cid, CidConfig, HashingAlgorithm, RAW_CODEC,
@@ -30,11 +29,7 @@ use codec::Encode;
 use frame_support::{
 	assert_err, assert_noop, assert_ok,
 	dispatch::GetDispatchInfo,
-	traits::{
-		fungible::{Inspect, Mutate},
-		tokens::Preservation,
-		Contains, Get, Hooks,
-	},
+	traits::{fungible::Mutate, Contains, Get, Hooks},
 };
 use pallet_bulletin_data_renewal::{Call as RenewalCall, WeightInfo as _};
 use pallet_bulletin_transaction_storage::{
@@ -43,7 +38,7 @@ use pallet_bulletin_transaction_storage::{
 	Call as TxStorageCall, Config as TxStorageConfig, Origin as TxStorageOrigin, Quota,
 	TransactionRef, DEFAULT_MAX_TRANSACTION_SIZE, MAX_WRAPPER_DEPTH,
 };
-use parachains_common::{AccountId, Balance, BlockNumber, Signature};
+use parachains_common::{AccountId, BlockNumber, Signature};
 use parachains_runtimes_test_utils::GovernanceOrigin;
 use sp_core::{crypto::Ss58Codec, Pair};
 use sp_io::TestExternalities;
@@ -61,7 +56,6 @@ use xcm::latest::prelude::*;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
 const ALICE: [u8; 32] = [1u8; 32];
-const BOB: [u8; 32] = [2u8; 32];
 
 /// Build test externalities, letting the caller adjust the transaction-storage genesis.
 fn new_test_ext_with(
@@ -2218,35 +2212,9 @@ fn session_key_deposit_works() {
 	});
 }
 
-/// Dust accumulates for the forward to the DAP on Asset Hub instead of being burned here, where
-/// the burn would not show in the network total that Asset Hub tracks.
 #[test]
 fn dust_accumulates_instead_of_being_burned() {
-	new_test_ext().execute_with(|| {
-		let ed: Balance = ExistentialDeposit::get();
-		let accumulation_account = AccumulateForward::accumulation_account();
-		// Funded out of band before the upgrade; without the ED, dust is rejected.
-		assert_ok!(Balances::mint_into(&accumulation_account, ed));
-
-		let alice = AccountId::from(ALICE);
-		let bob = AccountId::from(BOB);
-		assert_ok!(Balances::mint_into(&alice, ed));
-		assert_ok!(Balances::mint_into(&bob, ed));
-
-		let issuance_before = Balances::total_issuance();
-		let accumulated_before = Balances::balance(&accumulation_account);
-
-		// Reap Alice, leaving dust behind.
-		let dust = ed / 2;
-		assert_ok!(<Balances as Mutate<_>>::transfer(
-			&alice,
-			&bob,
-			ed - dust,
-			Preservation::Expendable,
-		));
-
-		assert_eq!(Balances::balance(&alice), 0);
-		assert_eq!(Balances::balance(&accumulation_account), accumulated_before + dust);
-		assert_eq!(Balances::total_issuance(), issuance_before, "the dust is not burned");
-	});
+	new_test_ext().execute_with(
+		system_parachains_test_utils::dust_accumulates_instead_of_being_burned::<Runtime>,
+	);
 }

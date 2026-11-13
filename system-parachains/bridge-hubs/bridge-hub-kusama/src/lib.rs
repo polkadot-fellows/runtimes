@@ -322,7 +322,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const AccumulateForwardPalletId: PalletId =
 		kusama_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
-	pub const ForwardPeriod: BlockNumber = HOURS;
+	pub const ForwardPeriod: BlockNumber = kusama_runtime_constants::time::HOURS;
 	pub const MinForwardAmount: Balance = UNITS;
 }
 
@@ -336,10 +336,7 @@ impl pallet_accumulate_and_forward::Config for Runtime {
 	>;
 	type TransferPeriod = ForwardPeriod;
 	type MinTransferAmount = MinForwardAmount;
-	// Local clock: the relay one would fire on one parity only, as forwards happen on exact
-	// multiples of the period. TODO: use `RelaychainDataProvider` once
-	// https://github.com/paritytech/polkadot-sdk/issues/13149 lands.
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
 	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
@@ -1552,51 +1549,12 @@ mod tests {
 #[cfg(test)]
 mod accumulate_and_forward_tests {
 	use super::*;
-	use frame_support::{
-		assert_ok,
-		traits::{
-			fungible::{Inspect, Mutate},
-			tokens::Preservation,
-		},
-	};
 	use parachains_runtimes_test_utils::ExtBuilder;
 
-	const ALICE: [u8; 32] = [1u8; 32];
-	const BOB: [u8; 32] = [2u8; 32];
-
-	/// Dust accumulates for the forward to Asset Hub instead of being burned here, where the burn
-	/// would not show in the network total that Asset Hub tracks.
 	#[test]
 	fn dust_accumulates_instead_of_being_burned() {
-		let existential_deposit: Balance =
-			<Runtime as pallet_balances::Config>::ExistentialDeposit::get();
-		let accumulation_account = AccumulateForward::accumulation_account();
-
-		ExtBuilder::<Runtime>::default()
-			// Funded out of band before the upgrade; without the ED, dust is rejected.
-			.with_balances(vec![(accumulation_account.clone(), existential_deposit)])
-			.build()
-			.execute_with(|| {
-				let alice = AccountId::from(ALICE);
-				let bob = AccountId::from(BOB);
-				assert_ok!(Balances::mint_into(&alice, existential_deposit));
-				assert_ok!(Balances::mint_into(&bob, existential_deposit));
-
-				let issuance_before = Balances::total_issuance();
-				let accumulated_before = Balances::balance(&accumulation_account);
-
-				// Reap Alice, leaving dust behind.
-				let dust = existential_deposit / 2;
-				assert_ok!(<Balances as Mutate<_>>::transfer(
-					&alice,
-					&bob,
-					existential_deposit - dust,
-					Preservation::Expendable,
-				));
-
-				assert_eq!(Balances::balance(&alice), 0);
-				assert_eq!(Balances::balance(&accumulation_account), accumulated_before + dust);
-				assert_eq!(Balances::total_issuance(), issuance_before);
-			});
+		ExtBuilder::<Runtime>::default().build().execute_with(
+			system_parachains_test_utils::dust_accumulates_instead_of_being_burned::<Runtime>,
+		);
 	}
 }

@@ -31,6 +31,10 @@ pub fn genesis() -> Storage {
 				.into_iter()
 				.chain([RelayTreasuryPalletAccount::get(), StakingPot::get()])
 				.map(|k| (k, ED * 4096))
+				.chain([(
+					collectives_polkadot_runtime::AccumulateForward::accumulation_account(),
+					ED,
+				)])
 				.collect(),
 			dev_accounts: None,
 		},

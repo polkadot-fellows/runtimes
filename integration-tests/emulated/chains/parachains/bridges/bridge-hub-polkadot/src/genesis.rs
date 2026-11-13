@@ -33,6 +33,10 @@ pub fn genesis() -> sp_core::storage::Storage {
 				.into_iter()
 				.chain([TreasuryAccount::get(), StakingPot::get()])
 				.map(|k| (k, ED * 4096))
+				.chain([(
+					bridge_hub_polkadot_runtime::AccumulateForward::accumulation_account(),
+					ED,
+				)])
 				.collect(),
 			dev_accounts: None,
 		},

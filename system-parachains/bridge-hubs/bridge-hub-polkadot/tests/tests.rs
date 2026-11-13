@@ -54,6 +54,7 @@ use frame_support::{
 	},
 };
 use parachains_common::{AccountId, AuraId, Balance};
+use parachains_runtimes_test_utils::ExtBuilder;
 use sp_consensus_aura::SlotDuration;
 use sp_core::crypto::Ss58Codec;
 use sp_keyring::Sr25519Keyring::{Alice, Bob};
@@ -745,4 +746,11 @@ fn session_key_deposit_works() {
 		let generated = SessionKeys::generate(&owner.encode(), None);
 		(generated.keys, generated.proof.encode())
 	});
+}
+
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	ExtBuilder::<Runtime>::default().build().execute_with(
+		system_parachains_test_utils::dust_accumulates_instead_of_being_burned::<Runtime>,
+	);
 }
