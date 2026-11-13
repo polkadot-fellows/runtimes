@@ -143,6 +143,30 @@ pub struct MigratedBalances {
 	pub ti_corrected: u128,
 }
 
+/// The total issuance against the balances the accounts stage read, so the `TiCorrection` stage
+/// burns only the issuance no account held.
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Clone,
+	Copy,
+	Default,
+	PartialEq,
+	Eq,
+	Debug,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub struct IssuanceAudit {
+	/// Total issuance when the accounts stage started its walk.
+	pub issuance: u128,
+	/// The `free + reserved` of every account the walk visited, read before it was withdrawn.
+	pub balances: u128,
+	/// Whether the walk visited every account. A walk cut short read only part of the balances.
+	pub finished: bool,
+}
+
 /// Wall-clock type the schedule is expressed in.
 pub type MomentOf<T> = <<T as Config>::TimeProvider as Time>::Moment;
 pub type MigrationStageOf<T> =
@@ -223,7 +247,8 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	SweepDust {
 		last_key: Option<AccountId>,
 	},
-	/// Burn the audited issuance that no account holds.
+	/// Burn the issuance no account held when the accounts stage read every balance, from
+	/// [`RcIssuanceAudit`].
 	TiCorrection,
 	CoolOff {
 		/// The block number at which the post migration cool-off period will end. It is absolute
@@ -392,6 +417,11 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type RcMigratedBalance<T: Config> = StorageValue<_, MigratedBalances, ValueQuery>;
 
+	/// Total issuance against the balances the accounts stage read. Started afresh by each walk
+	/// from the first account, and taken by the `TiCorrection` stage.
+	#[pallet::storage]
+	pub type RcIssuanceAudit<T: Config> = StorageValue<_, IssuanceAudit, ValueQuery>;
+
 	/// Per-block limits of the data stages.
 	#[pallet::storage]
 	pub type Limits<T: Config> = StorageValue<_, BlockLimits, ValueQuery>;
@@ -505,6 +535,8 @@ pub mod pallet {
 		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
 		/// retry it.
 		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
+		/// Issuance that no account held was burned.
+		IssuanceCorrected { burned: u128 },
 	}
 
 	#[pallet::hooks]
@@ -809,10 +841,11 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::TiCorrection => {
+					Self::correct_issuance();
 					Self::transition(MigrationStage::CoolOff {
 						end_at: now.saturating_add(CoolOffPeriod::<T>::get()),
 					});
-					T::DbWeight::get().reads_writes(2, 2)
+					T::DbWeight::get().reads_writes(5, 5)
 				},
 				// wait cool off period before finishing migration
 				MigrationStage::CoolOff { end_at } if now >= end_at => {
@@ -846,10 +879,23 @@ pub mod pallet {
 		fn migrate_accounts_block(
 			last_key: Option<T::AccountId>,
 		) -> Result<Option<T::AccountId>, DispatchError> {
+			// a walk from the first account starts the audit afresh, so a rewind counts nothing
+			// twice
+			if last_key.is_none() {
+				RcIssuanceAudit::<T>::put(IssuanceAudit {
+					issuance: pallet_balances::TotalIssuance::<T>::get(),
+					..Default::default()
+				});
+			}
+
 			// withdraw
 			let manager = Manager::<T>::get();
-			let accounts::BlockWithdrawals { to_ct, to_ah, last_key } =
+			let accounts::BlockWithdrawals { to_ct, to_ah, balances, last_key } =
 				accounts::AccountsMigrator::<T>::migrate_many(last_key, manager.as_ref());
+			RcIssuanceAudit::<T>::mutate(|audit| {
+				audit.balances = audit.balances.saturating_add(balances);
+				audit.finished = last_key.is_none();
+			});
 
 			// book what left
 			let ct_reserved: u128 = to_ct.iter().flat_map(|a| &a.holds).map(|h| h.amount).sum();
@@ -873,6 +919,34 @@ pub mod pallet {
 				Self::send_teleport(chunk.to_vec())?;
 			}
 			Ok(last_key)
+		}
+
+		/// Burn the issuance no account held when the accounts stage read every balance.
+		fn correct_issuance() {
+			let audit = RcIssuanceAudit::<T>::take();
+			if !audit.finished {
+				log::error!(
+					target: LOG_TARGET,
+					"The accounts stage did not read every account, no issuance burned"
+				);
+				return;
+			}
+			let Some(burned) = audit.issuance.checked_sub(audit.balances) else {
+				log::warn!(
+					target: LOG_TARGET,
+					"Accounts held {} more than the total issuance, no issuance burned",
+					audit.balances - audit.issuance
+				);
+				return;
+			};
+
+			pallet_balances::TotalIssuance::<T>::mutate(|ti| *ti = ti.saturating_sub(burned));
+			RcMigratedBalance::<T>::mutate(|migrated| {
+				defensive_assert!(migrated.kept >= burned, "burned more than is kept");
+				migrated.kept = migrated.kept.saturating_sub(burned);
+				migrated.ti_corrected = migrated.ti_corrected.saturating_add(burned);
+			});
+			Self::deposit_event(Event::IssuanceCorrected { burned });
 		}
 
 		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.

@@ -127,6 +127,9 @@ pub struct BlockWithdrawals {
 	pub to_ct: Vec<PortableAccount<AccountId32, u128>>,
 	/// Free balance to teleport to Asset Hub, per account.
 	pub to_ah: Vec<(AccountId32, u128)>,
+	/// The `free + reserved` of every account visited, deferred ones included, read before it
+	/// was withdrawn. See [`crate::RcIssuanceAudit`].
+	pub balances: u128,
 	/// Where the next block continues from; `None` once every account has been visited.
 	pub last_key: Option<AccountId32>,
 }
@@ -293,12 +296,14 @@ impl<T: Config> AccountsMigrator<T> {
 			None => frame_system::Account::<T>::iter(),
 		};
 
-		let mut out = BlockWithdrawals { to_ct: Vec::new(), to_ah: Vec::new(), last_key: None };
+		let mut out =
+			BlockWithdrawals { to_ct: Vec::new(), to_ah: Vec::new(), balances: 0, last_key: None };
 		for _ in 0..Limits::<T>::get().items_per_block() {
 			let Some((who, info)) = iter.next() else {
 				out.last_key = None;
 				return out;
 			};
+			out.balances = out.balances.saturating_add(info.data.total());
 			if !Self::deferred(&who, &info, manager) {
 				match with_storage_layer(|| Self::withdraw_account(&who, &info)) {
 					Ok(Withdrawal { to_ct, to_ah }) => {
