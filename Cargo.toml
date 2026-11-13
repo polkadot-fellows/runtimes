@@ -172,6 +172,7 @@ pallet-grandpa = { version = "49.0.0", default-features = false }
 pallet-identity = { version = "49.0.0", default-features = false }
 pallet-indices = { version = "49.0.0", default-features = false }
 pallet-insecure-randomness-collective-flip = { version = "37.0.0", default-features = false }
+pallet-kill-switch = { path = "pallets/kill-switch", default-features = false }
 pallet-membership = { version = "49.0.0", default-features = false }
 pallet-message-queue = { version = "52.0.0", default-features = false }
 pallet-mmr = { version = "49.0.0", default-features = false }
@@ -216,6 +217,7 @@ pallet-timestamp = { version = "48.0.0", default-features = false }
 pallet-transaction-payment = { version = "49.0.0", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { version = "49.0.0", default-features = false }
 pallet-treasury = { version = "48.0.0", default-features = false }
+pallet-tx-pause = { version = "30.0.0", default-features = false }
 pallet-uniques = { version = "49.0.0", default-features = false }
 pallet-utility = { version = "49.0.1", default-features = false }
 pallet-verify-signature = { version = "0.12.0", default-features = false }
@@ -365,6 +367,7 @@ members = [
 	"integration-tests/zombienet",
 	"pallets/ah-ops",
 	"pallets/ct-migrator",
+	"pallets/kill-switch",
 	"pallets/rc-migrator",
 	"pallets/rc2-migrator",
 	"pallets/rc2-migrator/primitives",

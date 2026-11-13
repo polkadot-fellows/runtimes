@@ -11792,6 +11792,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-kill-switch"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-tx-pause",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io 48.0.0",
+ "sp-runtime 48.0.0",
+]
+
+[[package]]
 name = "pallet-membership"
 version = "49.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12690,6 +12706,18 @@ dependencies = [
  "serde",
  "sp-core 43.0.0",
  "sp-runtime 48.0.0",
+]
+
+[[package]]
+name = "pallet-tx-pause"
+version = "30.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3372c0c172f1004b296aa9968e80ab000b45f761870b40a5e206544465bbd37"
+dependencies = [
+ "docify",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
 ]
 
 [[package]]
