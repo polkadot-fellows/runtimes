@@ -4,11 +4,13 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [2.5.3] 06.11.2026
+## [Unreleased]
 
 ### Added
 
 - Asset Hub Polkadot: add the `dotns_maintenance` OpenGov track for the maintenance of dotNS operational values ([#1350](https://github.com/polkadot-fellows/runtimes/pull/1350)).
+
+## [2.5.3] 06.11.2026
 
 ### Changed
 
