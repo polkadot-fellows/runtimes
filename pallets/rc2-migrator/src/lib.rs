@@ -39,15 +39,18 @@ mod mock;
 pub mod test_utils;
 #[cfg(test)]
 mod tests;
+pub mod transaction_extension;
 pub mod xcm_config;
 
 pub mod accounts;
 
 pub use pallet::*;
+pub use transaction_extension::DenySignedOnceMigrationStarts;
 
 use alloc::{vec, vec::Vec};
 use frame_support::{
 	defensive_assert,
+	dispatch::DispatchErrorWithPostInfo,
 	pallet_prelude::*,
 	sp_runtime::traits::Saturating,
 	storage::with_storage_layer,
@@ -536,18 +539,20 @@ pub mod pallet {
 			start: MomentOf<T>,
 			warm_up: BlockNumberFor<T>,
 			cool_off: BlockNumberFor<T>,
-		) -> DispatchResult {
-			Self::ensure_admin_or_manager(origin)?;
-			ensure!(
-				RcMigrationStage::<T>::get() == MigrationStage::Pending,
-				Error::<T>::AlreadyScheduled
-			);
-			ensure!(start > T::TimeProvider::now(), Error::<T>::StartInPast);
+		) -> DispatchResultWithPostInfo {
+			Self::free_for_manager(origin, |origin| {
+				Self::ensure_admin_or_manager(origin)?;
+				ensure!(
+					RcMigrationStage::<T>::get() == MigrationStage::Pending,
+					Error::<T>::AlreadyScheduled
+				);
+				ensure!(start > T::TimeProvider::now(), Error::<T>::StartInPast);
 
-			WarmUpPeriod::<T>::put(warm_up);
-			CoolOffPeriod::<T>::put(cool_off);
-			Self::transition(MigrationStage::Scheduled { start });
-			Ok(())
+				WarmUpPeriod::<T>::put(warm_up);
+				CoolOffPeriod::<T>::put(cool_off);
+				Self::transition(MigrationStage::Scheduled { start });
+				Ok(())
+			})
 		}
 
 		/// Set the migration stage.
@@ -561,15 +566,20 @@ pub mod pallet {
 		/// starts on the next block.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 2))]
-		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
-			Self::ensure_admin_or_manager(origin)?;
-			ensure!(Paused::<T>::get(), Error::<T>::NotPaused);
+		pub fn force_set_stage(
+			origin: OriginFor<T>,
+			stage: MigrationStageOf<T>,
+		) -> DispatchResultWithPostInfo {
+			Self::free_for_manager(origin, |origin| {
+				Self::ensure_admin_or_manager(origin)?;
+				ensure!(Paused::<T>::get(), Error::<T>::NotPaused);
 
-			if !stage.is_ongoing() {
-				Paused::<T>::kill();
-			}
-			Self::transition(stage);
-			Ok(())
+				if !stage.is_ongoing() {
+					Paused::<T>::kill();
+				}
+				Self::transition(stage);
+				Ok(())
+			})
 		}
 
 		/// Start the data migration.
@@ -580,23 +590,25 @@ pub mod pallet {
 		/// during the warm-up is accepted and changes nothing.
 		#[pallet::call_index(2)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(3, 1))]
-		pub fn ct_ready(origin: OriginFor<T>) -> DispatchResult {
-			if T::CtOrigin::ensure_origin(origin.clone()).is_err() {
-				Self::ensure_admin_or_manager(origin)?;
-			}
+		pub fn ct_ready(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			Self::free_for_manager(origin, |origin| {
+				if T::CtOrigin::ensure_origin(origin.clone()).is_err() {
+					Self::ensure_admin_or_manager(origin)?;
+				}
 
-			match RcMigrationStage::<T>::get() {
-				MigrationStage::WaitingForCt => {
-					let end_at = frame_system::Pallet::<T>::block_number()
-						.saturating_add(WarmUpPeriod::<T>::get());
-					Self::transition(MigrationStage::WarmUp { end_at });
-				},
-				// A repeated confirmation during the warm-up is accepted and changes nothing; one
-				// at any other stage is an error.
-				MigrationStage::WarmUp { .. } => (),
-				_ => return Err(Error::<T>::NotWaitingForCt.into()),
-			}
-			Ok(())
+				match RcMigrationStage::<T>::get() {
+					MigrationStage::WaitingForCt => {
+						let end_at = frame_system::Pallet::<T>::block_number()
+							.saturating_add(WarmUpPeriod::<T>::get());
+						Self::transition(MigrationStage::WarmUp { end_at });
+					},
+					// A repeated confirmation during the warm-up is accepted and changes nothing;
+					// one at any other stage is an error.
+					MigrationStage::WarmUp { .. } => (),
+					_ => return Err(Error::<T>::NotWaitingForCt.into()),
+				}
+				Ok(())
+			})
 		}
 
 		/// Cancel the migration.
@@ -605,15 +617,17 @@ pub mod pallet {
 		/// the Coretime chain has not been told anything yet.
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
-		pub fn cancel_migration(origin: OriginFor<T>) -> DispatchResult {
-			Self::ensure_admin_or_manager(origin)?;
-			ensure!(
-				matches!(RcMigrationStage::<T>::get(), MigrationStage::Scheduled { .. }),
-				Error::<T>::NotScheduled
-			);
+		pub fn cancel_migration(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			Self::free_for_manager(origin, |origin| {
+				Self::ensure_admin_or_manager(origin)?;
+				ensure!(
+					matches!(RcMigrationStage::<T>::get(), MigrationStage::Scheduled { .. }),
+					Error::<T>::NotScheduled
+				);
 
-			Self::transition(MigrationStage::Pending);
-			Ok(())
+				Self::transition(MigrationStage::Pending);
+				Ok(())
+			})
 		}
 
 		/// Set the manager account id.
@@ -625,20 +639,25 @@ pub mod pallet {
 		/// the end.
 		#[pallet::call_index(4)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
-		pub fn set_manager(origin: OriginFor<T>, new: Option<T::AccountId>) -> DispatchResult {
-			Self::ensure_root_or_admin(origin)?;
-			if let Some(ref who) = new {
-				ensure!(
-					frame_system::Pallet::<T>::consumers(who) == 0,
-					Error::<T>::AccountReferenced
-				);
-				// TODO(ahm-v2): Manager account will be preserved and kept funded until
-				// the cool-off reaps it.
-			}
-			let old = Manager::<T>::get();
-			Manager::<T>::set(new.clone());
-			Self::deposit_event(Event::ManagerSet { old, new });
-			Ok(())
+		pub fn set_manager(
+			origin: OriginFor<T>,
+			new: Option<T::AccountId>,
+		) -> DispatchResultWithPostInfo {
+			Self::free_for_manager(origin, |origin| {
+				Self::ensure_root_or_admin(origin)?;
+				if let Some(ref who) = new {
+					ensure!(
+						frame_system::Pallet::<T>::consumers(who) == 0,
+						Error::<T>::AccountReferenced
+					);
+					// TODO(ahm-v2): Manager account will be preserved and kept funded until
+					// the cool-off reaps it.
+				}
+				let old = Manager::<T>::get();
+				Manager::<T>::set(new.clone());
+				Self::deposit_event(Event::ManagerSet { old, new });
+				Ok(())
+			})
 		}
 
 		/// Pause the migration.
@@ -648,37 +667,45 @@ pub mod pallet {
 		/// paused; a scheduled one is cancelled instead.
 		#[pallet::call_index(5)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
-		pub fn pause_migration(origin: OriginFor<T>) -> DispatchResult {
-			Self::ensure_admin_or_manager(origin)?;
-			let stage = RcMigrationStage::<T>::get();
-			ensure!(stage.is_ongoing(), Error::<T>::NotRunning);
-			ensure!(!Paused::<T>::get(), Error::<T>::AlreadyPaused);
+		pub fn pause_migration(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			Self::free_for_manager(origin, |origin| {
+				Self::ensure_admin_or_manager(origin)?;
+				let stage = RcMigrationStage::<T>::get();
+				ensure!(stage.is_ongoing(), Error::<T>::NotRunning);
+				ensure!(!Paused::<T>::get(), Error::<T>::AlreadyPaused);
 
-			Paused::<T>::put(true);
-			Self::deposit_event(Event::MigrationPaused { stage });
-			Ok(())
+				Paused::<T>::put(true);
+				Self::deposit_event(Event::MigrationPaused { stage });
+				Ok(())
+			})
 		}
 
 		/// Resume a paused migration from its current stage.
 		#[pallet::call_index(6)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
-		pub fn resume_migration(origin: OriginFor<T>) -> DispatchResult {
-			Self::ensure_admin_or_manager(origin)?;
-			ensure!(Paused::<T>::get(), Error::<T>::NotPaused);
+		pub fn resume_migration(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			Self::free_for_manager(origin, |origin| {
+				Self::ensure_admin_or_manager(origin)?;
+				ensure!(Paused::<T>::get(), Error::<T>::NotPaused);
 
-			Paused::<T>::kill();
-			Self::deposit_event(Event::MigrationResumed { stage: RcMigrationStage::<T>::get() });
-			Ok(())
+				Paused::<T>::kill();
+				Self::deposit_event(Event::MigrationResumed {
+					stage: RcMigrationStage::<T>::get(),
+				});
+				Ok(())
+			})
 		}
 
 		/// Set the per-block limits of the data stages.
 		#[pallet::call_index(7)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
-		pub fn set_limits(origin: OriginFor<T>, limits: BlockLimits) -> DispatchResult {
-			Self::ensure_admin_or_manager(origin)?;
-			ensure!(limits.validate(), Error::<T>::BadLimits);
-			Limits::<T>::put(limits);
-			Ok(())
+		pub fn set_limits(origin: OriginFor<T>, limits: BlockLimits) -> DispatchResultWithPostInfo {
+			Self::free_for_manager(origin, |origin| {
+				Self::ensure_admin_or_manager(origin)?;
+				ensure!(limits.validate(), Error::<T>::BadLimits);
+				Limits::<T>::put(limits);
+				Ok(())
+			})
 		}
 	}
 
@@ -693,14 +720,37 @@ pub mod pallet {
 
 		/// Ensure that the origin is one accepted by [`Self::ensure_root_or_admin`] or signed by
 		/// the [`Manager`] account id.
-		fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
+		pub(crate) fn ensure_admin_or_manager(origin: OriginFor<T>) -> DispatchResult {
 			// TODO(ahm-v2): allow hardcoded local multisig to act as manager as well.
-			if let Ok(who) = ensure_signed(origin.clone()) {
-				if Manager::<T>::get().is_some_and(|manager| manager == who) {
-					return Ok(());
-				}
+			if Self::is_manager(&origin) {
+				return Ok(());
 			}
 			Self::ensure_root_or_admin(origin)
+		}
+
+		/// Whether `origin` is signed by the [`Manager`] account id.
+		fn is_manager(origin: &OriginFor<T>) -> bool {
+			ensure_signed(origin.clone()).is_ok_and(|who| Manager::<T>::get() == Some(who))
+		}
+
+		/// Run `call`, free of fees if the [`Manager`] sent it, whether it succeeds or fails. A
+		/// tip is still paid.
+		///
+		/// Once the migration starts, the manager's calls to this pallet are the only signed
+		/// transactions [`crate::DenySignedOnceMigrationStarts`] lets in, and a fee would credit
+		/// accounts the accounts stage may already have passed.
+		///
+		/// `call` is a closure so that its failures pass through here too. A `?` or `ensure!` in a
+		/// call body returns from the call at once, with the default `Pays::Yes`, and would skip a
+		/// conversion made after it. The manager is read before `call` runs, which may change it.
+		fn free_for_manager(
+			origin: OriginFor<T>,
+			call: impl FnOnce(OriginFor<T>) -> DispatchResult,
+		) -> DispatchResultWithPostInfo {
+			let pays = if Self::is_manager(&origin) { Pays::No } else { Pays::Yes };
+			call(origin)
+				.map(|()| pays.into())
+				.map_err(|error| DispatchErrorWithPostInfo { post_info: pays.into(), error })
 		}
 
 		/// Execute one block of the stage machine.
