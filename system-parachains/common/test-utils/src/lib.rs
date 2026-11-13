@@ -187,7 +187,7 @@ where
 	assert_eq!(Balances::<Runtime>::total_issuance(), issuance_before, "the dust is not burned");
 }
 
-/// The forward period is counted in relay chain blocks, whatever the local block number is.
+/// The forward period is one hour, counted in relay chain blocks whatever the local block number is.
 pub fn forward_period_counts_relay_blocks<Runtime>()
 where
 	Runtime: pallet_accumulate_and_forward::Config + cumulus_pallet_parachain_system::Config,
@@ -212,4 +212,6 @@ where
 
 	// Then: the forward attempt is recorded at the relay block.
 	assert_eq!(LastForwardBlock::<Runtime>::get(), Some(1000));
+	// And: the period is one hour of 6s relay blocks.
+	assert_eq!(<Runtime as Config>::TransferPeriod::get(), 600);
 }
