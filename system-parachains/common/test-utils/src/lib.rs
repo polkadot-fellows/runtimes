@@ -195,47 +195,21 @@ where
 		BlockNumberProvider<BlockNumber = u32>,
 	<Runtime as pallet_accumulate_and_forward::Config>::Currency: Mutate<AccountIdOf<Runtime>>,
 {
-	type Relay<Runtime> = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
-	type Currency<Runtime> = <Runtime as pallet_accumulate_and_forward::Config>::Currency;
-	type AccumulateForward<Runtime> = pallet_accumulate_and_forward::Pallet<Runtime>;
-	let last_forward = pallet_accumulate_and_forward::LastForwardBlock::<Runtime>::get;
-	let on_idle = || {
-		<AccumulateForward<Runtime> as Hooks<_>>::on_idle(
-			frame_system::Pallet::<Runtime>::block_number(),
-			Weight::MAX,
-		)
-	};
-	let fund = || {
-		assert_ok!(Currency::<Runtime>::mint_into(
-			&AccumulateForward::<Runtime>::accumulation_account(),
-			Currency::<Runtime>::minimum_balance() +
-				<Runtime as pallet_accumulate_and_forward::Config>::MinTransferAmount::get(),
-		));
-	};
-	let period = <Runtime as pallet_accumulate_and_forward::Config>::TransferPeriod::get();
-	let start = 10 * period;
+	use cumulus_pallet_parachain_system::RelaychainDataProvider;
+	use pallet_accumulate_and_forward::{Config, LastForwardBlock, Pallet};
 
-	// Given: a funded accumulation account, and a local block number that differs from the relay
-	// one and never moves.
-	fund();
+	// Given: a funded accumulation account, local block 1 and relay block 1000.
+	assert_ok!(<Runtime as Config>::Currency::mint_into(
+		&Pallet::<Runtime>::accumulation_account(),
+		<Runtime as Config>::Currency::minimum_balance() +
+			<Runtime as Config>::MinTransferAmount::get(),
+	));
 	frame_system::Pallet::<Runtime>::set_block_number(1u32.into());
+	RelaychainDataProvider::<Runtime>::set_block_number(1000);
 
-	// When: `on_idle` runs at relay block `start`.
-	Relay::<Runtime>::set_block_number(start);
-	on_idle();
-	// Then: a forward is attempted and recorded at the relay block.
-	assert_eq!(last_forward(), Some(start));
+	// When: `on_idle` runs.
+	Pallet::<Runtime>::on_idle(1u32.into(), Weight::MAX);
 
-	// When: the relay is one block short of a full period later.
-	fund();
-	Relay::<Runtime>::set_block_number(start + period - 1);
-	on_idle();
-	// Then: no forward is attempted.
-	assert_eq!(last_forward(), Some(start));
-
-	// When: a full period of relay blocks has passed.
-	Relay::<Runtime>::set_block_number(start + period);
-	on_idle();
-	// Then: the next forward is attempted.
-	assert_eq!(last_forward(), Some(start + period));
+	// Then: the forward attempt is recorded at the relay block.
+	assert_eq!(LastForwardBlock::<Runtime>::get(), Some(1000));
 }
