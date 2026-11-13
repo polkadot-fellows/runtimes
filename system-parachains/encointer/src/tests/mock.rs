@@ -26,7 +26,11 @@ use frame_support::{
 use frame_system::{EnsureRoot, EnsureSigned};
 use parachains_common::xcm_config::ParentRelayOrSiblingParachains;
 use polkadot_primitives::{AccountIndex, BlakeTwo256, Signature};
-use sp_runtime::{generic, traits::MaybeEquivalence, AccountId32, BuildStorage};
+use sp_runtime::{
+	generic,
+	traits::{MaybeEquivalence, TryConvertInto},
+	AccountId32, BuildStorage,
+};
 use xcm::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
@@ -35,10 +39,7 @@ use xcm_builder::{
 	NoChecking, SignedAccountId32AsNative, SignedToAccountId32, TakeWeightCredit, UsingComponents,
 	WithComputedOrigin,
 };
-use xcm_executor::{
-	traits::{ConvertLocation, JustTry},
-	XcmExecutor,
-};
+use xcm_executor::{traits::ConvertLocation, XcmExecutor};
 
 pub type TxExtension = (
 	frame_system::CheckNonZeroSender<Test>,
@@ -183,7 +184,7 @@ pub type LocalAssetsTransactor = FungiblesAdapter<
 		AssetIdForAssets,
 		Balance,
 		FromLocationToAsset<Location, AssetIdForAssets>,
-		JustTry,
+		TryConvertInto,
 	>,
 	SovereignAccountOf,
 	AccountId,

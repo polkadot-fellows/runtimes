@@ -72,11 +72,11 @@ cumulus-primitives-aura = { version = "0.25.0", default-features = false }
 cumulus-primitives-core = { version = "0.27.0", default-features = false }
 cumulus-primitives-utility = { version = "0.35.0", default-features = false }
 emulated-integration-tests-common = { version = "43.0.0" }
-encointer-balances-tx-payment = { version = "~24.0.0", default-features = false }
-encointer-balances-tx-payment-rpc-runtime-api = { version = "~24.0.0", default-features = false }
+encointer-balances-tx-payment = { version = "~25.0.0", default-features = false }
+encointer-balances-tx-payment-rpc-runtime-api = { version = "~25.0.0", default-features = false }
 encointer-kusama-runtime = { path = "system-parachains/encointer" }
 encointer-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/encointer/encointer-kusama" }
-encointer-primitives = { version = "~24.0.0", default-features = false }
+encointer-primitives = { version = "~25.0.0", default-features = false }
 ed25519-zebra = { version = "4.0.3", default-features = false }
 enumflags2 = { version = "0.7.7" }
 frame-benchmarking = { version = "50.0.0", default-features = false }
@@ -153,21 +153,21 @@ pallet-dap = { version = "0.7.0", default-features = false }
 pallet-core-fellowship = { version = "34.0.0", default-features = false }
 pallet-election-provider-multi-phase = { version = "51.0.0", default-features = false }
 pallet-election-provider-support-benchmarking = { version = "49.0.0", default-features = false }
-pallet-encointer-balances = { version = "~24.0.0", default-features = false }
-pallet-encointer-bazaar = { version = "~24.0.0", default-features = false }
-pallet-encointer-bazaar-rpc-runtime-api = { version = "~24.0.0", default-features = false }
-pallet-encointer-ceremonies = { version = "~24.0.0", default-features = false }
-pallet-encointer-ceremonies-rpc-runtime-api = { version = "~24.0.0", default-features = false }
-pallet-encointer-communities = { version = "~24.0.0", default-features = false }
-pallet-encointer-communities-rpc-runtime-api = { version = "~24.0.0", default-features = false }
-pallet-encointer-democracy = { version = "~24.0.0", default-features = false }
-pallet-encointer-faucet = { version = "~24.0.0", default-features = false }
-pallet-encointer-offline-payment = { version = "~24.0.0", default-features = false }
-pallet-encointer-reputation-commitments = { version = "~24.0.0", default-features = false }
-pallet-encointer-reputation-rings = { version = "~24.0.0", default-features = false }
-pallet-encointer-scheduler = { version = "~24.0.0", default-features = false }
-pallet-encointer-treasuries = { version = "~24.0.0", default-features = false }
-pallet-encointer-treasuries-rpc-runtime-api = { version = "~24.0.0", default-features = false }
+pallet-encointer-balances = { version = "~25.0.0", default-features = false }
+pallet-encointer-bazaar = { version = "~25.0.0", default-features = false }
+pallet-encointer-bazaar-rpc-runtime-api = { version = "~25.0.0", default-features = false }
+pallet-encointer-ceremonies = { version = "~25.0.0", default-features = false }
+pallet-encointer-ceremonies-rpc-runtime-api = { version = "~25.0.0", default-features = false }
+pallet-encointer-communities = { version = "~25.0.0", default-features = false }
+pallet-encointer-communities-rpc-runtime-api = { version = "~25.0.0", default-features = false }
+pallet-encointer-democracy = { version = "~25.0.0", default-features = false }
+pallet-encointer-faucet = { version = "~25.0.0", default-features = false }
+pallet-encointer-offline-payment = { version = "~25.0.0", default-features = false }
+pallet-encointer-reputation-commitments = { version = "~25.0.0", default-features = false }
+pallet-encointer-reputation-rings = { version = "~25.0.0", default-features = false }
+pallet-encointer-scheduler = { version = "~25.0.0", default-features = false }
+pallet-encointer-treasuries = { version = "~25.0.0", default-features = false }
+pallet-encointer-treasuries-rpc-runtime-api = { version = "~25.0.0", default-features = false }
 pallet-fast-unstake = { version = "49.0.0", default-features = false }
 pallet-glutton = { version = "36.0.0", default-features = false }
 pallet-grandpa = { version = "50.0.0", default-features = false }
