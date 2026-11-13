@@ -2181,23 +2181,8 @@ pub type TxExtension = (
 pub mod migrations {
 	use super::*;
 
-	parameter_types! {
-		pub const RecoveryPalletName: &'static str = "Recovery";
-	}
-
-	pub type RemoveRecoveryPallet = frame_support::migrations::RemovePallet<
-		RecoveryPalletName,
-		<crate::Runtime as frame_system::Config>::DbWeight,
-	>;
-
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		parachains_on_demand::migration::MigrateV1ToV2<Runtime>,
-		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
-		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
-		parachains_shared::migration::MigrateToV2<Runtime>,
-		RemoveRecoveryPallet,
-	);
+	pub type Unreleased = ();
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;

@@ -909,9 +909,6 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
-		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
-		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 		// `pallet-core-fellowship` storage v1 -> v2 (polkadot-sdk#6978): both instances switch
 		// from local to Relay Chain block numbers.
 		pallet_core_fellowship::migration::MigrateV1ToV2<

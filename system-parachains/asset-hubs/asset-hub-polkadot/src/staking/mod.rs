@@ -26,9 +26,7 @@ use crate::{governance::StakingAdmin, *};
 use codec::Encode;
 use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
-use frame_support::{
-	pallet_prelude::OptionQuery, storage_alias, traits::tokens::imbalance::ResolveTo, BoundedVec,
-};
+use frame_support::{traits::tokens::imbalance::ResolveTo, BoundedVec};
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
 use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
@@ -743,37 +741,6 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 		<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
 
 		<Runtime as frame_system::Config>::DbWeight::get().writes(3)
-	}
-}
-
-// Deprecated: Holds the TI from March 14, 2026
-#[storage_alias(verbatim)]
-pub type March2026TI = StorageValue<Runtime, Balance, OptionQuery>;
-
-pub struct RemoveMarchTIValue;
-
-impl frame_support::traits::OnRuntimeUpgrade for RemoveMarchTIValue {
-	#[cfg(feature = "try-runtime")]
-	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-		if !March2026TI::exists() {
-			return Ok(Vec::new()); // Migration already ran
-		}
-		frame_support::ensure!(
-			March2026TI::get().unwrap() == EraPayout::MARCH_2026_TI,
-			"New value should match the old."
-		);
-		Ok(Vec::new())
-	}
-
-	fn on_runtime_upgrade() -> Weight {
-		March2026TI::kill();
-		<Runtime as frame_system::Config>::DbWeight::get().writes(1)
-	}
-
-	#[cfg(feature = "try-runtime")]
-	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-		frame_support::ensure!(!March2026TI::exists(), "March2026TI should be removed");
-		Ok(())
 	}
 }
 

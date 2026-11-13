@@ -18,21 +18,13 @@ use crate::*;
 use codec::{Decode, Encode};
 use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use cumulus_primitives_core::relay_chain;
-use frame_support::{
-	parameter_types,
-	traits::{
-		fungible::{Inspect, Mutate},
-		tokens::{Fortitude, Preservation},
-		Defensive, OnRuntimeUpgrade,
-	},
-	weights::Weight,
-};
+use frame_support::parameter_types;
 use pallet_broker::{
 	CoreAssignment, CoreIndex, CoretimeInterface, PartsOf57600, RCBlockNumberOf, TaskId,
 };
 use parachains_common::{AccountId, Balance};
 use polkadot_runtime_constants::system_parachain::coretime;
-use sp_runtime::traits::{AccountIdConversion, MaybeConvert};
+use sp_runtime::traits::MaybeConvert;
 use xcm::latest::prelude::*;
 use xcm_config::LocationToAccountId;
 use xcm_executor::traits::ConvertLocation;
@@ -219,80 +211,4 @@ impl pallet_broker::Config for Runtime {
 	type MaxAutoRenewals = ConstU32<100>;
 	type PriceAdapter = pallet_broker::MinimumPrice<Balance, MinimumEndPrice>;
 	type MinimumCreditPurchase = MinimumCreditPurchase;
-}
-
-/// Retires the `py/ctbrn` holding account of the former relay-chain burn: moves any residual
-/// balance to the accumulation account and drops the provider reference the burn handler added,
-/// so the account is reaped. Idempotent: once the account is gone, a rerun only reads.
-pub struct RetireCoretimeBurnAccount;
-
-impl RetireCoretimeBurnAccount {
-	fn burn_account() -> AccountId {
-		PalletId(*b"py/ctbrn").into_account_truncating()
-	}
-}
-
-impl OnRuntimeUpgrade for RetireCoretimeBurnAccount {
-	fn on_runtime_upgrade() -> Weight {
-		let burn_account = Self::burn_account();
-		if !System::account_exists(&burn_account) {
-			return <Runtime as frame_system::Config>::DbWeight::get().reads(1);
-		}
-		let residual =
-			Balances::reducible_balance(&burn_account, Preservation::Expendable, Fortitude::Polite);
-		if residual > 0 {
-			let accumulation_account = AccumulateForward::accumulation_account();
-			if let Err(e) = Balances::transfer(
-				&burn_account,
-				&accumulation_account,
-				residual,
-				Preservation::Expendable,
-			) {
-				log::error!(
-					target: "runtime::coretime",
-					"Failed to sweep {residual} from the coretime burn account: {e:?}"
-				);
-			}
-		}
-		if Balances::total_balance(&burn_account) == 0 && System::providers(&burn_account) > 0 {
-			let _ = System::dec_providers(&burn_account).defensive();
-		}
-		<Runtime as frame_system::Config>::DbWeight::get().reads_writes(6, 3)
-	}
-
-	#[cfg(feature = "try-runtime")]
-	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-		let residual = Balances::reducible_balance(
-			&Self::burn_account(),
-			Preservation::Expendable,
-			Fortitude::Polite,
-		);
-		let accumulated = Balances::total_balance(&AccumulateForward::accumulation_account());
-		Ok((residual, accumulated).encode())
-	}
-
-	#[cfg(feature = "try-runtime")]
-	fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-		let (residual, accumulated_before): (Balance, Balance) =
-			Decode::decode(&mut &state[..]).map_err(|_| "invalid pre_upgrade state")?;
-		frame_support::ensure!(
-			System::account_exists(&AccumulateForward::accumulation_account()),
-			"accumulation account not funded"
-		);
-		let burn_account = Self::burn_account();
-		frame_support::ensure!(
-			Balances::total_balance(&burn_account) == 0,
-			"coretime burn account not swept"
-		);
-		frame_support::ensure!(
-			System::providers(&burn_account) == 0,
-			"coretime burn account not reaped"
-		);
-		frame_support::ensure!(
-			Balances::total_balance(&AccumulateForward::accumulation_account()) ==
-				accumulated_before + residual,
-			"residual not moved to the accumulation account"
-		);
-		Ok(())
-	}
 }

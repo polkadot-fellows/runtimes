@@ -2027,26 +2027,8 @@ pub type TxExtension = (
 pub mod migrations {
 	use super::*;
 
-	frame_support::parameter_types! {
-		pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
-	}
-
-	/// Remove the `StateTrieMigration` pallet's storage. The state trie migration on Polkadot is
-	/// complete and the pallet has been removed from the runtime, see
-	/// <https://github.com/polkadot-fellows/runtimes/issues/905>.
-	pub type RemoveStateTrieMigrationPallet = frame_support::migrations::RemovePallet<
-		StateTrieMigrationName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>;
-
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		parachains_on_demand::migration::MigrateV1ToV2<Runtime>,
-		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
-		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
-		parachains_shared::migration::MigrateToV2<Runtime>,
-		RemoveStateTrieMigrationPallet,
-	);
+	pub type Unreleased = ();
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;
