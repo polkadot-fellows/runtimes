@@ -594,6 +594,9 @@ pub enum ProxyType {
 	OnDemandPurchaser,
 	/// Collator selection proxy. Can execute calls related to collator selection mechanism.
 	Collator,
+	/// Para registration proxy. Allows nothing until the registrar is on this chain; definitions
+	/// migrated from the Relay Chain keep it so they work once it is.
+	ParaRegistration,
 }
 
 impl InstanceFilter<RuntimeCall> for ProxyType {
@@ -655,6 +658,9 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Utility { .. } |
 					RuntimeCall::Multisig { .. }
 			),
+			// TODO(ahm-v2): the registrar calls, once the control plane is on this chain.
+			// `NonTransfer` is a superset of this type, so it has to allow them as well.
+			ProxyType::ParaRegistration => false,
 		}
 	}
 
@@ -666,6 +672,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(ProxyType::Broker, ProxyType::CoretimeRenewer) => true,
 			(ProxyType::Broker, ProxyType::OnDemandPurchaser) => true,
 			(ProxyType::NonTransfer, ProxyType::Collator) => true,
+			(ProxyType::NonTransfer, ProxyType::ParaRegistration) => true,
 			_ => false,
 		}
 	}
