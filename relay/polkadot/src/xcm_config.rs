@@ -217,12 +217,8 @@ pub type Barrier = TrailingSetTopicAsId<(
 
 /// Locations that will not be charged fees in the executor, neither for execution nor delivery.
 /// We only waive fees for system functions, which these locations represent.
-pub type WaivedLocations = (
-	SystemParachains,
-	Equals<RootLocation>,
-	LocalPlurality,
-	Equals<AccumulateForwardLocation>,
-);
+pub type WaivedLocations =
+	(SystemParachains, Equals<RootLocation>, LocalPlurality, Equals<AccumulateForwardLocation>);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
