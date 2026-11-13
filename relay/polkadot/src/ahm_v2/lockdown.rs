@@ -153,7 +153,8 @@ pub fn call_allowed_status(call: &RuntimeCall) -> (bool, bool) {
 		ParaInclusion(..) => (OFF, OFF),
 		Paras(..) => (OFF, OFF),
 		// Root only.
-		Configuration(..) | Initializer(..) | ParasDisputes(..) => (OFF, OFF),
+		Configuration(..) | Initializer(..) | ParasDisputes(..) | MultiBlockMigrations(..) =>
+			(OFF, OFF),
 		// TODO(ahm-v2): HRMP stays on this chain, with its deposits held on the Coretime chain.
 		// Decide what opens after the migration.
 		Hrmp(..) => (OFF, OFF),

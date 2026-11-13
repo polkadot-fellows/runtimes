@@ -42,7 +42,7 @@ pub use runtime_parachains::inclusion::{
 };
 use runtime_parachains::{
 	configuration::ActiveConfig,
-	dmp::{self, DownwardMessageQueues},
+	dmp::{self, inbound_downward_queue::InboundDownwardQueue},
 };
 use sp_core::H256;
 use sp_io::TestExternalities;
@@ -367,7 +367,9 @@ pub fn send_ump<P: Para>(xcm: Xcm<()>) {
 
 /// Take all DMP messages that the Relay Chain has queued for `para`.
 pub fn take_dmp(para: ParaId) -> Vec<InboundDownwardMessage> {
-	DownwardMessageQueues::<RelayRuntime>::take(para)
+	let msgs = InboundDownwardQueue::<RelayRuntime>::peek_all_do_not_call_in_consensus(para);
+	InboundDownwardQueue::<RelayRuntime>::drop_front_n(para, msgs.len() as u64);
+	msgs
 }
 
 /// Take all UMP messages that parachain `P` has queued for the Relay Chain.
@@ -414,7 +416,7 @@ fn sanity_check_xcm<Call: Decode + GetDispatchInfo>(msg: &[u8]) {
 		versioned.try_into().expect("Must convert forwarded XCM to latest version");
 	for instruction in xcm.0 {
 		if let Instruction::Transact { call, .. } = instruction {
-			let _call: Call = Decode::decode(&mut &call.into_encoded()[..])
+			let _call: Call = Decode::decode(&mut &call.encoded()[..])
 				.expect("Receiving runtime must decode the Transact call");
 		}
 	}
