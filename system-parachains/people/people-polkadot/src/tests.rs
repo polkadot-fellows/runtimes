@@ -636,7 +636,6 @@ fn identity_slashes_accumulate_instead_of_being_burned() {
 		fungible::{Inspect, Mutate},
 		ReservableCurrency,
 	};
-	use pallet_identity::Data;
 	use parachains_runtimes_test_utils::ExtBuilder;
 
 	ExtBuilder::<Runtime>::default().build().execute_with(|| {
@@ -646,19 +645,10 @@ fn identity_slashes_accumulate_instead_of_being_burned() {
 		assert_ok!(Balances::mint_into(&accumulation_account, ed));
 		let carol = AccountId::from([3u8; 32]);
 		assert_ok!(Balances::mint_into(&carol, 100 * crate::UNITS));
-		let info = IdentityInfo {
-			display: Data::Raw(b"carol".to_vec().try_into().unwrap()),
-			legal: Data::None,
-			web: Data::None,
-			matrix: Data::None,
-			email: Data::None,
-			pgp_fingerprint: None,
-			image: Data::None,
-			twitter: Data::None,
-			github: Data::None,
-			discord: Data::None,
-		};
-		assert_ok!(Identity::set_identity(RuntimeOrigin::signed(carol.clone()), Box::new(info)));
+		assert_ok!(Identity::set_identity(
+			RuntimeOrigin::signed(carol.clone()),
+			Box::new(IdentityInfo::default())
+		));
 		let deposit = <Balances as ReservableCurrency<_>>::reserved_balance(&carol);
 		assert!(deposit > 0);
 		let accumulated_before = Balances::balance(&accumulation_account);
