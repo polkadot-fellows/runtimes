@@ -83,7 +83,7 @@ const SUP_PROSPERITY_EMERGENCY: Curve =
 const APP_DOTNS_MAINTENANCE: Curve =
 	Curve::make_reciprocal(16, 28 * 24, percent(96), percent(50), percent(100));
 const SUP_DOTNS_MAINTENANCE: Curve =
-	Curve::make_reciprocal(3, 28, percent(6), percent(5), percent(50));
+	Curve::make_reciprocal(12, 28, percent(1), percent(0), percent(50));
 
 const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 19] = [
 	pallet_referenda::Track {
@@ -248,7 +248,7 @@ const TRACKS_DATA: [pallet_referenda::Track<u16, Balance, BlockNumber>; 19] = [
 			decision_deposit: 10 * GRAND,
 			prepare_period: 30 * RC_MINUTES,
 			decision_period: 28 * RC_DAYS,
-			confirm_period: 10 * RC_MINUTES,
+			confirm_period: 3 * RC_HOURS,
 			min_enactment_period: 10 * RC_MINUTES,
 			min_approval: APP_DOTNS_MAINTENANCE,
 			min_support: SUP_DOTNS_MAINTENANCE,
