@@ -106,7 +106,6 @@ pub mod dynamic_params {
 	pub mod lite_personhood {
 		#[codec(index = 0)]
 		pub static RegistrationFee: Balance = 75 * UNITS;
-		// TODO 2609-review: confirm the paid registration throttle
 		/// Number of lite people from which paid registrations are throttled.
 		#[codec(index = 1)]
 		pub static PaidRegistrationThreshold: u32 = 2_000;
