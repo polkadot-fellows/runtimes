@@ -56,7 +56,9 @@ use parachains_common::{
 	AccountId, AuraId, Balance, BlockNumber, Hash, Header, Nonce, Signature,
 };
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
-use polkadot_runtime_constants::fellowship::IsFellowshipVoice;
+use polkadot_runtime_constants::{
+	fellowship::IsFellowshipVoice, xcm::body::TECHNICAL_MAINTENANCE_INDEX,
+};
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -391,6 +393,17 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 /// Privileged origin that represents Root or Fellows pluralistic body.
 pub type RootOrFellows =
 	EitherOfDiverse<EnsureRoot<AccountId>, EnsureXcm<IsFellowshipVoice<FellowshipLocation>>>;
+
+parameter_types! {
+	// TechnicalMaintenance pluralistic body.
+	pub const TechnicalMaintenanceBodyId: BodyId = BodyId::Index(TECHNICAL_MAINTENANCE_INDEX);
+}
+
+/// Privileged origin that represents Root or Asset Hub's `TechnicalMaintenance` pluralistic body.
+pub type RootOrTechnicalMaintenance = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	EnsureXcm<IsVoiceOfBody<AssetHubLocation, TechnicalMaintenanceBodyId>>,
+>;
 
 parameter_types! {
 	/// The asset ID for the asset that we use to pay for message delivery fees.
