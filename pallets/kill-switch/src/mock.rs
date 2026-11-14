@@ -74,7 +74,6 @@ impl pallet_tx_pause::Config for Test {
 pub const DEPOSIT: u64 = 100;
 pub const TREASURY: u64 = 1000;
 pub const PAUSE_DURATION: u64 = 10;
-pub const RELEASE_DELAY: u64 = 100;
 pub const COOLDOWN: u64 = 20;
 pub const MAX_FELLOWSHIP_EXTENSION: u64 = 15;
 pub const MAX_DEPOSITS: u32 = 3;
@@ -130,7 +129,6 @@ impl Config for Test {
 	type ForceOrigin = EnsureRoot<u64>;
 	type BlockNumberProvider = MockRelay;
 	type PauseDuration = ConstU64<PAUSE_DURATION>;
-	type ReleaseDelay = ConstU64<RELEASE_DELAY>;
 	type Cooldown = ConstU64<COOLDOWN>;
 	type MaxFellowshipExtension = ConstU64<MAX_FELLOWSHIP_EXTENSION>;
 	type MaxDepositsPerPause = ConstU32<MAX_DEPOSITS>;

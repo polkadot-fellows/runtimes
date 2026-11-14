@@ -66,10 +66,9 @@ fn can_pause_call() {
 		assert_eq!(held(1), DEPOSIT);
 		let pause = Pauses::<Test>::get(transfer()).unwrap();
 		assert_eq!(pause.until, Some(1 + PAUSE_DURATION));
-		assert_eq!(pause.deposits.to_vec(), vec![0]);
-		assert_eq!(Deposits::<Test>::get(0).unwrap().who, 1);
+		assert_eq!(pause.deposits.to_vec(), vec![Deposit { who: 1, amount: DEPOSIT }]);
 		System::assert_has_event(
-			Event::DepositHeld { id: 0, target: transfer(), who: 1, amount: DEPOSIT }.into(),
+			Event::DepositHeld { target: transfer(), who: 1, amount: DEPOSIT }.into(),
 		);
 		System::assert_last_event(
 			Event::Paused { target: transfer(), who: Some(1), until: Some(1 + PAUSE_DURATION) }
@@ -147,29 +146,14 @@ fn pause_expires_and_deposit_is_released() {
 		assert!(ExpiryCursor::<Test>::get().is_none());
 		System::assert_has_event(Event::Expired { target: transfer() }.into());
 
-		// The deposit stays slashable for a while.
-		assert_eq!(held(1), DEPOSIT);
-		assert_noop!(
-			KillSwitch::release_deposit(RuntimeOrigin::signed(3), 0),
-			Error::<Test>::TooEarly
-		);
-		// Counted from when the pause ran out, not from when the deposit was made.
-		run_to_relay(1 + PAUSE_DURATION + RELEASE_DELAY - 1);
-		assert_noop!(
-			KillSwitch::release_deposit(RuntimeOrigin::signed(3), 0),
-			Error::<Test>::TooEarly
-		);
-		run_to_relay(1 + PAUSE_DURATION + RELEASE_DELAY);
-		assert_ok!(KillSwitch::release_deposit(RuntimeOrigin::signed(3), 0));
+		// Nobody stepped in, so the deposit comes back right away.
 		assert_eq!(held(1), 0);
 		assert_eq!(Balances::free_balance(1), 1_000);
-		System::assert_last_event(
-			Event::DepositReleased { id: 0, target: transfer(), who: 1, amount: DEPOSIT }.into(),
+		System::assert_has_event(
+			Event::DepositReleased { target: transfer(), who: 1, amount: DEPOSIT }.into(),
 		);
-		assert_noop!(
-			KillSwitch::release_deposit(RuntimeOrigin::signed(3), 0),
-			Error::<Test>::UnknownDeposit
-		);
+		// And it can't be slashed after the fact.
+		assert_noop!(KillSwitch::unpause(fellowship(), transfer(), true), Error::<Test>::NotPaused);
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }
@@ -229,24 +213,20 @@ fn on_poll_respects_weight_limit() {
 }
 
 #[test]
-fn can_expire_manually() {
+fn can_slash_pause_the_hook_has_not_ended_yet() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
-		assert_noop!(
-			KillSwitch::expire(RuntimeOrigin::signed(3), transfer()),
-			Error::<Test>::NotExpired
-		);
-
-		// The relay chain moves on but the hook doesn't run.
+		// The relay chain moves past the end, but the hook hasn't run yet.
 		RelayBlock::set(1 + PAUSE_DURATION);
-		assert_ok!(KillSwitch::expire(RuntimeOrigin::signed(3), transfer()));
+
+		assert_ok!(KillSwitch::unpause(fellowship(), transfer(), true));
 		assert!(transfer_works());
-		assert_eq!(ExpiryCount::<Test>::get(), 0);
-		assert_eq!(held(1), DEPOSIT);
-		assert_noop!(
-			KillSwitch::expire(RuntimeOrigin::signed(3), transfer()),
-			Error::<Test>::NotPaused
+		assert_eq!(held(1), 0);
+		assert_eq!(Balances::free_balance(TREASURY), DEPOSIT);
+		System::assert_has_event(
+			Event::DepositSlashed { target: transfer(), who: 1, amount: DEPOSIT }.into(),
 		);
+		assert_ok!(KillSwitch::do_try_state());
 	});
 }
 
@@ -259,7 +239,8 @@ fn can_extend() {
 
 		let pause = Pauses::<Test>::get(transfer()).unwrap();
 		assert_eq!(pause.until, Some(1 + 3 * PAUSE_DURATION));
-		assert_eq!(pause.deposits.to_vec(), vec![0, 1, 2]);
+		let depositors: Vec<_> = pause.deposits.iter().map(|d| d.who).collect();
+		assert_eq!(depositors, vec![1, 2, 3]);
 		assert_eq!((held(1), held(2), held(3)), (DEPOSIT, DEPOSIT, DEPOSIT));
 		assert_eq!(ExpiryCount::<Test>::get(), 1);
 
@@ -304,7 +285,6 @@ fn unpause_with_slash_starts_cooldown() {
 		assert_eq!((held(1), held(2)), (0, 0));
 		assert_eq!(Balances::free_balance(1), 1_000 - DEPOSIT);
 		assert_eq!(Balances::free_balance(TREASURY), 2 * DEPOSIT);
-		assert_eq!(Deposits::<Test>::iter().count(), 0);
 		assert_eq!(ExpiryCount::<Test>::get(), 0);
 		System::assert_has_event(
 			Event::CooldownStarted { target: transfer(), until: 1 + COOLDOWN }.into(),
@@ -420,10 +400,6 @@ fn force_pause_without_end() {
 		run_to_relay(1_000);
 		assert!(!transfer_works());
 		assert_noop!(
-			KillSwitch::expire(RuntimeOrigin::signed(3), transfer()),
-			Error::<Test>::OpenEnded
-		);
-		assert_noop!(
 			KillSwitch::force_extend(RuntimeOrigin::root(), transfer(), 2_000),
 			Error::<Test>::OpenEnded
 		);
@@ -439,47 +415,17 @@ fn force_pause_without_end() {
 }
 
 #[test]
-fn can_slash_deposit_of_expired_pause() {
-	new_test_ext().execute_with(|| {
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
-		assert_noop!(KillSwitch::slash_deposit(fellowship(), 0), Error::<Test>::StillPaused);
-		assert_noop!(
-			KillSwitch::release_deposit(RuntimeOrigin::signed(3), 0),
-			Error::<Test>::StillPaused
-		);
-
-		run_to_relay(1 + PAUSE_DURATION);
-		assert_noop!(
-			KillSwitch::slash_deposit(RuntimeOrigin::signed(1), 0),
-			DispatchError::BadOrigin
-		);
-		assert_ok!(KillSwitch::slash_deposit(fellowship(), 0));
-		assert_eq!(held(1), 0);
-		assert_eq!(Balances::free_balance(TREASURY), DEPOSIT);
-		System::assert_last_event(
-			Event::DepositSlashed { id: 0, target: transfer(), who: 1, amount: DEPOSIT }.into(),
-		);
-		assert_noop!(KillSwitch::slash_deposit(fellowship(), 0), Error::<Test>::UnknownDeposit);
-		// Slashing an old deposit doesn't start a cooldown.
-		assert!(Cooldowns::<Test>::get(transfer()).is_none());
-	});
-}
-
-#[test]
-fn old_deposit_is_not_part_of_new_pause() {
+fn new_pause_only_settles_its_own_deposits() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
 		run_to_relay(1 + PAUSE_DURATION);
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), transfer()));
 
-		// Deposit 0 is from the pause that ran out, deposit 1 backs the new one.
-		assert_ok!(KillSwitch::slash_deposit(fellowship(), 0));
-		assert_noop!(KillSwitch::slash_deposit(fellowship(), 1), Error::<Test>::StillPaused);
-
-		// Refunding the new pause only touches its own deposit.
-		assert_ok!(KillSwitch::unpause(fellowship(), transfer(), false));
-		assert_eq!(Balances::free_balance(2), 1_000);
-		assert_eq!(Balances::free_balance(1), 1_000 - DEPOSIT);
+		// The first pause ran out and was refunded, slashing the new one only hits its depositor.
+		assert_ok!(KillSwitch::unpause(fellowship(), transfer(), true));
+		assert_eq!(Balances::free_balance(1), 1_000);
+		assert_eq!(Balances::free_balance(2), 1_000 - DEPOSIT);
+		assert_eq!(Balances::free_balance(TREASURY), DEPOSIT);
 	});
 }
 
@@ -498,26 +444,6 @@ fn expiry_queue_is_cleaned_up() {
 		assert_eq!(ExpiryCount::<Test>::get(), 0);
 		assert!(ExpiryCursor::<Test>::get().is_none());
 		assert_eq!(Expiries::<Test>::iter().count(), 0);
-		assert_ok!(KillSwitch::do_try_state());
-	});
-}
-
-#[test]
-fn release_delay_starts_when_pause_runs_out() {
-	new_test_ext().execute_with(|| {
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
-		// Root keeps it going for much longer than the release delay.
-		assert_ok!(KillSwitch::force_extend(RuntimeOrigin::root(), transfer(), 500));
-		run_to_relay(500);
-		assert!(transfer_works());
-
-		// The deposit was made at 1, but it only becomes free 100 blocks after the pause ended.
-		assert_noop!(
-			KillSwitch::release_deposit(RuntimeOrigin::signed(1), 0),
-			Error::<Test>::TooEarly
-		);
-		assert_ok!(KillSwitch::slash_deposit(fellowship(), 0));
-		assert_eq!(Balances::free_balance(TREASURY), DEPOSIT);
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }
