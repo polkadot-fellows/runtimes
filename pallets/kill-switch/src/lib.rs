@@ -33,9 +33,9 @@
 //! A pause that nobody ends runs out by itself and its deposits are given back. If the Fellowship
 //! thinks a pause was abuse, it has to slash it with [`Call::unpause`] while it is still active.
 //!
-//! Time is measured with [`Config::BlockNumberProvider`], usually relay chain blocks. Expiries
-//! are queued by block number and handled in `on_poll`. The provider's block number can jump by
-//! more than one between two of our blocks, so a cursor remembers the last block that was handled.
+//! Time is measured with [`Config::BlockNumberProvider`], usually relay chain blocks. Pauses with
+//! an end are kept in one list sorted by when they end, and `on_poll` ends the ones that are due.
+//! There are only ever a handful of pauses, so a single bounded list is enough.
 //!
 //! The pallet doesn't decide what can be paused. [`Config::DepositFor`] returns `None` for targets
 //! that can't be paused, and [`Config::Pauser`] has the last word through
@@ -177,12 +177,9 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxDepositsPerPause: Get<u32>;
 
-		/// Upper bound on the work `on_poll` does in one block, counted in queue lookups.
-		///
-		/// Every relay block the cursor moves over costs a step, even when nothing ends there. If
-		/// the chain stalls for a while it takes some blocks to catch up.
+		/// How many pauses with an end can be active at once.
 		#[pallet::constant]
-		type MaxPollSteps: Get<u32>;
+		type MaxActivePauses: Get<u32>;
 
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
@@ -202,18 +199,10 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Pauses<T: Config> = StorageMap<_, Blake2_128Concat, T::Target, PauseInfo<T>>;
 
-	/// Pauses that end by themselves, keyed by the block they end at.
+	/// Pauses that end by themselves, sorted by the block they end at.
 	#[pallet::storage]
 	pub type Expiries<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, BlockNumberOf<T>, Blake2_128Concat, T::Target, ()>;
-
-	/// Number of entries in [`Expiries`].
-	#[pallet::storage]
-	pub type ExpiryCount<T: Config> = StorageValue<_, u32, ValueQuery>;
-
-	/// The next block of [`Expiries`] that `on_poll` looks at. `None` when nothing is queued.
-	#[pallet::storage]
-	pub type ExpiryCursor<T: Config> = StorageValue<_, BlockNumberOf<T>>;
+		StorageValue<_, BoundedVec<(BlockNumberOf<T>, T::Target), T::MaxActivePauses>, ValueQuery>;
 
 	/// Targets that can't be paused until the given block.
 	#[pallet::storage]
@@ -266,6 +255,8 @@ pub mod pallet {
 		PauseFailed,
 		/// The pause was started with `force_pause`. Only `ForceOrigin` can change it.
 		ForcedPause,
+		/// There are already [`Config::MaxActivePauses`] pauses with an end.
+		TooManyPauses,
 	}
 
 	#[pallet::hooks]
@@ -277,7 +268,7 @@ pub mod pallet {
 		fn integrity_test() {
 			assert!(!T::PauseDuration::get().is_zero(), "a pause must last at least one block");
 			assert!(T::MaxDepositsPerPause::get() > 0, "a pause needs room for its first deposit");
-			assert!(T::MaxPollSteps::get() > 0, "on_poll must be able to make progress");
+			assert!(T::MaxActivePauses::get() > 0, "there must be room for at least one pause");
 		}
 
 		#[cfg(feature = "try-runtime")]
@@ -337,7 +328,7 @@ pub mod pallet {
 			let deposit = Self::hold_deposit(&who, &target)?;
 			pause.deposits.try_push(deposit).map_err(|_| Error::<T>::TooManyDeposits)?;
 			let new_until = until.saturating_add(T::PauseDuration::get());
-			Self::reschedule_expiry(&target, &mut pause, new_until);
+			Self::reschedule_expiry(&target, &mut pause, new_until)?;
 			Pauses::<T>::insert(&target, pause);
 
 			Self::deposit_event(Event::Extended { target, who: Some(who), until: new_until });
@@ -399,7 +390,7 @@ pub mod pallet {
 			}
 			// Root can revive a pause the hook hasn't cleaned up yet, but only into the future.
 			ensure!(until > now, Error::<T>::InPast);
-			Self::reschedule_expiry(&target, &mut pause, until);
+			Self::reschedule_expiry(&target, &mut pause, until)?;
 			Pauses::<T>::insert(&target, pause);
 
 			Self::deposit_event(Event::Extended { target, who: None, until });
@@ -499,10 +490,10 @@ impl<T: Config> Pallet<T> {
 		deposits: BoundedVec<Deposit<T>, T::MaxDepositsPerPause>,
 		forced: bool,
 	) -> DispatchResult {
-		T::Pauser::pause(target.clone()).map_err(|_| Error::<T>::PauseFailed)?;
 		if let Some(until) = until {
-			Self::schedule_expiry(until, target);
+			Self::schedule_expiry(until, target)?;
 		}
+		T::Pauser::pause(target.clone()).map_err(|_| Error::<T>::PauseFailed)?;
 		Pauses::<T>::insert(
 			target,
 			PauseInfo { until, fellowship_extension: Zero::zero(), deposits, forced },
@@ -512,8 +503,8 @@ impl<T: Config> Pallet<T> {
 
 	/// Removes the pause and lifts it. Doesn't touch the deposits.
 	fn do_unpause(target: &T::Target, pause: &PauseInfo<T>) {
-		if let Some(until) = pause.until {
-			Self::unschedule_expiry(until, target);
+		if pause.until.is_some() {
+			Self::unschedule_expiry(target);
 		}
 		Pauses::<T>::remove(target);
 		// Nothing else can touch tx-pause, so anything we paused is still paused.
@@ -529,73 +520,65 @@ impl<T: Config> Pallet<T> {
 		Self::deposit_event(Event::Expired { target: target.clone() });
 	}
 
-	fn reschedule_expiry(target: &T::Target, pause: &mut PauseInfo<T>, until: BlockNumberOf<T>) {
-		if let Some(old) = pause.until {
-			Self::unschedule_expiry(old, target);
+	fn reschedule_expiry(
+		target: &T::Target,
+		pause: &mut PauseInfo<T>,
+		until: BlockNumberOf<T>,
+	) -> DispatchResult {
+		if pause.until.is_some() {
+			Self::unschedule_expiry(target);
 		}
-		Self::schedule_expiry(until, target);
+		Self::schedule_expiry(until, target)?;
 		pause.until = Some(until);
+		Ok(())
 	}
 
-	fn schedule_expiry(at: BlockNumberOf<T>, target: &T::Target) {
-		// Keeps `ExpiryCount` right even if this is ever called twice for the same entry.
-		if Expiries::<T>::contains_key(at, target) {
-			return;
-		}
-		Expiries::<T>::insert(at, target, ());
-		ExpiryCount::<T>::mutate(|count| count.saturating_inc());
-		// The cursor must not be past anything queued, or the hook skips it.
-		ExpiryCursor::<T>::mutate(|cursor| {
-			if cursor.is_none_or(|cursor| cursor > at) {
-				*cursor = Some(at);
-			}
-		});
+	fn schedule_expiry(at: BlockNumberOf<T>, target: &T::Target) -> DispatchResult {
+		Expiries::<T>::try_mutate(|queue| {
+			// After everything that ends at the same block or earlier, so the list stays sorted.
+			let index = queue.partition_point(|(end, _)| *end <= at);
+			queue
+				.try_insert(index, (at, target.clone()))
+				.map_err(|_| Error::<T>::TooManyPauses)
+		})?;
+		Ok(())
 	}
 
-	fn unschedule_expiry(at: BlockNumberOf<T>, target: &T::Target) {
-		if Expiries::<T>::take(at, target).is_some() {
-			let count = ExpiryCount::<T>::mutate(|count| {
-				count.saturating_dec();
-				*count
-			});
-			if count == 0 {
-				ExpiryCursor::<T>::kill();
-			}
+	fn unschedule_expiry(target: &T::Target) {
+		let mut queue = Expiries::<T>::get();
+		let len = queue.len();
+		queue.retain(|(_, queued)| queued != target);
+		// The hook takes pauses off the list before ending them, so often there is nothing to do.
+		if queue.len() != len {
+			Expiries::<T>::put(queue);
 		}
 	}
 
-	/// Ends every pause that is due, as far as `meter` and [`Config::MaxPollSteps`] allow. The
-	/// rest is picked up in the next block.
+	/// Ends every pause that is due, as far as `meter` allows. The rest is picked up in the next
+	/// block.
 	pub(crate) fn process_expiries(meter: &mut WeightMeter) {
 		if meter.try_consume(T::WeightInfo::on_poll_base()).is_err() {
 			return;
 		}
-		let Some(start) = ExpiryCursor::<T>::get() else { return };
-		let mut cursor = start;
 		let now = T::BlockNumberProvider::current_block_number();
+		let mut queue = Expiries::<T>::get();
 
-		let mut steps = 0;
-		while cursor <= now && steps < T::MaxPollSteps::get() {
-			steps += 1;
-			if meter.try_consume(T::WeightInfo::on_poll_step()).is_err() {
+		let mut due = 0;
+		for (end, _) in queue.iter() {
+			if *end > now || meter.try_consume(T::WeightInfo::on_poll_expire()).is_err() {
 				break;
 			}
-			match Expiries::<T>::iter_key_prefix(cursor).next() {
-				None => cursor.saturating_inc(),
-				Some(target) => {
-					if meter.try_consume(T::WeightInfo::on_poll_expire()).is_err() {
-						break;
-					}
-					Self::expire_queued(cursor, target);
-					// `unschedule_expiry` clears the cursor once the queue is empty.
-					if !ExpiryCursor::<T>::exists() {
-						return;
-					}
-				},
-			}
+			due += 1;
 		}
-		if cursor != start {
-			ExpiryCursor::<T>::put(cursor);
+		if due == 0 {
+			return;
+		}
+
+		// Take them off the list first, so ending them doesn't have to touch it again.
+		let expired: alloc::vec::Vec<_> = queue.drain(..due).collect();
+		Expiries::<T>::put(queue);
+		for (end, target) in expired {
+			Self::expire_queued(end, target);
 		}
 	}
 
@@ -604,7 +587,6 @@ impl<T: Config> Pallet<T> {
 			Some(pause) if pause.until == Some(at) => Self::do_expire(&target, &pause),
 			_ => {
 				frame_support::defensive!("an expiry was queued for a pause that doesn't end then");
-				Self::unschedule_expiry(at, &target);
 			},
 		}
 	}
@@ -612,28 +594,20 @@ impl<T: Config> Pallet<T> {
 	/// Checks that the expiry queue, the pauses and the deposits agree with each other.
 	#[cfg(any(feature = "try-runtime", test))]
 	pub(crate) fn do_try_state() -> Result<(), sp_runtime::TryRuntimeError> {
-		let mut queued = 0u32;
-		let mut earliest = None;
-		for (at, target) in Expiries::<T>::iter_keys() {
-			queued += 1;
-			earliest = Some(earliest.map_or(at, |e: BlockNumberOf<T>| e.min(at)));
-			let pause = Pauses::<T>::get(&target).ok_or("queued expiry without a pause")?;
-			ensure!(pause.until == Some(at), "queued expiry doesn't match the pause");
-		}
-		ensure!(ExpiryCount::<T>::get() == queued, "ExpiryCount is off");
-		match (ExpiryCursor::<T>::get(), earliest) {
-			(None, None) => {},
-			(Some(cursor), Some(earliest)) =>
-				ensure!(cursor <= earliest, "the cursor is past a queued expiry"),
-			_ => return Err("the cursor doesn't match the queue".into()),
+		let queue = Expiries::<T>::get();
+		ensure!(queue.windows(2).all(|w| w[0].0 <= w[1].0), "the expiry queue isn't sorted");
+		for (at, target) in queue.iter() {
+			let pause = Pauses::<T>::get(target).ok_or("queued expiry without a pause")?;
+			ensure!(pause.until == Some(*at), "queued expiry doesn't match the pause");
 		}
 
 		// What every account should have on hold, going by the pauses.
 		let mut held = alloc::collections::BTreeMap::<T::AccountId, BalanceOf<T>>::new();
 		for (target, pause) in Pauses::<T>::iter() {
 			ensure!(T::Pauser::is_paused(target.clone()), "a pause isn't applied");
-			if let Some(until) = pause.until {
-				ensure!(Expiries::<T>::contains_key(until, &target), "a pause isn't queued");
+			if pause.until.is_some() {
+				let queued = queue.iter().filter(|entry| entry.1 == target).count();
+				ensure!(queued == 1, "a pause isn't queued exactly once");
 			}
 			ensure!(pause.forced == pause.deposits.is_empty(), "a pause has the wrong deposits");
 			for Deposit { who, amount } in pause.deposits {

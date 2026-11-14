@@ -142,8 +142,7 @@ fn pause_expires_and_deposit_is_released() {
 		run_to_relay(1 + PAUSE_DURATION);
 		assert!(transfer_works());
 		assert!(Pauses::<Test>::get(transfer()).is_none());
-		assert_eq!(ExpiryCount::<Test>::get(), 0);
-		assert!(ExpiryCursor::<Test>::get().is_none());
+		assert!(Expiries::<Test>::get().is_empty());
 		System::assert_has_event(Event::Expired { target: transfer() }.into());
 
 		// Nobody stepped in, so the deposit comes back right away.
@@ -171,28 +170,49 @@ fn expires_when_relay_block_skips() {
 }
 
 #[test]
-fn on_poll_respects_max_steps() {
+fn fails_when_too_many_pauses() {
 	new_test_ext().execute_with(|| {
-		let calls = [
-			"transfer_allow_death",
-			"force_transfer",
-			"transfer_all",
-			"burn",
-			"force_unreserve",
-			"force_set_balance",
-		];
+		let calls =
+			["transfer_allow_death", "force_transfer", "transfer_all", "burn", "force_unreserve"];
 		for call in calls {
 			assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), full_name("Balances", call)));
 		}
-		assert_eq!(ExpiryCount::<Test>::get(), 6);
+		assert_eq!(Expiries::<Test>::get().len() as u32, MAX_ACTIVE_PAUSES);
 
-		// All 6 are due at 11, but one block only gets MAX_POLL_STEPS (5) of them.
-		run_to_relay(20);
+		let one_more = full_name("Balances", "force_set_balance");
+		assert_noop!(
+			KillSwitch::pause(RuntimeOrigin::signed(2), one_more.clone()),
+			Error::<Test>::TooManyPauses
+		);
+		assert_noop!(
+			KillSwitch::force_pause(RuntimeOrigin::root(), one_more.clone(), Some(100)),
+			Error::<Test>::TooManyPauses
+		);
+		// A pause without an end isn't in the list, so Root can still do that.
+		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), one_more, None));
+		assert_ok!(KillSwitch::do_try_state());
+	});
+}
+
+#[test]
+fn on_poll_spreads_work_over_blocks() {
+	new_test_ext().execute_with(|| {
+		for call in ["transfer_allow_death", "force_transfer", "burn"] {
+			assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), full_name("Balances", call)));
+		}
+		RelayBlock::set(20);
+
+		// Room for two of the three.
+		let weight = <() as WeightInfo>::on_poll_base()
+			.saturating_add(<() as WeightInfo>::on_poll_expire().saturating_mul(2));
+		KillSwitch::on_poll(2, &mut WeightMeter::with_limit(weight));
 		assert_eq!(Pauses::<Test>::iter().count(), 1);
-		run_to_relay(20);
+		assert_eq!(Expiries::<Test>::get().len(), 1);
+		assert_ok!(KillSwitch::do_try_state());
+
+		KillSwitch::on_poll(3, &mut WeightMeter::new());
 		assert_eq!(Pauses::<Test>::iter().count(), 0);
-		assert_eq!(ExpiryCount::<Test>::get(), 0);
-		assert!(ExpiryCursor::<Test>::get().is_none());
+		assert!(Expiries::<Test>::get().is_empty());
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }
@@ -242,7 +262,7 @@ fn can_extend() {
 		let depositors: Vec<_> = pause.deposits.iter().map(|d| d.who).collect();
 		assert_eq!(depositors, vec![1, 2, 3]);
 		assert_eq!((held(1), held(2), held(3)), (DEPOSIT, DEPOSIT, DEPOSIT));
-		assert_eq!(ExpiryCount::<Test>::get(), 1);
+		assert_eq!(Expiries::<Test>::get().len(), 1);
 
 		assert_noop!(
 			KillSwitch::extend(RuntimeOrigin::signed(4), transfer()),
@@ -285,7 +305,7 @@ fn unpause_with_slash_starts_cooldown() {
 		assert_eq!((held(1), held(2)), (0, 0));
 		assert_eq!(Balances::free_balance(1), 1_000 - DEPOSIT);
 		assert_eq!(Balances::free_balance(TREASURY), 2 * DEPOSIT);
-		assert_eq!(ExpiryCount::<Test>::get(), 0);
+		assert!(Expiries::<Test>::get().is_empty());
 		System::assert_has_event(
 			Event::CooldownStarted { target: transfer(), until: 1 + COOLDOWN }.into(),
 		);
@@ -373,7 +393,7 @@ fn fellowship_extension_is_capped() {
 			Pauses::<Test>::get(transfer()).unwrap().fellowship_extension,
 			MAX_FELLOWSHIP_EXTENSION
 		);
-		assert_eq!(ExpiryCount::<Test>::get(), 1);
+		assert_eq!(Expiries::<Test>::get().len(), 1);
 
 		assert_noop!(
 			KillSwitch::force_extend(RuntimeOrigin::signed(1), transfer(), until + 2_000),
@@ -395,7 +415,7 @@ fn force_pause_without_end() {
 			Error::<Test>::InPast
 		);
 		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), transfer(), None));
-		assert_eq!(ExpiryCount::<Test>::get(), 0);
+		assert!(Expiries::<Test>::get().is_empty());
 
 		run_to_relay(1_000);
 		assert!(!transfer_works());
@@ -432,18 +452,26 @@ fn new_pause_only_settles_its_own_deposits() {
 #[test]
 fn expiry_queue_is_cleaned_up() {
 	new_test_ext().execute_with(|| {
+		let burn = full_name("Balances", "burn");
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), full_name("Balances", "burn")));
-		assert_eq!(ExpiryCursor::<Test>::get(), Some(1 + PAUSE_DURATION));
+		RelayBlock::set(5);
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), burn.clone()));
+		assert_eq!(
+			Expiries::<Test>::get().to_vec(),
+			vec![(1 + PAUSE_DURATION, transfer()), (5 + PAUSE_DURATION, burn.clone())]
+		);
+
+		// Extending moves it to its new place in the list.
+		assert_ok!(KillSwitch::extend(RuntimeOrigin::signed(3), transfer()));
+		assert_eq!(
+			Expiries::<Test>::get().to_vec(),
+			vec![(5 + PAUSE_DURATION, burn.clone()), (1 + 2 * PAUSE_DURATION, transfer())]
+		);
 
 		assert_ok!(KillSwitch::unpause(fellowship(), transfer(), false));
-		assert_eq!(ExpiryCount::<Test>::get(), 1);
-		assert!(ExpiryCursor::<Test>::get().is_some());
-
-		assert_ok!(KillSwitch::unpause(fellowship(), full_name("Balances", "burn"), false));
-		assert_eq!(ExpiryCount::<Test>::get(), 0);
-		assert!(ExpiryCursor::<Test>::get().is_none());
-		assert_eq!(Expiries::<Test>::iter().count(), 0);
+		assert_eq!(Expiries::<Test>::get().to_vec(), vec![(5 + PAUSE_DURATION, burn.clone())]);
+		assert_ok!(KillSwitch::unpause(fellowship(), burn, false));
+		assert!(Expiries::<Test>::get().is_empty());
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }

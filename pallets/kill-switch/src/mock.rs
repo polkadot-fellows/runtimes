@@ -77,7 +77,7 @@ pub const PAUSE_DURATION: u64 = 10;
 pub const COOLDOWN: u64 = 20;
 pub const MAX_FELLOWSHIP_EXTENSION: u64 = 15;
 pub const MAX_DEPOSITS: u32 = 3;
-pub const MAX_POLL_STEPS: u32 = 5;
+pub const MAX_ACTIVE_PAUSES: u32 = 5;
 
 /// `Balances` calls cost [`DEPOSIT`], everything else can't be paused.
 pub struct DepositFor;
@@ -132,7 +132,7 @@ impl Config for Test {
 	type Cooldown = ConstU64<COOLDOWN>;
 	type MaxFellowshipExtension = ConstU64<MAX_FELLOWSHIP_EXTENSION>;
 	type MaxDepositsPerPause = ConstU32<MAX_DEPOSITS>;
-	type MaxPollSteps = ConstU32<MAX_POLL_STEPS>;
+	type MaxActivePauses = ConstU32<MAX_ACTIVE_PAUSES>;
 	type WeightInfo = ();
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = BenchmarkHelper;
