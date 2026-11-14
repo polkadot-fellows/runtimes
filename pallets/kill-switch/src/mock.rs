@@ -120,7 +120,6 @@ impl crate::BenchmarkHelper<RuntimeCallNameOf<Test>> for BenchmarkHelper {
 }
 
 impl Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type Target = RuntimeCallNameOf<Test>;
 	type Pauser = TxPause;
 	type DepositFor = DepositFor;

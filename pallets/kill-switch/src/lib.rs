@@ -82,7 +82,7 @@ pub type CreditOf<T> = Credit<<T as frame_system::Config>::AccountId, <T as Conf
 /// Identifies a deposit.
 pub type DepositId = u64;
 
-/// A running pause.
+/// An active pause.
 #[derive(
 	Encode, Decode, CloneNoBound, PartialEqNoBound, EqNoBound, DebugNoBound, TypeInfo, MaxEncodedLen,
 )]
@@ -112,7 +112,7 @@ pub struct DepositInfo<T: Config> {
 	pub amount: BalanceOf<T>,
 	/// What it was paid for.
 	pub target: T::Target,
-	/// When it can be released. `None` while it still backs a running pause, set once that pause
+	/// When it can be released. `None` while it still backs an active pause, set once that pause
 	/// runs out.
 	pub release_at: Option<BlockNumberOf<T>>,
 }
@@ -135,11 +135,7 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
-		/// The overarching event type.
-		#[allow(deprecated)]
-		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-
+	pub trait Config: frame_system::Config<RuntimeEvent: From<Event<Self>>> {
 		/// What can be paused. For calls this is the `(pallet, call)` name `pallet-tx-pause`
 		/// uses.
 		type Target: Parameter + MaxEncodedLen;
@@ -217,7 +213,7 @@ pub mod pallet {
 		Pause,
 	}
 
-	/// Running pauses.
+	/// Active pauses.
 	#[pallet::storage]
 	pub type Pauses<T: Config> = StorageMap<_, Blake2_128Concat, T::Target, PauseInfo<T>>;
 
@@ -298,7 +294,7 @@ pub mod pallet {
 		TooManyDeposits,
 		/// There is no deposit with this id.
 		UnknownDeposit,
-		/// The deposit still backs a running pause. Use `unpause` instead.
+		/// The deposit still backs an active pause. Use `unpause` instead.
 		StillPaused,
 		/// The deposit can't be released yet.
 		TooEarly,
@@ -354,7 +350,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Push the end of a running pause out by [`Config::PauseDuration`], with another
+		/// Push the end of an active pause out by [`Config::PauseDuration`], with another
 		/// deposit.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::extend())]
@@ -424,7 +420,7 @@ pub mod pallet {
 			Ok(Some(T::WeightInfo::unpause(pause.deposits.len() as u32)).into())
 		}
 
-		/// Move the end of a running pause to `until`.
+		/// Move the end of an active pause to `until`.
 		///
 		/// The Fellowship can push a pause out by at most [`Config::MaxFellowshipExtension`] in
 		/// total. Root has no limit.
@@ -511,7 +507,7 @@ pub mod pallet {
 
 		/// Slash the deposit of a pause that already ended.
 		///
-		/// For a running pause use [`Call::unpause`].
+		/// For an active pause use [`Call::unpause`].
 		#[pallet::call_index(7)]
 		#[pallet::weight(T::WeightInfo::slash_deposit())]
 		pub fn slash_deposit(origin: OriginFor<T>, id: DepositId) -> DispatchResult {
@@ -740,7 +736,7 @@ impl<T: Config> Pallet<T> {
 			for id in pause.deposits.iter() {
 				let deposit = Deposits::<T>::get(id).ok_or("a pause lists a missing deposit")?;
 				ensure!(deposit.target == target, "a deposit points at another target");
-				ensure!(deposit.release_at.is_none(), "a running pause has a released deposit");
+				ensure!(deposit.release_at.is_none(), "an active pause has a released deposit");
 			}
 		}
 		Ok(())
