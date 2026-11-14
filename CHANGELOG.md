@@ -23,6 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Polkadot and Kusama relays: add `pallet-migrations` to service multi-block migrations ([#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 - Polkadot and Kusama relays: migrate DMP queues to paged storage ([SDK #11909](https://github.com/paritytech/polkadot-sdk/pull/11909), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 
+### Removed
+
+- Polkadot & Kusama: remove `pallet-election-provider-multi-phase` and the on-chain election from the relay runtimes. Staking elections run on Asset Hub since the AHM, and a migration clears the pallet's storage ([#1313](https://github.com/polkadot-fellows/runtimes/pull/1313)).
+
 ### Fixed
 
 - Asset Hub Kusama: top up the Society payouts account so it matches the recorded pending payouts ([polkadot-sdk#12590](https://github.com/paritytech/polkadot-sdk/pull/12590)).

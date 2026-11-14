@@ -151,8 +151,6 @@ pallet-collective = { version = "50.0.0", default-features = false }
 pallet-conviction-voting = { version = "50.0.0", default-features = false }
 pallet-dap = { version = "0.7.0", default-features = false }
 pallet-core-fellowship = { version = "34.0.0", default-features = false }
-pallet-election-provider-multi-phase = { version = "51.0.0", default-features = false }
-pallet-election-provider-support-benchmarking = { version = "49.0.0", default-features = false }
 pallet-encointer-balances = { version = "~25.0.0", default-features = false }
 pallet-encointer-bazaar = { version = "~25.0.0", default-features = false }
 pallet-encointer-bazaar-rpc-runtime-api = { version = "~25.0.0", default-features = false }
