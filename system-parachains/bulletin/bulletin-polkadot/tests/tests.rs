@@ -585,11 +585,12 @@ mod granting {
 	}
 
 	#[test]
-	fn authorizer_registration_is_root_only() {
-		// `AuthorizerRegistrarOrigin` is Root. Membership in `AllowedAuthorizers` grants the
-		// right to authorize storage, not to register or revoke other authorizers, so even an
-		// allowed authorizer is rejected here. The one non-Root removal path,
-		// `remove_exhausted_authorizer`, is permissionless but fenced to inactive budgets.
+	fn authorizer_registration_is_root_or_technical_maintenance_only() {
+		// `AuthorizerRegistrarOrigin` is Root or `TechnicalMaintenance`. Membership in
+		// `AllowedAuthorizers` grants the right to authorize storage, not to register or revoke
+		// other authorizers, so even an allowed authorizer is rejected here. The one non-Root
+		// removal path, `remove_exhausted_authorizer`, is permissionless but fenced to inactive
+		// budgets.
 		new_test_ext().execute_with(|| {
 			let authorizer: AccountId = Sr25519Keyring::Charlie.to_account_id();
 			assert_ok!(TransactionStorage::add_authorizer(
@@ -629,6 +630,120 @@ mod granting {
 				pallet_bulletin_transaction_storage::Error::<Runtime>::AuthorizerBudgetNotExhausted,
 			);
 			assert!(AllowedAuthorizers::<Runtime>::get(&authorizer).is_some());
+		});
+	}
+
+	#[test]
+	fn technical_maintenance_can_manage_authorizers() {
+		use polkadot_runtime_constants::{
+			system_parachain::{ASSET_HUB_ID, PEOPLE_ID},
+			xcm::body::{FELLOWSHIP_ADMIN_INDEX, TECHNICAL_MAINTENANCE_INDEX},
+		};
+
+		let voice = |parachain: u32, body_index: u32| {
+			RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
+				1,
+				[
+					Parachain(parachain),
+					Plurality { id: BodyId::Index(body_index), part: BodyPart::Voice },
+				],
+			)))
+		};
+
+		new_test_ext().execute_with(|| {
+			let who: AccountId = Sr25519Keyring::Charlie.to_account_id();
+			let technical_maintenance = voice(ASSET_HUB_ID, TECHNICAL_MAINTENANCE_INDEX);
+
+			for origin in [
+				voice(ASSET_HUB_ID, FELLOWSHIP_ADMIN_INDEX),
+				voice(PEOPLE_ID, TECHNICAL_MAINTENANCE_INDEX),
+				RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
+					1,
+					[
+						Parachain(ASSET_HUB_ID),
+						Plurality {
+							id: BodyId::Index(TECHNICAL_MAINTENANCE_INDEX),
+							part: BodyPart::Members { count: 1 },
+						},
+					],
+				))),
+				RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
+					1,
+					[Parachain(ASSET_HUB_ID)],
+				))),
+			] {
+				assert_noop!(
+					TransactionStorage::add_authorizer(
+						origin.clone(),
+						who.clone(),
+						authorizer_budget(10, 1024),
+					),
+					sp_runtime::DispatchError::BadOrigin,
+				);
+				assert_noop!(
+					TransactionStorage::remove_authorizer(origin, who.clone()),
+					sp_runtime::DispatchError::BadOrigin,
+				);
+			}
+
+			assert_ok!(TransactionStorage::add_authorizer(
+				technical_maintenance.clone(),
+				who.clone(),
+				authorizer_budget(10, 1024),
+			));
+			assert!(AllowedAuthorizers::<Runtime>::get(&who).is_some());
+			assert_ok!(TransactionStorage::remove_authorizer(technical_maintenance, who.clone()));
+			assert!(AllowedAuthorizers::<Runtime>::get(&who).is_none());
+		});
+	}
+
+	#[test]
+	fn technical_maintenance_can_manage_authorizers_over_xcm() {
+		use polkadot_runtime_constants::{
+			system_parachain::ASSET_HUB_ID, xcm::body::TECHNICAL_MAINTENANCE_INDEX,
+		};
+
+		let execute_from_asset_hub = |call: RuntimeCall| {
+			let message: Xcm<RuntimeCall> = Xcm::builder_unsafe()
+				.unpaid_execution(Unlimited, None)
+				.transact(OriginKind::Xcm, None, call.encode())
+				.build();
+			let mut id = [0u8; 32];
+			xcm_executor::XcmExecutor::<bulletin_polkadot_runtime::xcm_config::XcmConfig>::prepare_and_execute(
+				Location::new(
+					1,
+					[
+						Parachain(ASSET_HUB_ID),
+						Plurality {
+							id: BodyId::Index(TECHNICAL_MAINTENANCE_INDEX),
+							part: BodyPart::Voice,
+						},
+					],
+				),
+				message,
+				&mut id,
+				Weight::MAX,
+				Weight::MAX,
+			)
+		};
+
+		new_test_ext().execute_with(|| {
+			let who: AccountId = Sr25519Keyring::Charlie.to_account_id();
+
+			let outcome = execute_from_asset_hub(RuntimeCall::TransactionStorage(
+				TxStorageCall::add_authorizer {
+					who: who.clone(),
+					budget: authorizer_budget(10, 1024),
+				},
+			));
+			assert!(matches!(outcome, Outcome::Complete { .. }), "add_authorizer failed: {outcome:?}");
+			assert!(AllowedAuthorizers::<Runtime>::get(&who).is_some());
+
+			let outcome = execute_from_asset_hub(RuntimeCall::TransactionStorage(
+				TxStorageCall::remove_authorizer { who: who.clone() },
+			));
+			assert!(matches!(outcome, Outcome::Complete { .. }), "remove_authorizer failed: {outcome:?}");
+			assert!(AllowedAuthorizers::<Runtime>::get(&who).is_none());
 		});
 	}
 
