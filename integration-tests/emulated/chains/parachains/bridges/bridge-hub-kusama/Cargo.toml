@@ -30,6 +30,7 @@ bridge-hub-kusama-runtime = { workspace = true }
 runtime-benchmarks = [
 	"bridge-hub-common/runtime-benchmarks",
 	"bridge-hub-kusama-runtime/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"xcm/runtime-benchmarks",

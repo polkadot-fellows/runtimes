@@ -72,6 +72,10 @@ impl pallet_whitelist::Config for Runtime {
 		EitherOf<EnsureRootWithSuccess<Self::AccountId, ConstU16<65535>>, Fellows>;
 	type DispatchWhitelistedOrigin = EitherOf<EnsureRoot<Self::AccountId>, WhitelistedCaller>;
 	type Preimages = Preimage;
+	// How long a call dispatched by the Whitelisted Caller before the Fellowship whitelists it
+	// stays executable by any signed origin (polkadot-sdk#11336).
+	type DeferredDispatchExpiration = ConstU32<{ 28 * DAYS }>;
+	type BlockNumberProvider = System;
 }
 
 impl pallet_referenda::Config for Runtime {

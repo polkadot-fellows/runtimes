@@ -57,6 +57,7 @@ runtime-benchmarks = [
 	"bp-bridge-hub-kusama/runtime-benchmarks",
 	"bridge-hub-kusama-runtime/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"integration-tests-helpers/runtime-benchmarks",
 	"kusama-polkadot-system-emulated-network/runtime-benchmarks",

@@ -16,6 +16,7 @@
 
 #![cfg(test)]
 
+use bp_asset_hub_polkadot::ASSET_HUB_POLKADOT_PARACHAIN_ID;
 use bp_bridge_hub_polkadot::{snowbridge::EthereumLocation, BRIDGE_HUB_POLKADOT_PARACHAIN_ID};
 use bp_polkadot_core::Signature;
 use bridge_hub_polkadot_runtime::{
@@ -26,14 +27,14 @@ use bridge_hub_polkadot_runtime::{
 	MessageQueueServiceWeight, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, SessionKeys,
 	TxExtension, UncheckedExtrinsic,
 };
-use bridge_hub_test_utils::GovernanceOrigin;
+use bridge_hub_test_utils::{GovernanceOrigin, XcmReceivedFrom};
 use codec::{Decode, Encode};
 use cumulus_primitives_core::{ParaId, XcmError::FailedToTransactAsset};
 use frame_support::{parameter_types, traits::Contains};
 use hex_literal::hex;
 use parachains_common::{AccountId, AuraId, Balance};
 pub use parachains_runtimes_test_utils::test_cases::change_storage_constant_by_governance_works;
-use parachains_runtimes_test_utils::{CollatorSessionKeys, ExtBuilder};
+use parachains_runtimes_test_utils::{CollatorSessionKeys, ExtBuilder, RuntimeHelper};
 use snowbridge_core::{TokenId, TokenIdOf};
 use snowbridge_pallet_ethereum_client::WeightInfo;
 use sp_core::H160;
@@ -60,6 +61,92 @@ fn collator_session_keys() -> CollatorSessionKeys<Runtime> {
 		AccountId::from(Alice),
 		SessionKeys { aura: AuraId::from(Alice.public()) },
 	)
+}
+
+#[test]
+pub fn signed_asset_hub_user_cannot_forge_asset_hub_agent_origin() {
+	let asset_hub_parachain_id = ASSET_HUB_POLKADOT_PARACHAIN_ID;
+	let fee_amount = DefaultBridgeHubEthereumBaseFee::get();
+
+	ExtBuilder::<Runtime>::default()
+		.with_collators(collator_session_keys().collators())
+		.with_session_keys(collator_session_keys().session_keys())
+		.with_para_id(BRIDGE_HUB_POLKADOT_PARACHAIN_ID.into())
+		.with_tracing()
+		.build()
+		.execute_with(|| {
+			<snowbridge_pallet_system::Pallet<Runtime>>::initialize(
+				BRIDGE_HUB_POLKADOT_PARACHAIN_ID.into(),
+				asset_hub_parachain_id.into(),
+			)
+			.unwrap();
+
+			snowbridge_runtime_test_common::initial_fund::<Runtime>(
+				asset_hub_parachain_id,
+				5_000_000_000_000,
+			);
+
+			let fee_asset = Asset { id: AssetId(Here.into()), fun: Fungible(fee_amount) };
+			let transfer_asset = Asset {
+				id: AssetId(Location::new(
+					0,
+					[AccountKey20 { network: None, key: H160::random().into() }],
+				)),
+				fun: Fungible(1_000_000_000),
+			};
+			let forged_asset_hub_origin = Location::new(1, Parachain(asset_hub_parachain_id));
+			let forged_xcm = Xcm(vec![
+				WithdrawAsset(Assets::from(vec![fee_asset.clone()])),
+				PayFees { asset: fee_asset },
+				WithdrawAsset(Assets::from(vec![transfer_asset])),
+				AliasOrigin(forged_asset_hub_origin),
+				DepositAsset {
+					assets: Wild(All),
+					beneficiary: Location::new(
+						0,
+						[AccountKey20 { network: None, key: H160::random().into() }],
+					),
+				},
+				SetTopic([9; 32]),
+			]);
+
+			let export_xcm = Xcm(vec![
+				WithdrawAsset(Assets::from(vec![Asset {
+					id: AssetId(Location::new(1, Here)),
+					fun: Fungible(fee_amount),
+				}])),
+				BuyExecution {
+					fees: Asset { id: AssetId(Location::new(1, Here)), fun: Fungible(fee_amount) },
+					weight_limit: Unlimited,
+				},
+				ExportMessage {
+					network: Ethereum { chain_id: 1 },
+					destination: Here,
+					xcm: forged_xcm,
+				},
+			]);
+
+			let asset_hub_location = Location::new(1, Parachain(asset_hub_parachain_id));
+			let mut hash = export_xcm.using_encoded(sp_io::hashing::blake2_256);
+			let outcome = xcm_executor::XcmExecutor::<XcmConfig>::prepare_and_execute(
+				asset_hub_location,
+				export_xcm,
+				&mut hash,
+				RuntimeHelper::<Runtime, AllPalletsWithoutSystem>::xcm_max_weight(
+					XcmReceivedFrom::Sibling,
+				),
+				Weight::zero(),
+			);
+
+			assert!(matches!(
+				outcome,
+				Outcome::Incomplete {
+					error: InstructionError { error: XcmError::Unroutable, .. },
+					..
+				}
+			));
+			assert!(snowbridge_pallet_outbound_queue_v2::Messages::<Runtime>::get().is_empty());
+		});
 }
 
 #[test]

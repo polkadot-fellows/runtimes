@@ -29,6 +29,7 @@ kusama-runtime = { workspace = true }
 
 [features]
 runtime-benchmarks = [
+	"emulated-integration-tests-common/runtime-benchmarks",
 	"kusama-runtime-constants/runtime-benchmarks",
 	"kusama-runtime/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
