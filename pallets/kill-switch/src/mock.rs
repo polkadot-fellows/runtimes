@@ -15,6 +15,7 @@
 // limitations under the License.
 
 use crate::{self as pallet_kill_switch, *};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
@@ -24,6 +25,7 @@ use frame_support::{
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use pallet_tx_pause::RuntimeCallNameOf;
+use scale_info::TypeInfo;
 use sp_runtime::BuildStorage;
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -77,18 +79,75 @@ pub const PAUSE_DURATION: u64 = 10;
 pub const COOLDOWN: u64 = 20;
 pub const MAX_FELLOWSHIP_EXTENSION: u64 = 15;
 pub const MAX_DEPOSITS: u32 = 3;
-pub const MAX_ACTIVE_PAUSES: u32 = 5;
+pub const MAX_CALLS: u32 = 2;
+pub const MAX_ACTIVE_PAUSES: u32 = 7;
 
-/// `Balances` calls cost [`DEPOSIT`], everything else can't be paused.
-pub struct DepositFor;
-impl Convert<RuntimeCallNameOf<Test>, Option<u64>> for DepositFor {
-	fn convert(name: RuntimeCallNameOf<Test>) -> Option<u64> {
-		(name.0.as_slice() == b"Balances").then_some(DEPOSIT)
+/// What the tests can pause.
+#[derive(
+	Clone,
+	Copy,
+	PartialEq,
+	Eq,
+	Debug,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	TypeInfo,
+	MaxEncodedLen,
+)]
+pub enum Target {
+	Transfer,
+	ForceTransfer,
+	TransferAll,
+	Burn,
+	ForceUnreserve,
+	/// Shares its calls with `Transfer` and `Burn`.
+	Money,
+	/// Has no deposit, so only Root can pause it.
+	RootOnly,
+	/// Not one of the targets.
+	Unknown,
+	/// A call tx-pause refuses to pause.
+	Whitelisted,
+	/// The kill switch itself.
+	KillSwitchCall,
+}
+
+pub struct Targets;
+impl PauseTargets<Target, RuntimeCallNameOf<Test>, u64> for Targets {
+	fn all() -> Vec<Target> {
+		use Target::*;
+		vec![Transfer, ForceTransfer, TransferAll, Burn, ForceUnreserve, Money, RootOnly]
+	}
+
+	fn calls(target: &Target) -> Vec<RuntimeCallNameOf<Test>> {
+		let balances =
+			|calls: &[&str]| calls.iter().map(|call| full_name("Balances", call)).collect();
+		match target {
+			Target::Transfer => balances(&["transfer_allow_death"]),
+			Target::ForceTransfer => balances(&["force_transfer"]),
+			Target::TransferAll => balances(&["transfer_all"]),
+			Target::Burn => balances(&["burn"]),
+			Target::ForceUnreserve => balances(&["force_unreserve"]),
+			// A runtime upgrade can change what a target pauses.
+			Target::Money if MoneyUpgraded::get() =>
+				balances(&["transfer_allow_death", "force_transfer"]),
+			Target::Money => balances(&["transfer_allow_death", "burn"]),
+			Target::RootOnly => balances(&["force_set_balance"]),
+			Target::Unknown => vec![],
+			Target::Whitelisted => balances(&["transfer_keep_alive"]),
+			Target::KillSwitchCall => vec![full_name("KillSwitch", "unpause")],
+		}
+	}
+
+	fn deposit(target: &Target) -> Option<u64> {
+		(*target != Target::RootOnly).then_some(DEPOSIT)
 	}
 }
 
 parameter_types! {
 	pub static RelayBlock: u64 = 1;
+	pub static MoneyUpgraded: bool = false;
 }
 
 /// Stands in for the relay chain block number.
@@ -112,16 +171,17 @@ ord_parameter_types! {
 #[cfg(feature = "runtime-benchmarks")]
 pub struct BenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
-impl crate::BenchmarkHelper<RuntimeCallNameOf<Test>> for BenchmarkHelper {
-	fn target() -> RuntimeCallNameOf<Test> {
-		full_name("Balances", "transfer_allow_death")
+impl crate::BenchmarkHelper<Target> for BenchmarkHelper {
+	fn target() -> Target {
+		Target::Money
 	}
 }
 
 impl Config for Test {
-	type Target = RuntimeCallNameOf<Test>;
-	type Pauser = TxPause;
-	type DepositFor = DepositFor;
+	type Target = Target;
+	type CallName = RuntimeCallNameOf<Test>;
+	type Targets = Targets;
+	type TransactionPause = TxPause;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type OnSlash = ResolveTo<ConstU64<TREASURY>, Balances>;
@@ -131,6 +191,7 @@ impl Config for Test {
 	type PauseDuration = ConstU64<PAUSE_DURATION>;
 	type Cooldown = ConstU64<COOLDOWN>;
 	type MaxFellowshipExtension = ConstU64<MAX_FELLOWSHIP_EXTENSION>;
+	type MaxCallsPerTarget = ConstU32<MAX_CALLS>;
 	type MaxDepositsPerPause = ConstU32<MAX_DEPOSITS>;
 	type MaxActivePauses = ConstU32<MAX_ACTIVE_PAUSES>;
 	type WeightInfo = ();

@@ -26,7 +26,7 @@ fn set_relay_block<T: Config>(n: u32) {
 /// A funded account that can pay for every deposit of a full pause.
 fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let who: T::AccountId = account(name, index, 0);
-	let deposit = T::DepositFor::convert(T::BenchmarkHelper::target()).expect("target is priced");
+	let deposit = T::Targets::deposit(&T::BenchmarkHelper::target()).expect("target is priced");
 	let amount = T::Currency::minimum_balance()
 		.saturating_add(deposit.saturating_mul((T::MaxDepositsPerPause::get() + 1).into()));
 	T::Currency::set_balance(&who, amount);

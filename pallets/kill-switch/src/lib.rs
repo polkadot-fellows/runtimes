@@ -19,8 +19,12 @@
 //! Lets anyone pause something on the chain by putting up a deposit, and lets the Fellowship (or
 //! Root) clean up after it.
 //!
-//! - [`Call::pause`]: anyone. Holds a deposit priced by [`Config::DepositFor`] and pauses the
-//!   target through [`Config::Pauser`]. The pause ends by itself after [`Config::PauseDuration`].
+//! What can be paused is up to the runtime. It defines a set of targets through
+//! [`Config::Targets`], each one a group of calls with its own deposit, like everything around a
+//! stablecoin. Pausing a target pauses all of its calls through [`Config::TransactionPause`].
+//!
+//! - [`Call::pause`]: anyone. Holds the target's deposit and pauses its calls. The pause ends by
+//!   itself after [`Config::PauseDuration`].
 //! - [`Call::extend`]: anyone. Holds another deposit and pushes the end out by another
 //!   [`Config::PauseDuration`].
 //! - [`Call::unpause`]: Fellowship or Root. Ends the pause and slashes or refunds every deposit
@@ -37,9 +41,9 @@
 //! an end are kept in one list sorted by when they end, and `on_poll` ends the ones that are due.
 //! There are only ever a handful of pauses, so a single bounded list is enough.
 //!
-//! The pallet doesn't decide what can be paused. [`Config::DepositFor`] returns `None` for targets
-//! that can't be paused, and [`Config::Pauser`] has the last word through
-//! [`TransactionPause::can_pause`].
+//! Targets can share calls. A call stays paused as long as any active pause holds it, and every
+//! pause keeps the list of calls it paused, so a runtime upgrade that changes a target can't leave
+//! a call paused or unpaused by mistake.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -66,7 +70,7 @@ use frame_support::{
 	weights::WeightMeter,
 };
 use frame_system::pallet_prelude::*;
-use sp_runtime::traits::{BlockNumberProvider, Convert, Saturating, Zero};
+use sp_runtime::traits::{BlockNumberProvider, Saturating, Zero};
 
 /// The log target of this pallet.
 pub const LOG_TARGET: &str = "runtime::kill-switch";
@@ -77,6 +81,32 @@ pub type BlockNumberOf<T> =
 pub type BalanceOf<T> =
 	<<T as Config>::Currency as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 pub type CreditOf<T> = Credit<<T as frame_system::Config>::AccountId, <T as Config>::Currency>;
+/// The calls one pause holds.
+pub type CallsOf<T> = BoundedVec<<T as Config>::CallName, <T as Config>::MaxCallsPerTarget>;
+
+/// A target as the runtime offers it.
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
+pub struct TargetInfo<Target, CallName, Balance> {
+	/// The target itself.
+	pub target: Target,
+	/// The calls pausing it pauses.
+	pub calls: alloc::vec::Vec<CallName>,
+	/// The deposit for pausing or extending it. `None` means only Root can pause it.
+	pub deposit: Option<Balance>,
+}
+
+/// The things a runtime lets people pause.
+pub trait PauseTargets<Target, CallName, Balance> {
+	/// Every target, so they can be listed and checked.
+	fn all() -> alloc::vec::Vec<Target>;
+
+	/// The calls pausing `target` pauses. Empty if `target` isn't one of [`Self::all`].
+	fn calls(target: &Target) -> alloc::vec::Vec<CallName>;
+
+	/// The deposit for pausing or extending `target`. `None` means only [`Call::force_pause`] can
+	/// pause it.
+	fn deposit(target: &Target) -> Option<Balance>;
+}
 
 /// An active pause.
 #[derive(
@@ -85,6 +115,8 @@ pub type CreditOf<T> = Credit<<T as frame_system::Config>::AccountId, <T as Conf
 #[scale_info(skip_type_params(T))]
 #[codec(mel_bound())]
 pub struct PauseInfo<T: Config> {
+	/// The calls this pause holds, as the target had them when the pause started.
+	pub calls: CallsOf<T>,
 	/// When the pause ends by itself. `None` means it only ends through [`Call::unpause`].
 	pub until: Option<BlockNumberOf<T>>,
 	/// How far the Fellowship has pushed `until` out so far.
@@ -111,7 +143,7 @@ pub struct Deposit<T: Config> {
 /// Benchmark setup that only the runtime knows.
 #[cfg(feature = "runtime-benchmarks")]
 pub trait BenchmarkHelper<Target> {
-	/// A target that [`Config::DepositFor`] prices and [`Config::Pauser`] can pause.
+	/// A target anyone can pause. Should be the one with the most calls.
 	fn target() -> Target;
 }
 
@@ -127,19 +159,20 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config<RuntimeEvent: From<Event<Self>>> {
-		/// What can be paused. For calls this is the `(pallet, call)` name `pallet-tx-pause`
-		/// uses.
+		/// Something that can be paused, usually a group of calls. Defined by the runtime.
 		type Target: Parameter + MaxEncodedLen;
 
-		/// Applies and lifts pauses.
-		type Pauser: TransactionPause<CallIdentifier = Self::Target>;
+		/// The name of a single call, the `(pallet, call)` pair `pallet-tx-pause` uses.
+		type CallName: Parameter + MaxEncodedLen;
 
-		/// The deposit needed to pause or extend a target. `None` means it can't be paused.
+		/// What each target pauses and what it costs.
 		///
-		/// The pauser doesn't check that a target exists, so this has to return `None` for
-		/// anything that isn't real. It also has to return `None` for this pallet's own calls and
-		/// for whatever the Fellowship needs to reach [`Call::unpause`].
-		type DepositFor: Convert<Self::Target, Option<BalanceOf<Self>>>;
+		/// None of the calls may be this pallet's own, or anything the Fellowship needs to reach
+		/// [`Call::unpause`].
+		type Targets: PauseTargets<Self::Target, Self::CallName, BalanceOf<Self>>;
+
+		/// Pauses and unpauses single calls. Nothing else should be able to touch it.
+		type TransactionPause: TransactionPause<CallIdentifier = Self::CallName>;
 
 		/// Holds the deposits.
 		type Currency: MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>
@@ -173,11 +206,16 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxFellowshipExtension: Get<BlockNumberOf<Self>>;
 
+		/// How many calls one target can pause.
+		#[pallet::constant]
+		type MaxCallsPerTarget: Get<u32>;
+
 		/// How many deposits can back one pause.
 		#[pallet::constant]
 		type MaxDepositsPerPause: Get<u32>;
 
-		/// How many pauses with an end can be active at once.
+		/// How many pauses with an end can be active at once. Must be at least the number of
+		/// targets.
 		#[pallet::constant]
 		type MaxActivePauses: Get<u32>;
 
@@ -203,6 +241,10 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Expiries<T: Config> =
 		StorageValue<_, BoundedVec<(BlockNumberOf<T>, T::Target), T::MaxActivePauses>, ValueQuery>;
+
+	/// How many active pauses hold each call. A call is only unpaused once none do.
+	#[pallet::storage]
+	pub type PausedCalls<T: Config> = StorageMap<_, Blake2_128Concat, T::CallName, u32, ValueQuery>;
 
 	/// Targets that can't be paused until the given block.
 	#[pallet::storage]
@@ -231,7 +273,7 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// The target can't be paused.
+		/// The target doesn't exist, has no deposit, or one of its calls can't be paused.
 		NotPausable,
 		/// The target is already paused.
 		AlreadyPaused,
@@ -251,12 +293,14 @@ pub mod pallet {
 		ExtensionTooLong,
 		/// The pause already has the maximum number of deposits.
 		TooManyDeposits,
-		/// The pauser refused to pause the target.
+		/// `TransactionPause` refused to pause one of the calls.
 		PauseFailed,
 		/// The pause was started with `force_pause`. Only `ForceOrigin` can change it.
 		ForcedPause,
 		/// There are already [`Config::MaxActivePauses`] pauses with an end.
 		TooManyPauses,
+		/// The target pauses more than [`Config::MaxCallsPerTarget`] calls.
+		TooManyCalls,
 	}
 
 	#[pallet::hooks]
@@ -269,6 +313,24 @@ pub mod pallet {
 			assert!(!T::PauseDuration::get().is_zero(), "a pause must last at least one block");
 			assert!(T::MaxDepositsPerPause::get() > 0, "a pause needs room for its first deposit");
 			assert!(T::MaxActivePauses::get() > 0, "there must be room for at least one pause");
+
+			let targets = T::Targets::all();
+			assert!(
+				targets.len() <= T::MaxActivePauses::get() as usize,
+				"every target must be able to be paused at the same time"
+			);
+			for target in targets {
+				let calls = T::Targets::calls(&target);
+				assert!(!calls.is_empty(), "a target has no calls: {target:?}");
+				assert!(
+					calls.len() <= T::MaxCallsPerTarget::get() as usize,
+					"a target has too many calls: {target:?}"
+				);
+				assert!(
+					T::Targets::deposit(&target).is_none_or(|deposit| !deposit.is_zero()),
+					"a target is free to pause: {target:?}"
+				);
+			}
 		}
 
 		#[cfg(feature = "try-runtime")]
@@ -279,7 +341,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Pause `target` by putting up the deposit [`Config::DepositFor`] asks for.
+		/// Pause `target` by putting up its deposit.
 		///
 		/// The pause ends by itself after [`Config::PauseDuration`], unless someone extends it or
 		/// the Fellowship or Root ends it earlier.
@@ -294,12 +356,12 @@ pub mod pallet {
 				ensure!(now >= end, Error::<T>::InCooldown);
 				Cooldowns::<T>::remove(&target);
 			}
-			ensure!(T::Pauser::can_pause(target.clone()), Error::<T>::NotPausable);
+			let calls = Self::calls_to_pause(&target)?;
 
 			let deposit = Self::hold_deposit(&who, &target)?;
 			let until = now.saturating_add(T::PauseDuration::get());
 			let deposits = BoundedVec::truncate_from(alloc::vec![deposit]);
-			Self::do_pause(&target, Some(until), deposits, false)?;
+			Self::do_pause(&target, calls, Some(until), deposits, false)?;
 
 			Self::deposit_event(Event::Paused { target, who: Some(who), until: Some(until) });
 			Ok(())
@@ -413,8 +475,8 @@ pub mod pallet {
 			if let Some(until) = until {
 				ensure!(until > now, Error::<T>::InPast);
 			}
-			ensure!(T::Pauser::can_pause(target.clone()), Error::<T>::NotPausable);
-			Self::do_pause(&target, until, Default::default(), true)?;
+			let calls = Self::calls_to_pause(&target)?;
+			Self::do_pause(&target, calls, until, Default::default(), true)?;
 
 			Self::deposit_event(Event::Paused { target, who: None, until });
 			Ok(())
@@ -438,8 +500,33 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	/// Every target the runtime offers, with its calls and deposit. For the runtime API.
+	pub fn pause_targets() -> alloc::vec::Vec<TargetInfo<T::Target, T::CallName, BalanceOf<T>>> {
+		T::Targets::all()
+			.into_iter()
+			.map(|target| TargetInfo {
+				calls: T::Targets::calls(&target),
+				deposit: T::Targets::deposit(&target),
+				target,
+			})
+			.collect()
+	}
+
+	/// The calls `target` pauses, if all of them can be paused.
+	fn calls_to_pause(target: &T::Target) -> Result<CallsOf<T>, DispatchError> {
+		let calls = T::Targets::calls(target);
+		ensure!(!calls.is_empty(), Error::<T>::NotPausable);
+		let calls = CallsOf::<T>::try_from(calls).map_err(|_| Error::<T>::TooManyCalls)?;
+		// A call another pause already holds would look unpausable to tx-pause, but that's fine.
+		let pausable = |call: &T::CallName| {
+			PausedCalls::<T>::contains_key(call) || T::TransactionPause::can_pause(call.clone())
+		};
+		ensure!(calls.iter().all(pausable), Error::<T>::NotPausable);
+		Ok(calls)
+	}
+
 	fn hold_deposit(who: &T::AccountId, target: &T::Target) -> Result<Deposit<T>, DispatchError> {
-		let amount = T::DepositFor::convert(target.clone()).ok_or(Error::<T>::NotPausable)?;
+		let amount = T::Targets::deposit(target).ok_or(Error::<T>::NotPausable)?;
 		// A free pause would make the whole thing pointless.
 		ensure!(!amount.is_zero(), Error::<T>::NotPausable);
 		T::Currency::hold(&HoldReason::Pause.into(), who, amount)?;
@@ -486,6 +573,7 @@ impl<T: Config> Pallet<T> {
 
 	fn do_pause(
 		target: &T::Target,
+		calls: CallsOf<T>,
 		until: Option<BlockNumberOf<T>>,
 		deposits: BoundedVec<Deposit<T>, T::MaxDepositsPerPause>,
 		forced: bool,
@@ -493,23 +581,49 @@ impl<T: Config> Pallet<T> {
 		if let Some(until) = until {
 			Self::schedule_expiry(until, target)?;
 		}
-		T::Pauser::pause(target.clone()).map_err(|_| Error::<T>::PauseFailed)?;
+		for call in calls.iter() {
+			Self::hold_call(call)?;
+		}
 		Pauses::<T>::insert(
 			target,
-			PauseInfo { until, fellowship_extension: Zero::zero(), deposits, forced },
+			PauseInfo { calls, until, fellowship_extension: Zero::zero(), deposits, forced },
 		);
 		Ok(())
 	}
 
-	/// Removes the pause and lifts it. Doesn't touch the deposits.
+	/// Removes the pause and lifts its calls. Doesn't touch the deposits.
 	fn do_unpause(target: &T::Target, pause: &PauseInfo<T>) {
 		if pause.until.is_some() {
 			Self::unschedule_expiry(target);
 		}
 		Pauses::<T>::remove(target);
+		for call in pause.calls.iter() {
+			Self::release_call(call);
+		}
+	}
+
+	/// Counts one more pause holding `call`, and pauses it if it's the first.
+	fn hold_call(call: &T::CallName) -> DispatchResult {
+		PausedCalls::<T>::try_mutate(call, |holders| {
+			if *holders == 0 {
+				T::TransactionPause::pause(call.clone()).map_err(|_| Error::<T>::PauseFailed)?;
+			}
+			holders.saturating_inc();
+			Ok(())
+		})
+	}
+
+	/// Counts one pause less holding `call`, and unpauses it once none do.
+	fn release_call(call: &T::CallName) {
+		let holders = PausedCalls::<T>::get(call).saturating_sub(1);
+		if holders > 0 {
+			PausedCalls::<T>::insert(call, holders);
+			return;
+		}
+		PausedCalls::<T>::remove(call);
 		// Nothing else can touch tx-pause, so anything we paused is still paused.
-		if T::Pauser::unpause(target.clone()).is_err() {
-			frame_support::defensive!("the pauser could not lift a pause it applied");
+		if T::TransactionPause::unpause(call.clone()).is_err() {
+			frame_support::defensive!("could not unpause a call the kill switch paused");
 		}
 	}
 
@@ -591,7 +705,8 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	/// Checks that the expiry queue, the pauses and the deposits agree with each other.
+	/// Checks that the expiry queue, the pauses, the paused calls and the deposits agree with each
+	/// other.
 	#[cfg(any(feature = "try-runtime", test))]
 	pub(crate) fn do_try_state() -> Result<(), sp_runtime::TryRuntimeError> {
 		let queue = Expiries::<T>::get();
@@ -603,8 +718,19 @@ impl<T: Config> Pallet<T> {
 
 		// What every account should have on hold, going by the pauses.
 		let mut held = alloc::collections::BTreeMap::<T::AccountId, BalanceOf<T>>::new();
+		for (call, holders) in PausedCalls::<T>::iter() {
+			let expected: usize = Pauses::<T>::iter_values()
+				.map(|p| p.calls.iter().filter(|c| **c == call).count())
+				.sum();
+			ensure!(holders as usize == expected, "a call's pause count is off");
+			ensure!(T::TransactionPause::is_paused(call), "a held call isn't paused");
+		}
+
 		for (target, pause) in Pauses::<T>::iter() {
-			ensure!(T::Pauser::is_paused(target.clone()), "a pause isn't applied");
+			ensure!(!pause.calls.is_empty(), "a pause holds no calls");
+			for call in pause.calls.iter() {
+				ensure!(PausedCalls::<T>::contains_key(call), "a pause's call isn't counted");
+			}
 			if pause.until.is_some() {
 				let queued = queue.iter().filter(|entry| entry.1 == target).count();
 				ensure!(queued == 1, "a pause isn't queued exactly once");
