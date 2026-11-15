@@ -418,8 +418,8 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 5_911_000 picoseconds.
-		Weight::from_parts(6_132_000, 0)
+		// Minimum execution time: 10_510_000 picoseconds.
+		Weight::from_parts(10_810_000, 0)
 			.saturating_add(Weight::from_parts(0, 0))
 	}
 	/// The range of component `n` is `[0, 8192]`.
@@ -427,11 +427,11 @@ impl<T: frame_system::Config> pallet_xcm::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 769_000 picoseconds.
-		Weight::from_parts(816_000, 0)
+		// Minimum execution time: 1_810_000 picoseconds.
+		Weight::from_parts(1_265_552, 0)
 			.saturating_add(Weight::from_parts(0, 0))
-			// Standard Error: 62
-			.saturating_add(Weight::from_parts(54_971, 0).saturating_mul(n.into()))
+			// Standard Error: 58
+			.saturating_add(Weight::from_parts(145_109, 0).saturating_mul(n.into()))
 	}
 	/// The range of component `n` is `[0, 131072]`.
 	fn decode_xcm(n: u32, ) -> Weight {
