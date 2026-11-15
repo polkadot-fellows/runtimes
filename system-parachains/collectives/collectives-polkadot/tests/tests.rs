@@ -240,6 +240,9 @@ fn dust_accumulates_instead_of_being_burned() {
 
 #[test]
 fn forward_period_counts_relay_blocks() {
-	sp_io::TestExternalities::default()
-		.execute_with(system_parachains_test_utils::forward_period_counts_relay_blocks::<Runtime>);
+	sp_io::TestExternalities::default().execute_with(|| {
+		system_parachains_test_utils::forward_period_counts_relay_blocks::<Runtime>(
+			polkadot_runtime_constants::time::HOURS,
+		)
+	});
 }

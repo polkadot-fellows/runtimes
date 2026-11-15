@@ -1560,8 +1560,10 @@ mod accumulate_and_forward_tests {
 
 	#[test]
 	fn forward_period_counts_relay_blocks() {
-		ExtBuilder::<Runtime>::default().build().execute_with(
-			system_parachains_test_utils::forward_period_counts_relay_blocks::<Runtime>,
-		);
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			system_parachains_test_utils::forward_period_counts_relay_blocks::<Runtime>(
+				kusama_runtime_constants::time::HOURS,
+			)
+		});
 	}
 }
