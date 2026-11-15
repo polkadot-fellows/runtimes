@@ -70,6 +70,7 @@ pallet-bounties = { workspace = true }
 pallet-child-bounties = { workspace = true }
 pallet-conviction-voting = { workspace = true }
 pallet-indices = { workspace = true }
+pallet-kill-switch = { workspace = true }
 pallet-message-queue = { workspace = true }
 pallet-migrations = { workspace = true }
 pallet-multisig = { workspace = true }
@@ -96,6 +97,7 @@ pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-treasury = { workspace = true }
+pallet-tx-pause = { workspace = true }
 pallet-uniques = { workspace = true }
 pallet-utility = { workspace = true }
 pallet-verify-signature = { workspace = true }
@@ -235,6 +237,7 @@ runtime-benchmarks = [
 	"pallet-delegated-staking/runtime-benchmarks",
 	"pallet-election-provider-multi-block/runtime-benchmarks",
 	"pallet-indices/runtime-benchmarks",
+	"pallet-kill-switch/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-migrations/runtime-benchmarks",
 	"pallet-multi-asset-bounties/runtime-benchmarks",
@@ -258,6 +261,7 @@ runtime-benchmarks = [
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-transaction-payment/runtime-benchmarks",
 	"pallet-treasury/runtime-benchmarks",
+	"pallet-tx-pause/runtime-benchmarks",
 	"pallet-uniques/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
 	"pallet-verify-signature/runtime-benchmarks",
@@ -329,6 +333,7 @@ try-runtime = [
 	"pallet-delegated-staking/try-runtime",
 	"pallet-election-provider-multi-block/try-runtime",
 	"pallet-indices/try-runtime",
+	"pallet-kill-switch/try-runtime",
 	"pallet-message-queue/try-runtime",
 	"pallet-migrations/try-runtime",
 	"pallet-multi-asset-bounties/try-runtime",
@@ -351,6 +356,7 @@ try-runtime = [
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-treasury/try-runtime",
+	"pallet-tx-pause/try-runtime",
 	"pallet-uniques/try-runtime",
 	"pallet-utility/try-runtime",
 	"pallet-verify-signature/try-runtime",
@@ -433,6 +439,7 @@ std = [
 	"pallet-delegated-staking/std",
 	"pallet-election-provider-multi-block/std",
 	"pallet-indices/std",
+	"pallet-kill-switch/std",
 	"pallet-message-queue/std",
 	"pallet-migrations/std",
 	"pallet-multi-asset-bounties/std",
@@ -460,6 +467,7 @@ std = [
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
 	"pallet-treasury/std",
+	"pallet-tx-pause/std",
 	"pallet-uniques/std",
 	"pallet-utility/std",
 	"pallet-verify-signature/std",

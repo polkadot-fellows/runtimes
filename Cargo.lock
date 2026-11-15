@@ -1836,6 +1836,7 @@ dependencies = [
  "pallet-delegated-staking",
  "pallet-election-provider-multi-block",
  "pallet-indices",
+ "pallet-kill-switch",
  "pallet-message-queue",
  "pallet-migrations",
  "pallet-multi-asset-bounties",
@@ -1863,6 +1864,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
+ "pallet-tx-pause",
  "pallet-uniques",
  "pallet-utility",
  "pallet-verify-signature",
@@ -11906,6 +11908,7 @@ dependencies = [
  "pallet-tx-pause",
  "parity-scale-codec",
  "scale-info",
+ "sp-api 43.0.0",
  "sp-io 48.0.0",
  "sp-runtime 48.0.0",
 ]
