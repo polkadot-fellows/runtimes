@@ -19,7 +19,7 @@
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 64.0.1
 //! DATE: 2026-11-14, STEPS: `50`, REPEAT: `20`, LOW RANGE: `[]`, HIGH RANGE: `[]`
 //! WORST CASE MAP SIZE: `1000000`
-//! HOSTNAME: `00c1a6da03b8`, CPU: `Intel(R) Core(TM) i9-14900`
+//! HOSTNAME: `6a88c2d8935d`, CPU: `Intel(R) Core(TM) i9-14900`
 //! WASM-EXECUTION: `Compiled`, CHAIN: `None`, DB CACHE: 1024
 
 // Executed Command:
@@ -57,8 +57,8 @@ impl<T: frame_system::Config> pallet_asset_rate::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `109`
 		//  Estimated: `4703`
-		// Minimum execution time: 10_056_000 picoseconds.
-		Weight::from_parts(10_932_000, 0)
+		// Minimum execution time: 10_080_000 picoseconds.
+		Weight::from_parts(10_818_000, 0)
 			.saturating_add(Weight::from_parts(0, 4703))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -69,8 +69,8 @@ impl<T: frame_system::Config> pallet_asset_rate::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `177`
 		//  Estimated: `4703`
-		// Minimum execution time: 11_061_000 picoseconds.
-		Weight::from_parts(11_907_000, 0)
+		// Minimum execution time: 10_907_000 picoseconds.
+		Weight::from_parts(11_772_000, 0)
 			.saturating_add(Weight::from_parts(0, 4703))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -81,8 +81,8 @@ impl<T: frame_system::Config> pallet_asset_rate::WeightInfo for WeightInfo<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `177`
 		//  Estimated: `4703`
-		// Minimum execution time: 11_850_000 picoseconds.
-		Weight::from_parts(12_692_000, 0)
+		// Minimum execution time: 11_664_000 picoseconds.
+		Weight::from_parts(12_486_000, 0)
 			.saturating_add(Weight::from_parts(0, 4703))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
