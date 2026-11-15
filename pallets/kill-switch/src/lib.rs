@@ -53,6 +53,7 @@ extern crate alloc;
 mod benchmarking;
 #[cfg(test)]
 mod mock;
+pub mod runtime_api;
 #[cfg(test)]
 mod tests;
 pub mod weights;
@@ -63,7 +64,7 @@ pub use weights::WeightInfo;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{
-		fungible::{BalancedHold, Credit, Inspect, InspectHold, Mutate, MutateHold},
+		fungible::{BalancedHold, Credit, Inspect, Mutate, MutateHold},
 		tokens::Precision,
 		OnUnbalanced, TransactionPause,
 	},
@@ -591,11 +592,17 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	/// Removes the pause and lifts its calls. Doesn't touch the deposits.
+	/// Takes the pause off the expiry list, removes it and lifts its calls. Doesn't touch the
+	/// deposits.
 	fn do_unpause(target: &T::Target, pause: &PauseInfo<T>) {
 		if pause.until.is_some() {
 			Self::unschedule_expiry(target);
 		}
+		Self::lift(target, pause);
+	}
+
+	/// Removes the pause and lifts its calls.
+	fn lift(target: &T::Target, pause: &PauseInfo<T>) {
 		Pauses::<T>::remove(target);
 		for call in pause.calls.iter() {
 			Self::release_call(call);
@@ -627,9 +634,10 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	/// Ends a pause that ran out and gives its deposits back.
+	/// Ends a pause that ran out and gives its deposits back. The hook already took it off the
+	/// expiry list.
 	pub(crate) fn do_expire(target: &T::Target, pause: &PauseInfo<T>) {
-		Self::do_unpause(target, pause);
+		Self::lift(target, pause);
 		Self::settle_deposits(target, &pause.deposits, false);
 		Self::deposit_event(Event::Expired { target: target.clone() });
 	}
@@ -659,13 +667,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn unschedule_expiry(target: &T::Target) {
-		let mut queue = Expiries::<T>::get();
-		let len = queue.len();
-		queue.retain(|(_, queued)| queued != target);
-		// The hook takes pauses off the list before ending them, so often there is nothing to do.
-		if queue.len() != len {
-			Expiries::<T>::put(queue);
-		}
+		Expiries::<T>::mutate(|queue| queue.retain(|(_, queued)| queued != target));
 	}
 
 	/// Ends every pause that is due, as far as `meter` allows. The rest is picked up in the next
@@ -709,6 +711,8 @@ impl<T: Config> Pallet<T> {
 	/// other.
 	#[cfg(any(feature = "try-runtime", test))]
 	pub(crate) fn do_try_state() -> Result<(), sp_runtime::TryRuntimeError> {
+		use frame_support::traits::fungible::InspectHold;
+
 		let queue = Expiries::<T>::get();
 		ensure!(queue.windows(2).all(|w| w[0].0 <= w[1].0), "the expiry queue isn't sorted");
 		for (at, target) in queue.iter() {
