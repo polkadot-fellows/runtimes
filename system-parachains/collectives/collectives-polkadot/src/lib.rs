@@ -933,7 +933,7 @@ pub mod migrations {
 	const _: () = assert!(
 		BLOCK_PROCESSING_VELOCITY == 1 &&
 			UNINCLUDED_SEGMENT_CAPACITY == 1 &&
-			SLOT_DURATION % RELAY_CHAIN_SLOT_DURATION_MILLIS as u64 == 0
+			SLOT_DURATION.is_multiple_of(RELAY_CHAIN_SLOT_DURATION_MILLIS as u64)
 	);
 
 	type RelayBlockNumber = <cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime> as
@@ -1118,6 +1118,14 @@ mod benches {
 		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
 		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
 			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
+
+		/// `Multisig::as_multi_threshold_1`, a single-call dispatcher to nest calls with.
+		fn wrap_call(call: RuntimeCall) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Multisig(pallet_multisig::Call::<Runtime>::as_multi_threshold_1 {
+				other_signatories: Vec::new(),
+				call: alloc::boxed::Box::new(call),
+			}))
 		}
 	}
 

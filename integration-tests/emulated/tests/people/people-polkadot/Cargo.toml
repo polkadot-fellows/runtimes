@@ -53,7 +53,9 @@ polkadot-system-emulated-network = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"asset-test-utils/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"indiv-pallet-coinage/runtime-benchmarks",
@@ -80,6 +82,4 @@ runtime-benchmarks = [
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"asset-test-utils/runtime-benchmarks",
-	"emulated-integration-tests-common/runtime-benchmarks"
 ]

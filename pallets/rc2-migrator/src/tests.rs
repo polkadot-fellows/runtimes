@@ -15,8 +15,8 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	mock::*, xcm_config::NothingOnceStarted, CtMigratorCall, CtRuntimeCall, Error, Event, Manager,
-	Paused, RcMigrationStage,
+	mock::*, xcm_config::NothingOnceDataMigrationStarts, CtMigratorCall, CtRuntimeCall, Error,
+	Event, Manager, MigrationPhase, Paused, RcMigrationStage,
 };
 use codec::Encode;
 use frame_support::{
@@ -774,31 +774,28 @@ fn the_warm_up_holds_for_its_period_and_can_be_halted() {
 
 #[test]
 fn the_stage_predicates_say_what_their_consumers_need() {
-	fn expected(stage: &Stage) -> (bool, bool, bool) {
+	fn expected(stage: &Stage) -> MigrationPhase {
+		// Exhaustive
 		match stage {
-			//                              ongoing, started, finished
-			Stage::Pending => (false, false, false),
-			Stage::Scheduled { .. } => (false, false, false),
-			Stage::WaitingForCt => (true, true, false),
-			Stage::WarmUp { .. } => (true, true, false),
-			Stage::AccountsInit => (true, true, false),
-			Stage::AccountsOngoing { .. } => (true, true, false),
-			Stage::AccountsDone => (true, true, false),
-			Stage::ProxyInit => (true, true, false),
-			Stage::ProxyOngoing { .. } => (true, true, false),
-			Stage::ProxyDone => (true, true, false),
-			Stage::RegistrarInit => (true, true, false),
-			Stage::RegistrarOngoing { .. } => (true, true, false),
-			Stage::RegistrarDone => (true, true, false),
-			Stage::HrmpInit => (true, true, false),
-			Stage::HrmpOngoing { .. } => (true, true, false),
-			Stage::HrmpDone => (true, true, false),
-			Stage::Sweep => (true, true, false),
-			Stage::SweepDust { .. } => (true, true, false),
-			Stage::TiCorrection => (true, true, false),
-			Stage::CoolOff { .. } => (true, true, false),
-			// `has_started` stays true after the end: what closed when it started must not reopen.
-			Stage::MigrationDone => (false, true, true),
+			Stage::Pending | Stage::Scheduled { .. } => MigrationPhase::NotStarted,
+			Stage::WaitingForCt | Stage::WarmUp { .. } => MigrationPhase::WarmUp,
+			Stage::AccountsInit |
+			Stage::AccountsOngoing { .. } |
+			Stage::AccountsDone |
+			Stage::ProxyInit |
+			Stage::ProxyOngoing { .. } |
+			Stage::ProxyDone |
+			Stage::RegistrarInit |
+			Stage::RegistrarOngoing { .. } |
+			Stage::RegistrarDone |
+			Stage::HrmpInit |
+			Stage::HrmpOngoing { .. } |
+			Stage::HrmpDone |
+			Stage::Sweep |
+			Stage::SweepDust { .. } |
+			Stage::TiCorrection |
+			Stage::CoolOff { .. } => MigrationPhase::DataMigration,
+			Stage::MigrationDone => MigrationPhase::Done,
 		}
 	}
 
@@ -827,9 +824,19 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 	];
 
 	for stage in cases {
-		let (ongoing, started, finished) = expected(&stage);
+		let phase = expected(&stage);
+		assert_eq!(stage.phase(), phase, "phase for {stage:?}");
+		// What each phase means to the call filter, the barrier and the teleport filter. What
+		// closed stays closed after the end.
+		let (ongoing, started, data, finished) = match phase {
+			MigrationPhase::NotStarted => (false, false, false, false),
+			MigrationPhase::WarmUp => (true, true, false, false),
+			MigrationPhase::DataMigration => (true, true, true, false),
+			MigrationPhase::Done => (false, true, true, true),
+		};
 		assert_eq!(stage.is_ongoing(), ongoing, "is_ongoing for {stage:?}");
 		assert_eq!(stage.has_started(), started, "has_started for {stage:?}");
+		assert_eq!(stage.data_migration_started(), data, "data_migration_started for {stage:?}");
 		assert_eq!(stage.is_finished(), finished, "is_finished for {stage:?}");
 	}
 }
@@ -881,7 +888,7 @@ fn each_stage_allows_only_its_own_call_set() {
 }
 
 #[test]
-fn teleport_trust_ends_when_the_migration_starts() {
+fn teleport_trust_ends_when_the_data_migration_starts() {
 	new_test_ext().execute_with(|| {
 		let asset: Asset = (Here, 1u128).into();
 		let origin = Location::new(0, [Parachain(CT_PARA_ID)]);
@@ -889,10 +896,10 @@ fn teleport_trust_ends_when_the_migration_starts() {
 			// GIVEN the machine at `stage`.
 			set_stage(stage.clone());
 
-			// THEN the inner filter's answer stands until the start, and nothing is trusted after.
+			// THEN the inner filter's answer stands until data moves, and nothing is trusted after.
 			assert_eq!(
-				NothingOnceStarted::<Test, Everything>::contains(&asset, &origin),
-				!stage.has_started(),
+				NothingOnceDataMigrationStarts::<Test, Everything>::contains(&asset, &origin),
+				!stage.data_migration_started(),
 				"at {stage:?}"
 			);
 		}

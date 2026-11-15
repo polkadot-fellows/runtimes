@@ -264,7 +264,10 @@ impl<T: frame_system::Config> pallet_bounties::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
-	/// TODO 2609-bench: copied from pallet-bounties default weights (stable2609-1); regenerate with the bench bot.
+	/// NOTE: copied from the pallet-bounties default weights (stable2609-1), not benchmarked. The
+	/// benchmark expects `BountyFundsReclaimed`, which the relay's no-op `TransferAllAssets = ()`
+	/// never emits. The call is a no-op here (and filtered post-AHM), so this weight is an
+	/// overestimate.
 	/// Storage: `Bounties::Bounties` (r:1 w:0)
 	/// Proof: `Bounties::Bounties` (`max_values`: None, `max_size`: Some(177), added: 2652, mode: `MaxEncodedLen`)
 	/// Storage: `System::Account` (r:2 w:2)

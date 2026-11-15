@@ -34,6 +34,7 @@ polkadot-system-emulated-network = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"bulletin-polkadot-runtime/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"indiv-pallet-resources/runtime-benchmarks",
@@ -47,5 +48,4 @@ runtime-benchmarks = [
 	"polkadot-system-emulated-network/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
-	"emulated-integration-tests-common/runtime-benchmarks"
 ]
