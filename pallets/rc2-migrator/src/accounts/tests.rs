@@ -17,8 +17,8 @@
 use super::*;
 use crate::{
 	mock::*, BlockLimits, CtMigratorCall, CtRuntimeCall, Error, Event, ExpectedReserves,
-	IssuanceAudit, Limits, Manager, MigratedBalances, RcIssuanceAudit, RcMigratedBalance,
-	RcMigrationStage,
+	IssuanceAudit, Limits, Manager, MaxTiCorrection, MigratedBalances, RcIssuanceAudit,
+	RcMigratedBalance, RcMigrationStage,
 };
 use frame_support::{assert_noop, assert_ok, traits::ReservableCurrency};
 use migrator_types::{sibling_account, PortableHoldReason};
@@ -106,8 +106,11 @@ fn account(i: u32) -> AccountId {
 /// Issuance that no account holds, added on top of the balances.
 const PHANTOM: u128 = 7;
 
+/// Add issuance no account holds, and allow TI Correction to burn exactly that, as
+/// `schedule_migration` would with an off-chain measurement.
 fn add_phantom_issuance() {
 	pallet_balances::TotalIssuance::<Test>::mutate(|ti| *ti += PHANTOM);
+	MaxTiCorrection::<Test>::put(PHANTOM);
 }
 
 /// Run blocks until the machine reaches `stage`.
@@ -918,6 +921,53 @@ fn ti_correction_burns_once() {
 		assert_eq!(burned_events(), vec![PHANTOM]);
 		assert_eq!(total_issuance(), 100);
 		assert_eq!(RcMigratedBalance::<Test>::get().ti_corrected, PHANTOM);
+	});
+}
+
+/// TI Correction never burns more than the maximum `schedule_migration` was given.
+#[test]
+fn ti_correction_burns_no_more_than_the_maximum() {
+	new_test_ext().execute_with(|| {
+		// GIVEN the accounts stage ran over a pot it leaves, with issuance that no account
+		// holds, and a maximum below that issuance.
+		fund(&pallet_account(), 100);
+		add_phantom_issuance();
+		MaxTiCorrection::<Test>::put(PHANTOM - 2);
+		run_accounts_stage();
+
+		// WHEN TI Correction runs. THEN it burns only the maximum, and reports the cap.
+		run_ti_correction();
+		assert_eq!(burned_events(), vec![PHANTOM - 2]);
+		System::assert_has_event(
+			Event::IssuanceCorrectionCapped { unheld: PHANTOM, max: PHANTOM - 2 }.into(),
+		);
+		assert_eq!(total_issuance(), 100 + 2);
+		assert_eq!(RcMigratedBalance::<Test>::get().ti_corrected, PHANTOM - 2);
+	});
+}
+
+#[test]
+fn the_manager_and_the_admin_can_change_the_maximum_ti_correction() {
+	new_test_ext().execute_with(|| {
+		Manager::<Test>::put(BOB);
+		MaxTiCorrection::<Test>::put(PHANTOM);
+
+		// WHEN another account tries to change it. THEN it is refused.
+		assert_noop!(
+			Rc2Migrator::set_max_ti_correction(RuntimeOrigin::signed(ALICE), 1),
+			BadOrigin
+		);
+
+		// WHEN the admin and then the manager change it. THEN each change is stored and reported.
+		assert_ok!(Rc2Migrator::set_max_ti_correction(RuntimeOrigin::signed(ADMIN), PHANTOM + 1));
+		System::assert_last_event(
+			Event::MaxTiCorrectionSet { old: PHANTOM, new: PHANTOM + 1 }.into(),
+		);
+		assert_ok!(Rc2Migrator::set_max_ti_correction(RuntimeOrigin::signed(BOB), PHANTOM + 2));
+		System::assert_last_event(
+			Event::MaxTiCorrectionSet { old: PHANTOM + 1, new: PHANTOM + 2 }.into(),
+		);
+		assert_eq!(MaxTiCorrection::<Test>::get(), PHANTOM + 2);
 	});
 }
 

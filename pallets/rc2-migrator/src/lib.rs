@@ -247,7 +247,7 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		last_key: Option<AccountId>,
 	},
 	/// Burn the issuance no account held when the accounts stage read every balance, from
-	/// [`RcIssuanceAudit`].
+	/// [`RcIssuanceAudit`], up to [`MaxTiCorrection`].
 	TiCorrection,
 	CoolOff {
 		/// The block number at which the post migration cool-off period will end. It is absolute
@@ -410,6 +410,11 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type CoolOffPeriod<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
+	/// The most TI Correction may burn, set by [`Pallet::schedule_migration`] and
+	/// [`Pallet::set_max_ti_correction`].
+	#[pallet::storage]
+	pub type MaxTiCorrection<T: Config> = StorageValue<_, u128, ValueQuery>;
+
 	/// An optional account id of a manager.
 	///
 	/// This account id has similar privileges to [`Config::AdminOrigin`] except that it
@@ -502,6 +507,11 @@ pub mod pallet {
 		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
 		/// Issuance that no account held was burned.
 		IssuanceCorrected { burned: u128 },
+		/// The audit found more issuance no account held than [`MaxTiCorrection`] allows, so TI
+		/// Correction burned only `max`.
+		IssuanceCorrectionCapped { unheld: u128, max: u128 },
+		/// The most TI Correction may burn was changed.
+		MaxTiCorrectionSet { old: u128, new: u128 },
 	}
 
 	#[pallet::hooks]
@@ -524,15 +534,19 @@ pub mod pallet {
 		///   the revenue earned before it at its next timeslice boundary.
 		/// - `cool_off`: Duration in blocks of the post migration cool-off period. Counted from the
 		///   transition to the cool-off stage.
+		/// - `max_ti_correction`: The most TI Correction may burn. Measure the issuance no account
+		///   holds off-chain, and pass at least that. [`Pallet::set_max_ti_correction`] changes it
+		///   later.
 		///
 		/// Read [`MigrationStage::Scheduled`] documentation for more details.
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::DbWeight::get().reads_writes(2, 3))]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 4))]
 		pub fn schedule_migration(
 			origin: OriginFor<T>,
 			start: MomentOf<T>,
 			warm_up: BlockNumberFor<T>,
 			cool_off: BlockNumberFor<T>,
+			max_ti_correction: u128,
 		) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 			ensure!(
@@ -543,6 +557,7 @@ pub mod pallet {
 
 			WarmUpPeriod::<T>::put(warm_up);
 			CoolOffPeriod::<T>::put(cool_off);
+			MaxTiCorrection::<T>::put(max_ti_correction);
 			Self::transition(MigrationStage::Scheduled { start });
 			Ok(())
 		}
@@ -685,6 +700,17 @@ pub mod pallet {
 			Self::ensure_admin_or_manager(origin)?;
 			ensure!(limits.validate(), Error::<T>::BadLimits);
 			Limits::<T>::put(limits);
+			Ok(())
+		}
+
+		/// Set the most TI Correction may burn, first given to [`Pallet::schedule_migration`].
+		#[pallet::call_index(8)]
+		#[pallet::weight(T::DbWeight::get().reads_writes(2, 1))]
+		pub fn set_max_ti_correction(origin: OriginFor<T>, max: u128) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+			let old = MaxTiCorrection::<T>::get();
+			MaxTiCorrection::<T>::put(max);
+			Self::deposit_event(Event::MaxTiCorrectionSet { old, new: max });
 			Ok(())
 		}
 	}
@@ -896,7 +922,8 @@ pub mod pallet {
 			Ok(last_key)
 		}
 
-		/// Burn the issuance no account held when the accounts stage read every balance.
+		/// Burn the issuance no account held when the accounts stage read every balance, up to
+		/// [`MaxTiCorrection`].
 		fn correct_issuance() {
 			let audit = RcIssuanceAudit::<T>::take();
 			if !audit.finished {
@@ -906,7 +933,7 @@ pub mod pallet {
 				);
 				return;
 			}
-			let Some(burned) = audit.starting_issuance.checked_sub(audit.counted) else {
+			let Some(unheld) = audit.starting_issuance.checked_sub(audit.counted) else {
 				log::warn!(
 					target: LOG_TARGET,
 					"Accounts held {} more than the total issuance, no issuance burned",
@@ -914,6 +941,16 @@ pub mod pallet {
 				);
 				return;
 			};
+			// a ceiling, so a bug in the audit cannot burn more than was measured off-chain
+			let max = MaxTiCorrection::<T>::get();
+			if unheld > max {
+				log::warn!(
+					target: LOG_TARGET,
+					"{unheld} of issuance no account held is above the maximum, burning {max}"
+				);
+				Self::deposit_event(Event::IssuanceCorrectionCapped { unheld, max });
+			}
+			let burned = unheld.min(max);
 
 			pallet_balances::TotalIssuance::<T>::mutate(|ti| *ti = ti.saturating_sub(burned));
 			RcMigratedBalance::<T>::mutate(|migrated| {

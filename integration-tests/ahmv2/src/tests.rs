@@ -176,6 +176,8 @@ fn run_handshake(rc: &mut TestExternalities, ct: &mut TestExternalities) -> Vec<
 			start,
 			WARM_UP,
 			COOL_OFF,
+			// the handshake never reaches TI Correction
+			0,
 		));
 
 		next_block_rc();

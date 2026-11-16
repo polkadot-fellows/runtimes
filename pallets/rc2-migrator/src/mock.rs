@@ -296,6 +296,8 @@ pub const AH_PARA_ID: u32 = 1000;
 pub const CT_FREE_BUFFER: u128 = 100;
 pub const WARM_UP: u64 = 4;
 pub const COOL_OFF: u64 = 10;
+/// The most TI Correction may burn, for tests that schedule the migration.
+pub const MAX_TI_CORRECTION: u128 = 1_000;
 /// Relay-chain block time
 pub const BLOCK_TIME_MS: u64 = 6_000;
 
