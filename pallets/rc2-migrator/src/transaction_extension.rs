@@ -80,6 +80,8 @@ where
 		_inherited_implication: &impl Implication,
 		_source: TransactionSource,
 	) -> ValidateResult<Self::Val, RuntimeCallOf<T>> {
+		// `has_started` stays true after `MigrationDone`, so signed transactions stay refused
+		// once the migration is over.
 		if origin.as_signer().is_some() &&
 			RcMigrationStage::<T>::get().has_started() &&
 			!(call.is_sub_type().is_some() &&
