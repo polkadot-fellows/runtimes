@@ -42,18 +42,16 @@ fn relaychain_can_authorize_upgrade_for_itself() {
 
 	let call_hash = call_hash_of::<Kusama>(&authorize_upgrade);
 
-	// Err - when dispatch non-whitelisted
-	assert_err!(
-		dispatch_whitelisted_call_with_preimage::<Kusama>(
-			authorize_upgrade.clone(),
-			ok_origin.clone()
-		),
-		DispatchError::Module(sp_runtime::ModuleError {
-			index: 44,
-			error: [3, 0, 0, 0],
-			message: Some("CallIsNotWhitelisted")
-		})
-	);
+	// Ok - dispatching non-whitelisted defers the call (polkadot-sdk#11336)
+	assert_ok!(dispatch_whitelisted_call_with_preimage::<Kusama>(
+		authorize_upgrade.clone(),
+		ok_origin.clone()
+	));
+	Kusama::execute_with(|| {
+		assert!(pallet_whitelist::DeferredDispatch::<<Kusama as Chain>::Runtime>::contains_key(
+			call_hash
+		));
+	});
 
 	// whitelist
 	Kusama::execute_with(|| {
@@ -139,18 +137,16 @@ fn relaychain_can_authorize_upgrade_for_system_chains() {
 
 	let call_hash = call_hash_of::<Kusama>(&authorize_upgrade);
 
-	// Err - when dispatch non-whitelisted
-	assert_err!(
-		dispatch_whitelisted_call_with_preimage::<Kusama>(
-			authorize_upgrade.clone(),
-			ok_origin.clone()
-		),
-		DispatchError::Module(sp_runtime::ModuleError {
-			index: 44,
-			error: [3, 0, 0, 0],
-			message: Some("CallIsNotWhitelisted")
-		})
-	);
+	// Ok - dispatching non-whitelisted defers the call (polkadot-sdk#11336)
+	assert_ok!(dispatch_whitelisted_call_with_preimage::<Kusama>(
+		authorize_upgrade.clone(),
+		ok_origin.clone()
+	));
+	Kusama::execute_with(|| {
+		assert!(pallet_whitelist::DeferredDispatch::<<Kusama as Chain>::Runtime>::contains_key(
+			call_hash
+		));
+	});
 
 	// whitelist
 	Kusama::execute_with(|| {
