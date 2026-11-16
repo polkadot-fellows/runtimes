@@ -212,10 +212,9 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		last_key: Option<HrmpChannelId>,
 	},
 	HrmpDone,
-	/// Sweep the pallet accounts in [`Config::SweptAccounts`]. Burn everything each one holds,
-	/// including its holds, reserves, locks and freezes, and teleport the total to
-	/// [`Config::SweepBeneficiary`] on Asset Hub in one message. A failed send rolls back the
-	/// stage and is retried in the next block.
+	/// Sweep the pallet accounts in [`Config::SweptAccounts`]. Burn each one's free balance and
+	/// teleport the total to [`Config::SweepBeneficiary`] on Asset Hub in one message. A failed
+	/// send rolls back the stage and is retried in the next block.
 	Sweep,
 	/// Empty the accounts left below the existential deposit, and remove those nothing else
 	/// needs.
@@ -894,10 +893,10 @@ pub mod pallet {
 		}
 
 		/// Clear unclaimed on-demand revenue from the record before `RcMigratedBalance` is set up.
-		/// The pot's balance stays here for Sweep.
-		// TODO(ahm-v2): should unclaimed revenue go to the broker instead of the sweep
-		// beneficiary, and should the Coretime chain be told? Picked for now: clear it and report
-		// it with `OnDemandRevenueCleared`.
+		///
+		/// Orders close when the migration starts, and the warm-up gives the Coretime chain a
+		/// timeslice to claim the revenue earned before that. Anything still unclaimed stays in the
+		/// pot, and Sweep sends it to the sweep beneficiary.
 		fn clear_on_demand_revenue(now: BlockNumberFor<T>) {
 			let amount = runtime_parachains::on_demand::Pallet::<T>::claim_revenue_until(
 				now.saturating_add(1u32.into()),

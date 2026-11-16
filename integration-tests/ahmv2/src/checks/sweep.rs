@@ -14,8 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-//! Checks of the Sweep stage: the Relay Chain pots end empty, the beneficiary's balance matches
-//! the expected range, and Asset Hub marks what arrived inactive.
+//! Checks of the Sweep stage: the Relay Chain pots hold only free balance before and end empty,
+//! the beneficiary's balance matches the expected range, and Asset Hub marks what arrived
+//! inactive.
 
 use crate::{
 	checks::{ParaMigrationCheck, RcMigrationCheck},
@@ -52,6 +53,16 @@ where
 	frame_system::Account::<T>::get(who).data.total()
 }
 
+/// Sweep burns only a pot's free balance, so a pot must hold nothing else.
+fn assert_only_free_balance(pot: &AccountId32) {
+	let account = frame_system::Account::<Rc>::get(pot);
+	assert_eq!(
+		(account.data.reserved, account.data.frozen, account.consumers),
+		(0, 0, 0),
+		"pot {pot:?} has a reserve, a freeze or a consumer reference"
+	);
+}
+
 /// Check the pots, the beneficiary's balance and what Asset Hub marks inactive.
 pub struct SweepChecker;
 
@@ -64,6 +75,7 @@ impl RcMigrationCheck for SweepChecker {
 		let pots = <Rc as pallet_rc2_migrator::Config>::SweptAccounts::get()
 			.into_iter()
 			.map(|pot| {
+				assert_only_free_balance(&pot);
 				let amount = total::<Rc>(&pot);
 				(pot, amount)
 			})

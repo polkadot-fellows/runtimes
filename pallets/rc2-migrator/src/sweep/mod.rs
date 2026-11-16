@@ -18,7 +18,7 @@
 //!
 //! The accounts stage leaves the pots in [`Config::SweptAccounts`] for Sweep. Sweep burns each
 //! pot's balance on the Relay Chain and teleports the total to [`Config::SweepBeneficiary`] on
-//! Asset Hub. Burning a pot cannot fail, so every pot ends empty.
+//! Asset Hub.
 //!
 //! Sweep handles the whole list in one block. If sending the teleport fails, the entire stage
 //! is rolled back and retried in the next block.
@@ -33,7 +33,11 @@ mod tests;
 use crate::{accounts::AccountsMigrator, Config, Event, Limits, Pallet};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-use frame_support::traits::{fungible::Inspect, Get};
+use frame_support::traits::{
+	fungible::{Inspect, Mutate},
+	tokens::{Fortitude, Precision, Preservation},
+	Defensive, Get,
+};
 use sp_runtime::{traits::Zero, AccountId32};
 
 type NativeCurrency<T> = pallet_balances::Pallet<T>;
@@ -59,15 +63,31 @@ impl<T: Config> SweepMigrator<T> {
 			.fold(0u128, |total, burned| total.saturating_add(burned))
 	}
 
-	/// Burn everything `pot` holds and return the amount.
+	/// Burn `pot`'s free balance and return the amount.
+	///
+	/// Only the admin can put a hold, reserve, lock or freeze on a pot, or add a consumer
+	/// reference to it. So a pot holds only free balance, and all of it can be burned.
 	fn burn_pot(pot: &T::AccountId) -> u128 {
 		if !frame_system::Account::<T>::contains_key(pot) {
 			return 0;
 		}
-		// all of it goes to the beneficiary, deposits included; nothing goes to the Coretime chain
-		let total = Self::burn_account(pot);
-		Pallet::<T>::deposit_event(Event::PotSwept { who: pot.clone(), amount: total });
-		total
+		let free = <NativeCurrency<T> as Inspect<T::AccountId>>::balance(pot);
+		let burned = if free.is_zero() {
+			0
+		} else {
+			<NativeCurrency<T> as Mutate<T::AccountId>>::burn_from(
+				pot,
+				free,
+				Preservation::Expendable,
+				Precision::Exact,
+				Fortitude::Force,
+			)
+			.defensive_proof("a pot without a consumer reference can burn all of its free balance")
+			.unwrap_or_default()
+		};
+
+		Pallet::<T>::deposit_event(Event::PotSwept { who: pot.clone(), amount: burned });
+		burned
 	}
 
 	/// Burn everything `who` holds, drop the balances pallet's references to it, and return the
