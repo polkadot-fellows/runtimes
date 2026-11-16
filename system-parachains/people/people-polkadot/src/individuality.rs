@@ -468,8 +468,7 @@ const STMT_STORE_HOLDER_RECOVERY_RELAY_BLOCKS: u32 = 150;
 ///
 /// `replace_statement_store_account` pays no transaction fee, so the origin restriction charges
 /// its weight and length fee against the slot holder's allowance instead. The estimate uses an
-/// sr25519 signature, the scheme the benchmark signs with, and a mortal era. An ecdsa signature
-/// costs slightly more.
+/// ECDSA signature, as it has a slightly higher cost than sr/ed25519, and a mortal era.
 fn stmt_store_replacement_fee() -> Balance {
 	use frame_support::{dispatch::GetDispatchInfo, weights::WeightToFee as _};
 	use sp_runtime::traits::ExtensionVariant;
@@ -482,7 +481,7 @@ fn stmt_store_replacement_fee() -> Balance {
 			since: 0,
 		});
 	let signature =
-		sp_runtime::MultiSignature::Sr25519(sp_core::sr25519::Signature::from_raw([0u8; 64]));
+		sp_runtime::MultiSignature::Ecdsa(sp_core::ecdsa::Signature::from_raw([0u8; 65]));
 	let tx_ext: TxExtensionV1 = (
 		(
 			(),
