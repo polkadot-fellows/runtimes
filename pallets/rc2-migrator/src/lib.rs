@@ -455,6 +455,8 @@ pub mod pallet {
 		BadLimits,
 		/// The account's balance could not be withdrawn whole.
 		FailedToWithdrawAccount,
+		/// The accounts stage can only be set to the start of its walk, not to the middle of it.
+		AccountsWalkMidway,
 	}
 
 	#[pallet::event]
@@ -554,11 +556,21 @@ pub mod pallet {
 		/// A target outside the run (`Pending`, `Scheduled`, `MigrationDone`) ends the pause with
 		/// it, so no `resume_migration` follows. `Scheduled` with a `start` already in the past
 		/// starts on the next block.
+		///
+		/// The accounts stage can only be entered at the start of its walk: `AccountsInit` or
+		/// `AccountsOngoing { last_key: None }`.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::DbWeight::get().reads_writes(2, 2))]
 		pub fn force_set_stage(origin: OriginFor<T>, stage: MigrationStageOf<T>) -> DispatchResult {
 			Self::ensure_admin_or_manager(origin)?;
 			ensure!(Paused::<T>::get(), Error::<T>::NotPaused);
+			// Only a walk from the first account resets the issuance audit. Entered midway, the
+			// walk would read some accounts a second time, or never, and TI Correction would burn
+			// the wrong amount.
+			ensure!(
+				!matches!(stage, MigrationStage::AccountsOngoing { last_key: Some(_) }),
+				Error::<T>::AccountsWalkMidway
+			);
 
 			if !stage.is_ongoing() {
 				Paused::<T>::kill();

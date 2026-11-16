@@ -768,6 +768,48 @@ fn ti_correction_after_a_rewind_counts_each_balance_once() {
 	});
 }
 
+/// A rewind into the middle of the walk is refused, since the audit would read the accounts the
+/// walk leaves here a second time. A rewind to the start of the walk is accepted.
+#[test]
+fn the_accounts_stage_can_only_be_rewound_to_the_start_of_its_walk() {
+	new_test_ext().execute_with(|| {
+		// GIVEN 2 accounts a block: accounts the stage withdraws, a pot it leaves, and issuance
+		// that no account holds.
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 2, xcm_per_block: 1 });
+		for i in 0..4 {
+			fund(&account(i), 100);
+		}
+		fund(&pallet_account(), 100);
+		add_phantom_issuance();
+
+		// WHEN the accounts stage runs to its end and the migration is paused.
+		run_accounts_stage();
+		assert_ok!(Rc2Migrator::pause_migration(RuntimeOrigin::root()));
+
+		// THEN a rewind into the middle of the walk is refused.
+		assert_noop!(
+			Rc2Migrator::force_set_stage(
+				RuntimeOrigin::root(),
+				Stage::AccountsOngoing { last_key: Some(account(0)) }
+			),
+			Error::<Test>::AccountsWalkMidway
+		);
+
+		// WHEN the stage is rewound to the start of the walk instead, and runs to its end.
+		assert_ok!(Rc2Migrator::force_set_stage(
+			RuntimeOrigin::root(),
+			Stage::AccountsOngoing { last_key: None }
+		));
+		assert_ok!(Rc2Migrator::resume_migration(RuntimeOrigin::root()));
+		run_until(Stage::AccountsDone);
+
+		// THEN TI Correction burns only the issuance no account held.
+		run_ti_correction();
+		assert_eq!(burned_events(), vec![PHANTOM]);
+		assert_eq!(total_issuance(), 100);
+	});
+}
+
 /// A block whose send fails rolls back what it added to the audit with everything else.
 #[test]
 fn ti_correction_after_a_failed_send_counts_each_balance_once() {
