@@ -160,9 +160,9 @@ pub struct MigratedBalances {
 )]
 pub struct IssuanceAudit {
 	/// Total issuance when the accounts stage started its walk.
-	pub issuance: u128,
+	pub starting_issuance: u128,
 	/// The `free + reserved` of every account the walk visited, read before it was withdrawn.
-	pub balances: u128,
+	pub counted: u128,
 	/// Whether the walk visited every account. A walk cut short read only part of the balances.
 	pub finished: bool,
 }
@@ -858,7 +858,7 @@ pub mod pallet {
 			// twice
 			if last_key.is_none() {
 				RcIssuanceAudit::<T>::put(IssuanceAudit {
-					issuance: pallet_balances::TotalIssuance::<T>::get(),
+					starting_issuance: pallet_balances::TotalIssuance::<T>::get(),
 					..Default::default()
 				});
 			}
@@ -868,7 +868,7 @@ pub mod pallet {
 			let accounts::BlockWithdrawals { to_ct, to_ah, balances, last_key } =
 				accounts::AccountsMigrator::<T>::migrate_many(last_key, manager.as_ref());
 			RcIssuanceAudit::<T>::mutate(|audit| {
-				audit.balances = audit.balances.saturating_add(balances);
+				audit.counted = audit.counted.saturating_add(balances);
 				audit.finished = last_key.is_none();
 			});
 
@@ -906,11 +906,11 @@ pub mod pallet {
 				);
 				return;
 			}
-			let Some(burned) = audit.issuance.checked_sub(audit.balances) else {
+			let Some(burned) = audit.starting_issuance.checked_sub(audit.counted) else {
 				log::warn!(
 					target: LOG_TARGET,
 					"Accounts held {} more than the total issuance, no issuance burned",
-					audit.balances - audit.issuance
+					audit.counted - audit.starting_issuance
 				);
 				return;
 			};

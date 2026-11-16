@@ -718,7 +718,11 @@ fn ti_correction_burns_the_issuance_no_account_held() {
 		run_accounts_stage();
 		assert_eq!(
 			RcIssuanceAudit::<Test>::get(),
-			IssuanceAudit { issuance: balances + PHANTOM, balances, finished: true }
+			IssuanceAudit {
+				starting_issuance: balances + PHANTOM,
+				counted: balances,
+				finished: true
+			}
 		);
 
 		// WHEN TI Correction runs. THEN it burns the issuance no account held, and what is left
@@ -760,7 +764,11 @@ fn ti_correction_after_a_rewind_counts_each_balance_once() {
 		// THEN the second walk read each balance still on chain once.
 		assert_eq!(
 			RcIssuanceAudit::<Test>::get(),
-			IssuanceAudit { issuance, balances: issuance - PHANTOM, finished: true }
+			IssuanceAudit {
+				starting_issuance: issuance,
+				counted: issuance - PHANTOM,
+				finished: true
+			}
 		);
 		run_ti_correction();
 		assert_eq!(burned_events(), vec![PHANTOM]);
@@ -825,7 +833,7 @@ fn ti_correction_after_a_failed_send_counts_each_balance_once() {
 		RcMigrationStage::<Test>::put(Stage::AccountsInit);
 		run_blocks(2);
 		let audit = RcIssuanceAudit::<Test>::get();
-		assert_eq!(audit.balances, 100);
+		assert_eq!(audit.counted, 100);
 
 		// AND the next block fails to send. THEN what it read is rolled back too.
 		SendFails::set(true);
