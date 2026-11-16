@@ -1624,6 +1624,70 @@ fn failed_withdraw_asset_does_not_decrease_trust_backed_asset_supply() {
 	});
 }
 
+/// XCM must not burn dotUSD. The PSM records its supply as debt, so a burn by a holder would
+/// lower the supply below that debt for good.
+#[test]
+fn xcm_cannot_burn_dot_usd() {
+	use frame_support::traits::fungibles::{Inspect, Mutate};
+	use xcm_executor::XcmExecutor;
+
+	const DOT_USD: AssetIdForTrustBackedAssets = 7873;
+	const OTHER: AssetIdForTrustBackedAssets = 1984;
+	const AMOUNT: Balance = 1_000 * 1_000_000;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		let alice = AccountId::from(ALICE);
+		for id in [DOT_USD, OTHER] {
+			assert_ok!(Assets::force_create(
+				RuntimeHelper::root_origin(),
+				id.into(),
+				AccountId::from(SOME_ASSET_ADMIN).into(),
+				true,
+				1,
+			));
+			assert_ok!(Assets::mint_into(id, &alice, AMOUNT));
+		}
+
+		let execute = |xcm: Xcm<RuntimeCall>| {
+			let mut hash = xcm.using_encoded(sp_io::hashing::blake2_256);
+			XcmExecutor::<XcmConfig>::prepare_and_execute(
+				Location::new(0, [AccountId32 { network: None, id: ALICE }]),
+				xcm,
+				&mut hash,
+				Weight::MAX,
+				Weight::MAX,
+			)
+		};
+		let burn = |id: AssetIdForTrustBackedAssets| -> Xcm<RuntimeCall> {
+			let location = AssetIdForTrustBackedAssetsConvertLatest::convert_back(&id).unwrap();
+			let asset: Asset = (location, AMOUNT).into();
+			Xcm(vec![WithdrawAsset(asset.clone().into()), BurnAsset(asset.into())])
+		};
+		let denied = |outcome: Outcome| {
+			matches!(
+				outcome,
+				Outcome::Incomplete {
+					error: InstructionError { index: 0, error: XcmError::Barrier },
+					..
+				}
+			)
+		};
+
+		// A burn of dotUSD is denied, at the top level and nested in an error handler or an
+		// appendix.
+		assert!(denied(execute(burn(DOT_USD))));
+		assert!(denied(execute(Xcm(vec![SetErrorHandler(burn(DOT_USD))]))));
+		assert!(denied(execute(Xcm(vec![SetAppendix(burn(DOT_USD))]))));
+		assert_eq!(Assets::balance(DOT_USD, &alice), AMOUNT);
+		assert_eq!(Assets::total_issuance(DOT_USD), AMOUNT);
+
+		// A burn of another asset still goes through.
+		let outcome = execute(burn(OTHER));
+		assert!(matches!(outcome, Outcome::Complete { .. }), "unexpected outcome: {outcome:?}");
+		assert_eq!(Assets::total_issuance(OTHER), 0);
+	});
+}
+
 #[test]
 fn session_key_deposit_works() {
 	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {

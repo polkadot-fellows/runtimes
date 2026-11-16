@@ -38,6 +38,7 @@ use frame_support::{
 		fungible::HoldConsideration,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
 		ConstU32, Contains, ContainsPair, Equals, Everything, LinearStoragePrice, PalletInfoAccess,
+		ProcessMessageError,
 	},
 };
 use frame_system::EnsureRoot;
@@ -58,7 +59,7 @@ use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
 	AllowExplicitUnpaidExecutionFrom, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-	AllowTopLevelPaidExecutionFrom, DenyReserveTransferToRelayChain, DenyThenTry,
+	AllowTopLevelPaidExecutionFrom, DenyRecursively, DenyReserveTransferToRelayChain, DenyThenTry,
 	DescribeAllTerminal, DescribeFamily, EnsureXcmOrigin, ExternalConsensusLocationsConverterFor,
 	FrameTransactionalProcessor, FungibleAdapter, FungiblesAdapter, HashedDescription, IsConcrete,
 	IsSiblingSystemParachain, LocalMint, MatchedConvertedConcreteId, MintLocation, NoChecking,
@@ -69,7 +70,10 @@ use xcm_builder::{
 	TrailingSetTopicAsId, UnpaidRemoteExporter, UsingComponents, WeightInfoBounds,
 	WithComputedOrigin, WithLatestLocationConverter, WithUniqueTopic, XcmFeeManagerFromComponents,
 };
-use xcm_executor::{traits::ConvertLocation, XcmExecutor};
+use xcm_executor::{
+	traits::{ConvertLocation, DenyExecution, Properties},
+	XcmExecutor,
+};
 
 use crate::staking::DapStagingAccount;
 use system_parachains_constants::polkadot::account::ACCUMULATE_FORWARD_PALLET_ID;
@@ -395,7 +399,7 @@ impl Contains<Location> for SystemChainAccumulationAccounts {
 
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
-		DenyReserveTransferToRelayChain,
+		(DenyReserveTransferToRelayChain, DenyRecursively<DenyBurnOf<PsmInternalAssets>>),
 		(
 			TakeWeightCredit,
 			// Expected responses are OK.
@@ -434,6 +438,52 @@ pub type Barrier = TrailingSetTopicAsId<
 		),
 	>,
 >;
+
+/// The trust-backed asset id of dotUSD, the internal asset of the PSM.
+pub const DOT_USD_ASSET_ID: u128 = 7873;
+
+/// Assets whose supply a PSM records as debt. Only the PSM may change their supply.
+///
+/// If a holder burns such an asset (XCM `BurnAsset`), the supply falls below the PSM's debt for
+/// good: no redemption can repay that debt, and the PSM can never remove its external asset.
+///
+/// The set is a constant and not a read of the PSM's storage, because barriers run before any fee
+/// is taken and must stay computation-only.
+pub struct PsmInternalAssets;
+impl Contains<Location> for PsmInternalAssets {
+	fn contains(location: &Location) -> bool {
+		matches!(
+			location.unpack(),
+			(0, [PalletInstance(index), GeneralIndex(DOT_USD_ASSET_ID)])
+				if *index == TrustBackedAssetsPalletIndex::get()
+		)
+	}
+}
+
+/// Denies an XCM program that has a `BurnAsset` of any asset in `Protected`.
+///
+/// Wrap it in `DenyRecursively` to also check the programs nested in `SetErrorHandler`,
+/// `SetAppendix` and `ExecuteWithOrigin`.
+pub struct DenyBurnOf<Protected>(core::marker::PhantomData<Protected>);
+impl<Protected: Contains<Location>> DenyExecution for DenyBurnOf<Protected> {
+	fn deny_execution<RuntimeCall>(
+		_origin: &Location,
+		instructions: &mut [Instruction<RuntimeCall>],
+		_max_weight: Weight,
+		_properties: &mut Properties,
+	) -> Result<(), ProcessMessageError> {
+		let burns_protected = instructions.iter().any(|instruction| match instruction {
+			BurnAsset(assets) =>
+				assets.inner().iter().any(|asset| Protected::contains(&asset.id.0)),
+			_ => false,
+		});
+		if burns_protected {
+			Err(ProcessMessageError::Unsupported)
+		} else {
+			Ok(())
+		}
+	}
+}
 
 /// Locations that will not be charged fees in the executor,
 /// either execution or delivery.
