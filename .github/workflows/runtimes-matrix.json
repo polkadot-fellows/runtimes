@@ -30,7 +30,10 @@
     "benchmarks_exclude_pallets": [
       "pallet_staking",
       "polkadot_runtime_common::paras_registrar"
-    ]
+    ],
+    "benchmarks_exclude_extrinsics": {
+      "pallet_bounties": ["reclaim_bounty_funds"]
+    }
   },
   {
     "name": "kusama",
@@ -61,7 +64,10 @@
     "benchmarks_exclude_pallets": [
       "pallet_staking",
       "polkadot_runtime_common::paras_registrar"
-    ]
+    ],
+    "benchmarks_exclude_extrinsics": {
+      "pallet_bounties": ["reclaim_bounty_funds"]
+    }
   },
   {
     "name": "glutton-kusama",
