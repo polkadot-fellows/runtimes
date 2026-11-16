@@ -21,7 +21,7 @@ use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
-		fungible::{HoldConsideration, InspectHold, Mutate, MutateFreeze, MutateHold},
+		fungible::{HoldConsideration, InspectHold, Mutate, MutateHold},
 		tokens::{PayFromAccount, UnityAssetBalanceConversion},
 		ConstU128, ConstU32, ConstU64, Contains, InstanceFilter, LinearStoragePrice,
 		LockableCurrency, NeverEnsureOrigin, OnInitialize, ReservableCurrency, Time,
@@ -696,12 +696,6 @@ pub fn held(who: &AccountId) -> u128 {
 
 pub fn free(who: &AccountId) -> u128 {
 	pallet_balances::Pallet::<Test>::free_balance(who)
-}
-
-/// Freeze part of `who`'s balance, as the relay chain's staking pallets do.
-pub fn freeze(who: &AccountId, amount: u128) {
-	<Balances as MutateFreeze<AccountId>>::set_freeze(b"testfrze", who, amount)
-		.expect("can freeze");
 }
 
 /// Lock part of `who`'s balance, as staking and vesting did before they left the Relay Chain.
