@@ -72,8 +72,6 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Debug, MultiAddress, Perbill,
 };
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
 	polkadot::{
@@ -137,6 +135,7 @@ pub mod migrations {
 		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
 		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 		coretime::RetireCoretimeBurnAccount,
+		pallet_broker::migration::MigrateV4ToV5<Runtime, BrokerFirstSaleRegion>,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.
@@ -170,12 +169,6 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	transaction_version: 0,
 	system_version: 1,
 };
-
-/// The version information used to identify this runtime when compiled natively.
-#[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion {
-	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
-}
 
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
@@ -241,6 +234,18 @@ impl pallet_broker::migration::v4::BlockToRelayHeightConversion<Runtime>
 
 	fn convert_block_length_to_relay_length(input_block_length: u32) -> u32 {
 		input_block_length * 2
+	}
+}
+
+/// `region_begin` of the first bulk sale, from the first `broker.SaleInitialized` event
+/// (block 100_988). Anchors the broker v5 migration's `sale_index` reconstruction.
+const CORETIME_POLKADOT_FIRST_SALE_REGION_BEGIN: u32 = 287_565;
+
+pub struct BrokerFirstSaleRegion;
+
+impl pallet_broker::migration::v5::FirstSaleRegion for BrokerFirstSaleRegion {
+	fn region_begin() -> u32 {
+		CORETIME_POLKADOT_FIRST_SALE_REGION_BEGIN
 	}
 }
 
@@ -921,6 +926,14 @@ mod benches {
 		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
 		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
 			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
+
+		/// `Multisig::as_multi_threshold_1`, a single-call dispatcher to nest calls with.
+		fn wrap_call(call: RuntimeCall) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Multisig(pallet_multisig::Call::<Runtime>::as_multi_threshold_1 {
+				other_signatories: Vec::new(),
+				call: alloc::boxed::Box::new(call),
+			}))
 		}
 	}
 

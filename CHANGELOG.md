@@ -6,9 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Update all runtimes to `polkadot-sdk` `stable2609-2` ([#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+- Asset Hub Polkadot and Kusama: signed election submissions store their base deposit, fixed at registration; a migration derives it for stored submissions ([SDK #13722](https://github.com/paritytech/polkadot-sdk/pull/13722), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+- Collectives Polkadot: the Fellowship and Ambassador core-fellowship pallets measure time in Relay Chain blocks instead of Collectives blocks, so promotion and demotion periods keep their length in real time if the Collectives block time changes. A migration converts the stored periods and member timestamps: one 12-second Collectives block counts as two Relay Chain blocks ([SDK #6978](https://github.com/paritytech/polkadot-sdk/pull/6978), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+- People Polkadot ([#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)):
+  - Update Individuality to `sdk-2609-2-3004014` (stable2609-2) ([individuality-community#244](https://github.com/paritytech/individuality-community/pull/244)).
+  - Lite people are capped at 10,000, and paid lite registrations are throttled once a threshold is
+    reached.
+  - A statement store slot holder can move its slot to a new account, at most once every 15 minutes.
+  - Person records track recognition history.
+  - Multi-block migrations count the existing lite people, add recognition history to person records
+    and record the granted allowance on existing statement store and notification entries.
+  - Account signatures over messages that are not transactions are now checked against the message in a product signing context.
+- Polkadot and Kusama relays: add `pallet-migrations` to service multi-block migrations ([#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+- Polkadot and Kusama relays: migrate DMP queues to paged storage ([SDK #11909](https://github.com/paritytech/polkadot-sdk/pull/11909), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+
 ### Removed
 
 - Polkadot & Kusama: remove `pallet-election-provider-multi-phase` and the on-chain election from the relay runtimes. Staking elections run on Asset Hub since the AHM, and a migration clears the pallet's storage ([#1313](https://github.com/polkadot-fellows/runtimes/pull/1313)).
+
+### Fixed
+
+- Asset Hub Kusama: top up the Society payouts account so it matches the recorded pending payouts ([polkadot-sdk#12590](https://github.com/paritytech/polkadot-sdk/pull/12590)).
+- Coretime Polkadot and Kusama: bulk sales carry a sequential `sale_index` in `SaleInfo` and the `SaleInitialized` event. A migration back-fills it for the ongoing sale (28 on Polkadot, 33 on Kusama) ([SDK #10188](https://github.com/paritytech/polkadot-sdk/pull/10188), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 
 ## [2.5.3] 06.11.2026
 
