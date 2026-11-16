@@ -557,7 +557,6 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		StatementStorage(statement_storage::StmtStoreSlotsPerPeriod.into()),
 		StatementStorage(statement_storage::LiteStmtStoreSlotsPerPeriod.into()),
 		StatementStorage(statement_storage::StmtStoreCleanupLimit.into()),
-		StatementStorage(statement_storage::StmtStoreReplacementCooldown.into()),
 		StatementStorage(statement_storage::StmtStoreGraceWindow.into()),
 		StatementStorage(statement_storage::NotificationSlotsPerPeriod.into()),
 		StatementStorage(statement_storage::LiteNotificationSlotsPerPeriod.into()),
@@ -572,6 +571,10 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		OriginRestriction(origin_restriction::LitePeopleAllowanceMax.into()),
 		OriginRestriction(origin_restriction::LitePeopleAllowanceRecovery.into()),
 		LitePersonhood(lite_personhood::RegistrationFee.into()),
+		LitePersonhood(lite_personhood::PaidRegistrationThreshold.into()),
+		LitePersonhood(lite_personhood::PaidRegistrationPeriod.into()),
+		LitePersonhood(lite_personhood::PaidRegistrationsPerPeriod.into()),
+		LitePersonhood(lite_personhood::MaxLitePeople.into()),
 	];
 	let root_only = [
 		BulletinStorage(bulletin_storage::BulletinChainLocation.into()),

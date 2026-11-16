@@ -28,6 +28,7 @@ polkadot-emulated-chain = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"cumulus-primitives-core/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"people-polkadot-runtime/runtime-benchmarks",

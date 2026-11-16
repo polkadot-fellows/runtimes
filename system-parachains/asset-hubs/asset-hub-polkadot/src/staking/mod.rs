@@ -254,6 +254,8 @@ parameter_types! {
 	pub EjectGraceRatio: Perbill = Perbill::from_percent(100);
 	/// 5 DOT as the reward for the best signed submission.
 	pub RewardBase: Balance = UNITS * 5;
+	/// The DAP buffer account.
+	pub SignedRewardPot: Option<AccountId> = Some(Dap::buffer_account());
 }
 
 impl multi_block::signed::Config for Runtime {
@@ -266,6 +268,11 @@ impl multi_block::signed::Config for Runtime {
 	type RewardBase = RewardBase;
 	type MaxSubmissions = MaxSignedSubmissions;
 	type EstimateCallFee = TransactionPayment;
+	type MaxFeeRefund = multi_block::signed::FullSubmissionFee<Runtime, TransactionPayment>;
+	// Slashed deposits go to the DAP. Rewards and fee refunds are paid from the DAP buffer, which
+	// holds inactive issuance, so each payout is reactivated.
+	type Slash = Dap;
+	type RewardSource = multi_block::signed::ReactivatingPot<SignedRewardPot, Balances>;
 	type WeightInfo = weights::pallet_election_provider_multi_block_signed::WeightInfo<Runtime>;
 }
 
@@ -431,8 +438,26 @@ parameter_types! {
 	pub const ValidatorSetExportSession: SessionIndex = 4;
 }
 
+/// A validator is inactive in an era if it earned no era points.
+///
+/// Defined here instead of using the SDK's `()` impl, so that the rule only changes through an
+/// explicit runtime change.
+pub struct NoEraPoints;
+impl pallet_staking_async::IsValidatorInactive<AccountId> for NoEraPoints {
+	fn is_inactive(
+		_era: sp_staking::EraIndex,
+		_stash: &AccountId,
+		era_points: pallet_staking_async::RewardPoint,
+	) -> bool {
+		era_points == 0
+	}
+}
+
 impl pallet_staking_async::Config for Runtime {
 	type Filter = ();
+	// Makes the permissionless `chill_inactive` call live, with `ChillInactiveThreshold` defaulting
+	// to `HistoryDepth` eras (governance can change it via `set_staking_configs`).
+	type IsValidatorInactive = NoEraPoints;
 	type OldCurrency = Balances;
 	type Currency = Balances;
 	type CurrencyBalance = Balance;
