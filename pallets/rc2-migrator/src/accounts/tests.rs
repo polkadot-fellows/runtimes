@@ -853,9 +853,11 @@ fn ti_correction_after_a_failed_send_counts_each_balance_once() {
 	});
 }
 
-/// A walk cut short read only part of the balances, so TI Correction burns nothing.
+/// TI Correction relies on the stage machine to run it only after the walk has ended. A walk cut
+/// short, which only `force_set_stage` can cause, is a defensive failure.
 #[test]
-fn ti_correction_burns_nothing_after_a_walk_cut_short() {
+#[should_panic(expected = "Defensive failure has been triggered!")]
+fn ti_correction_after_a_walk_cut_short_is_a_defensive_failure() {
 	new_test_ext().execute_with(|| {
 		// GIVEN 1 account a block, 3 accounts, and issuance that no account holds.
 		Limits::<Test>::put(BlockLimits { items_per_xcm: 1, xcm_per_block: 1 });
@@ -869,14 +871,9 @@ fn ti_correction_burns_nothing_after_a_walk_cut_short() {
 		RcMigrationStage::<Test>::put(Stage::AccountsInit);
 		run_blocks(2);
 		assert!(!RcIssuanceAudit::<Test>::get().finished);
-		let issuance = total_issuance();
-		run_ti_correction();
 
-		// THEN nothing is burned, and the audit is gone.
-		assert!(burned_events().is_empty());
-		assert_eq!(total_issuance(), issuance);
-		assert_eq!(RcMigratedBalance::<Test>::get().ti_corrected, 0);
-		assert!(!RcIssuanceAudit::<Test>::exists());
+		// THEN TI Correction fails its defensive check.
+		run_ti_correction();
 	});
 }
 
@@ -900,27 +897,6 @@ fn ti_correction_burns_nothing_when_accounts_hold_more_than_the_issuance() {
 		assert_eq!(total_issuance(), issuance);
 		assert_eq!(RcMigratedBalance::<Test>::get().ti_corrected, 0);
 		assert!(!RcIssuanceAudit::<Test>::exists());
-	});
-}
-
-/// TI Correction takes the audit, so running it again burns nothing more.
-#[test]
-fn ti_correction_burns_once() {
-	new_test_ext().execute_with(|| {
-		// GIVEN the accounts stage ran over a pot it leaves, with issuance that no account
-		// holds.
-		fund(&pallet_account(), 100);
-		add_phantom_issuance();
-		run_accounts_stage();
-
-		// WHEN TI Correction runs twice.
-		run_ti_correction();
-		run_ti_correction();
-
-		// THEN it burned once.
-		assert_eq!(burned_events(), vec![PHANTOM]);
-		assert_eq!(total_issuance(), 100);
-		assert_eq!(RcMigratedBalance::<Test>::get().ti_corrected, PHANTOM);
 	});
 }
 

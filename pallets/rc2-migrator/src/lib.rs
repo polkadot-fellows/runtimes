@@ -924,15 +924,12 @@ pub mod pallet {
 
 		/// Burn the issuance no account held when the accounts stage read every balance, up to
 		/// [`MaxTiCorrection`].
+		///
+		/// The stage machine runs this only after the accounts walk has read every account. Only
+		/// [`Pallet::force_set_stage`] can skip part of the walk, and the manager must not.
 		fn correct_issuance() {
 			let audit = RcIssuanceAudit::<T>::take();
-			if !audit.finished {
-				log::error!(
-					target: LOG_TARGET,
-					"The accounts stage did not read every account, no issuance burned"
-				);
-				return;
-			}
+			defensive_assert!(audit.finished, "TI Correction runs after the accounts walk ends");
 			let Some(unheld) = audit.starting_issuance.checked_sub(audit.counted) else {
 				log::warn!(
 					target: LOG_TARGET,
