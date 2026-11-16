@@ -878,10 +878,10 @@ pub mod pallet {
 		}
 
 		/// Clear unclaimed on-demand revenue from the record before `RcMigratedBalance` is set up.
-		/// The pot's balance stays here for Sweep.
-		// TODO(ahm-v2): should unclaimed revenue go to the broker instead of the sweep
-		// beneficiary, and should the Coretime chain be told? Picked for now: clear it and report
-		// it with `OnDemandRevenueCleared`.
+		///
+		/// Orders close when the migration starts, and the warm-up gives the Coretime chain a
+		/// timeslice to claim the revenue earned before that. Anything still unclaimed stays in the
+		/// pot, and Sweep sends it to the sweep beneficiary.
 		fn clear_on_demand_revenue(now: BlockNumberFor<T>) {
 			let amount = runtime_parachains::on_demand::Pallet::<T>::claim_revenue_until(
 				now.saturating_add(1u32.into()),
