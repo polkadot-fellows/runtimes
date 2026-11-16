@@ -22,7 +22,6 @@
     ],
     "is_relay": true,
     "blocktime": 6000,
-    "extra_args": "--disable-mbm-checks",
     "build_extra_features": "polkadot-ahm",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
@@ -54,7 +53,6 @@
     ],
     "is_relay": true,
     "blocktime": 6000,
-    "extra_args": "--disable-mbm-checks",
     "build_extra_features": "kusama-ahm",
     "benchmarks_templates": {
       "pallet_xcm_benchmarks::generic": "templates/xcm-bench-template.hbs",
