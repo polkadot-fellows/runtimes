@@ -250,7 +250,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const AccumulateForwardPalletId: PalletId = ACCUMULATE_FORWARD_PALLET_ID;
 	pub const ForwardPeriod: BlockNumber = polkadot_runtime_constants::time::HOURS;
-	pub const MinForwardAmount: Balance = 10 * UNITS;
+	pub const MinForwardAmount: Balance = UNITS;
 }
 
 impl pallet_accumulate_and_forward::Config for Runtime {
