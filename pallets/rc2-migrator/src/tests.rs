@@ -15,8 +15,9 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	mock::*, xcm_config::NothingOnceDataMigrationStarts, AssetTrap, CtMigratorCall, CtRuntimeCall,
-	Error, Event, Manager, MigrationPhase, Paused, RcMigrationStage, TakenAssetTraps,
+	mock::*, xcm_config::NothingOnceDataMigrationStarts, AssetTrap, AssetTrapRejection,
+	BlockLimits, CtMigratorCall, CtRuntimeCall, Error, Event, Manager, MigratedBalances,
+	MigrationPhase, Paused, RcMigratedBalance, RcMigrationStage, TakenAssetTraps,
 };
 use codec::Encode;
 use frame_support::{
@@ -51,6 +52,7 @@ fn data_stages() -> Vec<Stage> {
 		Stage::HrmpInit,
 		Stage::HrmpOngoing { last_key: None },
 		Stage::HrmpDone,
+		Stage::PayAssetTraps,
 		Stage::Sweep,
 		Stage::SweepDust { last_key: None },
 		Stage::TiCorrection,
@@ -803,6 +805,7 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 			Stage::HrmpInit |
 			Stage::HrmpOngoing { .. } |
 			Stage::HrmpDone |
+			Stage::PayAssetTraps |
 			Stage::Sweep |
 			Stage::SweepDust { .. } |
 			Stage::TiCorrection |
@@ -829,6 +832,7 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 		Stage::HrmpInit,
 		Stage::HrmpOngoing { last_key: None },
 		Stage::HrmpDone,
+		Stage::PayAssetTraps,
 		Stage::Sweep,
 		Stage::SweepDust { last_key: None },
 		Stage::TiCorrection,
@@ -875,6 +879,7 @@ fn each_stage_allows_only_its_own_call_set() {
 				Stage::HrmpInit |
 				Stage::HrmpOngoing { .. } |
 				Stage::HrmpDone |
+				Stage::PayAssetTraps |
 				Stage::Sweep |
 				Stage::SweepDust { .. } |
 				Stage::TiCorrection |
@@ -920,13 +925,13 @@ fn teleport_trust_ends_when_the_data_migration_starts() {
 	});
 }
 
-/// The asset trap events emitted so far, oldest first.
+/// The events of the asset traps submitted so far, oldest first.
 fn trap_events() -> Vec<Event<Test>> {
 	System::events()
 		.into_iter()
 		.filter_map(|record| match record.event {
 			RuntimeEvent::Rc2Migrator(
-				event @ (Event::AssetTrapTaken { .. } | Event::AssetTrapNotFound { .. }),
+				event @ (Event::AssetTrapTaken { .. } | Event::AssetTrapRejected { .. }),
 			) => Some(event),
 			_ => None,
 		})
@@ -1017,7 +1022,7 @@ fn a_submitted_trap_is_taken_whole_out_of_pallet_xcm() {
 }
 
 #[test]
-fn a_trap_pallet_xcm_does_not_hold_is_reported_and_the_rest_go_through() {
+fn a_trap_pallet_xcm_does_not_hold_is_rejected_and_the_rest_go_through() {
 	// GIVEN one trap, and one that was never made.
 	new_test_ext().execute_with(|| {
 		set_stage(Stage::WaitingForAssetTraps);
@@ -1029,13 +1034,16 @@ fn a_trap_pallet_xcm_does_not_hold_is_reported_and_the_rest_go_through() {
 		assert_ok!(submit(vec![never_made.clone(), held.clone(), held.clone()]));
 
 		// THEN the call succeeds and each submission has its own event: the real trap is taken
-		// the first time, and the other two are reported.
+		// the first time, and the other two are rejected.
 		assert_eq!(
 			trap_events(),
 			vec![
-				Event::AssetTrapNotFound { trap: never_made },
+				Event::AssetTrapRejected { trap: never_made, reason: AssetTrapRejection::NotHeld },
 				Event::AssetTrapTaken { hash, trap: held.clone(), count: 1 },
-				Event::AssetTrapNotFound { trap: held.clone() },
+				Event::AssetTrapRejected {
+					trap: held.clone(),
+					reason: AssetTrapRejection::NotHeld
+				},
 			]
 		);
 		assert_eq!(TakenAssetTraps::<Test>::iter().collect::<Vec<_>>(), vec![(held, 1)]);
@@ -1063,7 +1071,7 @@ fn a_trap_is_found_only_with_the_assets_in_the_version_they_were_trapped_in() {
 		assert_eq!(
 			trap_events(),
 			vec![
-				Event::AssetTrapNotFound { trap: current },
+				Event::AssetTrapRejected { trap: current, reason: AssetTrapRejection::NotHeld },
 				Event::AssetTrapTaken { hash, trap: v4, count: 1 },
 			]
 		);
@@ -1120,5 +1128,258 @@ fn finishing_takes_the_last_traps_and_moves_on_to_the_accounts_stage() {
 			Rc2Migrator::submit_asset_traps(RuntimeOrigin::root(), vec![trap], true),
 			Error::<Test>::NotWaitingForAssetTraps
 		);
+	});
+}
+
+/// The asset trap payouts so far, oldest first.
+fn paid_events() -> Vec<(AssetTrap, Location, u128)> {
+	System::events()
+		.into_iter()
+		.filter_map(|record| match record.event {
+			RuntimeEvent::Rc2Migrator(Event::AssetTrapPaid { trap, beneficiary, amount }) =>
+				Some((trap, beneficiary, amount)),
+			_ => None,
+		})
+		.collect()
+}
+
+/// The deposits of every message sent to Asset Hub so far, sorted, after checking that each
+/// teleports in exactly what it deposits.
+fn ah_deposits() -> Vec<(Location, u128)> {
+	let mut deposits = Vec::new();
+	for (dest, Xcm(message)) in sent() {
+		assert_eq!(dest, ah_dest());
+		let [UnpaidExecution { weight_limit: Unlimited, check_origin: None }, ReceiveTeleportedAsset(total), rest @ ..] =
+			message.as_slice()
+		else {
+			panic!("not a teleport: {message:?}");
+		};
+		let mut sum = 0;
+		for instruction in rest {
+			let DepositAsset { assets: AssetFilter::Definite(assets), beneficiary } = instruction
+			else {
+				panic!("not a deposit: {instruction:?}");
+			};
+			let [Asset { id, fun: Fungible(amount) }] = assets.inner().as_slice() else {
+				panic!("not one fungible asset: {assets:?}");
+			};
+			assert_eq!(*id, AssetId(Location::parent()));
+			sum += amount;
+			deposits.push((beneficiary.clone(), *amount));
+		}
+		assert_eq!(*total, (Location::parent(), sum).into());
+	}
+	deposits.sort_by_key(|deposit| deposit.encode());
+	deposits
+}
+
+/// Take `traps`, each made `count` times, and put the machine at the payout with the ledger the
+/// accounts stage seeds.
+fn take_for_payout(traps: &[(AssetTrap, u32)]) {
+	set_stage(Stage::WaitingForAssetTraps);
+	for (trap, count) in traps {
+		make_trap(trap, *count);
+	}
+	assert_ok!(submit(traps.iter().map(|(trap, _)| trap.clone()).collect()));
+	assert_eq!(TakenAssetTraps::<Test>::iter().count(), traps.len(), "every trap was taken");
+	RcMigratedBalance::<Test>::put(MigratedBalances { kept: 1_000, ..Default::default() });
+	set_stage(Stage::PayAssetTraps);
+}
+
+#[test]
+fn a_trap_the_payout_could_not_pay_is_rejected_and_left_in_pallet_xcm() {
+	new_test_ext().execute_with(|| {
+		set_stage(Stage::WaitingForAssetTraps);
+		let claimer = Location::new(0, [Parachain(2000)]);
+		let rejected = |assets: Assets, claimer: Location, reason| {
+			let trap = AssetTrap { claimer: claimer.into(), assets: assets.into() };
+			let hash = make_trap(&trap, 1);
+			assert_ok!(submit(vec![trap.clone()]));
+			assert_eq!(trap_events().last(), Some(&Event::AssetTrapRejected { trap, reason }));
+			assert_eq!(XcmAssetTraps::get(hash), 1, "the trap stays in `pallet-xcm`");
+		};
+
+		// WHEN a trap holds a token other than this chain's, alone or beside it. THEN it is
+		// rejected.
+		rejected((Parent, 10).into(), claimer.clone(), AssetTrapRejection::NotNative);
+		rejected(
+			Assets::from(vec![Asset::from((Here, 10)), Asset::from((Parent, 10))]),
+			claimer.clone(),
+			AssetTrapRejection::NotNative,
+		);
+
+		// WHEN its claimer is not a relay account, a parachain, or an account or body on one.
+		// THEN it is rejected.
+		for claimer in [
+			Location::new(0, [Plurality { id: BodyId::Technical, part: BodyPart::Voice }]),
+			Location::new(0, [Parachain(2000), Parachain(2001)]),
+			Location::new(0, [Parachain(2000), PalletInstance(50)]),
+			Location::new(1, [Parachain(2000)]),
+		] {
+			rejected((Here, 10).into(), claimer, AssetTrapRejection::ClaimerNotOnAssetHub);
+		}
+
+		// WHEN it is worth less than Asset Hub's existential deposit. THEN it is rejected.
+		rejected((Here, AH_ED - 1).into(), claimer, AssetTrapRejection::BelowExistentialDeposit);
+		assert!(TakenAssetTraps::<Test>::iter().next().is_none());
+	});
+}
+
+#[test]
+fn a_trap_is_worth_what_it_holds_times_how_many_times_it_was_trapped() {
+	// GIVEN assets worth less than Asset Hub's existential deposit, trapped twice.
+	new_test_ext().execute_with(|| {
+		set_stage(Stage::WaitingForAssetTraps);
+		let trap = native_trap(Parachain(2000), AH_ED - 1);
+		let hash = make_trap(&trap, 2);
+
+		// WHEN the manager submits them. THEN the two together reach the deposit, so they are
+		// taken.
+		assert_ok!(submit(vec![trap.clone()]));
+		assert_eq!(
+			trap_events(),
+			vec![Event::AssetTrapTaken { hash, trap: trap.clone(), count: 2 }]
+		);
+		assert_eq!(TakenAssetTraps::<Test>::get(&trap), 2);
+	});
+}
+
+#[test]
+fn the_taken_traps_are_paid_to_their_claimers_on_asset_hub() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a trap of every claimer Asset Hub can pay, one of them trapped three times.
+		let relay_account =
+			native_trap(AccountId32 { network: Some(NetworkId::Polkadot), id: ALICE.into() }, 10);
+		let para = native_trap(Parachain(2000), 6);
+		let para_account = native_trap(
+			Location::new(0, [Parachain(2001), AccountId32 { network: None, id: BOB.into() }]),
+			7,
+		);
+		let para_key = native_trap(
+			Location::new(0, [Parachain(2002), AccountKey20 { network: None, key: [9; 20] }]),
+			8,
+		);
+		let para_body = native_trap(
+			Location::new(
+				0,
+				[Parachain(2003), Plurality { id: BodyId::Index(3), part: BodyPart::Voice }],
+			),
+			9,
+		);
+		take_for_payout(&[
+			(relay_account.clone(), 1),
+			(para.clone(), 3),
+			(para_account, 1),
+			(para_key, 1),
+			(para_body, 1),
+		]);
+		let issuance = total_issuance();
+
+		// WHEN the payout runs.
+		run_blocks(1);
+
+		// THEN one message pays each claimer what its trap held times how many times it was
+		// trapped: a relay account as the same account, the rest as Asset Hub sees them.
+		let alice = Location::new(0, [AccountId32 { network: None, id: ALICE.into() }]);
+		let mut expected = vec![
+			(alice.clone(), 10),
+			(Location::new(1, [Parachain(2000)]), 18),
+			(Location::new(1, [Parachain(2001), AccountId32 { network: None, id: BOB.into() }]), 7),
+			(Location::new(1, [Parachain(2002), AccountKey20 { network: None, key: [9; 20] }]), 8),
+			(
+				Location::new(
+					1,
+					[Parachain(2003), Plurality { id: BodyId::Index(3), part: BodyPart::Voice }],
+				),
+				9,
+			),
+		];
+		expected.sort_by_key(|deposit| deposit.encode());
+		assert_eq!(sent().len(), 1);
+		assert_eq!(ah_deposits(), expected);
+		assert!(paid_events().contains(&(relay_account, alice, 10)));
+		assert!(paid_events().contains(&(para, Location::new(1, [Parachain(2000)]), 18)));
+		assert_eq!(paid_events().len(), 5);
+
+		// THEN the migrator holds no trap, the machine moves on, and the ledger books the payout
+		// without taking it from what is kept, since nothing was burned here.
+		assert!(TakenAssetTraps::<Test>::iter().next().is_none());
+		assert_stage(Stage::Sweep);
+		assert_eq!(
+			RcMigratedBalance::<Test>::get(),
+			MigratedBalances { kept: 1_000, ah_asset_traps: 52, ..Default::default() }
+		);
+		assert_eq!(total_issuance(), issuance);
+	});
+}
+
+#[test]
+fn the_payout_takes_as_many_messages_and_blocks_as_the_limits_need() {
+	new_test_ext().execute_with(|| {
+		// GIVEN five traps, two to a message and two messages to a block.
+		let traps: Vec<_> = (0..5).map(|i| (native_trap(Parachain(2000 + i), 10), 1)).collect();
+		take_for_payout(&traps);
+		assert_ok!(Rc2Migrator::set_limits(
+			RuntimeOrigin::root(),
+			BlockLimits { items_per_xcm: 2, xcm_per_block: 2 }
+		));
+
+		// WHEN the first block runs. THEN it pays four in two messages and the stage holds.
+		run_blocks(1);
+		assert_eq!(sent().len(), 2);
+		assert_eq!(ah_deposits().len(), 4);
+		assert_stage(Stage::PayAssetTraps);
+
+		// WHEN the next block runs. THEN it pays the last one and the machine moves on.
+		run_blocks(1);
+		assert_eq!(sent().len(), 3);
+		assert_eq!(ah_deposits().len(), 5);
+		assert_stage(Stage::Sweep);
+		assert_eq!(RcMigratedBalance::<Test>::get().ah_asset_traps, 50);
+	});
+}
+
+#[test]
+fn a_failed_send_leaves_the_payout_for_a_retry() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a taken trap and a router that refuses everything.
+		let trap = native_trap(Parachain(2000), 10);
+		take_for_payout(&[(trap.clone(), 1)]);
+		SendFails::set(true);
+
+		// WHEN the payout runs. THEN nothing changed: the trap is still held, nothing is booked,
+		// and the stage holds.
+		run_blocks(3);
+		assert_eq!(TakenAssetTraps::<Test>::get(&trap), 1);
+		assert_eq!(RcMigratedBalance::<Test>::get().ah_asset_traps, 0);
+		assert!(paid_events().is_empty());
+		assert_stage(Stage::PayAssetTraps);
+
+		// WHEN the router recovers. THEN the trap is paid.
+		SendFails::set(false);
+		run_blocks(1);
+		assert_eq!(ah_deposits(), vec![(Location::new(1, [Parachain(2000)]), 10)]);
+		assert_stage(Stage::Sweep);
+	});
+}
+
+#[test]
+fn a_rewind_does_not_pay_a_trap_twice() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a trap already paid.
+		take_for_payout(&[(native_trap(Parachain(2000), 10), 1)]);
+		run_blocks(1);
+		assert_eq!(sent().len(), 1);
+
+		// WHEN the machine is rewound to the payout and runs it again.
+		assert_ok!(Rc2Migrator::pause_migration(RuntimeOrigin::root()));
+		assert_ok!(Rc2Migrator::force_set_stage(RuntimeOrigin::root(), Stage::PayAssetTraps));
+		assert_ok!(Rc2Migrator::resume_migration(RuntimeOrigin::root()));
+		run_blocks(1);
+
+		// THEN nothing more is sent or booked, and the machine moves on.
+		assert_eq!(sent().len(), 1);
+		assert_eq!(RcMigratedBalance::<Test>::get().ah_asset_traps, 10);
+		assert_stage(Stage::Sweep);
 	});
 }

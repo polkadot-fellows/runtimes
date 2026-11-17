@@ -481,7 +481,8 @@ fn accounts_stage_sends_deposit_holders_to_coretime() {
 				ct_reserved: PARA_DEPOSIT,
 				ct_free: CT_FREE_BUFFER,
 				ah_free: 600,
-				ti_corrected: 0
+				ti_corrected: 0,
+				ah_asset_traps: 0,
 			}
 		);
 		assert_eq!(ExpectedReserves::<Test>::iter().count(), 0);

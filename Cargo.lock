@@ -13763,6 +13763,7 @@ dependencies = [
  "sp-tracing",
  "staging-kusama-runtime",
  "staging-xcm",
+ "staging-xcm-executor",
  "tokio",
 ]
 

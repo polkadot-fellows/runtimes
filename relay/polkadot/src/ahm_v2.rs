@@ -36,13 +36,18 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use migrator_types::PortableProxyType;
 use pallet_xcm::EnsureXcm;
-use polkadot_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
+use polkadot_runtime_constants::{
+	currency::{EXISTENTIAL_DEPOSIT, UNITS},
+	system_parachain::ASSET_HUB_ID,
+};
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
 
 parameter_types! {
 	pub const AhParaId: u32 = ASSET_HUB_ID;
 	pub const CtFreeBuffer: u128 = UNITS;
+	/// A tenth of the system chains' default, which is a tenth of this chain's.
+	pub const AhExistentialDeposit: u128 = EXISTENTIAL_DEPOSIT / 100;
 }
 
 /// The pots of this chain, left for Sweep.
@@ -81,6 +86,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type PostMigrationCalls = lockdown::CallsEnabledAfterMigration;
 	type SweptAccounts = SweptAccounts;
 	type XcmAssetTraps = AssetTraps;
+	type AhExistentialDeposit = AhExistentialDeposit;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so

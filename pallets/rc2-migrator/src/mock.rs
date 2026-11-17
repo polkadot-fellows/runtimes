@@ -300,6 +300,8 @@ pub const CT_PARA_ID: u32 = 1005;
 pub const AH_PARA_ID: u32 = 1000;
 /// Free balance that follows a deposit to the Coretime chain.
 pub const CT_FREE_BUFFER: u128 = 100;
+/// Asset Hub's existential deposit, below this chain's like the real one.
+pub const AH_ED: u128 = 5;
 pub const WARM_UP: u64 = 4;
 pub const COOL_OFF: u64 = 10;
 /// Relay-chain block time
@@ -383,6 +385,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type PostMigrationCalls = TaggedRemark<POST_MIGRATION>;
 	type SweptAccounts = Equals<MockPot>;
 	type XcmAssetTraps = XcmAssetTraps;
+	type AhExistentialDeposit = ConstU128<AH_ED>;
 }
 
 /// Tags for [`TaggedRemark`], one per call set.
