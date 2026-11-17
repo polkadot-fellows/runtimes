@@ -3047,18 +3047,22 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 
 	impl pallet_kill_switch::runtime_api::KillSwitchApi<
 		Block,
-		kill_switch::KillSwitchTarget,
+		kill_switch::KillSwitchGroup,
 		pallet_tx_pause::RuntimeCallNameOf<Runtime>,
 		Balance,
 	> for Runtime {
-		fn pause_targets() -> Vec<
-			pallet_kill_switch::TargetInfo<
-				kill_switch::KillSwitchTarget,
+		fn pause_groups() -> Vec<
+			pallet_kill_switch::GroupInfo<
+				kill_switch::KillSwitchGroup,
 				pallet_tx_pause::RuntimeCallNameOf<Runtime>,
 				Balance,
 			>,
 		> {
-			KillSwitch::pause_targets()
+			KillSwitch::pause_groups()
+		}
+
+		fn call_deposit(call: pallet_tx_pause::RuntimeCallNameOf<Runtime>) -> Option<Balance> {
+			KillSwitch::call_deposit(&call)
 		}
 	}
 

@@ -15,13 +15,14 @@
 
 //! The kill switch and the tx-pause instance it drives.
 //!
-//! Anyone can pause one of the [`KillSwitchTarget`]s by putting up its deposit. The Fellowship or
-//! Root can end the pause early and refund or slash it, or extend it. Only Root can pause without a
-//! deposit. Nothing but the kill switch can pause or unpause through tx-pause.
+//! Anyone can pause one of the [`KillSwitchGroup`]s, or a single call, by putting up its deposit.
+//! The Fellowship or Root can end the pause early and refund or slash it, or extend it. Only Root
+//! can pause without a deposit. Nothing but the kill switch can pause or unpause through tx-pause.
 
 use super::*;
 use frame_support::traits::{
-	Contains, EnsureOrigin, EnsureOriginWithArg, NeverEnsureOrigin, PalletInfoAccess,
+	Contains, EnsureOrigin, EnsureOriginWithArg, GetCallMetadata, NeverEnsureOrigin,
+	PalletInfoAccess,
 };
 use pallet_kill_switch::AdminAction;
 use pallet_tx_pause::RuntimeCallNameOf;
@@ -79,9 +80,10 @@ impl Contains<RuntimeCallNameOf<Runtime>> for NeverPausable {
 	}
 }
 
-/// What can be paused on Asset Hub.
+/// Groups of calls that can be paused together on Asset Hub. Any other call can still be paused on
+/// its own.
 ///
-/// tx-pause works on whole calls, so a target covers every asset those calls touch, not a single
+/// tx-pause works on whole calls, so a group covers every asset those calls touch, not a single
 /// asset. It only stops extrinsics and XCM `Transact`. Contracts going through the precompiles and
 /// assets arriving over XCM aren't covered yet.
 #[derive(
@@ -96,7 +98,7 @@ impl Contains<RuntimeCallNameOf<Runtime>> for NeverPausable {
 	scale_info::TypeInfo,
 	MaxEncodedLen,
 )]
-pub enum KillSwitchTarget {
+pub enum KillSwitchGroup {
 	/// Minting and redeeming through the PSM.
 	#[codec(index = 0)]
 	Psm,
@@ -113,8 +115,8 @@ pub enum KillSwitchTarget {
 	XcmTransfers,
 }
 
-impl KillSwitchTarget {
-	/// The calls this target pauses, by pallet.
+impl KillSwitchGroup {
+	/// The calls this group pauses, by pallet.
 	fn calls(&self) -> Vec<(&'static str, &'static [&'static str])> {
 		const EXECUTE: &[&str] = &["execute"];
 		const PSM: &[&str] = &["mint", "redeem"];
@@ -156,84 +158,101 @@ impl KillSwitchTarget {
 parameter_types! {
 	pub const KillSwitchPauseDuration: BlockNumber = RC_DAYS;
 	pub const KillSwitchCooldown: BlockNumber = 7 * RC_DAYS;
+	pub const KillSwitchCallDeposit: Balance = 10_000 * UNITS;
 }
 
 /// Root can do everything. The Fellowship can end and extend pauses, but can't pause anything
 /// itself or touch a pause Root started.
 pub struct KillSwitchAdmin;
-impl EnsureOriginWithArg<RuntimeOrigin, AdminAction<KillSwitchTarget>> for KillSwitchAdmin {
+impl<Target> EnsureOriginWithArg<RuntimeOrigin, AdminAction<Target>> for KillSwitchAdmin {
 	type Success = ();
 
-	fn try_origin(
-		o: RuntimeOrigin,
-		action: &AdminAction<KillSwitchTarget>,
-	) -> Result<(), RuntimeOrigin> {
-		let o = match EnsureRoot::<AccountId>::try_origin(o) {
+	fn try_origin(o: RuntimeOrigin, action: &AdminAction<Target>) -> Result<(), RuntimeOrigin> {
+		let o = match <EnsureRoot<AccountId> as EnsureOrigin<_>>::try_origin(o) {
 			Ok(_) => return Ok(()),
 			Err(o) => o,
 		};
 		match action {
 			AdminAction::ForcePause(_) => Err(o),
 			AdminAction::Unpause(_) | AdminAction::Extend(_) =>
-				EnsureXcm::<IsFellowshipVoice<FellowshipLocation>>::try_origin(o).map(|_| ()),
+				<EnsureXcm<IsFellowshipVoice<FellowshipLocation>> as EnsureOrigin<_>>::try_origin(o)
+					.map(|_| ()),
 		}
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
-	fn try_successful_origin(_: &AdminAction<KillSwitchTarget>) -> Result<RuntimeOrigin, ()> {
+	fn try_successful_origin(_: &AdminAction<Target>) -> Result<RuntimeOrigin, ()> {
 		// The Fellowship's XCM origin can't be made up for benchmarks, and Root does the same work.
 		Ok(RuntimeOrigin::root())
 	}
 }
 
-/// The targets and what they cost to pause.
-pub struct KillSwitchTargets;
-impl pallet_kill_switch::PauseTargets<KillSwitchTarget, RuntimeCallNameOf<Runtime>, Balance>
-	for KillSwitchTargets
+/// The groups and what they cost to pause.
+pub struct KillSwitchGroups;
+impl pallet_kill_switch::PauseGroups<KillSwitchGroup, RuntimeCallNameOf<Runtime>, Balance>
+	for KillSwitchGroups
 {
-	fn all() -> Vec<KillSwitchTarget> {
-		use KillSwitchTarget::*;
+	fn all() -> Vec<KillSwitchGroup> {
+		use KillSwitchGroup::*;
 		vec![Psm, Swaps, AssetTransfers, XcmTransfers]
 	}
 
-	fn calls(target: &KillSwitchTarget) -> Vec<RuntimeCallNameOf<Runtime>> {
-		target
+	fn calls(group: &KillSwitchGroup) -> Vec<RuntimeCallNameOf<Runtime>> {
+		group
 			.calls()
 			.into_iter()
 			.flat_map(|(pallet, calls)| calls.iter().map(move |call| (pallet, *call)))
-			// The names are all far below `MaxNameLen`, the tests check that none get lost here.
-			.filter_map(|(pallet, call)| {
+			.map(|(pallet, call)| {
 				Some((
 					pallet.as_bytes().to_vec().try_into().ok()?,
 					call.as_bytes().to_vec().try_into().ok()?,
 				))
 			})
-			.collect()
+			// A name longer than `MaxNameLen` leaves the group empty, so `integrity_test` fails
+			// instead of the group quietly pausing less.
+			.collect::<Option<_>>()
+			.unwrap_or_default()
 	}
 
-	fn deposit(target: &KillSwitchTarget) -> Option<Balance> {
-		Some(match target {
-			KillSwitchTarget::Psm | KillSwitchTarget::Swaps => 10_000 * UNITS,
+	fn deposit(group: &KillSwitchGroup) -> Option<Balance> {
+		Some(match group {
+			KillSwitchGroup::Psm | KillSwitchGroup::Swaps => 10_000 * UNITS,
 			// These hit every asset, or everything leaving the chain.
-			KillSwitchTarget::AssetTransfers | KillSwitchTarget::XcmTransfers => 50_000 * UNITS,
+			KillSwitchGroup::AssetTransfers | KillSwitchGroup::XcmTransfers => 50_000 * UNITS,
 		})
+	}
+}
+
+/// Every call that exists in the runtime. tx-pause still refuses the [`NeverPausable`] ones.
+pub struct ExistingCall;
+impl Contains<RuntimeCallNameOf<Runtime>> for ExistingCall {
+	fn contains((pallet, call): &RuntimeCallNameOf<Runtime>) -> bool {
+		let (Ok(pallet), Ok(call)) = (core::str::from_utf8(pallet), core::str::from_utf8(call))
+		else {
+			return false;
+		};
+		// `get_call_names` panics for a pallet that doesn't exist.
+		RuntimeCall::get_module_names().contains(&pallet) &&
+			RuntimeCall::get_call_names(pallet).contains(&call)
 	}
 }
 
 #[cfg(feature = "runtime-benchmarks")]
 pub struct KillSwitchBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
-impl pallet_kill_switch::BenchmarkHelper<KillSwitchTarget> for KillSwitchBenchmarkHelper {
-	fn target() -> KillSwitchTarget {
+impl pallet_kill_switch::BenchmarkHelper<KillSwitchGroup> for KillSwitchBenchmarkHelper {
+	fn group() -> KillSwitchGroup {
 		// The one with the most calls.
-		KillSwitchTarget::AssetTransfers
+		KillSwitchGroup::AssetTransfers
 	}
 }
 
 impl pallet_kill_switch::Config for Runtime {
-	type Target = KillSwitchTarget;
+	type Group = KillSwitchGroup;
 	type CallName = RuntimeCallNameOf<Runtime>;
-	type Targets = KillSwitchTargets;
+	type Groups = KillSwitchGroups;
+	type ValidCall = ExistingCall;
+	type CallDeposit = KillSwitchCallDeposit;
 	type TransactionPause = TxPause;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
@@ -245,7 +264,8 @@ impl pallet_kill_switch::Config for Runtime {
 	type Cooldown = KillSwitchCooldown;
 	type MaxCallsPerTarget = ConstU32<16>;
 	type MaxDepositsPerPause = ConstU32<10>;
-	type MaxActivePauses = ConstU32<8>;
+	// The 4 groups, the rest is for single calls.
+	type MaxActivePauses = ConstU32<64>;
 	// Placeholder until the pallet is benchmarked on this chain.
 	type WeightInfo = ();
 	#[cfg(feature = "runtime-benchmarks")]
@@ -256,28 +276,29 @@ impl pallet_kill_switch::Config for Runtime {
 mod tests {
 	use super::*;
 	use frame_support::traits::GetCallMetadata;
-	use pallet_kill_switch::PauseTargets;
+	use pallet_kill_switch::PauseGroups;
 
 	#[test]
-	fn every_target_call_exists() {
-		for target in KillSwitchTargets::all() {
-			for (pallet, calls) in target.calls() {
+	fn every_group_call_exists() {
+		for group in KillSwitchGroups::all() {
+			for (pallet, calls) in group.calls() {
 				let known = RuntimeCall::get_call_names(pallet);
 				for call in calls {
 					assert!(known.contains(call), "{pallet}::{call} doesn't exist");
 				}
 			}
 			// None got dropped for being too long.
-			let expected: usize = target.calls().iter().map(|(_, calls)| calls.len()).sum();
-			assert_eq!(KillSwitchTargets::calls(&target).len(), expected);
+			let expected: usize = group.calls().iter().map(|(_, calls)| calls.len()).sum();
+			assert_eq!(KillSwitchGroups::calls(&group).len(), expected);
+			assert!(KillSwitchGroups::calls(&group).iter().all(ExistingCall::contains));
 		}
 	}
 
 	#[test]
-	fn no_target_touches_a_whitelisted_call() {
-		for target in KillSwitchTargets::all() {
-			for call in KillSwitchTargets::calls(&target) {
-				assert!(!NeverPausable::contains(&call), "{target:?} would pause {call:?}");
+	fn no_group_touches_a_whitelisted_call() {
+		for group in KillSwitchGroups::all() {
+			for call in KillSwitchGroups::calls(&group) {
+				assert!(!NeverPausable::contains(&call), "{group:?} would pause {call:?}");
 			}
 		}
 	}
@@ -285,5 +306,23 @@ mod tests {
 	#[test]
 	fn never_pausable_send_exists() {
 		assert!(RuntimeCall::get_call_names(PolkadotXcm::name()).contains(&"send"));
+	}
+
+	#[test]
+	fn existing_call_only_takes_real_calls() {
+		let name = |pallet: &str, call: &str| -> RuntimeCallNameOf<Runtime> {
+			(
+				pallet.as_bytes().to_vec().try_into().unwrap(),
+				call.as_bytes().to_vec().try_into().unwrap(),
+			)
+		};
+		assert!(ExistingCall::contains(&name("Balances", "transfer_allow_death")));
+		assert!(!ExistingCall::contains(&name("Balances", "no_such_call")));
+		// Doesn't panic for a pallet that doesn't exist.
+		assert!(!ExistingCall::contains(&name("NoSuchPallet", "transfer")));
+		assert!(!ExistingCall::contains(&(
+			vec![0xff].try_into().unwrap(),
+			vec![].try_into().unwrap()
+		)));
 	}
 }
