@@ -14,18 +14,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{
-	coretime::{BrokerPalletId, RetireCoretimeBurnAccount},
-	xcm_config::LocationToAccountId,
-	*,
-};
+use crate::{coretime::BrokerPalletId, xcm_config::LocationToAccountId, *};
 use cumulus_pallet_parachain_system::ValidationData;
 use cumulus_primitives_core::PersistedValidationData;
 use frame_support::{
 	assert_err, assert_ok,
 	traits::{
 		fungible::{Inspect, Mutate},
-		OnInitialize, OnRuntimeUpgrade,
+		OnInitialize,
 	},
 };
 use pallet_broker::{ConfigRecordOf, SaleInfo};
@@ -119,56 +115,6 @@ fn bulk_revenue_is_accumulated() {
 			// Nothing is burnt.
 			assert_eq!(Balances::total_issuance(), issuance_before);
 		});
-}
-
-#[test]
-fn retire_coretime_burn_account_reaps_when_empty() {
-	ExtBuilder::<Runtime>::default().build().execute_with(|| {
-		// GIVEN the legacy burn account between two sweeps, no balance and only the provider the
-		// burn handler added.
-		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
-		let accumulation_account = AccumulateForward::accumulation_account();
-		System::inc_providers(&burn_account);
-		assert!(System::account_exists(&burn_account));
-		let issuance_before = Balances::total_issuance();
-
-		// WHEN the migration runs.
-		RetireCoretimeBurnAccount::on_runtime_upgrade();
-
-		// THEN the burn account is gone and nothing moved or burnt.
-		assert!(!System::account_exists(&burn_account));
-		assert_eq!(Balances::total_balance(&accumulation_account), 0);
-		assert_eq!(Balances::total_issuance(), issuance_before);
-	});
-}
-
-#[test]
-fn retire_coretime_burn_account_sweeps_residual_and_reaps() {
-	ExtBuilder::<Runtime>::default().build().execute_with(|| {
-		// GIVEN the burn account as the retired handler left it, with a manual provider and a
-		// residual balance, and a funded accumulation account.
-		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
-		let accumulation_account = AccumulateForward::accumulation_account();
-		System::inc_providers(&burn_account);
-		assert_ok!(Balances::mint_into(&burn_account, 5 * UNITS));
-		assert_ok!(Balances::mint_into(&accumulation_account, ExistentialDeposit::get()));
-		let issuance_before = Balances::total_issuance();
-
-		// WHEN the migration runs.
-		RetireCoretimeBurnAccount::on_runtime_upgrade();
-
-		// THEN the residual is in the accumulation account, the burn account is gone, nothing
-		// burnt.
-		assert_eq!(Balances::balance(&accumulation_account), ExistentialDeposit::get() + 5 * UNITS);
-		assert!(!System::account_exists(&burn_account));
-		assert_eq!(Balances::total_issuance(), issuance_before);
-
-		// AND a rerun changes nothing.
-		RetireCoretimeBurnAccount::on_runtime_upgrade();
-		assert_eq!(Balances::balance(&accumulation_account), ExistentialDeposit::get() + 5 * UNITS);
-		assert!(!System::account_exists(&burn_account));
-		assert_eq!(Balances::total_issuance(), issuance_before);
-	});
 }
 
 #[test]

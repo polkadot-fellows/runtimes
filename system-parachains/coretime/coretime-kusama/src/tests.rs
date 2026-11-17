@@ -15,7 +15,7 @@
 // limitations under the License.
 
 use crate::{
-	coretime::{BrokerPalletId, RetireCoretimeBurnAccount},
+	coretime::BrokerPalletId,
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
 	*,
 };
@@ -25,7 +25,7 @@ use frame_support::{
 	assert_err, assert_ok,
 	traits::{
 		fungible::{Inspect, Mutate},
-		OnInitialize, OnRuntimeUpgrade,
+		OnInitialize,
 	},
 };
 use pallet_broker::{ConfigRecordOf, SaleInfo};
@@ -115,53 +115,6 @@ fn bulk_revenue_is_accumulated() {
 			// Nothing is burnt here.
 			assert_eq!(Balances::total_issuance(), issuance_before);
 		});
-}
-
-#[test]
-fn retire_coretime_burn_account_reaps_when_empty() {
-	ExtBuilder::<Runtime>::default().build().execute_with(|| {
-		// GIVEN the burn account between two sweeps: no balance, only the provider the burn
-		// handler added.
-		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
-		let accumulation_account = AccumulateForward::accumulation_account();
-		System::inc_providers(&burn_account);
-		assert!(System::account_exists(&burn_account));
-		let issuance_before = Balances::total_issuance();
-
-		RetireCoretimeBurnAccount::on_runtime_upgrade();
-
-		// THEN it is gone, and nothing moved or was burnt.
-		assert!(!System::account_exists(&burn_account));
-		assert_eq!(Balances::total_balance(&accumulation_account), 0);
-		assert_eq!(Balances::total_issuance(), issuance_before);
-	});
-}
-
-#[test]
-fn retire_coretime_burn_account_sweeps_residual_and_reaps() {
-	ExtBuilder::<Runtime>::default().build().execute_with(|| {
-		// GIVEN the burn account as the old handler left it, holding revenue not yet swept.
-		let burn_account: AccountId = PalletId(*b"py/ctbrn").into_account_truncating();
-		let accumulation_account = AccumulateForward::accumulation_account();
-		System::inc_providers(&burn_account);
-		assert_ok!(Balances::mint_into(&burn_account, 5 * UNITS));
-		assert_ok!(Balances::mint_into(&accumulation_account, ExistentialDeposit::get()));
-		let issuance_before = Balances::total_issuance();
-
-		RetireCoretimeBurnAccount::on_runtime_upgrade();
-
-		// THEN the residual moves to the accumulation account, so it is still burnt on Asset Hub,
-		// and the burn account is gone.
-		assert_eq!(Balances::balance(&accumulation_account), ExistentialDeposit::get() + 5 * UNITS);
-		assert!(!System::account_exists(&burn_account));
-		assert_eq!(Balances::total_issuance(), issuance_before);
-
-		// AND a rerun changes nothing.
-		RetireCoretimeBurnAccount::on_runtime_upgrade();
-		assert_eq!(Balances::balance(&accumulation_account), ExistentialDeposit::get() + 5 * UNITS);
-		assert!(!System::account_exists(&burn_account));
-		assert_eq!(Balances::total_issuance(), issuance_before);
-	});
 }
 
 #[test]

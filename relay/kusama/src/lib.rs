@@ -2040,14 +2040,8 @@ pub mod migrations {
 	use super::*;
 
 	parameter_types! {
-		pub const RecoveryPalletName: &'static str = "Recovery";
 		pub const ElectionProviderMultiPhaseName: &'static str = "ElectionProviderMultiPhase";
 	}
-
-	pub type RemoveRecoveryPallet = frame_support::migrations::RemovePallet<
-		RecoveryPalletName,
-		<crate::Runtime as frame_system::Config>::DbWeight,
-	>;
 
 	pub type RemoveElectionProviderMultiPhasePallet = frame_support::migrations::RemovePallet<
 		ElectionProviderMultiPhaseName,
@@ -2055,14 +2049,7 @@ pub mod migrations {
 	>;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		parachains_on_demand::migration::MigrateV1ToV2<Runtime>,
-		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
-		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
-		parachains_shared::migration::MigrateToV2<Runtime>,
-		RemoveRecoveryPallet,
-		RemoveElectionProviderMultiPhasePallet,
-	);
+	pub type Unreleased = (RemoveElectionProviderMultiPhasePallet,);
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;
