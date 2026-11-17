@@ -614,10 +614,11 @@ impl ContainsPair<RestrictedEntity, RuntimeCall> for OperationAllowedOneTimeExce
 					indiv_pallet_resources::Call::replace_statement_store_account { .. }
 				)
 			),
+			RestrictedEntity::LiteAlias(_) =>
+				matches!(call, RuntimeCall::Game(sign_up_with_account_lite_invite { .. })),
 			RestrictedEntity::PersonalAlias(_) |
 			RestrictedEntity::PersonalIdentity(_) |
-			RestrictedEntity::LitePerson(_) |
-			RestrictedEntity::LiteAlias(_) => false,
+			RestrictedEntity::LitePerson(_) => false,
 		}
 	}
 }
