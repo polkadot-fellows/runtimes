@@ -238,11 +238,6 @@ impl indiv_pallet_people_lite::Config for Runtime {
 	type AttestationSignature = Signature;
 	type LiteConsumerRegistrar = Resources;
 	type AccountContexts = LiteAccountContexts;
-	type MaxLitePeople = crate::parameters::MaxLitePeople;
-	type Clock = RuntimeClock;
-	type PaidRegistrationThreshold = crate::parameters::LitePaidRegistrationThreshold;
-	type PaidRegistrationPeriod = crate::parameters::LitePaidRegistrationPeriod;
-	type PaidRegistrationsPerPeriod = crate::parameters::LitePaidRegistrationsPerPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::PeopleLiteBenchmarkHelper;
 }
@@ -526,7 +521,9 @@ fn stmt_store_replacement_fee() -> Balance {
 		.into();
 	let extrinsic = UncheckedExtrinsic::from_parts(
 		call,
-		generic::Preamble::General(ExtensionVariant::Other(TxExtensionOtherVersions::new(tx_ext))),
+		generic::Preamble::General(ExtensionVariant::Other(TxExtensionOtherVersions::A(
+			sp_runtime::traits::PipelineAtVers::new(tx_ext),
+		))),
 	);
 	let weight_fee = <Runtime as pallet_transaction_payment::Config>::WeightToFee::weight_to_fee(
 		&extrinsic.get_dispatch_info().total_weight(),
@@ -554,6 +551,7 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 			RestrictedEntity::AccountParticipant(_) => Allowance {
 				max: 0,
 				recovery_per_block: crate::parameters::AccountParticipantAllowanceRecovery::get(),
+			},
 			// With `max: 0`, a replacement runs only as a one-time excess at zero usage, so at most
 			// once per recovery of its fee.
 			RestrictedEntity::StmtStoreHolder(_) => Allowance {
@@ -593,7 +591,6 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 /// Calls that an entity with a zero allowance may still dispatch once, going into debt.
 pub struct OperationAllowedOneTimeExcess;
 impl ContainsPair<RestrictedEntity, RuntimeCall> for OperationAllowedOneTimeExcess {
-	#[cfg(not(feature = "runtime-benchmarks"))]
 	fn contains(entity: &RestrictedEntity, call: &RuntimeCall) -> bool {
 		use indiv_pallet_game::Call::*;
 		use indiv_pallet_score::Call::*;
@@ -610,27 +607,18 @@ impl ContainsPair<RestrictedEntity, RuntimeCall> for OperationAllowedOneTimeExce
 					RuntimeCall::Game(offboard { .. }) |
 					RuntimeCall::Game(claim_airdrop { .. })
 			),
+			// The `excess_pair` of `OriginRestrictionBenchmarkHelper`.
+			RestrictedEntity::StmtStoreHolder(_) => matches!(
+				call,
+				RuntimeCall::Resources(
+					indiv_pallet_resources::Call::replace_statement_store_account { .. }
+				)
+			),
 			RestrictedEntity::PersonalAlias(_) |
 			RestrictedEntity::PersonalIdentity(_) |
 			RestrictedEntity::LitePerson(_) |
 			RestrictedEntity::LiteAlias(_) => false,
 		}
-	}
-
-	// We need to have one for benchmarks.
-	#[cfg(feature = "runtime-benchmarks")]
-	fn contains(entity: &RestrictedEntity, call: &RuntimeCall) -> bool {
-		matches!(
-			(entity, call),
-			(
-				RestrictedEntity::LitePerson(_),
-				RuntimeCall::System(frame_system::Call::remark { .. }),
-				RestrictedEntity::StmtStoreHolder(_),
-				RuntimeCall::Resources(
-					indiv_pallet_resources::Call::replace_statement_store_account { .. }
-				)
-			)
-		)
 	}
 }
 
@@ -747,6 +735,7 @@ impl indiv_pallet_game::Config for Runtime {
 	type MaxAttendanceHistoryDepth = ConstU32<12>;
 	type NftClaimCredits = NftCredits;
 	type DefaultPhaseDurations = GamePhaseDurations;
+	type MinStepPhaseDuration = ConstU32<{ 2 * (crate::SLOT_DURATION / 1_000) as u32 }>;
 	type AccountSignature = Signature;
 	type PlayerStatementLimit = PlayerStatementLimit;
 	type PeopleVoteWeight = ConstUint<2>;
