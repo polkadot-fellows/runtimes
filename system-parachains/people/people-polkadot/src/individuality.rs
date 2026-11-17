@@ -860,16 +860,19 @@ impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureClaimsChainSib
 	}
 }
 
-/// The default game phase durations, sized for a game of 10 000 players at 2 second blocks.
+/// The default game phase durations for 10 000 players, from the estimate in
+/// <https://github.com/paritytech/individuality-community/pull/220>.
+///
+/// `shuffle` is 3x its estimate, as an overrun cancels the game. `player_process` is 2x.
 pub struct GamePhaseDurations;
 impl Get<PhaseDurationValues> for GamePhaseDurations {
 	fn get() -> PhaseDurationValues {
 		PhaseDurationValues {
 			registration: 20 * 60,
-			shuffle: 10 * 60,
+			shuffle: 15 * 60,
 			post_shuffle_margin: 30,
 			reporting: 120 * 60,
-			player_process: 8 * 60,
+			player_process: 25 * 60,
 		}
 	}
 }
