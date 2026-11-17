@@ -26,16 +26,23 @@ fn set_relay_block<T: Config>(n: u32) {
 /// A funded account that can pay for every deposit of a full pause.
 fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let who: T::AccountId = account(name, index, 0);
-	let deposit = T::Targets::deposit(&T::BenchmarkHelper::target()).expect("target is priced");
+	let deposit = T::Groups::deposit(&T::BenchmarkHelper::group())
+		.expect("group is priced")
+		.max(T::CallDeposit::get());
 	let amount = T::Currency::minimum_balance()
 		.saturating_add(deposit.saturating_mul((T::MaxDepositsPerPause::get() + 1).into()));
 	T::Currency::set_balance(&who, amount);
 	who
 }
 
+/// The group with the most calls.
+fn target<T: Config>() -> TargetOf<T> {
+	Target::Group(T::BenchmarkHelper::group())
+}
+
 /// Pauses the benchmark target with `deposits` deposits behind it.
-fn pause_with_deposits<T: Config>(deposits: u32) -> T::Target {
-	let target = T::BenchmarkHelper::target();
+fn pause_with_deposits<T: Config>(deposits: u32) -> TargetOf<T> {
+	let target = target::<T>();
 	let who = funded_account::<T>("pauser", 0);
 	Pallet::<T>::pause(RawOrigin::Signed(who).into(), target.clone()).expect("can pause");
 	for i in 1..deposits {
@@ -47,19 +54,24 @@ fn pause_with_deposits<T: Config>(deposits: u32) -> T::Target {
 
 /// Fills the expiry queue with entries that end long after anything else, leaving `room` free.
 ///
-/// They point at `target` again, there is only one benchmark target. That's fine since they never
-/// come due, they are only there so the queue has its full size.
-fn fill_queue<T: Config>(target: &T::Target, room: u32) {
+/// They use ids from the top down so they never match a real pause. They never come due, they are
+/// only there so the queue has its full size.
+fn fill_queue<T: Config>(room: u32) {
 	let later = BlockNumberOf::<T>::from(u32::MAX);
 	let size = T::MaxActivePauses::get().saturating_sub(room) as usize;
 	Expiries::<T>::mutate(|queue| {
-		while queue.len() < size && queue.try_push((later, target.clone())).is_ok() {}
+		let mut id = PauseId::MAX;
+		while queue.len() < size &&
+			queue.try_push(Expiry { at: later, id, single_call: false }).is_ok()
+		{
+			id -= 1;
+		}
 	});
 }
 
 /// An origin that can do `action`.
 fn admin_origin<T: Config>(
-	action: AdminAction<T::Target>,
+	action: AdminAction<TargetOf<T>>,
 ) -> Result<T::RuntimeOrigin, BenchmarkError> {
 	T::AdminOrigin::try_successful_origin(&action).map_err(|_| BenchmarkError::Weightless)
 }
@@ -71,9 +83,9 @@ mod benchmarks {
 	#[benchmark]
 	fn pause() {
 		set_relay_block::<T>(10);
-		let target = T::BenchmarkHelper::target();
+		let target = target::<T>();
 		let who = funded_account::<T>("pauser", 0);
-		fill_queue::<T>(&target, 1);
+		fill_queue::<T>(1);
 		// Worst case: an old cooldown has to be cleaned up.
 		Cooldowns::<T>::insert(&target, BlockNumberOf::<T>::from(10u32));
 
@@ -89,7 +101,7 @@ mod benchmarks {
 		set_relay_block::<T>(10);
 		let target = pause_with_deposits::<T>(T::MaxDepositsPerPause::get() - 1);
 		let who = funded_account::<T>("extender", T::MaxDepositsPerPause::get());
-		fill_queue::<T>(&target, 0);
+		fill_queue::<T>(0);
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(who), target.clone());
@@ -102,7 +114,7 @@ mod benchmarks {
 	fn unpause(d: Linear<1, { T::MaxDepositsPerPause::get() }>) -> Result<(), BenchmarkError> {
 		set_relay_block::<T>(10);
 		let target = pause_with_deposits::<T>(d);
-		fill_queue::<T>(&target, 0);
+		fill_queue::<T>(0);
 		let origin = admin_origin::<T>(AdminAction::Unpause(target.clone()))?;
 
 		// Slashing is the more expensive path, it also starts the cooldown.
@@ -119,7 +131,7 @@ mod benchmarks {
 		let target = pause_with_deposits::<T>(1);
 		let until = Pauses::<T>::get(&target).unwrap().until.unwrap();
 		let new_until = until.saturating_add(One::one());
-		fill_queue::<T>(&target, 0);
+		fill_queue::<T>(0);
 		let origin = admin_origin::<T>(AdminAction::Extend(target.clone()))?;
 
 		#[extrinsic_call]
@@ -129,17 +141,18 @@ mod benchmarks {
 		Ok(())
 	}
 
+	/// Taking over a pause with `d` deposits, or a fresh pause for `d = 0`.
 	#[benchmark]
-	fn force_pause() -> Result<(), BenchmarkError> {
+	fn force_pause(d: Linear<0, { T::MaxDepositsPerPause::get() }>) -> Result<(), BenchmarkError> {
 		set_relay_block::<T>(10);
-		let target = T::BenchmarkHelper::target();
-		fill_queue::<T>(&target, 1);
+		let target = if d > 0 { pause_with_deposits::<T>(d) } else { target::<T>() };
+		fill_queue::<T>(if d > 0 { 0 } else { 1 });
 		let origin = admin_origin::<T>(AdminAction::ForcePause(target.clone()))?;
 
 		#[extrinsic_call]
 		_(origin as T::RuntimeOrigin, target.clone(), Some(BlockNumberOf::<T>::from(20u32)));
 
-		assert!(Pauses::<T>::contains_key(&target));
+		assert!(Pauses::<T>::get(&target).unwrap().forced);
 		Ok(())
 	}
 
@@ -148,7 +161,7 @@ mod benchmarks {
 	fn on_poll_base() {
 		set_relay_block::<T>(10);
 		let target = pause_with_deposits::<T>(1);
-		fill_queue::<T>(&target, 0);
+		fill_queue::<T>(0);
 
 		#[block]
 		{
@@ -163,7 +176,7 @@ mod benchmarks {
 	fn on_poll_expire() {
 		set_relay_block::<T>(10);
 		let target = pause_with_deposits::<T>(T::MaxDepositsPerPause::get());
-		fill_queue::<T>(&target, 0);
+		fill_queue::<T>(0);
 		let until = Pauses::<T>::get(&target).unwrap().until.unwrap();
 		T::BlockNumberProvider::set_block_number(until);
 

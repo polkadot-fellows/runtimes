@@ -21,8 +21,26 @@ use frame_support::{
 };
 use sp_runtime::{traits::Dispatchable, DispatchError};
 
-fn transfer() -> Target {
-	Target::Transfer
+fn group(group: Group) -> TargetOf<Test> {
+	Target::Group(group)
+}
+
+fn transfer() -> TargetOf<Test> {
+	group(Group::Transfer)
+}
+
+fn burn() -> TargetOf<Test> {
+	group(Group::Burn)
+}
+
+/// The expiry list as `(end, id)`.
+fn queue() -> Vec<(u64, PauseId)> {
+	Expiries::<Test>::get().iter().map(|expiry| (expiry.at, expiry.id)).collect()
+}
+
+/// A single call of `Balances`.
+fn call(name: &str) -> TargetOf<Test> {
+	Target::Call(full_name("Balances", name))
 }
 
 /// Whether tx-pause has `call` of `Balances` paused.
@@ -91,29 +109,29 @@ fn fails_to_pause() {
 	new_test_ext().execute_with(|| {
 		// Not a target.
 		assert_noop!(
-			KillSwitch::pause(RuntimeOrigin::signed(1), Target::Unknown),
+			KillSwitch::pause(RuntimeOrigin::signed(1), group(Group::Unknown)),
 			Error::<Test>::NotPausable
 		);
 		// A target, but tx-pause refuses its call.
 		assert_noop!(
-			KillSwitch::pause(RuntimeOrigin::signed(1), Target::Whitelisted),
+			KillSwitch::pause(RuntimeOrigin::signed(1), group(Group::Whitelisted)),
 			Error::<Test>::NotPausable
 		);
 		// The kill switch can never be paused.
 		assert_noop!(
-			KillSwitch::pause(RuntimeOrigin::signed(1), Target::KillSwitchCall),
+			KillSwitch::pause(RuntimeOrigin::signed(1), group(Group::KillSwitchCall)),
 			Error::<Test>::NotPausable
 		);
 		assert_noop!(
-			KillSwitch::force_pause(RuntimeOrigin::root(), Target::KillSwitchCall, None),
+			KillSwitch::force_pause(RuntimeOrigin::root(), group(Group::KillSwitchCall), None),
 			Error::<Test>::NotPausable
 		);
 		// No deposit, so only Root can pause it.
 		assert_noop!(
-			KillSwitch::pause(RuntimeOrigin::signed(1), Target::RootOnly),
+			KillSwitch::pause(RuntimeOrigin::signed(1), group(Group::RootOnly)),
 			Error::<Test>::NotPausable
 		);
-		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), Target::RootOnly, None));
+		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), group(Group::RootOnly), None));
 		// Can't afford it.
 		assert_noop!(
 			KillSwitch::pause(RuntimeOrigin::signed(42), transfer()),
@@ -181,13 +199,21 @@ fn expires_when_relay_block_skips() {
 }
 
 #[test]
-fn every_target_can_be_paused_at_once() {
+fn every_group_can_be_paused_at_once() {
 	new_test_ext().execute_with(|| {
-		for target in <Test as Config>::Targets::all() {
-			if target == Target::RootOnly {
-				assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), target, Some(100)));
+		// Single calls take every slot they can get first.
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), call("transfer_allow_death")));
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), call("burn")));
+		assert_noop!(
+			KillSwitch::pause(RuntimeOrigin::signed(2), call("force_transfer")),
+			Error::<Test>::TooManyPauses
+		);
+
+		for g in <Test as Config>::Groups::all() {
+			if g == Group::RootOnly {
+				assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), group(g), Some(100)));
 			} else {
-				assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), target));
+				assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), group(g)));
 			}
 		}
 		assert_eq!(Expiries::<Test>::get().len() as u32, MAX_ACTIVE_PAUSES);
@@ -200,7 +226,7 @@ fn shared_calls_stay_paused() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
 		// `Money` also pauses `transfer_allow_death`, which is already paused.
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), Target::Money));
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), group(Group::Money)));
 		assert!(is_paused("burn"));
 		assert_eq!(PausedCalls::<Test>::get(full_name("Balances", "transfer_allow_death")), 2);
 
@@ -209,7 +235,7 @@ fn shared_calls_stay_paused() {
 		assert!(!transfer_works());
 		assert_ok!(KillSwitch::do_try_state());
 
-		assert_ok!(KillSwitch::unpause(fellowship(), Target::Money, false));
+		assert_ok!(KillSwitch::unpause(fellowship(), group(Group::Money), false));
 		assert!(transfer_works());
 		assert!(!is_paused("burn"));
 		assert_eq!(PausedCalls::<Test>::iter().count(), 0);
@@ -220,11 +246,11 @@ fn shared_calls_stay_paused() {
 #[test]
 fn pause_lifts_what_it_paused_after_an_upgrade() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), Target::Money));
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), group(Group::Money)));
 		// The runtime now says `Money` is `transfer_allow_death` and `force_transfer`.
 		MoneyUpgraded::set(true);
 
-		assert_ok!(KillSwitch::unpause(fellowship(), Target::Money, false));
+		assert_ok!(KillSwitch::unpause(fellowship(), group(Group::Money), false));
 		assert!(transfer_works());
 		assert!(!is_paused("burn"));
 		assert!(!is_paused("force_transfer"));
@@ -233,17 +259,17 @@ fn pause_lifts_what_it_paused_after_an_upgrade() {
 }
 
 #[test]
-fn lists_pause_targets() {
+fn lists_pause_groups() {
 	new_test_ext().execute_with(|| {
-		let targets = KillSwitch::pause_targets();
-		assert_eq!(targets.len(), <Test as Config>::Targets::all().len());
-		let money = targets.iter().find(|info| info.target == Target::Money).unwrap();
+		let groups = KillSwitch::pause_groups();
+		assert_eq!(groups.len(), <Test as Config>::Groups::all().len());
+		let money = groups.iter().find(|info| info.group == Group::Money).unwrap();
 		assert_eq!(
 			money.calls,
 			vec![full_name("Balances", "transfer_allow_death"), full_name("Balances", "burn")]
 		);
 		assert_eq!(money.deposit, Some(DEPOSIT));
-		let root_only = targets.iter().find(|info| info.target == Target::RootOnly).unwrap();
+		let root_only = groups.iter().find(|info| info.group == Group::RootOnly).unwrap();
 		assert_eq!(root_only.deposit, None);
 	});
 }
@@ -251,7 +277,7 @@ fn lists_pause_targets() {
 #[test]
 fn on_poll_spreads_work_over_blocks() {
 	new_test_ext().execute_with(|| {
-		for target in [Target::Transfer, Target::ForceTransfer, Target::Burn] {
+		for target in [group(Group::Transfer), group(Group::ForceTransfer), group(Group::Burn)] {
 			assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), target));
 		}
 		RelayBlock::set(20);
@@ -365,14 +391,18 @@ fn unpause_with_slash_starts_cooldown() {
 		);
 		System::assert_has_event(Event::Unpaused { target: transfer(), slashed: true }.into());
 
-		// Nobody can pause it again until the cooldown is over.
-		assert_noop!(
-			KillSwitch::pause(RuntimeOrigin::signed(3), transfer()),
-			Error::<Test>::InCooldown
-		);
+		// Nobody can pause it again until the cooldown is over, not even its call on its own.
+		for target in [transfer(), call("transfer_allow_death")] {
+			assert_noop!(
+				KillSwitch::pause(RuntimeOrigin::signed(3), target),
+				Error::<Test>::InCooldown
+			);
+		}
+		// Another group with the same call is still fine.
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(3), group(Group::Money)));
 		RelayBlock::set(1 + COOLDOWN);
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(3), transfer()));
-		assert!(Cooldowns::<Test>::get(transfer()).is_none());
+		assert!(!Cooldowns::<Test>::contains_key(transfer()));
 	});
 }
 
@@ -395,7 +425,7 @@ fn unpause_with_refund_has_no_cooldown() {
 		assert!(transfer_works());
 		assert_eq!(held(1), 0);
 		assert_eq!(Balances::free_balance(1), 1_000);
-		assert!(Cooldowns::<Test>::get(transfer()).is_none());
+		assert!(!Cooldowns::<Test>::contains_key(transfer()));
 
 		// If the problem comes back, anyone can pause right away.
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), transfer()));
@@ -487,25 +517,18 @@ fn new_pause_only_settles_its_own_deposits() {
 #[test]
 fn expiry_queue_is_cleaned_up() {
 	new_test_ext().execute_with(|| {
-		let burn = Target::Burn;
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
 		RelayBlock::set(5);
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), burn));
-		assert_eq!(
-			Expiries::<Test>::get().to_vec(),
-			vec![(1 + PAUSE_DURATION, transfer()), (5 + PAUSE_DURATION, burn)]
-		);
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), burn()));
+		assert_eq!(queue(), vec![(1 + PAUSE_DURATION, 0), (5 + PAUSE_DURATION, 1)]);
 
 		// Extending moves it to its new place in the list.
 		assert_ok!(KillSwitch::extend(RuntimeOrigin::signed(3), transfer()));
-		assert_eq!(
-			Expiries::<Test>::get().to_vec(),
-			vec![(5 + PAUSE_DURATION, burn), (1 + 2 * PAUSE_DURATION, transfer())]
-		);
+		assert_eq!(queue(), vec![(5 + PAUSE_DURATION, 1), (1 + 2 * PAUSE_DURATION, 0)]);
 
 		assert_ok!(KillSwitch::unpause(fellowship(), transfer(), false));
-		assert_eq!(Expiries::<Test>::get().to_vec(), vec![(5 + PAUSE_DURATION, burn)]);
-		assert_ok!(KillSwitch::unpause(fellowship(), burn, false));
+		assert_eq!(queue(), vec![(5 + PAUSE_DURATION, 1)]);
+		assert_ok!(KillSwitch::unpause(fellowship(), burn(), false));
 		assert!(Expiries::<Test>::get().is_empty());
 		assert_ok!(KillSwitch::do_try_state());
 	});
@@ -554,6 +577,174 @@ fn fellowship_cannot_touch_root_pause() {
 
 		assert_ok!(KillSwitch::unpause(RuntimeOrigin::root(), transfer(), false));
 		assert!(transfer_works());
+		assert_ok!(KillSwitch::do_try_state());
+	});
+}
+
+#[test]
+fn can_pause_single_call() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), call("transfer_allow_death")));
+		assert!(!transfer_works());
+		// It's in groups, so it costs what they cost.
+		assert_eq!(held(1), DEPOSIT);
+		System::assert_has_event(
+			Event::Paused {
+				target: call("transfer_allow_death"),
+				who: Some(1),
+				until: Some(1 + PAUSE_DURATION),
+			}
+			.into(),
+		);
+
+		// The group holds it too, and it stays paused until both are gone.
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), transfer()));
+		assert_ok!(KillSwitch::unpause(fellowship(), transfer(), false));
+		assert!(!transfer_works());
+
+		run_to_relay(1 + PAUSE_DURATION);
+		assert!(transfer_works());
+		assert_eq!(held(1), 0);
+		assert_ok!(KillSwitch::do_try_state());
+	});
+}
+
+#[test]
+fn single_call_price() {
+	new_test_ext().execute_with(|| {
+		let name = |call: &str| full_name("Balances", call);
+		// In no group.
+		assert_eq!(KillSwitch::call_deposit(&name("upgrade_accounts")), Some(CALL_DEPOSIT));
+		// In groups, at least what they cost.
+		assert_eq!(KillSwitch::call_deposit(&name("burn")), Some(DEPOSIT));
+		// In a group only Root can pause, so only Root can pause it.
+		assert_eq!(KillSwitch::call_deposit(&name("force_set_balance")), None);
+		assert_noop!(
+			KillSwitch::pause(RuntimeOrigin::signed(1), call("force_set_balance")),
+			Error::<Test>::NotPausable
+		);
+		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), call("force_set_balance"), None));
+		// Doesn't exist.
+		assert_eq!(KillSwitch::call_deposit(&name("no_such_call")), None);
+
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), call("upgrade_accounts")));
+		assert_eq!(held(1), CALL_DEPOSIT);
+	});
+}
+
+#[test]
+fn slashed_call_does_not_block_its_groups() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), call("transfer_allow_death")));
+		assert_ok!(KillSwitch::unpause(fellowship(), call("transfer_allow_death"), true));
+
+		assert_noop!(
+			KillSwitch::pause(RuntimeOrigin::signed(2), call("transfer_allow_death")),
+			Error::<Test>::InCooldown
+		);
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), transfer()));
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), group(Group::Money)));
+		assert_ok!(KillSwitch::do_try_state());
+	});
+}
+
+#[test]
+fn calls_can_extend_with_every_group_paused() {
+	new_test_ext().execute_with(|| {
+		// Groups first, then single calls in what's left.
+		for g in <Test as Config>::Groups::all() {
+			if g == Group::RootOnly {
+				assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), group(g), Some(100)));
+			} else {
+				assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), group(g)));
+			}
+		}
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), call("upgrade_accounts")));
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), call("transfer_all")));
+		assert_eq!(Expiries::<Test>::get().len() as u32, MAX_ACTIVE_PAUSES);
+
+		// A full list doesn't stop a call pause from moving.
+		assert_ok!(KillSwitch::extend(RuntimeOrigin::signed(3), call("upgrade_accounts")));
+		assert_ok!(KillSwitch::force_extend(fellowship(), call("transfer_all"), 500));
+		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), call("transfer_all"), Some(600)));
+		assert_ok!(KillSwitch::do_try_state());
+	});
+}
+
+#[test]
+fn fails_to_pause_single_call() {
+	new_test_ext().execute_with(|| {
+		// Doesn't exist.
+		assert_noop!(
+			KillSwitch::pause(RuntimeOrigin::signed(1), call("no_such_call")),
+			Error::<Test>::NotPausable
+		);
+		assert_noop!(
+			KillSwitch::pause(
+				RuntimeOrigin::signed(1),
+				Target::Call(full_name("NoSuchPallet", "transfer"))
+			),
+			Error::<Test>::NotPausable
+		);
+		// Exists, but tx-pause never pauses it.
+		assert_noop!(
+			KillSwitch::pause(RuntimeOrigin::signed(1), call("transfer_keep_alive")),
+			Error::<Test>::NotPausable
+		);
+		assert_noop!(
+			KillSwitch::pause(
+				RuntimeOrigin::signed(1),
+				Target::Call(full_name("KillSwitch", "unpause"))
+			),
+			Error::<Test>::NotPausable
+		);
+	});
+}
+
+#[test]
+fn root_takes_over_a_paid_pause() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
+		assert_ok!(KillSwitch::extend(RuntimeOrigin::signed(2), transfer()));
+
+		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), transfer(), None));
+		System::assert_has_event(Event::Unpaused { target: transfer(), slashed: false }.into());
+
+		// Still paused, now for good, and the deposits are back.
+		assert!(!transfer_works());
+		assert_eq!((held(1), held(2)), (0, 0));
+		let pause = Pauses::<Test>::get(transfer()).unwrap();
+		assert!(pause.forced);
+		assert_eq!(pause.until, None);
+		assert!(Expiries::<Test>::get().is_empty());
+		assert_eq!(PausedCalls::<Test>::get(full_name("Balances", "transfer_allow_death")), 1);
+
+		// But not twice.
+		assert_noop!(
+			KillSwitch::force_pause(RuntimeOrigin::root(), transfer(), Some(50)),
+			Error::<Test>::AlreadyPaused
+		);
+		assert_ok!(KillSwitch::do_try_state());
+	});
+}
+
+#[test]
+fn expiry_survives_ids_moving_on() {
+	new_test_ext().execute_with(|| {
+		// A pause that ends early, between two that end later.
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
+		RelayBlock::set(3);
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), call("burn")));
+		assert_ok!(KillSwitch::unpause(fellowship(), transfer(), false));
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
+		// The new pause of `transfer` got a new id.
+		assert_eq!(Pauses::<Test>::get(transfer()).unwrap().id, 2);
+
+		run_to_relay(3 + PAUSE_DURATION);
+		assert!(transfer_works());
+		assert!(!is_paused("burn"));
+		assert!(Pauses::<Test>::iter().next().is_none());
+		assert_eq!(PauseTargets::<Test>::iter().count(), 0);
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }

@@ -16,19 +16,22 @@
 
 //! Runtime API for the kill switch.
 
-use crate::TargetInfo;
+use crate::GroupInfo;
 use alloc::vec::Vec;
 use codec::Codec;
 
 sp_api::decl_runtime_apis! {
 	/// What can be paused on this chain. Meant for wallets and monitors.
-	pub trait KillSwitchApi<Target, CallName, Balance>
+	pub trait KillSwitchApi<Group, CallName, Balance>
 	where
-		Target: Codec,
+		Group: Codec,
 		CallName: Codec,
 		Balance: Codec,
 	{
-		/// Every target, with the calls it pauses and the deposit it needs.
-		fn pause_targets() -> Vec<TargetInfo<Target, CallName, Balance>>;
+		/// Every group, with the calls it pauses and the deposit it needs.
+		fn pause_groups() -> Vec<GroupInfo<Group, CallName, Balance>>;
+
+		/// The deposit for pausing `call` on its own. `None` if it can't be paused on its own.
+		fn call_deposit(call: CallName) -> Option<Balance>;
 	}
 }

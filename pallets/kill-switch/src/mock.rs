@@ -20,7 +20,7 @@ use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
 		tokens::imbalance::ResolveTo, ConstU32, ConstU64, Contains, EnsureOrigin,
-		EnsureOriginWithArg, Everything, InsideBoth, NeverEnsureOrigin,
+		EnsureOriginWithArg, Everything, GetCallMetadata, InsideBoth, NeverEnsureOrigin,
 	},
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
@@ -79,9 +79,11 @@ pub const PAUSE_DURATION: u64 = 10;
 pub const COOLDOWN: u64 = 20;
 pub const MAX_DEPOSITS: u32 = 3;
 pub const MAX_CALLS: u32 = 2;
-pub const MAX_ACTIVE_PAUSES: u32 = 7;
+pub const CALL_DEPOSIT: u64 = 50;
+/// Seven groups, so two slots are left for single calls.
+pub const MAX_ACTIVE_PAUSES: u32 = 9;
 
-/// What the tests can pause.
+/// The groups the tests can pause.
 #[derive(
 	Clone,
 	Copy,
@@ -94,7 +96,7 @@ pub const MAX_ACTIVE_PAUSES: u32 = 7;
 	TypeInfo,
 	MaxEncodedLen,
 )]
-pub enum Target {
+pub enum Group {
 	Transfer,
 	ForceTransfer,
 	TransferAll,
@@ -104,7 +106,7 @@ pub enum Target {
 	Money,
 	/// Has no deposit, so only Root can pause it.
 	RootOnly,
-	/// Not one of the targets.
+	/// Not one of the groups.
 	Unknown,
 	/// A call tx-pause refuses to pause.
 	Whitelisted,
@@ -112,35 +114,49 @@ pub enum Target {
 	KillSwitchCall,
 }
 
-pub struct Targets;
-impl PauseTargets<Target, RuntimeCallNameOf<Test>, u64> for Targets {
-	fn all() -> Vec<Target> {
-		use Target::*;
+pub struct Groups;
+impl PauseGroups<Group, RuntimeCallNameOf<Test>, u64> for Groups {
+	fn all() -> Vec<Group> {
+		use Group::*;
 		vec![Transfer, ForceTransfer, TransferAll, Burn, ForceUnreserve, Money, RootOnly]
 	}
 
-	fn calls(target: &Target) -> Vec<RuntimeCallNameOf<Test>> {
+	fn calls(group: &Group) -> Vec<RuntimeCallNameOf<Test>> {
 		let balances =
 			|calls: &[&str]| calls.iter().map(|call| full_name("Balances", call)).collect();
-		match target {
-			Target::Transfer => balances(&["transfer_allow_death"]),
-			Target::ForceTransfer => balances(&["force_transfer"]),
-			Target::TransferAll => balances(&["transfer_all"]),
-			Target::Burn => balances(&["burn"]),
-			Target::ForceUnreserve => balances(&["force_unreserve"]),
-			// A runtime upgrade can change what a target pauses.
-			Target::Money if MoneyUpgraded::get() =>
+		match group {
+			Group::Transfer => balances(&["transfer_allow_death"]),
+			Group::ForceTransfer => balances(&["force_transfer"]),
+			Group::TransferAll => balances(&["transfer_all"]),
+			Group::Burn => balances(&["burn"]),
+			Group::ForceUnreserve => balances(&["force_unreserve"]),
+			// A runtime upgrade can change what a group pauses.
+			Group::Money if MoneyUpgraded::get() =>
 				balances(&["transfer_allow_death", "force_transfer"]),
-			Target::Money => balances(&["transfer_allow_death", "burn"]),
-			Target::RootOnly => balances(&["force_set_balance"]),
-			Target::Unknown => vec![],
-			Target::Whitelisted => balances(&["transfer_keep_alive"]),
-			Target::KillSwitchCall => vec![full_name("KillSwitch", "unpause")],
+			Group::Money => balances(&["transfer_allow_death", "burn"]),
+			Group::RootOnly => balances(&["force_set_balance"]),
+			Group::Unknown => vec![],
+			Group::Whitelisted => balances(&["transfer_keep_alive"]),
+			Group::KillSwitchCall => vec![full_name("KillSwitch", "unpause")],
 		}
 	}
 
-	fn deposit(target: &Target) -> Option<u64> {
-		(*target != Target::RootOnly).then_some(DEPOSIT)
+	fn deposit(group: &Group) -> Option<u64> {
+		(*group != Group::RootOnly).then_some(DEPOSIT)
+	}
+}
+
+/// Every call that exists in the runtime.
+pub struct ExistingCall;
+impl Contains<RuntimeCallNameOf<Test>> for ExistingCall {
+	fn contains((pallet, call): &RuntimeCallNameOf<Test>) -> bool {
+		let (Ok(pallet), Ok(call)) = (core::str::from_utf8(pallet), core::str::from_utf8(call))
+		else {
+			return false;
+		};
+		// `get_call_names` panics for a pallet that doesn't exist.
+		RuntimeCall::get_module_names().contains(&pallet) &&
+			RuntimeCall::get_call_names(pallet).contains(&call)
 	}
 }
 
@@ -169,23 +185,26 @@ ord_parameter_types! {
 
 /// Root can do everything, the Fellowship everything but force pausing.
 pub struct AdminOrigin;
-impl EnsureOriginWithArg<RuntimeOrigin, AdminAction<Target>> for AdminOrigin {
+impl EnsureOriginWithArg<RuntimeOrigin, AdminAction<TargetOf<Test>>> for AdminOrigin {
 	type Success = ();
 
-	fn try_origin(o: RuntimeOrigin, action: &AdminAction<Target>) -> Result<(), RuntimeOrigin> {
-		let o = match EnsureRoot::<u64>::try_origin(o) {
+	fn try_origin(
+		o: RuntimeOrigin,
+		action: &AdminAction<TargetOf<Test>>,
+	) -> Result<(), RuntimeOrigin> {
+		let o = match <EnsureRoot<u64> as EnsureOrigin<_>>::try_origin(o) {
 			Ok(_) => return Ok(()),
 			Err(o) => o,
 		};
 		match action {
 			AdminAction::ForcePause(_) => Err(o),
 			AdminAction::Unpause(_) | AdminAction::Extend(_) =>
-				EnsureSignedBy::<Fellowship, u64>::try_origin(o).map(|_| ()),
+				<EnsureSignedBy<Fellowship, u64> as EnsureOrigin<_>>::try_origin(o).map(|_| ()),
 		}
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
-	fn try_successful_origin(_: &AdminAction<Target>) -> Result<RuntimeOrigin, ()> {
+	fn try_successful_origin(_: &AdminAction<TargetOf<Test>>) -> Result<RuntimeOrigin, ()> {
 		Ok(RuntimeOrigin::root())
 	}
 }
@@ -193,16 +212,18 @@ impl EnsureOriginWithArg<RuntimeOrigin, AdminAction<Target>> for AdminOrigin {
 #[cfg(feature = "runtime-benchmarks")]
 pub struct BenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
-impl crate::BenchmarkHelper<Target> for BenchmarkHelper {
-	fn target() -> Target {
-		Target::Money
+impl crate::BenchmarkHelper<Group> for BenchmarkHelper {
+	fn group() -> Group {
+		Group::Money
 	}
 }
 
 impl Config for Test {
-	type Target = Target;
+	type Group = Group;
 	type CallName = RuntimeCallNameOf<Test>;
-	type Targets = Targets;
+	type Groups = Groups;
+	type ValidCall = ExistingCall;
+	type CallDeposit = ConstU64<CALL_DEPOSIT>;
 	type TransactionPause = TxPause;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
