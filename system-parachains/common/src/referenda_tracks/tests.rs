@@ -529,3 +529,51 @@ mod post_upgrade_rejects {
 		});
 	}
 }
+
+#[test]
+fn a_stranded_alarm_does_not_hide_a_phantom() {
+	// An alarm the scheduler will never run, because its agenda is behind `IncompleteSince`
+	// (Polkadot Asset Hub has three such agendas today), must not count as pending.
+	new_test_ext().execute_with(|| {
+		let a = submit(1);
+		run_to(3);
+		assert_ok!(Referenda::cancel(RuntimeOrigin::root(), a));
+		// The pallet's own alarm for the freed slot is in `Agenda(4)`. Strand it at block 1.
+		let alarm = pallet_scheduler::Agenda::<Test>::take(4);
+		pallet_scheduler::Agenda::<Test>::insert(1, alarm);
+		run_to(10);
+		assert!(pallet_scheduler::IncompleteSince::<Test>::get() > Some(1));
+		assert_eq!(DecidingCount::<Test>::get(1), 1, "nothing will ever release this slot");
+
+		migrate();
+		assert_eq!(DecidingCount::<Test>::get(1), 0, "the stranded alarm hid the phantom");
+	});
+}
+
+#[test]
+fn frees_at_most_max_deciding() {
+	// A count above `max_deciding` is corrupt. The migration frees no more than the track can
+	// hold, and `post_upgrade` reports what is left.
+	new_test_ext().execute_with(|| {
+		DecidingCount::<Test>::insert(1, 10);
+		#[cfg(feature = "try-runtime")]
+		let state = RepairReferendaTracks::<Test>::pre_upgrade().unwrap();
+		RepairReferendaTracks::<Test>::on_runtime_upgrade();
+		assert_eq!(DecidingCount::<Test>::get(1), 7, "track 1 has max_deciding 3");
+		#[cfg(feature = "try-runtime")]
+		assert!(RepairReferendaTracks::<Test>::post_upgrade(state).is_err());
+	});
+}
+
+#[test]
+fn reports_the_bytes_it_reads_as_proof_size() {
+	new_test_ext().execute_with(|| {
+		submit(1);
+		submit(1);
+		run_to(3);
+		let census = Census::<Test>::take();
+		assert!(census.bytes > 0);
+		let weight = RepairReferendaTracks::<Test>::on_runtime_upgrade();
+		assert!(weight.proof_size() >= census.bytes, "{weight:?} vs {} bytes read", census.bytes);
+	});
+}

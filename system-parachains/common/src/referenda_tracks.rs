@@ -59,7 +59,7 @@ use alloc::{
 use codec::{Decode, Encode};
 use core::marker::PhantomData;
 use frame_support::{
-	traits::{Get, OnRuntimeUpgrade},
+	traits::{CallerTrait, Get, OnRuntimeUpgrade},
 	weights::Weight,
 };
 use pallet_referenda::{
@@ -83,7 +83,8 @@ pub struct TrackCensus {
 	pub stored: u32,
 	/// `Ongoing` referenda on the track that are deciding.
 	pub deciding: u32,
-	/// Scheduled `one_fewer_deciding(track)` calls that have not run yet.
+	/// Scheduled `one_fewer_deciding(track)` calls that will still run: Root origin, in an agenda
+	/// at or after the scheduler's `IncompleteSince`.
 	///
 	/// When a deciding referendum ends, the pallet schedules this call for the next block and
 	/// keeps the slot counted until then. Such a slot is not a phantom.
@@ -110,6 +111,9 @@ pub struct Census<T: pallet_referenda::Config<I>, I: 'static = ()> {
 	pub queued: BTreeMap<ReferendumIndex, TrackIdOf<T, I>>,
 	/// Storage reads it took to gather this.
 	pub reads: u64,
+	/// Bytes those reads returned, keys and values, as an estimate of their proof size. Trie
+	/// nodes add to it.
+	pub bytes: u64,
 }
 
 impl<T, I> Census<T, I>
@@ -122,9 +126,14 @@ where
 		let mut tracks = BTreeMap::<TrackIdOf<T, I>, TrackCensus>::new();
 		let mut queued = BTreeMap::new();
 		let mut reads = 0u64;
+		let mut bytes = 0u64;
 
 		for (index, info) in ReferendumInfoFor::<T, I>::iter() {
 			reads.saturating_inc();
+			bytes.saturating_accrue(
+				(ReferendumInfoFor::<T, I>::hashed_key_for(index).len() + info.encoded_size())
+					as u64,
+			);
 			if let ReferendumInfo::Ongoing(status) = info {
 				if status.deciding.is_some() {
 					tracks.entry(status.track).or_default().deciding.saturating_inc();
@@ -137,6 +146,9 @@ where
 
 		for (track, stored) in DecidingCount::<T, I>::iter() {
 			reads.saturating_inc();
+			bytes.saturating_accrue(
+				(DecidingCount::<T, I>::hashed_key_for(track).len() + stored.encoded_size()) as u64,
+			);
 			tracks.entry(track).or_default().stored = stored;
 		}
 
@@ -150,16 +162,30 @@ where
 				(T::Hashing::hash_of(&call), track)
 			})
 			.collect();
-		for agenda in pallet_scheduler::Agenda::<T>::iter_values() {
+		// The scheduler never returns to an agenda behind `IncompleteSince`, and a non-Root
+		// `one_fewer_deciding` fails, so neither will release a slot.
+		let serviced_from = pallet_scheduler::IncompleteSince::<T>::get();
+		reads.saturating_inc();
+		for (when, agenda) in pallet_scheduler::Agenda::<T>::iter() {
 			reads.saturating_inc();
+			bytes.saturating_accrue(
+				(pallet_scheduler::Agenda::<T>::hashed_key_for(when).len() + agenda.encoded_size())
+					as u64,
+			);
+			if serviced_from.is_some_and(|since| when < since) {
+				continue;
+			}
 			for task in agenda.into_iter().flatten() {
+				if !task.origin.is_root() {
+					continue;
+				}
 				if let Some(track) = alarms.get(&task.call.hash()) {
 					tracks.entry(*track).or_default().pending.saturating_inc();
 				}
 			}
 		}
 
-		Self { tracks, queued, reads }
+		Self { tracks, queued, reads, bytes }
 	}
 }
 
@@ -186,6 +212,10 @@ where
 		let mut weight = Weight::zero();
 		for (track, mut queue) in TrackQueue::<T, I>::iter().collect::<Vec<_>>() {
 			weight.saturating_accrue(db.reads(1));
+			weight.saturating_accrue(Weight::from_parts(
+				0,
+				(TrackQueue::<T, I>::hashed_key_for(track).len() + queue.encoded_size()) as u64,
+			));
 			let mut seen = BTreeSet::new();
 			let mut removed = Vec::new();
 			queue.retain(|(index, _)| {
@@ -229,11 +259,22 @@ where
 			if phantoms == 0 {
 				continue;
 			}
+			// A track never counts more than `max_deciding`, so a larger gap means the count itself
+			// is corrupt. Free at most that many and leave the rest for `post_upgrade` to report.
+			let max_deciding = T::Tracks::info(*track).map_or(0, |info| info.max_deciding);
+			let to_free = phantoms.min(max_deciding);
+			if to_free < phantoms {
+				log::warn!(
+					target: LOG_TARGET,
+					"track {track:?}: {phantoms} phantom slot(s) exceed max_deciding {max_deciding}; \
+					 freeing {to_free}",
+				);
+			}
 			log::info!(
 				target: LOG_TARGET,
-				"track {track:?}: freeing {phantoms} phantom deciding slot(s) ({census:?})",
+				"track {track:?}: freeing {to_free} phantom deciding slot(s) ({census:?})",
 			);
-			for _ in 0..phantoms {
+			for _ in 0..to_free {
 				let origin = frame_system::RawOrigin::<T::AccountId>::Root.into();
 				match pallet_referenda::Pallet::<T, I>::one_fewer_deciding(origin, *track) {
 					Ok(info) =>
@@ -260,7 +301,9 @@ where
 {
 	fn on_runtime_upgrade() -> Weight {
 		let census = Census::<T, I>::take();
-		let mut weight = T::DbWeight::get().reads(census.reads);
+		let mut weight = T::DbWeight::get()
+			.reads(census.reads)
+			.saturating_add(Weight::from_parts(0, census.bytes));
 		// Clean the queues first, so `one_fewer_deciding` only ever sees live entries.
 		weight.saturating_accrue(Self::clean_queues(&census.queued));
 		weight.saturating_accrue(Self::free_phantoms(&census.tracks));
@@ -272,6 +315,16 @@ where
 		let census = Census::<T, I>::take();
 		for (track, c) in census.tracks.iter().filter(|(_, c)| c.stored != c.occupied()) {
 			log::info!(target: LOG_TARGET, "pre-upgrade: track {track:?} is inconsistent: {c:?}");
+		}
+		// A queued referendum missing from its queue never starts and never times out. The
+		// migration doesn't repair that, so report it.
+		for (index, track) in census.queued.iter() {
+			if !TrackQueue::<T, I>::get(track).iter().any(|(i, _)| i == index) {
+				log::warn!(
+					target: LOG_TARGET,
+					"pre-upgrade: referendum {index} is queued but missing from TrackQueue({track:?})",
+				);
+			}
 		}
 		// Live queue entries: each must still be queued, or deciding, afterwards.
 		let live_queued: Vec<(ReferendumIndex, TrackIdOf<T, I>)> = TrackQueue::<T, I>::iter()
