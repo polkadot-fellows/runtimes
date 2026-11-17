@@ -57,10 +57,11 @@ fn fill_queue<T: Config>(target: &T::Target, room: u32) {
 	});
 }
 
-/// Root's origin. The Fellowship does the same work, minus a cheap check on its cap, and an XCM
-/// origin like the Fellowship's usually can't be made up for benchmarks.
-fn force_origin<T: Config>() -> Result<T::RuntimeOrigin, BenchmarkError> {
-	T::ForceOrigin::try_successful_origin().map_err(|_| BenchmarkError::Weightless)
+/// An origin that can do `action`.
+fn admin_origin<T: Config>(
+	action: AdminAction<T::Target>,
+) -> Result<T::RuntimeOrigin, BenchmarkError> {
+	T::AdminOrigin::try_successful_origin(&action).map_err(|_| BenchmarkError::Weightless)
 }
 
 #[benchmarks]
@@ -102,7 +103,7 @@ mod benchmarks {
 		set_relay_block::<T>(10);
 		let target = pause_with_deposits::<T>(d);
 		fill_queue::<T>(&target, 0);
-		let origin = force_origin::<T>()?;
+		let origin = admin_origin::<T>(AdminAction::Unpause(target.clone()))?;
 
 		// Slashing is the more expensive path, it also starts the cooldown.
 		#[extrinsic_call]
@@ -119,7 +120,7 @@ mod benchmarks {
 		let until = Pauses::<T>::get(&target).unwrap().until.unwrap();
 		let new_until = until.saturating_add(One::one());
 		fill_queue::<T>(&target, 0);
-		let origin = force_origin::<T>()?;
+		let origin = admin_origin::<T>(AdminAction::Extend(target.clone()))?;
 
 		#[extrinsic_call]
 		_(origin as T::RuntimeOrigin, target.clone(), new_until);
@@ -133,7 +134,7 @@ mod benchmarks {
 		set_relay_block::<T>(10);
 		let target = T::BenchmarkHelper::target();
 		fill_queue::<T>(&target, 1);
-		let origin = force_origin::<T>()?;
+		let origin = admin_origin::<T>(AdminAction::ForcePause(target.clone()))?;
 
 		#[extrinsic_call]
 		_(origin as T::RuntimeOrigin, target.clone(), Some(BlockNumberOf::<T>::from(20u32)));

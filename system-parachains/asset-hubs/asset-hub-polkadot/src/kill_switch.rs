@@ -16,11 +16,12 @@
 //! The kill switch and the tx-pause instance it drives.
 //!
 //! Anyone can pause one of the [`KillSwitchTarget`]s by putting up its deposit. The Fellowship or
-//! Root can end the pause early and refund or slash it. Nothing but the kill switch can pause or
-//! unpause through tx-pause.
+//! Root can end the pause early and refund or slash it, or extend it. Only Root can pause without a
+//! deposit. Nothing but the kill switch can pause or unpause through tx-pause.
 
 use super::*;
-use frame_support::traits::{Contains, NeverEnsureOrigin};
+use frame_support::traits::{Contains, EnsureOrigin, EnsureOriginWithArg, NeverEnsureOrigin};
+use pallet_kill_switch::AdminAction;
 use pallet_tx_pause::RuntimeCallNameOf;
 
 parameter_types! {
@@ -160,7 +161,34 @@ impl KillSwitchTarget {
 parameter_types! {
 	pub const KillSwitchPauseDuration: BlockNumber = RC_DAYS;
 	pub const KillSwitchCooldown: BlockNumber = 7 * RC_DAYS;
-	pub const KillSwitchMaxFellowshipExtension: BlockNumber = 7 * RC_DAYS;
+}
+
+/// Root can do everything. The Fellowship can end and extend pauses, but can't pause anything
+/// itself or touch a pause Root started.
+pub struct KillSwitchAdmin;
+impl EnsureOriginWithArg<RuntimeOrigin, AdminAction<KillSwitchTarget>> for KillSwitchAdmin {
+	type Success = ();
+
+	fn try_origin(
+		o: RuntimeOrigin,
+		action: &AdminAction<KillSwitchTarget>,
+	) -> Result<(), RuntimeOrigin> {
+		let o = match EnsureRoot::<AccountId>::try_origin(o) {
+			Ok(_) => return Ok(()),
+			Err(o) => o,
+		};
+		match action {
+			AdminAction::ForcePause(_) => Err(o),
+			AdminAction::Unpause(_) | AdminAction::Extend(_) =>
+				EnsureXcm::<IsFellowshipVoice<FellowshipLocation>>::try_origin(o).map(|_| ()),
+		}
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_: &AdminAction<KillSwitchTarget>) -> Result<RuntimeOrigin, ()> {
+		// The Fellowship's XCM origin can't be made up for benchmarks, and Root does the same work.
+		Ok(RuntimeOrigin::root())
+	}
 }
 
 /// The targets and what they cost to pause.
@@ -216,12 +244,10 @@ impl pallet_kill_switch::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	// Like every other slash on this chain.
 	type OnSlash = Dap;
-	type FellowshipOrigin = EnsureXcm<IsFellowshipVoice<FellowshipLocation>>;
-	type ForceOrigin = EnsureRoot<AccountId>;
+	type AdminOrigin = KillSwitchAdmin;
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type PauseDuration = KillSwitchPauseDuration;
 	type Cooldown = KillSwitchCooldown;
-	type MaxFellowshipExtension = KillSwitchMaxFellowshipExtension;
 	type MaxCallsPerTarget = ConstU32<16>;
 	type MaxDepositsPerPause = ConstU32<10>;
 	type MaxActivePauses = ConstU32<8>;

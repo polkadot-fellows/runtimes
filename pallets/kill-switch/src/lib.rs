@@ -27,12 +27,16 @@
 //!   itself after [`Config::PauseDuration`].
 //! - [`Call::extend`]: anyone. Holds another deposit and pushes the end out by another
 //!   [`Config::PauseDuration`].
-//! - [`Call::unpause`]: Fellowship or Root. Ends the pause and slashes or refunds every deposit
-//!   behind it. A slash also puts the target on cooldown for [`Config::Cooldown`], so it can't be
-//!   paused again right away.
-//! - [`Call::force_extend`]: Fellowship, up to [`Config::MaxFellowshipExtension`] in total per
-//!   pause, or Root without a limit.
-//! - [`Call::force_pause`]: Root. No deposit and no cooldown check.
+//! - [`Call::unpause`]: [`Config::AdminOrigin`]. Ends the pause and slashes or refunds every
+//!   deposit behind it. A slash also puts the target on cooldown for [`Config::Cooldown`], so it
+//!   can't be paused again right away.
+//! - [`Call::force_extend`]: [`Config::AdminOrigin`]. Moves the end of a pause.
+//! - [`Call::force_pause`]: [`Config::AdminOrigin`]. No deposit and no cooldown check. Only whoever
+//!   can start such a pause can end or move it.
+//!
+//! [`Config::AdminOrigin`] gets told what the caller wants to do as an [`AdminAction`], so the
+//! runtime decides who can do what. Usually the Fellowship can unpause and extend, and Root can do
+//! everything.
 //!
 //! A pause that nobody ends runs out by itself and its deposits are given back. If the Fellowship
 //! thinks a pause was abuse, it has to slash it with [`Call::unpause`] while it is still active.
@@ -66,7 +70,7 @@ use frame_support::{
 	traits::{
 		fungible::{BalancedHold, Credit, Inspect, Mutate, MutateHold},
 		tokens::Precision,
-		OnUnbalanced, TransactionPause,
+		EnsureOriginWithArg, OnUnbalanced, TransactionPause,
 	},
 	weights::WeightMeter,
 };
@@ -96,6 +100,18 @@ pub struct TargetInfo<Target, CallName, Balance> {
 	pub deposit: Option<Balance>,
 }
 
+/// What [`Config::AdminOrigin`] is asked to allow.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum AdminAction<Target> {
+	/// End a pause with [`Call::unpause`].
+	Unpause(Target),
+	/// Move the end of a pause with [`Call::force_extend`].
+	Extend(Target),
+	/// Start a pause with [`Call::force_pause`]. Also needed to end or move a pause started that
+	/// way.
+	ForcePause(Target),
+}
+
 /// The things a runtime lets people pause.
 pub trait PauseTargets<Target, CallName, Balance> {
 	/// Every target, so they can be listed and checked.
@@ -120,11 +136,9 @@ pub struct PauseInfo<T: Config> {
 	pub calls: CallsOf<T>,
 	/// When the pause ends by itself. `None` means it only ends through [`Call::unpause`].
 	pub until: Option<BlockNumberOf<T>>,
-	/// How far the Fellowship has pushed `until` out so far.
-	pub fellowship_extension: BlockNumberOf<T>,
 	/// The deposits behind this pause, from [`Call::pause`] and [`Call::extend`].
 	pub deposits: BoundedVec<Deposit<T>, T::MaxDepositsPerPause>,
-	/// Started through [`Call::force_pause`]. Only [`Config::ForceOrigin`] can end or move it.
+	/// Started through [`Call::force_pause`]. Ending or moving it needs [`AdminAction::ForcePause`].
 	pub forced: bool,
 }
 
@@ -186,11 +200,8 @@ pub mod pallet {
 		/// Where slashed deposits go.
 		type OnSlash: OnUnbalanced<CreditOf<Self>>;
 
-		/// Can unpause, slash, and extend up to [`Config::MaxFellowshipExtension`].
-		type FellowshipOrigin: EnsureOrigin<Self::RuntimeOrigin>;
-
-		/// Can do everything the Fellowship can without the limit, plus [`Call::force_pause`].
-		type ForceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+		/// Who can unpause, extend without a deposit, and force pause. See [`AdminAction`].
+		type AdminOrigin: EnsureOriginWithArg<Self::RuntimeOrigin, AdminAction<Self::Target>>;
 
 		/// Measures time for pauses and cooldowns.
 		type BlockNumberProvider: BlockNumberProvider;
@@ -202,10 +213,6 @@ pub mod pallet {
 		/// How long a target can't be paused after an unpause with slash.
 		#[pallet::constant]
 		type Cooldown: Get<BlockNumberOf<Self>>;
-
-		/// How far the Fellowship can push out a single pause in total.
-		#[pallet::constant]
-		type MaxFellowshipExtension: Get<BlockNumberOf<Self>>;
 
 		/// How many calls one target can pause.
 		#[pallet::constant]
@@ -290,13 +297,11 @@ pub mod pallet {
 		NotLater,
 		/// The end is not in the future.
 		InPast,
-		/// The Fellowship can't extend this pause any further.
-		ExtensionTooLong,
 		/// The pause already has the maximum number of deposits.
 		TooManyDeposits,
 		/// `TransactionPause` refused to pause one of the calls.
 		PauseFailed,
-		/// The pause was started with `force_pause`. Only `ForceOrigin` can change it.
+		/// The pause was started with `force_pause`, so it can't be extended with a deposit.
 		ForcedPause,
 		/// There are already [`Config::MaxActivePauses`] pauses with an end.
 		TooManyPauses,
@@ -408,11 +413,10 @@ pub mod pallet {
 			target: T::Target,
 			slash: bool,
 		) -> DispatchResultWithPostInfo {
-			let is_force = Self::ensure_fellowship_or_force(origin)?;
 			let now = T::BlockNumberProvider::current_block_number();
 
 			let pause = Pauses::<T>::get(&target).ok_or(Error::<T>::NotPaused)?;
-			Self::ensure_can_manage(&pause, is_force)?;
+			Self::ensure_admin(origin, &pause, AdminAction::Unpause(target.clone()))?;
 			Self::do_unpause(&target, &pause);
 			Self::settle_deposits(&target, &pause.deposits, slash);
 
@@ -427,10 +431,10 @@ pub mod pallet {
 			Ok(Some(T::WeightInfo::unpause(pause.deposits.len() as u32)).into())
 		}
 
-		/// Move the end of an active pause to `until`.
+		/// Move the end of a pause to `until`.
 		///
-		/// The Fellowship can push a pause out by at most [`Config::MaxFellowshipExtension`] in
-		/// total. Root has no limit.
+		/// This also works on a pause that ran out but that the hook hasn't ended yet, as long as
+		/// `until` is in the future.
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::force_extend())]
 		pub fn force_extend(
@@ -438,20 +442,12 @@ pub mod pallet {
 			target: T::Target,
 			until: BlockNumberOf<T>,
 		) -> DispatchResult {
-			let is_force = Self::ensure_fellowship_or_force(origin)?;
 			let now = T::BlockNumberProvider::current_block_number();
 
 			let mut pause = Pauses::<T>::get(&target).ok_or(Error::<T>::NotPaused)?;
-			Self::ensure_can_manage(&pause, is_force)?;
+			Self::ensure_admin(origin, &pause, AdminAction::Extend(target.clone()))?;
 			let current = pause.until.ok_or(Error::<T>::OpenEnded)?;
 			ensure!(until > current, Error::<T>::NotLater);
-			if !is_force {
-				ensure!(current > now, Error::<T>::AlreadyExpired);
-				let total = pause.fellowship_extension.saturating_add(until - current);
-				ensure!(total <= T::MaxFellowshipExtension::get(), Error::<T>::ExtensionTooLong);
-				pause.fellowship_extension = total;
-			}
-			// Root can revive a pause the hook hasn't cleaned up yet, but only into the future.
 			ensure!(until > now, Error::<T>::InPast);
 			Self::reschedule_expiry(&target, &mut pause, until)?;
 			Pauses::<T>::insert(&target, pause);
@@ -469,7 +465,7 @@ pub mod pallet {
 			target: T::Target,
 			until: Option<BlockNumberOf<T>>,
 		) -> DispatchResult {
-			T::ForceOrigin::ensure_origin(origin)?;
+			T::AdminOrigin::ensure_origin(origin, &AdminAction::ForcePause(target.clone()))?;
 			let now = T::BlockNumberProvider::current_block_number();
 
 			ensure!(!Pauses::<T>::contains_key(&target), Error::<T>::AlreadyPaused);
@@ -486,18 +482,19 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	/// Returns `true` for [`Config::ForceOrigin`] and `false` for [`Config::FellowshipOrigin`].
-	fn ensure_fellowship_or_force(origin: OriginFor<T>) -> Result<bool, DispatchError> {
-		match T::ForceOrigin::try_origin(origin) {
-			Ok(_) => Ok(true),
-			Err(origin) =>
-				T::FellowshipOrigin::ensure_origin(origin).map(|_| false).map_err(Into::into),
-		}
-	}
-
-	/// Root's own pauses can only be lifted or moved by Root.
-	fn ensure_can_manage(pause: &PauseInfo<T>, is_force: bool) -> DispatchResult {
-		ensure!(is_force || !pause.forced, DispatchError::BadOrigin);
+	/// Checks that `origin` can do `action` to `pause`. A pause started with
+	/// [`Call::force_pause`] needs [`AdminAction::ForcePause`] for anything.
+	fn ensure_admin(
+		origin: OriginFor<T>,
+		pause: &PauseInfo<T>,
+		action: AdminAction<T::Target>,
+	) -> DispatchResult {
+		let action = match action {
+			AdminAction::Unpause(target) | AdminAction::Extend(target) if pause.forced =>
+				AdminAction::ForcePause(target),
+			action => action,
+		};
+		T::AdminOrigin::ensure_origin(origin, &action)?;
 		Ok(())
 	}
 
@@ -587,7 +584,7 @@ impl<T: Config> Pallet<T> {
 		}
 		Pauses::<T>::insert(
 			target,
-			PauseInfo { calls, until, fellowship_extension: Zero::zero(), deposits, forced },
+			PauseInfo { calls, until, deposits, forced },
 		);
 		Ok(())
 	}

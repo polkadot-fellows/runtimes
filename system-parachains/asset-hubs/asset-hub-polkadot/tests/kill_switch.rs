@@ -161,6 +161,26 @@ fn fellowship_can_slash_over_xcm() {
 }
 
 #[test]
+fn only_root_can_force_pause() {
+	test_ext().execute_with(|| {
+		assert_noop!(
+			KillSwitch::force_pause(fellowship(), KillSwitchTarget::Psm, None),
+			DispatchError::BadOrigin
+		);
+		assert_ok!(KillSwitch::force_pause(
+			TestRuntimeHelper::root_origin(),
+			KillSwitchTarget::Psm,
+			None
+		));
+		// And the Fellowship can't lift it.
+		assert_noop!(
+			KillSwitch::unpause(fellowship(), KillSwitchTarget::Psm, false),
+			DispatchError::BadOrigin
+		);
+	});
+}
+
+#[test]
 fn only_the_kill_switch_drives_tx_pause() {
 	test_ext().execute_with(|| {
 		let name = (

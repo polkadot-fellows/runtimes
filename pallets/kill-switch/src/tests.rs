@@ -415,7 +415,7 @@ fn fails_to_unpause() {
 }
 
 #[test]
-fn fellowship_extension_is_capped() {
+fn fellowship_can_extend() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
 		let until = 1 + PAUSE_DURATION;
@@ -424,33 +424,14 @@ fn fellowship_extension_is_capped() {
 			KillSwitch::force_extend(fellowship(), transfer(), until),
 			Error::<Test>::NotLater
 		);
-		assert_ok!(KillSwitch::force_extend(fellowship(), transfer(), until + 10));
-		assert_noop!(
-			KillSwitch::force_extend(
-				fellowship(),
-				transfer(),
-				until + MAX_FELLOWSHIP_EXTENSION + 1
-			),
-			Error::<Test>::ExtensionTooLong
-		);
-		assert_ok!(KillSwitch::force_extend(
-			fellowship(),
-			transfer(),
-			until + MAX_FELLOWSHIP_EXTENSION
-		));
-
-		// Root has no cap.
-		assert_ok!(KillSwitch::force_extend(RuntimeOrigin::root(), transfer(), until + 1_000));
+		assert_ok!(KillSwitch::force_extend(fellowship(), transfer(), until + 1_000));
 		assert_eq!(Pauses::<Test>::get(transfer()).unwrap().until, Some(until + 1_000));
-		// And it doesn't count against the Fellowship's cap.
-		assert_eq!(
-			Pauses::<Test>::get(transfer()).unwrap().fellowship_extension,
-			MAX_FELLOWSHIP_EXTENSION
-		);
+		assert_ok!(KillSwitch::force_extend(RuntimeOrigin::root(), transfer(), until + 2_000));
+		assert_eq!(Pauses::<Test>::get(transfer()).unwrap().until, Some(until + 2_000));
 		assert_eq!(Expiries::<Test>::get().len(), 1);
 
 		assert_noop!(
-			KillSwitch::force_extend(RuntimeOrigin::signed(1), transfer(), until + 2_000),
+			KillSwitch::force_extend(RuntimeOrigin::signed(1), transfer(), until + 3_000),
 			DispatchError::BadOrigin
 		);
 		assert_ok!(KillSwitch::do_try_state());
@@ -541,16 +522,12 @@ fn fails_to_extend_pause_that_ran_out() {
 			KillSwitch::extend(RuntimeOrigin::signed(2), transfer()),
 			Error::<Test>::AlreadyExpired
 		);
+		// The Fellowship can still keep it going, but not to a block that already passed.
 		assert_noop!(
-			KillSwitch::force_extend(fellowship(), transfer(), 20),
-			Error::<Test>::AlreadyExpired
-		);
-		// Root can still keep it going, but not to a block that already passed.
-		assert_noop!(
-			KillSwitch::force_extend(RuntimeOrigin::root(), transfer(), 3 + PAUSE_DURATION),
+			KillSwitch::force_extend(fellowship(), transfer(), 3 + PAUSE_DURATION),
 			Error::<Test>::InPast
 		);
-		assert_ok!(KillSwitch::force_extend(RuntimeOrigin::root(), transfer(), 20));
+		assert_ok!(KillSwitch::force_extend(fellowship(), transfer(), 20));
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }
@@ -558,6 +535,10 @@ fn fails_to_extend_pause_that_ran_out() {
 #[test]
 fn fellowship_cannot_touch_root_pause() {
 	new_test_ext().execute_with(|| {
+		assert_noop!(
+			KillSwitch::force_pause(fellowship(), transfer(), Some(50)),
+			DispatchError::BadOrigin
+		);
 		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), transfer(), Some(50)));
 		// Nobody else can stretch it either, or the Fellowship would be stuck with it.
 		assert_noop!(

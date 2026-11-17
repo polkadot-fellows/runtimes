@@ -19,8 +19,8 @@ use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
-		tokens::imbalance::ResolveTo, ConstU32, ConstU64, Contains, Everything, InsideBoth,
-		NeverEnsureOrigin,
+		tokens::imbalance::ResolveTo, ConstU32, ConstU64, Contains, EnsureOrigin,
+		EnsureOriginWithArg, Everything, InsideBoth, NeverEnsureOrigin,
 	},
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
@@ -77,7 +77,6 @@ pub const DEPOSIT: u64 = 100;
 pub const TREASURY: u64 = 1000;
 pub const PAUSE_DURATION: u64 = 10;
 pub const COOLDOWN: u64 = 20;
-pub const MAX_FELLOWSHIP_EXTENSION: u64 = 15;
 pub const MAX_DEPOSITS: u32 = 3;
 pub const MAX_CALLS: u32 = 2;
 pub const MAX_ACTIVE_PAUSES: u32 = 7;
@@ -168,6 +167,29 @@ ord_parameter_types! {
 	pub const Fellowship: u64 = 99;
 }
 
+/// Root can do everything, the Fellowship everything but force pausing.
+pub struct AdminOrigin;
+impl EnsureOriginWithArg<RuntimeOrigin, AdminAction<Target>> for AdminOrigin {
+	type Success = ();
+
+	fn try_origin(o: RuntimeOrigin, action: &AdminAction<Target>) -> Result<(), RuntimeOrigin> {
+		let o = match EnsureRoot::<u64>::try_origin(o) {
+			Ok(_) => return Ok(()),
+			Err(o) => o,
+		};
+		match action {
+			AdminAction::ForcePause(_) => Err(o),
+			AdminAction::Unpause(_) | AdminAction::Extend(_) =>
+				EnsureSignedBy::<Fellowship, u64>::try_origin(o).map(|_| ()),
+		}
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin(_: &AdminAction<Target>) -> Result<RuntimeOrigin, ()> {
+		Ok(RuntimeOrigin::root())
+	}
+}
+
 #[cfg(feature = "runtime-benchmarks")]
 pub struct BenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
@@ -185,12 +207,10 @@ impl Config for Test {
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type OnSlash = ResolveTo<ConstU64<TREASURY>, Balances>;
-	type FellowshipOrigin = EnsureSignedBy<Fellowship, u64>;
-	type ForceOrigin = EnsureRoot<u64>;
+	type AdminOrigin = AdminOrigin;
 	type BlockNumberProvider = MockRelay;
 	type PauseDuration = ConstU64<PAUSE_DURATION>;
 	type Cooldown = ConstU64<COOLDOWN>;
-	type MaxFellowshipExtension = ConstU64<MAX_FELLOWSHIP_EXTENSION>;
 	type MaxCallsPerTarget = ConstU32<MAX_CALLS>;
 	type MaxDepositsPerPause = ConstU32<MAX_DEPOSITS>;
 	type MaxActivePauses = ConstU32<MAX_ACTIVE_PAUSES>;
