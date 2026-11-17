@@ -344,9 +344,10 @@ impl pallet_accumulate_and_forward::Config for Runtime {
 	>;
 	type TransferPeriod = ForwardPeriod;
 	type MinTransferAmount = MinForwardAmount;
-	// Local clock. The pallet measures the period from the last forward instead of firing on
-	// exact multiples (https://github.com/paritytech/polkadot-sdk/issues/13149), so the relay
-	// clock would work too. TODO: decide whether to switch to `RelaychainDataProvider`.
+	// The pallet forwards only on exact multiples of the period. This chain authors every 12s, so
+	// relay parents skip every other number and the relay clock would fire on one parity only.
+	// TODO: switch to `RelaychainDataProvider` once
+	// https://github.com/paritytech/polkadot-sdk/issues/13149 lands.
 	type BlockNumberProvider = System;
 	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
