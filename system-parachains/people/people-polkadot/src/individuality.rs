@@ -54,12 +54,9 @@ use indiv_support::traits::{Identifier, RingIndex};
 use indiv_support::{
 	crypto::{BandersnatchVrfVerifiable, GenerateVerifiable},
 	fungibles::CombineAssetsWithHolder,
-	traits::{
-		Alias, AllocateStorage, Context, RingExponent, PEOPLE_IDENTIFIER, PEOPLE_LITE_IDENTIFIER,
-	},
+	traits::{Alias, AllocateStorage, Context, RingExponent},
 	utils::TypedGetToGet,
 };
-use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
 use scale_info::TypeInfo;
 #[cfg(feature = "runtime-benchmarks")]
 use sp_runtime::{traits::AccountIdConversion, MultiSignature};
@@ -376,6 +373,7 @@ impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureSiblingParacha
 
 	#[cfg(feature = "runtime-benchmarks")]
 	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
+		use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
 		Ok(cumulus_pallet_xcm::Origin::SiblingParachain(ASSET_HUB_ID.into()).into())
 	}
 }
@@ -387,31 +385,6 @@ parameter_types! {
 
 /// Pallet index of `MembersSubscriber` in Asset Hub Polkadot's `construct_runtime!`.
 pub const ASSET_HUB_MEMBERS_SUBSCRIBER_INDEX: u8 = 97;
-
-/// One-shot subscriptions any signed account may activate with
-/// `MembersNotifier::subscribe_whitelisted`.
-///
-/// Seeded into storage by the single-use `SeedSubscriptionWhitelist` migration that shipped in
-/// 2.5.0 and has since been removed. This as well as the coresponding
-/// `tests::asset_hub_subscription_whitelist_matches_asset_hub` can stay as temporary record of what
-/// was seeded.
-///
-/// This is what lets Asset Hub Polkadot subscribe without a governance call: the collections,
-/// their exponents and the subscriber pallet index are fixed here, so the permissionless call can
-/// only consume the entry exactly as written. Once consumed, only `ManageOrigin` can re-subscribe.
-///
-/// Identifiers must be strictly ascending, or the entry is rejected as malformed.
-pub fn asset_hub_subscription_whitelist(
-) -> alloc::vec::Vec<indiv_pallet_members_notifier::GenesisWhitelistEntry> {
-	alloc::vec![indiv_pallet_members_notifier::GenesisWhitelistEntry {
-		para_id: ParaId::from(ASSET_HUB_ID),
-		collections: alloc::vec![
-			(*PEOPLE_IDENTIFIER, MembersFlexibleRingExponent::get().exponent()),
-			(*PEOPLE_LITE_IDENTIFIER, LitePeopleRingExponent::get().exponent()),
-		],
-		pallet_index: ASSET_HUB_MEMBERS_SUBSCRIBER_INDEX,
-	}]
-}
 
 impl indiv_pallet_members_notifier::Config for Runtime {
 	type WeightInfo = weights::indiv_pallet_members_notifier::WeightInfo<Runtime>;
