@@ -26,9 +26,10 @@ use crate::{
 	xcm_config::{Broker, XcmRouter},
 	AccountId, BrokerId, BrokerPalletId, CrowdloanId, DelegatedStakingPalletId, OnDemandPalletId,
 	PoolsPalletId, ProxyType, Runtime, RuntimeEvent, SocietyPalletId, Timestamp,
-	TransparentProxyType, TreasuryPalletId,
+	TransparentProxyType, TreasuryPalletId, XcmPallet,
 };
 use frame_support::{
+	pallet_prelude::{Identity, ValueQuery},
 	parameter_types,
 	traits::{Contains, Equals},
 };
@@ -36,6 +37,7 @@ use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
 use migrator_types::PortableProxyType;
 use pallet_xcm::EnsureXcm;
+use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
 
 parameter_types! {
@@ -61,6 +63,11 @@ impl Contains<AccountId> for SweptAccounts {
 	}
 }
 
+/// `pallet-xcm`'s asset traps, which it keeps private, for the migrator to take. Named as in
+/// `pallet-xcm`, since an alias's name is part of its storage key.
+#[frame_support::storage_alias(pallet_name)]
+pub type AssetTraps = StorageMap<XcmPallet, Identity, H256, u32, ValueQuery>;
+
 impl pallet_rc2_migrator::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type SendXcm = XcmRouter;
@@ -74,6 +81,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
 	type PostMigrationCalls = lockdown::CallsEnabledAfterMigration;
 	type SweptAccounts = SweptAccounts;
+	type XcmAssetTraps = AssetTraps;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so
@@ -99,10 +107,18 @@ impl TryFrom<TransparentProxyType> for PortableProxyType {
 
 #[cfg(test)]
 mod tests {
-	use crate::{ProxyType, Runtime, RuntimeCall, TransparentProxyType};
+	use super::{AssetTraps, UNITS};
+	use crate::{
+		xcm_config::XcmConfig, AccountId, Balances, ProxyType, Rc2Migrator, Runtime, RuntimeCall,
+		RuntimeEvent, RuntimeOrigin, TransparentProxyType,
+	};
 	use codec::Encode;
+	use frame_support::{assert_ok, traits::fungible::Mutate};
 	use migrator_types::PortableProxyType;
 	use pallet_ct_migrator::{Rc2MigratorCall, Rc2RuntimeCall};
+	use pallet_rc2_migrator::{AssetTrap, MigrationStage, RcMigrationStage, TakenAssetTraps};
+	use xcm::latest::prelude::*;
+	use xcm_executor::XcmExecutor;
 
 	/// Which proxy permissions travel to the Coretime chain, one assertion per variant so a new
 	/// variant has to be classified here.
@@ -135,5 +151,51 @@ mod tests {
 			Rc2RuntimeCall::Rc2Migrator(Rc2MigratorCall::CtReady).encode(),
 			RuntimeCall::Rc2Migrator(pallet_rc2_migrator::Call::<Runtime>::ct_ready {}).encode(),
 		);
+	}
+
+	/// The migrator takes a trap `pallet-xcm` made, named as its `AssetsTrapped` event reports
+	/// it, out of `pallet-xcm`'s own storage.
+	#[test]
+	fn the_migrator_takes_a_trap_pallet_xcm_made() {
+		sp_io::TestExternalities::default().execute_with(|| {
+			// Block 0 does not record events.
+			frame_system::Pallet::<Runtime>::set_block_number(1);
+
+			// GIVEN Alice's assets trapped by a message of hers that fails after withdrawing them.
+			let alice = AccountId::new([1; 32]);
+			assert_ok!(<Balances as Mutate<AccountId>>::mint_into(&alice, 100 * UNITS));
+			let outcome = XcmExecutor::<XcmConfig>::prepare_and_execute(
+				AccountId32 { network: None, id: alice.into() },
+				Xcm::<RuntimeCall>(vec![WithdrawAsset((Here, 10 * UNITS).into()), Trap(0)]),
+				&mut [0u8; 32],
+				Weight::MAX,
+				Weight::MAX,
+			);
+			assert_eq!(outcome.ensure_complete().map_err(|e| e.error), Err(XcmError::Trap(0)));
+			let (hash, trap) = frame_system::Pallet::<Runtime>::events()
+				.into_iter()
+				.find_map(|record| match record.event {
+					RuntimeEvent::XcmPallet(pallet_xcm::Event::AssetsTrapped {
+						hash,
+						origin,
+						assets,
+					}) => Some((hash, AssetTrap { claimer: origin.into(), assets })),
+					_ => None,
+				})
+				.expect("the assets were trapped");
+			assert_eq!(AssetTraps::get(hash), 1);
+
+			// WHEN the manager submits it as reported.
+			RcMigrationStage::<Runtime>::put(MigrationStage::WaitingForAssetTraps);
+			assert_ok!(Rc2Migrator::submit_asset_traps(
+				RuntimeOrigin::root(),
+				vec![trap.clone()],
+				false
+			));
+
+			// THEN `pallet-xcm` no longer holds it, and the migrator does, under the same key.
+			assert!(!AssetTraps::contains_key(hash));
+			assert_eq!(TakenAssetTraps::<Runtime>::get(&trap), 1);
+		});
 	}
 }

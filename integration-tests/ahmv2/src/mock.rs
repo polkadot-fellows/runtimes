@@ -523,6 +523,15 @@ pub fn walk_migration(
 
 		set_block_number_rc(end_at - 1);
 		next_block_rc();
+		assert_eq!(rc_stage(), RcStage::WaitingForAssetTraps);
+		probe_rc();
+
+		// No asset traps are handed over here.
+		assert_ok!(pallet_rc2_migrator::Pallet::<RelayRuntime>::submit_asset_traps(
+			network::relay::RuntimeOrigin::root(),
+			vec![],
+			true,
+		));
 		assert_eq!(rc_stage(), RcStage::AccountsInit);
 	});
 

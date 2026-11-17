@@ -15,8 +15,8 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	mock::*, xcm_config::NothingOnceDataMigrationStarts, CtMigratorCall, CtRuntimeCall, Error,
-	Event, Manager, MigrationPhase, Paused, RcMigrationStage,
+	mock::*, xcm_config::NothingOnceDataMigrationStarts, AssetTrap, CtMigratorCall, CtRuntimeCall,
+	Error, Event, Manager, MigrationPhase, Paused, RcMigrationStage, TakenAssetTraps,
 };
 use codec::Encode;
 use frame_support::{
@@ -35,7 +35,8 @@ fn set_stage(stage: Stage) {
 	RcMigrationStage::<Test>::put(stage);
 }
 
-/// The data stages in the order the machine walks them, between the warm-up and the cool-off.
+/// The data stages in the order the machine walks them, between the wait for the asset traps and
+/// the cool-off.
 fn data_stages() -> Vec<Stage> {
 	vec![
 		Stage::AccountsInit,
@@ -63,6 +64,7 @@ fn all_stages() -> Vec<Stage> {
 		Stage::Scheduled { start: 10 },
 		Stage::WaitingForCt,
 		Stage::WarmUp { end_at: 10 },
+		Stage::WaitingForAssetTraps,
 	]
 	.into_iter()
 	.chain(data_stages())
@@ -70,7 +72,8 @@ fn all_stages() -> Vec<Stage> {
 	.collect()
 }
 
-/// Blocks from the end of the warm-up to the opening of the cool-off: one per data stage.
+/// Blocks from the end of the wait for the asset traps to the opening of the cool-off: one per data
+/// stage.
 fn data_stage_blocks() -> u64 {
 	data_stages().len() as u64
 }
@@ -646,7 +649,7 @@ fn a_running_migration_can_be_paused_and_resumed_where_it_stopped() {
 			Event::MigrationResumed { stage: Stage::WarmUp { end_at } }.into(),
 		);
 		run_blocks(1);
-		assert_stage(Stage::AccountsInit);
+		assert_stage(Stage::WaitingForAssetTraps);
 	});
 }
 
@@ -672,9 +675,13 @@ fn the_machine_runs_from_pending_to_done() {
 		let warm_up_end = System::block_number() + WARM_UP;
 		assert_stage(Stage::WarmUp { end_at: warm_up_end });
 
-		// WHEN the warm-up elapses. THEN the data stages run, one block each, and nothing is sent
-		// because none of them carries data yet.
+		// WHEN the warm-up elapses. THEN the machine waits for the asset traps.
 		run_blocks(WARM_UP);
+		assert_stage(Stage::WaitingForAssetTraps);
+
+		// WHEN the manager says there are no more. THEN the data stages run, one block each, and
+		// nothing is sent because none of them carries data yet.
+		assert_ok!(Rc2Migrator::submit_asset_traps(RuntimeOrigin::root(), vec![], true));
 		assert_stage(Stage::AccountsInit);
 		run_blocks(data_stage_blocks());
 		assert_eq!(sent().len(), 1, "no data stage may send before it is filled in");
@@ -703,6 +710,7 @@ fn the_machine_runs_from_pending_to_done() {
 			Stage::Scheduled { start },
 			Stage::WaitingForCt,
 			Stage::WarmUp { end_at: warm_up_end },
+			Stage::WaitingForAssetTraps,
 		];
 		path.extend(data_stages());
 		path.extend([Stage::CoolOff { end_at }, Stage::MigrationDone]);
@@ -731,8 +739,11 @@ fn the_scheduled_windows_are_the_ones_the_machine_holds_for() {
 		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)));
 		assert_stage(Stage::WarmUp { end_at: System::block_number() + short_warm_up });
 
-		// WHEN it and the data stages elapse. THEN the cool-off runs for the scheduled window too.
-		run_blocks(short_warm_up + data_stage_blocks());
+		// WHEN it, the wait for the asset traps and the data stages pass. THEN the cool-off runs
+		// for the scheduled window too.
+		run_blocks(short_warm_up);
+		assert_ok!(Rc2Migrator::submit_asset_traps(RuntimeOrigin::root(), vec![], true));
+		run_blocks(data_stage_blocks());
 		assert_stage(Stage::CoolOff { end_at: System::block_number() + short_cool_off });
 
 		// WHEN it elapses. THEN the machine is done.
@@ -779,6 +790,7 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 		match stage {
 			Stage::Pending | Stage::Scheduled { .. } => MigrationPhase::NotStarted,
 			Stage::WaitingForCt | Stage::WarmUp { .. } => MigrationPhase::WarmUp,
+			Stage::WaitingForAssetTraps |
 			Stage::AccountsInit |
 			Stage::AccountsOngoing { .. } |
 			Stage::AccountsDone |
@@ -804,6 +816,7 @@ fn the_stage_predicates_say_what_their_consumers_need() {
 		Stage::Scheduled { start: 10 },
 		Stage::WaitingForCt,
 		Stage::WarmUp { end_at: 10 },
+		Stage::WaitingForAssetTraps,
 		Stage::AccountsInit,
 		Stage::AccountsOngoing { last_key: None },
 		Stage::AccountsDone,
@@ -849,6 +862,7 @@ fn each_stage_allows_only_its_own_call_set() {
 				Stage::Pending | Stage::Scheduled { .. } => PRE_MIGRATION,
 				Stage::WaitingForCt |
 				Stage::WarmUp { .. } |
+				Stage::WaitingForAssetTraps |
 				Stage::AccountsInit |
 				Stage::AccountsOngoing { .. } |
 				Stage::AccountsDone |
@@ -903,5 +917,208 @@ fn teleport_trust_ends_when_the_data_migration_starts() {
 				"at {stage:?}"
 			);
 		}
+	});
+}
+
+/// The asset trap events emitted so far, oldest first.
+fn trap_events() -> Vec<Event<Test>> {
+	System::events()
+		.into_iter()
+		.filter_map(|record| match record.event {
+			RuntimeEvent::Rc2Migrator(
+				event @ (Event::AssetTrapTaken { .. } | Event::AssetTrapNotFound { .. }),
+			) => Some(event),
+			_ => None,
+		})
+		.collect()
+}
+
+/// Submit `traps` as root, without finishing.
+fn submit(traps: Vec<AssetTrap>) -> sp_runtime::DispatchResult {
+	Rc2Migrator::submit_asset_traps(RuntimeOrigin::root(), traps, false)
+}
+
+#[test]
+fn the_wait_for_the_asset_traps_follows_the_warm_up_and_never_ends_on_its_own() {
+	// GIVEN a warm-up that ends with the next block.
+	new_test_ext().execute_with(|| {
+		let end_at = System::block_number() + 1;
+		set_stage(Stage::WarmUp { end_at });
+
+		// WHEN it ends. THEN the machine waits for the asset traps.
+		run_blocks(1);
+		assert_stage(Stage::WaitingForAssetTraps);
+
+		// WHEN many blocks pass without them. THEN it is still waiting, having sent nothing.
+		// There is no timeout.
+		run_blocks(50);
+		assert_stage(Stage::WaitingForAssetTraps);
+		assert_eq!(sent().len(), 0);
+	});
+}
+
+#[test]
+fn the_manager_or_the_admin_submits_asset_traps_and_only_while_they_are_awaited() {
+	new_test_ext().execute_with(|| {
+		set_stage(Stage::WaitingForAssetTraps);
+		assert_ok!(Rc2Migrator::set_manager(RuntimeOrigin::root(), Some(ALICE)));
+
+		// WHEN an account that is not the manager submits. THEN it is refused.
+		for who in [BOB, CORETIME] {
+			assert_noop!(
+				Rc2Migrator::submit_asset_traps(RuntimeOrigin::signed(who), vec![], true),
+				BadOrigin
+			);
+		}
+
+		// WHEN the manager, the admin origin and root submit. THEN each is accepted.
+		for origin in
+			[RuntimeOrigin::signed(ALICE), RuntimeOrigin::signed(ADMIN), RuntimeOrigin::root()]
+		{
+			assert_ok!(Rc2Migrator::submit_asset_traps(origin, vec![], false));
+		}
+		assert_stage(Stage::WaitingForAssetTraps);
+
+		// GIVEN a trap.
+		let trap = native_trap(Parachain(2000), 10);
+		let hash = make_trap(&trap, 1);
+
+		// WHEN it is submitted at any other stage. THEN it is refused, and the trap stays in
+		// `pallet-xcm`.
+		for stage in all_stages().into_iter().filter(|s| *s != Stage::WaitingForAssetTraps) {
+			set_stage(stage.clone());
+			assert_noop!(
+				Rc2Migrator::submit_asset_traps(RuntimeOrigin::root(), vec![trap.clone()], true),
+				Error::<Test>::NotWaitingForAssetTraps
+			);
+		}
+		assert_eq!(XcmAssetTraps::get(hash), 1);
+	});
+}
+
+#[test]
+fn a_submitted_trap_is_taken_whole_out_of_pallet_xcm() {
+	// GIVEN the same assets trapped three times for one claimer.
+	new_test_ext().execute_with(|| {
+		set_stage(Stage::WaitingForAssetTraps);
+		let trap = native_trap(Parachain(2000), 10);
+		let hash = make_trap(&trap, 3);
+
+		// WHEN the manager submits the trap once, without finishing.
+		assert_ok!(submit(vec![trap.clone()]));
+
+		// THEN `pallet-xcm` holds none of the three, the migrator holds all three under the same
+		// key, and the machine still waits.
+		assert!(!XcmAssetTraps::contains_key(hash));
+		assert_eq!(TakenAssetTraps::<Test>::get(&trap), 3);
+		assert_eq!(trap_events(), vec![Event::AssetTrapTaken { hash, trap, count: 3 }]);
+		assert_stage(Stage::WaitingForAssetTraps);
+	});
+}
+
+#[test]
+fn a_trap_pallet_xcm_does_not_hold_is_reported_and_the_rest_go_through() {
+	// GIVEN one trap, and one that was never made.
+	new_test_ext().execute_with(|| {
+		set_stage(Stage::WaitingForAssetTraps);
+		let held = native_trap(Parachain(2000), 10);
+		let hash = make_trap(&held, 1);
+		let never_made = native_trap(Parachain(2001), 10);
+
+		// WHEN the manager submits the one never made, then the real one twice.
+		assert_ok!(submit(vec![never_made.clone(), held.clone(), held.clone()]));
+
+		// THEN the call succeeds and each submission has its own event: the real trap is taken
+		// the first time, and the other two are reported.
+		assert_eq!(
+			trap_events(),
+			vec![
+				Event::AssetTrapNotFound { trap: never_made },
+				Event::AssetTrapTaken { hash, trap: held.clone(), count: 1 },
+				Event::AssetTrapNotFound { trap: held.clone() },
+			]
+		);
+		assert_eq!(TakenAssetTraps::<Test>::iter().collect::<Vec<_>>(), vec![(held, 1)]);
+	});
+}
+
+#[test]
+fn a_trap_is_found_only_with_the_assets_in_the_version_they_were_trapped_in() {
+	// GIVEN assets trapped while XCM v4 was current.
+	new_test_ext().execute_with(|| {
+		set_stage(Stage::WaitingForAssetTraps);
+		let current = native_trap(Parachain(2000), 10);
+		let v4 = AssetTrap {
+			claimer: current.claimer.clone().into_version(4).unwrap(),
+			assets: current.assets.clone().into_version(4).unwrap(),
+		};
+		let hash = make_trap(&v4, 1);
+
+		// WHEN the manager submits the same assets in the current version. THEN no trap matches.
+		assert_ok!(submit(vec![current.clone()]));
+
+		// WHEN the manager submits them in v4, as `pallet-xcm` reported them. THEN the trap is
+		// taken. The claimer may be in any version, since `pallet-xcm` keys it in the current one.
+		assert_ok!(submit(vec![v4.clone()]));
+		assert_eq!(
+			trap_events(),
+			vec![
+				Event::AssetTrapNotFound { trap: current },
+				Event::AssetTrapTaken { hash, trap: v4, count: 1 },
+			]
+		);
+	});
+}
+
+#[test]
+fn assets_trapped_again_after_they_were_taken_add_to_the_count() {
+	// GIVEN a trap of Asset Hub's that was taken.
+	new_test_ext().execute_with(|| {
+		set_stage(Stage::WaitingForAssetTraps);
+		let trap = native_trap(Parachain(AH_PARA_ID), 10);
+		let hash = make_trap(&trap, 1);
+		assert_ok!(submit(vec![trap.clone()]));
+
+		// GIVEN Asset Hub, which can still message this chain, trapped the same assets twice
+		// more.
+		make_trap(&trap, 2);
+
+		// WHEN the manager submits the trap again.
+		assert_ok!(submit(vec![trap.clone()]));
+
+		// THEN the two new ones are taken and added to the one taken before.
+		assert_eq!(
+			trap_events().last(),
+			Some(&Event::AssetTrapTaken { hash, trap: trap.clone(), count: 2 })
+		);
+		assert_eq!(TakenAssetTraps::<Test>::get(&trap), 3);
+	});
+}
+
+#[test]
+fn finishing_takes_the_last_traps_and_moves_on_to_the_accounts_stage() {
+	// GIVEN a trap.
+	new_test_ext().execute_with(|| {
+		set_stage(Stage::WaitingForAssetTraps);
+		let trap = native_trap(Parachain(2000), 10);
+		make_trap(&trap, 1);
+
+		// WHEN the manager submits it and says it is the last.
+		assert_ok!(Rc2Migrator::submit_asset_traps(
+			RuntimeOrigin::root(),
+			vec![trap.clone()],
+			true
+		));
+
+		// THEN it is taken, and the machine moves on to the accounts stage.
+		assert_eq!(TakenAssetTraps::<Test>::get(&trap), 1);
+		assert_stage(Stage::AccountsInit);
+		assert_eq!(transitions(), vec![(Stage::WaitingForAssetTraps, Stage::AccountsInit)]);
+
+		// WHEN the manager submits again. THEN it is refused: the wait is over.
+		assert_noop!(
+			Rc2Migrator::submit_asset_traps(RuntimeOrigin::root(), vec![trap], true),
+			Error::<Test>::NotWaitingForAssetTraps
+		);
 	});
 }

@@ -231,6 +231,7 @@ mod tests {
 	/// One stage from each part of the data migration, and its end.
 	fn stages_from_data_migration() -> Vec<Stage> {
 		vec![
+			Stage::WaitingForAssetTraps,
 			Stage::AccountsInit,
 			Stage::AccountsOngoing { last_key: None },
 			Stage::CoolOff { end_at: 0 },
@@ -270,6 +271,7 @@ mod tests {
 		("Rc2Migrator", "force_set_stage"),
 		("Rc2Migrator", "set_manager"),
 		("Rc2Migrator", "set_limits"),
+		("Rc2Migrator", "submit_asset_traps"),
 	];
 
 	/// Calls the test below cannot build. It builds each call from zero bytes, and these take an

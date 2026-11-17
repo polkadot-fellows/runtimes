@@ -57,7 +57,11 @@ use frame_system::pallet_prelude::*;
 use migrator_types::{PortableAccount, PortableProxyType};
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
-use sp_runtime::AccountId32;
+use sp_core::H256;
+use sp_runtime::{
+	traits::{BlakeTwo256, Hash as _},
+	AccountId32,
+};
 use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::rc2-migrator";
@@ -143,6 +147,26 @@ pub struct MigratedBalances {
 	pub ti_corrected: u128,
 }
 
+/// An XCM asset trap, as `pallet-xcm`'s `AssetsTrapped` event reports it.
+#[derive(
+	Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
+)]
+pub struct AssetTrap {
+	/// The location that may claim the assets.
+	pub claimer: VersionedLocation,
+	/// The assets, in the XCM version they were trapped in.
+	pub assets: VersionedAssets,
+}
+
+impl AssetTrap {
+	/// The key `pallet-xcm` keeps this trap under, the same one its claims look up. `None` if the
+	/// claimer has no form in the current XCM version, so no claim can reach the trap.
+	pub fn hash(&self) -> Option<H256> {
+		let claimer = Location::try_from(self.claimer.clone()).ok()?;
+		Some(BlakeTwo256::hash_of(&(claimer, &self.assets)))
+	}
+}
+
 /// Wall-clock type the schedule is expressed in.
 pub type MomentOf<T> = <<T as Config>::TimeProvider as Time>::Moment;
 pub type MigrationStageOf<T> =
@@ -176,11 +200,19 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		/// The block number at which the warm-up period will end. It is absolute and a pause
 		/// does not move it.
 		///
-		/// After the warm-up period ends, the Relay Chain will start to send the migration data
-		/// to the Coretime chain. Calls are filtered from `WaitingForCt` on; inbound messages and
-		/// teleports keep executing until then, so what other chains queued drains.
+		/// After the warm-up period ends, the Relay Chain waits for the asset traps and then
+		/// starts to send the migration data to the Coretime chain. Calls are filtered from
+		/// `WaitingForCt` on; inbound messages and teleports keep executing until then, so what
+		/// other chains queued drains.
 		end_at: BlockNumber,
 	},
+	/// Waiting for the manager to hand over the XCM asset traps with
+	/// [`Pallet::submit_asset_traps`], which also ends this stage. `on_initialize` never does.
+	///
+	/// From here inbound messages are refused unless they come from the Coretime chain or Asset
+	/// Hub, and accounts here lost `claim_assets` at `WaitingForCt`. So only those two chains can
+	/// still claim a trap.
+	WaitingForAssetTraps,
 	/// Initializing the account migration process.
 	AccountsInit,
 	/// Migrating account balances, their reserves, and the holds those reserves become.
@@ -245,7 +277,7 @@ pub enum MigrationPhase {
 	/// been told to start and only [`Config::IntraMigrationCalls`] pass. Inbound messages and
 	/// teleports still execute, so what other chains sent before the start drains.
 	WarmUp,
-	/// [`MigrationStage::AccountsInit`] through [`MigrationStage::CoolOff`]: the data is
+	/// [`MigrationStage::WaitingForAssetTraps`] through [`MigrationStage::CoolOff`]: the data is
 	/// snapshotted and sent to the Coretime chain. Inbound messages are refused unless they come
 	/// from the Coretime chain or Asset Hub, and no teleport is trusted.
 	DataMigration,
@@ -285,7 +317,7 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 		self.phase() != MigrationPhase::NotStarted
 	}
 
-	/// Whether data has started moving: true from [`Self::AccountsInit`] on, and stays true
+	/// Whether data has started moving: true from [`Self::WaitingForAssetTraps`] on, and stays true
 	/// after [`Self::MigrationDone`].
 	pub fn data_migration_started(&self) -> bool {
 		matches!(self.phase(), MigrationPhase::DataMigration | MigrationPhase::Done)
@@ -378,6 +410,10 @@ pub mod pallet {
 
 		/// Accounts the accounts stage leaves alone for Sweep to empty: the chain's pots.
 		type SweptAccounts: Contains<Self::AccountId>;
+
+		/// `pallet-xcm`'s asset traps: how many times each was trapped, by [`AssetTrap::hash`].
+		/// `pallet-xcm` keeps this storage private, so the runtime passes a storage alias.
+		type XcmAssetTraps: frame_support::storage::StorageMap<H256, u32, Query = u32>;
 	}
 
 	#[pallet::pallet]
@@ -438,6 +474,12 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Paused<T: Config> = StorageValue<_, bool, ValueQuery>;
 
+	/// The asset traps [`Pallet::submit_asset_traps`] took out of `pallet-xcm`, with how many
+	/// times each was trapped.
+	#[pallet::storage]
+	pub type TakenAssetTraps<T: Config> =
+		StorageMap<_, Blake2_128Concat, AssetTrap, u32, ValueQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The migration can only be scheduled while it is pending.
@@ -462,6 +504,8 @@ pub mod pallet {
 		BadLimits,
 		/// The account's balance could not be withdrawn whole.
 		FailedToWithdrawAccount,
+		/// Asset traps were submitted while the machine was not waiting for them.
+		NotWaitingForAssetTraps,
 	}
 
 	#[pallet::event]
@@ -505,6 +549,12 @@ pub mod pallet {
 		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
 		/// retry it.
 		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
+		/// An asset trap was taken out of `pallet-xcm` into [`TakenAssetTraps`], `count` times
+		/// over.
+		AssetTrapTaken { hash: H256, trap: AssetTrap, count: u32 },
+		/// `pallet-xcm` holds no such trap: it was never made, it was claimed, or it was already
+		/// taken. Nothing changed.
+		AssetTrapNotFound { trap: AssetTrap },
 	}
 
 	#[pallet::hooks]
@@ -680,6 +730,54 @@ pub mod pallet {
 			Limits::<T>::put(limits);
 			Ok(())
 		}
+
+		/// Take asset traps out of `pallet-xcm`, so nobody can claim them there, and keep them in
+		/// [`TakenAssetTraps`].
+		///
+		/// Only accepted in [`MigrationStage::WaitingForAssetTraps`]. A trap is taken whole,
+		/// however many times it was trapped. One that `pallet-xcm` does not hold is reported
+		/// with [`Event::AssetTrapNotFound`], and the others still go through. With `finished`,
+		/// the machine moves on to [`MigrationStage::AccountsInit`] after the given traps.
+		#[pallet::call_index(9)]
+		#[pallet::weight(
+			// the manager and the stage, then each trap in `pallet-xcm` and here
+			T::DbWeight::get().reads_writes(2, 1).saturating_add(
+				T::DbWeight::get().reads_writes(2, 2).saturating_mul(traps.len() as u64)
+			)
+		)]
+		pub fn submit_asset_traps(
+			origin: OriginFor<T>,
+			traps: Vec<AssetTrap>,
+			finished: bool,
+		) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+			ensure!(
+				RcMigrationStage::<T>::get() == MigrationStage::WaitingForAssetTraps,
+				Error::<T>::NotWaitingForAssetTraps
+			);
+
+			for trap in traps {
+				let taken = trap.hash().map(|hash| {
+					(
+						hash,
+						<T::XcmAssetTraps as frame_support::storage::StorageMap<_, _>>::take(hash),
+					)
+				});
+				let Some((hash, count)) = taken.filter(|(_, count)| *count > 0) else {
+					Self::deposit_event(Event::AssetTrapNotFound { trap });
+					continue;
+				};
+				// adds to an earlier take if Asset Hub or the Coretime chain trapped the same
+				// assets again since
+				TakenAssetTraps::<T>::mutate(&trap, |total| *total = total.saturating_add(count));
+				Self::deposit_event(Event::AssetTrapTaken { hash, trap, count });
+			}
+
+			if finished {
+				Self::transition(MigrationStage::AccountsInit);
+			}
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -721,7 +819,7 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(3, 3)
 				},
 				MigrationStage::WarmUp { end_at } if now >= end_at => {
-					Self::transition(MigrationStage::AccountsInit);
+					Self::transition(MigrationStage::WaitingForAssetTraps);
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::AccountsInit => {
@@ -821,10 +919,11 @@ pub mod pallet {
 					}
 					T::DbWeight::get().reads_writes(3, 3)
 				},
-				// Waiting on the clock or a block height.
+				// Waiting on the clock, a block height, the Coretime chain or the manager.
 				MigrationStage::Scheduled { .. } |
 				MigrationStage::WaitingForCt |
 				MigrationStage::WarmUp { .. } |
+				MigrationStage::WaitingForAssetTraps |
 				MigrationStage::CoolOff { .. } => T::DbWeight::get().reads(1),
 				// Nothing runs before the schedule or after the end.
 				MigrationStage::Pending | MigrationStage::MigrationDone =>

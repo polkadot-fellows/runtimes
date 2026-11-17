@@ -85,7 +85,7 @@ async fn the_lockdown_holds_at_every_stage() {
 	);
 
 	// Every variant of the relay chain's `MigrationStage` was probed, and all three of Coretime's.
-	assert_eq!(rc_stages.borrow().len(), 21);
+	assert_eq!(rc_stages.borrow().len(), 22);
 	assert_eq!(ct_stages.borrow().len(), 3);
 }
 
