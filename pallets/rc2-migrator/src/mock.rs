@@ -131,7 +131,9 @@ impl paras::Config for Test {
 	type AuthorizeCurrentCodeOrigin = EnsureRoot<AccountId>;
 }
 
-impl dmp::Config for Test {}
+impl dmp::Config for Test {
+	type WeightInfo = ();
+}
 
 parameter_types! {
 	pub const DefaultChannelSizeAndCapacityWithSystem: (u32, u32) = (4096, 4);
@@ -456,7 +458,7 @@ pub fn sent_call(n: usize) -> crate::CtRuntimeCall {
 	let (_, Xcm(instructions)) = sent().get(n).expect("message was sent").clone();
 	for instruction in instructions {
 		if let Instruction::Transact { call, .. } = instruction {
-			return crate::CtRuntimeCall::decode(&mut &call.into_encoded()[..])
+			return crate::CtRuntimeCall::decode(&mut call.encoded())
 				.expect("payload decodes as a Coretime call");
 		}
 	}

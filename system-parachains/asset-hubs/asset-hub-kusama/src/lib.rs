@@ -100,8 +100,6 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Debug, FixedU128, Perbill, Permill, Perquintill,
 };
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
 	async_backing::{
@@ -155,12 +153,6 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	transaction_version: 15,
 	system_version: 1,
 };
-
-/// The version information used to identify this runtime when compiled natively.
-#[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion {
-	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
-}
 
 /// Asset Hub Kusama uses a 24s Aura slot duration.
 pub const SLOT_DURATION: u64 = 24_000;
@@ -380,6 +372,8 @@ parameter_types! {
 	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
 	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
 	pub LpFee: Permill = Permill::from_rational(3u32, 1_000u32);
+	/// Upper bound for per-pool swap fees set by `AdminOrigin` (polkadot-sdk#12369).
+	pub MaxSwapFee: Permill = Permill::from_percent(2);
 	// Storage deposit for pool setup within asset conversion pallet
 	// and pool's lp token creation within assets pallet.
 	pub const PoolSetupFee: Balance = system_para_deposit(1, 4) + AssetDeposit::get();
@@ -464,6 +458,8 @@ impl pallet_asset_conversion::Config for Runtime {
 	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::TreasuryAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
 	type LPFee = LpFee;
+	type AdminOrigin = AssetsForceOrigin;
+	type MaxSwapFee = MaxSwapFee;
 	type PalletId = AssetConversionPalletId;
 	type MaxSwapPathLength = ConstU32<3>;
 	type MintMinLiquidity = ConstU128<100>;
@@ -2196,6 +2192,14 @@ mod benches {
 		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
 		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
 			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
+
+		/// `Multisig::as_multi_threshold_1`, a single-call dispatcher to nest calls with.
+		fn wrap_call(call: RuntimeCall) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Multisig(pallet_multisig::Call::<Runtime>::as_multi_threshold_1 {
+				other_signatories: Vec::new(),
+				call: alloc::boxed::Box::new(call),
+			}))
 		}
 	}
 
