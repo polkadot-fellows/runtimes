@@ -302,6 +302,8 @@ pub const AH_PARA_ID: u32 = 1000;
 pub const CT_FREE_BUFFER: u128 = 100;
 /// Asset Hub's existential deposit, below this chain's like the real one.
 pub const AH_ED: u128 = 5;
+/// The account on Asset Hub that receives the asset traps worth less than `AH_ED`.
+pub const DUST_BENEFICIARY: AccountId = AccountId32::new([20; 32]);
 pub const WARM_UP: u64 = 4;
 pub const COOL_OFF: u64 = 10;
 /// Relay-chain block time
@@ -369,6 +371,7 @@ ord_parameter_types! {
 
 parameter_types! {
 	pub MockPot: AccountId = pallet_account();
+	pub const DustBeneficiary: AccountId = DUST_BENEFICIARY;
 }
 
 impl pallet_rc2_migrator::Config for Test {
@@ -386,6 +389,7 @@ impl pallet_rc2_migrator::Config for Test {
 	type SweptAccounts = Equals<MockPot>;
 	type XcmAssetTraps = XcmAssetTraps;
 	type AhExistentialDeposit = ConstU128<AH_ED>;
+	type AssetTrapDustBeneficiary = DustBeneficiary;
 }
 
 /// Tags for [`TaggedRemark`], one per call set.
@@ -491,7 +495,7 @@ pub fn make_trap(trap: &AssetTrap, times: u32) -> H256 {
 pub fn native_trap(claimer: impl Into<Location>, amount: u128) -> AssetTrap {
 	let claimer: Location = claimer.into();
 	let assets: Assets = (Here, amount).into();
-	AssetTrap { claimer: claimer.into(), assets: assets.into() }
+	AssetTrap { claimer: claimer.into(), assets: assets.into(), xcm_v1: false }
 }
 
 /// Give `who` exactly `amount` of free balance.

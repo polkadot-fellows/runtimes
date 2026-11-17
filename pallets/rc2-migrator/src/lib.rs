@@ -157,16 +157,59 @@ pub struct MigratedBalances {
 pub struct AssetTrap {
 	/// The location that may claim the assets.
 	pub claimer: VersionedLocation,
-	/// The assets, in the XCM version they were trapped in.
+	/// The assets, in the XCM version they were trapped in. For an XCM v1 trap, in any version.
 	pub assets: VersionedAssets,
+	/// Whether the trap was made under XCM v1, which the current XCM types can no longer write.
+	pub xcm_v1: bool,
 }
 
 impl AssetTrap {
-	/// The key `pallet-xcm` keeps this trap under, the same one its claims look up. `None` if the
-	/// claimer has no form in the current XCM version, so no claim can reach the trap.
+	/// The key `pallet-xcm` keeps this trap under: the hash of the claimer, in the current XCM
+	/// version, and the assets.
+	///
+	/// `None` if no key can be worked out: the claimer has no form in the current XCM version,
+	/// or an XCM v1 trap is not one [`Self::xcm_v1_preimage`] can write.
 	pub fn hash(&self) -> Option<H256> {
 		let claimer = Location::try_from(self.claimer.clone()).ok()?;
+		if self.xcm_v1 {
+			return Some(BlakeTwo256::hash(&Self::xcm_v1_preimage(
+				&claimer,
+				self.native_amount()?,
+			)?));
+		}
 		Some(BlakeTwo256::hash_of(&(claimer, &self.assets)))
+	}
+
+	/// The bytes an XCM v1 trap of `amount` of the native token, claimable by `claimer`, is hashed
+	/// from. Only for the claimers v1 traps have: a parachain, or an account here.
+	///
+	/// v1 wrote a lone native-token asset the way v3 does, under its own version byte, and a
+	/// parachain the way the current version does. It wrote an account's network without the
+	/// `Option` around it.
+	fn xcm_v1_preimage(claimer: &Location, amount: u128) -> Option<Vec<u8>> {
+		let mut preimage = match claimer.unpack() {
+			(0, [Parachain(_)]) => claimer.encode(),
+			(0, [Junction::AccountId32 { network, id }]) => {
+				// v1's `NetworkId`: `Any`, `Named`, `Polkadot`, `Kusama`
+				let network: u8 = match network {
+					None => 0,
+					Some(NetworkId::Polkadot) => 2,
+					Some(NetworkId::Kusama) => 3,
+					Some(_) => return None,
+				};
+				// no parents, one junction, `AccountId32`
+				(0u8, 1u8, 1u8, network, id).encode()
+			},
+			_ => return None,
+		};
+		let asset = xcm::v3::MultiAsset {
+			id: xcm::v3::AssetId::Concrete(xcm::v3::MultiLocation::here()),
+			fun: xcm::v3::Fungibility::Fungible(amount),
+		};
+		// `VersionedMultiAssets::V1`
+		preimage.push(1);
+		preimage.extend(xcm::v3::MultiAssets::from(vec![asset]).encode());
+		Some(preimage)
 	}
 
 	/// How much of this chain's native token one such trap holds. `None` if it holds anything
@@ -204,15 +247,13 @@ impl AssetTrap {
 /// Why [`Pallet::submit_asset_traps`] left an asset trap in `pallet-xcm`.
 #[derive(Encode, Decode, DecodeWithMemTracking, Clone, Copy, PartialEq, Eq, Debug, TypeInfo)]
 pub enum AssetTrapRejection {
-	/// `pallet-xcm` holds no such trap: it was never made, it was claimed, or it was already
-	/// taken.
+	/// `pallet-xcm` holds no such trap: it was never made, it was claimed, it was already taken,
+	/// or it is an XCM v1 trap of a kind [`AssetTrap::hash`] cannot work out the key of.
 	NotHeld,
 	/// The trap holds something other than this chain's native token.
 	NotNative,
 	/// The claimer is not one Asset Hub is known to have an account for.
 	ClaimerNotOnAssetHub,
-	/// The trap is worth less than Asset Hub's existential deposit, so paying it could fail there.
-	BelowExistentialDeposit,
 }
 
 /// Wall-clock type the schedule is expressed in.
@@ -465,9 +506,14 @@ pub mod pallet {
 		/// `pallet-xcm` keeps this storage private, so the runtime passes a storage alias.
 		type XcmAssetTraps: frame_support::storage::StorageMap<H256, u32, Query = u32>;
 
-		/// Asset Hub's existential deposit. A trap worth less is not taken: paying it could fail
-		/// there, and take the rest of its message with it.
+		/// Asset Hub's existential deposit. A trap worth less goes to
+		/// [`Config::AssetTrapDustBeneficiary`] instead of its claimer, since it could not open the
+		/// claimer's account there.
 		type AhExistentialDeposit: Get<u128>;
+
+		/// The account on Asset Hub that receives the asset traps worth less than Asset Hub's
+		/// existential deposit. It must already exist there, since such a deposit cannot open it.
+		type AssetTrapDustBeneficiary: Get<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -608,7 +654,9 @@ pub mod pallet {
 		AssetTrapTaken { hash: H256, trap: AssetTrap, count: u32 },
 		/// An asset trap was left in `pallet-xcm`, for `reason`. Nothing changed.
 		AssetTrapRejected { trap: AssetTrap, reason: AssetTrapRejection },
-		/// An asset trap was paid out to `beneficiary` on Asset Hub.
+		/// An asset trap was paid out to `beneficiary` on Asset Hub: its claimer, or
+		/// [`Config::AssetTrapDustBeneficiary`] if it was worth less than Asset Hub's existential
+		/// deposit.
 		AssetTrapPaid { trap: AssetTrap, beneficiary: Location, amount: u128 },
 	}
 
@@ -834,7 +882,7 @@ pub mod pallet {
 			use frame_support::storage::StorageMap as _;
 
 			// checked here so the payout cannot fail
-			let amount = trap.native_amount().ok_or(AssetTrapRejection::NotNative)?;
+			trap.native_amount().ok_or(AssetTrapRejection::NotNative)?;
 			trap.ah_beneficiary().ok_or(AssetTrapRejection::ClaimerNotOnAssetHub)?;
 
 			let hash = trap.hash().ok_or(AssetTrapRejection::NotHeld)?;
@@ -843,10 +891,6 @@ pub mod pallet {
 			// adds to an earlier take if Asset Hub or the Coretime chain trapped the same assets
 			// again since
 			let total = TakenAssetTraps::<T>::get(trap).saturating_add(count);
-			ensure!(
-				amount.saturating_mul(total.into()) >= T::AhExistentialDeposit::get(),
-				AssetTrapRejection::BelowExistentialDeposit
-			);
 
 			T::XcmAssetTraps::remove(hash);
 			TakenAssetTraps::<T>::insert(trap, total);
@@ -1064,32 +1108,46 @@ pub mod pallet {
 		/// The caller runs it in a storage transaction, so an `Err` rolls the whole block back.
 		fn pay_asset_traps_block() -> Result<bool, DispatchError> {
 			let limits = Limits::<T>::get();
+			let dust_beneficiary = Location::new(
+				0,
+				[Junction::AccountId32 {
+					network: None,
+					id: T::AssetTrapDustBeneficiary::get().into(),
+				}],
+			);
 			let mut payouts = Vec::new();
+			let mut dust = 0u128;
 			for (trap, count) in
 				TakenAssetTraps::<T>::drain().take(limits.items_per_block() as usize)
 			{
 				// both were checked when the trap was taken
-				let (Some(beneficiary), Some(amount)) =
-					(trap.ah_beneficiary(), trap.native_amount())
+				let (Some(claimer), Some(amount)) = (trap.ah_beneficiary(), trap.native_amount())
 				else {
 					defensive!("a taken asset trap can be paid");
 					continue;
 				};
 				let amount = amount.saturating_mul(count.into());
-				Self::deposit_event(Event::AssetTrapPaid {
-					trap,
-					beneficiary: beneficiary.clone(),
-					amount,
-				});
-				payouts.push((beneficiary, amount));
+				// too little to open the claimer's account, so it goes to one that exists
+				let beneficiary = if amount < T::AhExistentialDeposit::get() {
+					dust = dust.saturating_add(amount);
+					dust_beneficiary.clone()
+				} else {
+					payouts.push((claimer.clone(), amount));
+					claimer
+				};
+				Self::deposit_event(Event::AssetTrapPaid { trap, beneficiary, amount });
 			}
 
-			let paid = payouts.iter().fold(0u128, |paid, (_, amount)| paid.saturating_add(*amount));
+			let paid = payouts.iter().fold(dust, |paid, (_, amount)| paid.saturating_add(*amount));
 			RcMigratedBalance::<T>::mutate(|migrated| {
 				migrated.ah_asset_traps = migrated.ah_asset_traps.saturating_add(paid);
 			});
 			for chunk in payouts.chunks(limits.items_per_xcm as usize) {
 				Self::teleport_to_ah(chunk.to_vec())?;
+			}
+			// in a message of its own, so it cannot fail any other payout
+			if dust > 0 {
+				Self::teleport_to_ah(vec![(dust_beneficiary, dust)])?;
 			}
 			Ok(TakenAssetTraps::<T>::iter_keys().next().is_none())
 		}
@@ -1125,9 +1183,9 @@ pub mod pallet {
 		/// Teleport the sum of `deposits` to Asset Hub in one message, and deposit each amount
 		/// with its beneficiary, as Asset Hub names it. Returns the sum.
 		///
-		/// A deposit that fails on Asset Hub fails the rest of the message. So each amount must
-		/// be at least Asset Hub's existential deposit, and each beneficiary one Asset Hub has an
-		/// account for.
+		/// A deposit that fails on Asset Hub fails the rest of the message. So each beneficiary
+		/// must be one Asset Hub has an account for, and each amount at least Asset Hub's
+		/// existential deposit unless that account already exists.
 		fn teleport_to_ah(deposits: Vec<(Location, u128)>) -> Result<u128, Error<T>> {
 			// the native token, as Asset Hub names it
 			let native = |amount: u128| Asset {

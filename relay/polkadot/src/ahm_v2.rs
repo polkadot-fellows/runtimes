@@ -48,6 +48,10 @@ parameter_types! {
 	pub const CtFreeBuffer: u128 = UNITS;
 	/// A tenth of the system chains' default, which is a tenth of this chain's.
 	pub const AhExistentialDeposit: u128 = EXISTENTIAL_DEPOSIT / 100;
+	/// The DAP staging account on Asset Hub, derived like `DapStagingLocation` in the system
+	/// parachain constants.
+	pub AssetTrapDustBeneficiary: AccountId =
+		sp_dap::DAP_PALLET_ID.into_sub_account_truncating(sp_dap::DAP_STAGING_ACCOUNT_ID);
 }
 
 /// The pots of this chain, left for Sweep.
@@ -87,6 +91,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type SweptAccounts = SweptAccounts;
 	type XcmAssetTraps = AssetTraps;
 	type AhExistentialDeposit = AhExistentialDeposit;
+	type AssetTrapDustBeneficiary = AssetTrapDustBeneficiary;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so
@@ -180,7 +185,7 @@ mod tests {
 						hash,
 						origin,
 						assets,
-					}) => Some((hash, AssetTrap { claimer: origin.into(), assets })),
+					}) => Some((hash, AssetTrap { claimer: origin.into(), assets, xcm_v1: false })),
 					_ => None,
 				})
 				.expect("the assets were trapped");

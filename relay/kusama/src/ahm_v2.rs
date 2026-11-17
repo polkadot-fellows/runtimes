@@ -48,6 +48,8 @@ parameter_types! {
 	pub const CtFreeBuffer: u128 = UNITS;
 	/// A tenth of the system chains' default, which is a tenth of this chain's.
 	pub const AhExistentialDeposit: u128 = EXISTENTIAL_DEPOSIT / 100;
+	/// The treasury on Asset Hub.
+	pub AssetTrapDustBeneficiary: AccountId = TreasuryPalletId::get().into_account_truncating();
 }
 
 /// The pots of this chain, left for Sweep.
@@ -88,6 +90,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type SweptAccounts = SweptAccounts;
 	type XcmAssetTraps = AssetTraps;
 	type AhExistentialDeposit = AhExistentialDeposit;
+	type AssetTrapDustBeneficiary = AssetTrapDustBeneficiary;
 }
 
 /// Which proxy permissions travel to the Coretime chain. The others have no meaning there, so
@@ -185,7 +188,7 @@ mod tests {
 						hash,
 						origin,
 						assets,
-					}) => Some((hash, AssetTrap { claimer: origin.into(), assets })),
+					}) => Some((hash, AssetTrap { claimer: origin.into(), assets, xcm_v1: false })),
 					_ => None,
 				})
 				.expect("the assets were trapped");

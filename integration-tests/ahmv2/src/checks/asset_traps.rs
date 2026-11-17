@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
-//! Check that the asset traps the manager hands over leave `pallet-xcm` and are paid to their
-//! claimers on Asset Hub.
+//! Check that the asset traps the manager hands over leave `pallet-xcm` and are paid on Asset
+//! Hub: to their claimers, or to the dust beneficiary when they are worth too little.
 //!
 //! The snapshot's own traps are not handed over, since the test does not know what they hold. It
 //! makes traps of its own with [`make_test_traps`] instead.
@@ -36,16 +36,17 @@ type XcmAssetTraps = <Rc as pallet_rc2_migrator::Config>::XcmAssetTraps;
 pub struct AssetTrapsChecker;
 
 /// The traps the test makes and hands over, with how many times each was trapped: one for each
-/// kind of claimer Asset Hub can pay, and one worth too little to pay.
+/// kind of claimer Asset Hub can pay, and one worth too little to open an account there.
 ///
-/// No claimer is paid on an account the accounts stage pays too, so the accounts check still sees
-/// only what that stage sent.
+/// None is paid to an account the accounts stage pays too, so the accounts check still sees only
+/// what that stage sent.
 pub fn test_traps() -> Vec<(AssetTrap, u32)> {
 	let units = network::constants::currency::UNITS;
 	let this_network = network::relay::xcm_config::ThisNetwork::get();
 	let trap = |claimer: Location, amount: u128| AssetTrap {
 		claimer: claimer.into(),
 		assets: Assets::from((Here, amount)).into(),
+		xcm_v1: false,
 	};
 	let account = |id| Junction::AccountId32 { network: None, id };
 	vec![
@@ -101,23 +102,23 @@ fn hash(trap: &AssetTrap) -> sp_core::H256 {
 	trap.hash().expect("every test claimer converts")
 }
 
-/// What `trap`, made `count` times, is worth, or `None` if it is too little to pay.
-fn payable(trap: &AssetTrap, count: u32) -> Option<u128> {
-	let amount = trap.native_amount().expect("every test trap holds only the native token") *
-		u128::from(count);
-	(amount >= ah_existential_deposit()).then_some(amount)
-}
-
-/// The account on Asset Hub each payable test trap is paid to, and how much.
+/// The account on Asset Hub each test trap is paid to, and how much.
 fn payouts() -> Vec<(AccountId32, u128)> {
 	test_traps()
 		.into_iter()
-		.filter_map(|(trap, count)| {
-			let amount = payable(&trap, count)?;
+		.map(|(trap, count)| {
+			let amount = trap.native_amount().expect("every test trap holds only the native token") *
+				u128::from(count);
+			if amount < ah_existential_deposit() {
+				return (
+					<Rc as pallet_rc2_migrator::Config>::AssetTrapDustBeneficiary::get(),
+					amount,
+				);
+			}
 			let beneficiary = trap.ah_beneficiary().expect("every test claimer is payable");
 			let who = network::ah::xcm_config::LocationToAccountId::convert_location(&beneficiary)
 				.expect("Asset Hub has an account for every claimer it is paid");
-			Some((who, amount))
+			(who, amount)
 		})
 		.collect()
 }
@@ -137,18 +138,15 @@ impl RcMigrationCheck for AssetTrapsChecker {
 	}
 
 	fn post_check(_: &Self::RcPrePayload) -> Self::RcPostPayload {
-		let mut paid = 0;
-		for (trap, count) in test_traps() {
-			let held = XcmAssetTraps::get(hash(&trap));
-			match payable(&trap, count) {
-				Some(amount) => {
-					assert_eq!(held, 0, "{trap:?} was taken out of `pallet-xcm`");
-					paid += amount;
-				},
-				None => assert_eq!(held, count, "{trap:?} is too little to pay, so it stays"),
-			}
+		for (trap, _) in test_traps() {
+			assert_eq!(
+				XcmAssetTraps::get(hash(&trap)),
+				0,
+				"{trap:?} was taken out of `pallet-xcm`"
+			);
 		}
 		assert_eq!(TakenAssetTraps::<Rc>::iter().count(), 0, "every taken trap was paid");
+		let paid: u128 = payouts().iter().map(|(_, amount)| amount).sum();
 		assert_eq!(RcMigratedBalance::<Rc>::get().ah_asset_traps, paid);
 	}
 }
