@@ -16,7 +16,7 @@
 //! Runtime tests for the kill switch and the tx-pause instance behind it.
 
 use asset_hub_polkadot_runtime::{
-	kill_switch::KillSwitchTarget,
+	kill_switch::{KillSwitchCallDeposit, KillSwitchGroup},
 	xcm_config::{FellowshipLocation, XcmConfig},
 	AllPalletsWithoutSystem, Balances, KillSwitch, Runtime, RuntimeCall, RuntimeHoldReason,
 	RuntimeOrigin, SessionKeys, TxPause,
@@ -29,6 +29,7 @@ use frame_support::{
 		Contains,
 	},
 };
+use pallet_kill_switch::{Target, TargetOf};
 use parachains_common::{AccountId, AssetHubPolkadotAuraId as AuraId};
 use sp_runtime::{traits::Dispatchable, DispatchError};
 use system_parachains_constants::polkadot::currency::UNITS;
@@ -88,6 +89,10 @@ fn fellowship() -> RuntimeOrigin {
 	pallet_xcm::Origin::Xcm(voice).into()
 }
 
+fn group(group: KillSwitchGroup) -> TargetOf<Runtime> {
+	Target::Group(group)
+}
+
 fn held(who: &AccountId) -> u128 {
 	Balances::balance_on_hold(
 		&RuntimeHoldReason::KillSwitch(pallet_kill_switch::HoldReason::Pause),
@@ -103,7 +108,7 @@ fn pausing_blocks_the_target_calls() {
 
 		assert_ok!(KillSwitch::pause(
 			TestRuntimeHelper::origin_of(alice.clone()),
-			KillSwitchTarget::AssetTransfers
+			group(KillSwitchGroup::AssetTransfers)
 		));
 
 		assert!(is_filtered(asset_transfer(), &alice));
@@ -125,7 +130,7 @@ fn xcm_transact_respects_pauses() {
 
 		assert_ok!(KillSwitch::pause(
 			TestRuntimeHelper::origin_of(alice),
-			KillSwitchTarget::AssetTransfers
+			group(KillSwitchGroup::AssetTransfers)
 		));
 
 		assert!(!SafeCallFilter::contains(&asset_transfer()));
@@ -140,7 +145,7 @@ fn fellowship_can_slash_over_xcm() {
 		let free = Balances::free_balance(&alice);
 		assert_ok!(KillSwitch::pause(
 			TestRuntimeHelper::origin_of(alice.clone()),
-			KillSwitchTarget::Psm
+			group(KillSwitchGroup::Psm)
 		));
 		assert_eq!(held(&alice), 10_000 * UNITS);
 
@@ -148,13 +153,13 @@ fn fellowship_can_slash_over_xcm() {
 		assert_noop!(
 			KillSwitch::unpause(
 				TestRuntimeHelper::origin_of(AccountId::from(BOB)),
-				KillSwitchTarget::Psm,
+				group(KillSwitchGroup::Psm),
 				true
 			),
 			DispatchError::BadOrigin
 		);
 
-		assert_ok!(KillSwitch::unpause(fellowship(), KillSwitchTarget::Psm, true));
+		assert_ok!(KillSwitch::unpause(fellowship(), group(KillSwitchGroup::Psm), true));
 		assert_eq!(held(&alice), 0);
 		assert_eq!(Balances::free_balance(&alice), free - 10_000 * UNITS);
 	});
@@ -164,17 +169,17 @@ fn fellowship_can_slash_over_xcm() {
 fn only_root_can_force_pause() {
 	test_ext().execute_with(|| {
 		assert_noop!(
-			KillSwitch::force_pause(fellowship(), KillSwitchTarget::Psm, None),
+			KillSwitch::force_pause(fellowship(), group(KillSwitchGroup::Psm), None),
 			DispatchError::BadOrigin
 		);
 		assert_ok!(KillSwitch::force_pause(
 			TestRuntimeHelper::root_origin(),
-			KillSwitchTarget::Psm,
+			group(KillSwitchGroup::Psm),
 			None
 		));
 		// And the Fellowship can't lift it.
 		assert_noop!(
-			KillSwitch::unpause(fellowship(), KillSwitchTarget::Psm, false),
+			KillSwitch::unpause(fellowship(), group(KillSwitchGroup::Psm), false),
 			DispatchError::BadOrigin
 		);
 	});
@@ -195,10 +200,42 @@ fn only_the_kill_switch_drives_tx_pause() {
 }
 
 #[test]
-fn lists_every_target() {
+fn can_pause_a_single_call() {
 	test_ext().execute_with(|| {
-		let targets = KillSwitch::pause_targets();
-		assert_eq!(targets.len(), 4);
-		assert!(targets.iter().all(|info| !info.calls.is_empty() && info.deposit.is_some()));
+		let alice = funded_alice();
+		let call = Target::Call((
+			b"Balances".to_vec().try_into().unwrap(),
+			b"transfer_allow_death".to_vec().try_into().unwrap(),
+		));
+		assert_ok!(KillSwitch::pause(TestRuntimeHelper::origin_of(alice.clone()), call));
+
+		// Not in any group, so the plain call deposit.
+		assert_eq!(held(&alice), KillSwitchCallDeposit::get());
+		assert!(is_filtered(balance_transfer(), &alice));
+		assert!(!is_filtered(asset_transfer(), &alice));
+	});
+}
+
+#[test]
+fn single_calls_cost_at_least_their_group() {
+	test_ext().execute_with(|| {
+		let name = |pallet: &str, call: &str| {
+			(
+				pallet.as_bytes().to_vec().try_into().unwrap(),
+				call.as_bytes().to_vec().try_into().unwrap(),
+			)
+		};
+		assert_eq!(KillSwitch::call_deposit(&name("Psm", "mint")), Some(10_000 * UNITS));
+		assert_eq!(KillSwitch::call_deposit(&name("PolkadotXcm", "execute")), Some(50_000 * UNITS));
+		assert_eq!(KillSwitch::call_deposit(&name("Assets", "transfer")), Some(50_000 * UNITS));
+	});
+}
+
+#[test]
+fn lists_every_group() {
+	test_ext().execute_with(|| {
+		let groups = KillSwitch::pause_groups();
+		assert_eq!(groups.len(), 4);
+		assert!(groups.iter().all(|info| !info.calls.is_empty() && info.deposit.is_some()));
 	});
 }
