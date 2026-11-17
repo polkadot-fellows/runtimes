@@ -31,6 +31,7 @@ polkadot-runtime = { workspace = true }
 
 [features]
 runtime-benchmarks = [
+	"emulated-integration-tests-common/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-primitives/runtime-benchmarks",

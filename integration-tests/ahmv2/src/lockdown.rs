@@ -48,10 +48,11 @@ const CAROL: AccountId32 = AccountId32::new([0xca; 32]); // receives through the
 /// The lockdown at every stage of a real run, through both chains' real call filters and XCM
 /// configuration.
 ///
-/// From the relay chain's start signal on: a signed transfer is filtered, the manager still drives
-/// the migrator, only the Coretime chain and Asset Hub get past the barrier, and a teleport from
-/// Asset Hub mints nothing. None of that reopens at the end. On the Coretime chain, adding a proxy
-/// is refused exactly while its migration runs, and a proxy already in place works throughout.
+/// From the relay chain's start signal on, a signed transfer is filtered and the manager still
+/// drives the migrator. Once data starts moving, only the Coretime chain and Asset Hub get past
+/// the barrier, and a teleport from Asset Hub mints nothing. None of that reopens at the end. On
+/// the Coretime chain, adding a proxy is refused exactly while its migration runs, and a proxy
+/// already in place works throughout.
 #[tokio::test(flavor = "multi_thread")]
 async fn the_lockdown_holds_at_every_stage() {
 	let (mut rc, mut ct) = tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN));
@@ -88,12 +89,13 @@ async fn the_lockdown_holds_at_every_stage() {
 	assert_eq!(ct_stages.borrow().len(), 3);
 }
 
-/// The relay chain's lockdown at its current stage: open before the start, closed from the start
-/// on, including after `MigrationDone`.
+/// The relay chain's lockdown at its current stage: calls close at the start, inbound messages
+/// and teleports when data starts moving, and nothing reopens, including after `MigrationDone`.
 fn probe_rc_lockdown() {
 	type Rc = network::relay::Runtime;
 	let stage = rc_stage();
 	let started = stage.has_started();
+	let data_started = stage.data_migration_started();
 	let filtered: DispatchError = frame_system::Error::<Rc>::CallFiltered.into();
 
 	// A signed transfer.
@@ -141,15 +143,15 @@ fn probe_rc_lockdown() {
 		}
 	});
 
-	// Unpaid messages from system chains: from the start, only Coretime and Asset Hub get in.
-	for (para, admitted_once_started) in [
+	// Unpaid messages from system chains: once data moves, only Coretime and Asset Hub get in.
+	for (para, admitted) in [
 		(system_parachain::BROKER_ID, true),
 		(system_parachain::ASSET_HUB_ID, true),
 		(system_parachain::BRIDGE_HUB_ID, false),
 	] {
 		assert_eq!(
 			hypothetically!(deliver_ump(para, unpaid_noop())),
-			if started && !admitted_once_started { Delivery::Refused } else { Delivery::Executed },
+			if data_started && !admitted { Delivery::Refused } else { Delivery::Executed },
 			"an unpaid message from para {para} at {stage:?}"
 		);
 	}
@@ -160,21 +162,21 @@ fn probe_rc_lockdown() {
 		let sovereign: AccountId32 = ParaId::from(OUTSIDER_PARA).into_account_truncating();
 		assert_ok!(pallet_balances::Pallet::<Rc>::mint_into(&sovereign, 100 * UNITS));
 
-		// WHEN it sends a paid message. THEN the barrier refuses it from the start on.
+		// WHEN it sends a paid message. THEN the barrier refuses it once data moves.
 		assert_eq!(
 			deliver_ump(OUTSIDER_PARA, paid_transfer_to(&BOB)),
-			if started { Delivery::Refused } else { Delivery::Executed },
+			if data_started { Delivery::Refused } else { Delivery::Executed },
 			"a paid message from para {OUTSIDER_PARA} at {stage:?}"
 		);
 	});
 
-	// A teleport from Asset Hub mints here until the start, and nothing from then on.
+	// A teleport from Asset Hub mints here until data moves, and nothing from then on.
 	hypothetically!({
 		let issuance = pallet_balances::Pallet::<Rc>::total_issuance();
-		let landed = if started { 0 } else { 10 * UNITS };
+		let landed = if data_started { 0 } else { 10 * UNITS };
 		assert_eq!(
 			deliver_ump(system_parachain::ASSET_HUB_ID, teleport_to(&BOB, 10 * UNITS)),
-			if started {
+			if data_started {
 				Delivery::Failed(XcmError::UntrustedTeleportLocation)
 			} else {
 				Delivery::Executed

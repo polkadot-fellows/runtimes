@@ -16,7 +16,10 @@
 
 //! Config for the nomination pools.
 
-use crate::{staking::StakingAdmin, *};
+use crate::{
+	staking::{BondingDuration, StakingAdmin},
+	*,
+};
 use frame_support::traits::Nothing;
 use sp_runtime::FixedU128;
 
@@ -24,6 +27,10 @@ parameter_types! {
 	pub const PoolsPalletId: PalletId = PalletId(*b"py/nopls");
 	// Allow pools that got slashed up to 90% to remain operational.
 	pub const MaxPointsToBalance: u8 = 10;
+	/// Maximum number of era-keyed unbonding sub-pools (`SubPools::with_era`) per pool: the bonding
+	/// duration plus 4 eras during which an unlocked sub-pool keeps its own points-to-balance ratio
+	/// before it is merged into `SubPools::no_era`.
+	pub MaxUnbondingPools: u32 = BondingDuration::get().saturating_add(4);
 }
 
 impl pallet_nomination_pools::Config for Runtime {
@@ -35,7 +42,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type U256ToBalance = polkadot_runtime_common::U256ToBalance;
 	type StakeAdapter =
 		pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
-	type PostUnbondingPoolsWindow = frame_support::traits::ConstU32<4>;
+	type MaxUnbondingPools = MaxUnbondingPools;
 	type MaxMetadataLen = frame_support::traits::ConstU32<256>;
 	// we use the same number of allowed unlocking chunks as with staking.
 	type MaxUnbonding = <Self as pallet_staking_async::Config>::MaxUnlockingChunks;
