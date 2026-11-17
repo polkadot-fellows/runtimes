@@ -20,7 +20,9 @@
 //! deposit. Nothing but the kill switch can pause or unpause through tx-pause.
 
 use super::*;
-use frame_support::traits::{Contains, EnsureOrigin, EnsureOriginWithArg, NeverEnsureOrigin};
+use frame_support::traits::{
+	Contains, EnsureOrigin, EnsureOriginWithArg, NeverEnsureOrigin, PalletInfoAccess,
+};
 use pallet_kill_switch::AdminAction;
 use pallet_tx_pause::RuntimeCallNameOf;
 
@@ -40,42 +42,40 @@ impl pallet_tx_pause::Config for Runtime {
 	type WeightInfo = pallet_tx_pause::weights::SubstrateWeight<Runtime>;
 }
 
-/// Pallets whose calls can never be paused, so the chain keeps running and governance and the
-/// Fellowship can always step in.
+/// Calls that can never be paused, so the chain keeps running and governance and the Fellowship
+/// can always step in. That's every call of the pallets below, plus `PolkadotXcm::send` so they can
+/// still send messages out.
 ///
 /// Wrappers like `Utility` are in here too. The call filter still checks every call inside them.
-pub const NEVER_PAUSABLE: &[&str] = &[
-	"System",
-	"ParachainSystem",
-	"Timestamp",
-	"Session",
-	"CollatorSelection",
-	"XcmpQueue",
-	"MessageQueue",
-	"StakingRcClient",
-	"MultiBlockElection",
-	"MultiBlockElectionVerifier",
-	"MultiBlockElectionUnsigned",
-	"MultiBlockElectionSigned",
-	"TxPause",
-	"KillSwitch",
-	"Preimage",
-	"Scheduler",
-	"Referenda",
-	"ConvictionVoting",
-	"Whitelist",
-	"Utility",
-	"Multisig",
-	"Proxy",
-];
-
-/// Everything in [`NEVER_PAUSABLE`], plus `PolkadotXcm::send` so governance and the Fellowship can
-/// still send messages out.
 pub struct NeverPausable;
 impl Contains<RuntimeCallNameOf<Runtime>> for NeverPausable {
 	fn contains((pallet, call): &RuntimeCallNameOf<Runtime>) -> bool {
-		NEVER_PAUSABLE.iter().any(|never| never.as_bytes() == pallet.as_slice()) ||
-			(pallet.as_slice() == b"PolkadotXcm" && call.as_slice() == b"send")
+		let never_pausable = [
+			System::name(),
+			ParachainSystem::name(),
+			Timestamp::name(),
+			Session::name(),
+			CollatorSelection::name(),
+			XcmpQueue::name(),
+			MessageQueue::name(),
+			StakingRcClient::name(),
+			MultiBlockElection::name(),
+			MultiBlockElectionVerifier::name(),
+			MultiBlockElectionUnsigned::name(),
+			MultiBlockElectionSigned::name(),
+			TxPause::name(),
+			KillSwitch::name(),
+			Preimage::name(),
+			Scheduler::name(),
+			Referenda::name(),
+			ConvictionVoting::name(),
+			Whitelist::name(),
+			Utility::name(),
+			Multisig::name(),
+			Proxy::name(),
+		];
+		never_pausable.iter().any(|never| never.as_bytes() == pallet.as_slice()) ||
+			(pallet.as_slice() == PolkadotXcm::name().as_bytes() && call.as_slice() == b"send")
 	}
 }
 
@@ -115,7 +115,15 @@ pub enum KillSwitchTarget {
 
 impl KillSwitchTarget {
 	/// The calls this target pauses, by pallet.
-	fn calls(&self) -> &'static [(&'static str, &'static [&'static str])] {
+	fn calls(&self) -> Vec<(&'static str, &'static [&'static str])> {
+		const EXECUTE: &[&str] = &["execute"];
+		const PSM: &[&str] = &["mint", "redeem"];
+		const SWAPS: &[&str] = &[
+			"swap_exact_tokens_for_tokens",
+			"swap_tokens_for_exact_tokens",
+			"add_liquidity",
+			"remove_liquidity",
+		];
 		const ASSET_TRANSFERS: &[&str] = &[
 			"transfer",
 			"transfer_keep_alive",
@@ -123,37 +131,24 @@ impl KillSwitchTarget {
 			"transfer_all",
 			"approve_transfer",
 		];
+		const XCM_TRANSFERS: &[&str] = &[
+			"transfer_assets",
+			"transfer_assets_using_type_and_then",
+			"limited_reserve_transfer_assets",
+			"limited_teleport_assets",
+			"reserve_transfer_assets",
+			"teleport_assets",
+			"execute",
+		];
 		match self {
-			Self::Psm => &[("Psm", &["mint", "redeem"])],
-			Self::Swaps => &[
-				(
-					"AssetConversion",
-					&[
-						"swap_exact_tokens_for_tokens",
-						"swap_tokens_for_exact_tokens",
-						"add_liquidity",
-						"remove_liquidity",
-					],
-				),
-				("PolkadotXcm", &["execute"]),
+			Self::Psm => vec![(Psm::name(), PSM)],
+			Self::Swaps => vec![(AssetConversion::name(), SWAPS), (PolkadotXcm::name(), EXECUTE)],
+			Self::AssetTransfers => vec![
+				(Assets::name(), ASSET_TRANSFERS),
+				(ForeignAssets::name(), ASSET_TRANSFERS),
+				(PolkadotXcm::name(), EXECUTE),
 			],
-			Self::AssetTransfers => &[
-				("Assets", ASSET_TRANSFERS),
-				("ForeignAssets", ASSET_TRANSFERS),
-				("PolkadotXcm", &["execute"]),
-			],
-			Self::XcmTransfers => &[(
-				"PolkadotXcm",
-				&[
-					"transfer_assets",
-					"transfer_assets_using_type_and_then",
-					"limited_reserve_transfer_assets",
-					"limited_teleport_assets",
-					"reserve_transfer_assets",
-					"teleport_assets",
-					"execute",
-				],
-			)],
+			Self::XcmTransfers => vec![(PolkadotXcm::name(), XCM_TRANSFERS)],
 		}
 	}
 }
@@ -204,8 +199,8 @@ impl pallet_kill_switch::PauseTargets<KillSwitchTarget, RuntimeCallNameOf<Runtim
 	fn calls(target: &KillSwitchTarget) -> Vec<RuntimeCallNameOf<Runtime>> {
 		target
 			.calls()
-			.iter()
-			.flat_map(|(pallet, calls)| calls.iter().map(move |call| (*pallet, *call)))
+			.into_iter()
+			.flat_map(|(pallet, calls)| calls.iter().map(move |call| (pallet, *call)))
 			// The names are all far below `MaxNameLen`, the tests check that none get lost here.
 			.filter_map(|(pallet, call)| {
 				Some((
@@ -260,7 +255,7 @@ impl pallet_kill_switch::Config for Runtime {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::traits::{GetCallMetadata, PalletsInfoAccess};
+	use frame_support::traits::GetCallMetadata;
 	use pallet_kill_switch::PauseTargets;
 
 	#[test]
@@ -268,7 +263,7 @@ mod tests {
 		for target in KillSwitchTargets::all() {
 			for (pallet, calls) in target.calls() {
 				let known = RuntimeCall::get_call_names(pallet);
-				for call in *calls {
+				for call in calls {
 					assert!(known.contains(call), "{pallet}::{call} doesn't exist");
 				}
 			}
@@ -288,14 +283,7 @@ mod tests {
 	}
 
 	#[test]
-	fn whitelisted_pallets_exist() {
-		let pallets = <AllPalletsWithSystem as PalletsInfoAccess>::infos();
-		for pallet in NEVER_PAUSABLE {
-			assert!(
-				pallets.iter().any(|info| info.name == *pallet),
-				"{pallet} isn't in the runtime"
-			);
-		}
-		assert!(RuntimeCall::get_call_names("PolkadotXcm").contains(&"send"));
+	fn never_pausable_send_exists() {
+		assert!(RuntimeCall::get_call_names(PolkadotXcm::name()).contains(&"send"));
 	}
 }
