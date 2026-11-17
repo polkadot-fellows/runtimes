@@ -1540,6 +1540,19 @@ impl_runtime_apis! {
 		}
 	}
 
+	#[api_version(2)]
+	impl indiv_pallet_game::runtime_api::PalletGameApi<Block, Balance, AccountId> for Runtime {
+		fn play_deposit() -> Balance {
+			indiv_pallet_game::PlayDepositAmount::<Runtime>::get()
+		}
+
+		fn tenure_credits(
+			player: indiv_support::identity::AccountOrPerson<AccountId>,
+		) -> Result<u32, sp_runtime::DispatchError> {
+			Game::tenure_credits(player)
+		}
+	}
+
 	impl indiv_pallet_nft_credits::runtime_api::NftCreditsApi<Block, AccountId, BlockNumber> for Runtime {
 		fn nft_claim_credit_roots(
 			claimant: indiv_support::identity::AccountOrPerson<AccountId>,
