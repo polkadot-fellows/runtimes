@@ -108,8 +108,6 @@ use sp_runtime::{
 	ApplyExtrinsicResult, Debug, FixedU128, Perbill,
 };
 
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::kusama::{
 	consensus::*, currency::*, fee::WeightToFee, locations::AssetHubLocation,
@@ -150,18 +148,12 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("encointer-parachain"),
 	impl_name: Cow::Borrowed("encointer-parachain"),
 	authoring_version: 1,
-	spec_version: 2_005_002,
+	spec_version: 2_005_003,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 4,
 	system_version: 0,
 };
-
-/// The version information used to identify this runtime when compiled natively.
-#[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion {
-	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
-}
 
 parameter_types! {
 	// One storage item; key size 32, value size 8; .

@@ -9,9 +9,9 @@ use frame_support::{
 	traits::{ConstU32, EnsureOrigin, EnsureOriginWithArg},
 };
 use indiv_pallet_resources::types::LongTermStorageAllocation;
-pub use indiv_support::parameters::StatementAllowanceParameter;
-use indiv_support::parameters::{
-	AtLeast, AtLeastOne, AtMost, BenchmarkMax, StatementAllowanceGetter,
+use indiv_support::{
+	parameters::{AtLeast, AtLeastOne, AtMost, BenchmarkMax, StatementAllowanceGetter},
+	statement_allowance::BoundedStatementAllowance,
 };
 use polkadot_runtime_constants::system_parachain::BULLETIN_ID;
 use sp_runtime::traits::AccountIdConversion;
@@ -40,8 +40,7 @@ pub mod dynamic_params {
 		pub static LiteStmtStoreSlotsPerPeriod: u32 = 10;
 		#[codec(index = 3)]
 		pub static StmtStoreCleanupLimit: u32 = 50;
-		#[codec(index = 4)]
-		pub static StmtStoreReplacementCooldown: u32 = 60;
+		// Index 4 belonged to the removed `StmtStoreReplacementCooldown`. Do not reuse it.
 		#[codec(index = 5)]
 		pub static StmtStoreGraceWindow: u32 = 24 * 60 * 60;
 		#[codec(index = 7)]
@@ -49,11 +48,11 @@ pub mod dynamic_params {
 		#[codec(index = 8)]
 		pub static LiteNotificationSlotsPerPeriod: u8 = 8;
 		#[codec(index = 10)]
-		pub static LitePersonStatementLimit: StatementAllowanceParameter =
-			StatementAllowanceParameter { max_size: 50 * 1024, max_count: 15 };
+		pub static LitePersonStatementLimit: BoundedStatementAllowance =
+			BoundedStatementAllowance { max_size: 50 * 1024, max_count: 15 };
 		#[codec(index = 11)]
-		pub static PersonStatementLimit: StatementAllowanceParameter =
-			StatementAllowanceParameter { max_size: 100 * 1024, max_count: 30 };
+		pub static PersonStatementLimit: BoundedStatementAllowance =
+			BoundedStatementAllowance { max_size: 100 * 1024, max_count: 30 };
 	}
 
 	/// Bulletin destination and long-term storage allocation limits.
@@ -112,7 +111,7 @@ pub mod dynamic_params {
 		pub static RegistrationFee: Balance = 75 * UNITS;
 		/// Number of lite people from which paid registrations are throttled.
 		#[codec(index = 1)]
-		pub static PaidRegistrationThreshold: u32 = 20_000;
+		pub static PaidRegistrationThreshold: u32 = 2_000;
 		/// Length of a paid registration period in seconds.
 		#[codec(index = 2)]
 		pub static PaidRegistrationPeriod: u32 = SECONDS_PER_DAY;
@@ -121,7 +120,7 @@ pub mod dynamic_params {
 		pub static PaidRegistrationsPerPeriod: u32 = 10;
 		/// Maximum number of lite people, attested and paid together.
 		#[codec(index = 4)]
-		pub static MaxLitePeople: u32 = 100_000;
+		pub static MaxLitePeople: u32 = 10_000;
 	}
 
 	/// Coinage deposits, both in DOT.
@@ -196,12 +195,6 @@ pub type StmtStoreCleanupLimit = BenchmarkMax<
 		ConstU32<STMT_STORE_CLEANUP_LIMIT_CAP>,
 	>,
 	ConstU32<STMT_STORE_CLEANUP_LIMIT_CAP>,
->;
-
-/// Statement replacement cooldown, kept non-zero and at most one day.
-pub type StmtStoreReplacementCooldown = AtMost<
-	AtLeastOne<dynamic_params::statement_storage::StmtStoreReplacementCooldown>,
-	ConstU32<SECONDS_PER_DAY>,
 >;
 
 /// Statement-store grace window, kept non-zero.
@@ -300,7 +293,6 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				StatementStorageKey::StmtStoreSlotsPerPeriod(_) |
 				StatementStorageKey::LiteStmtStoreSlotsPerPeriod(_) |
 				StatementStorageKey::StmtStoreCleanupLimit(_) |
-				StatementStorageKey::StmtStoreReplacementCooldown(_) |
 				StatementStorageKey::StmtStoreGraceWindow(_) |
 				StatementStorageKey::NotificationSlotsPerPeriod(_) |
 				StatementStorageKey::LiteNotificationSlotsPerPeriod(_) |

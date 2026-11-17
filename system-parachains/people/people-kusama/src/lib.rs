@@ -66,8 +66,6 @@ use sp_runtime::{
 	ApplyExtrinsicResult, Debug,
 };
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
 	async_backing::{
@@ -176,18 +174,12 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("people-kusama"),
 	impl_name: Cow::Borrowed("people-kusama"),
 	authoring_version: 1,
-	spec_version: 2_005_002,
+	spec_version: 2_005_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
 	system_version: 1,
 };
-
-/// The version information used to identify this runtime when compiled natively.
-#[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion {
-	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
-}
 
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
@@ -806,6 +798,14 @@ mod benches {
 		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
 		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
 			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
+
+		/// `Multisig::as_multi_threshold_1`, a single-call dispatcher to nest calls with.
+		fn wrap_call(call: RuntimeCall) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Multisig(pallet_multisig::Call::<Runtime>::as_multi_threshold_1 {
+				other_signatories: Vec::new(),
+				call: alloc::boxed::Box::new(call),
+			}))
 		}
 	}
 

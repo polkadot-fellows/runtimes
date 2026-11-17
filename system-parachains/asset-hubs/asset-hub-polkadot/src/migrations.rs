@@ -258,6 +258,9 @@ pub type Unreleased = (
 	ForceCreatePgasAsset,
 	indiv_pallet_members_subscriber::migration::MigrateV0ToV1<Runtime>,
 	pallet_staking_async::migrations::SetWeightedPointsFormulaStartEra<Runtime>,
+	// EPMB signed: store the base deposit per submission, fixed at registration
+	// (polkadot-sdk#13722).
+	pallet_election_provider_multi_block::signed::migrations::v1::MigrateV0ToV1<Runtime>,
 );
 
 /// All single block migrations that will run on the next runtime upgrade.
