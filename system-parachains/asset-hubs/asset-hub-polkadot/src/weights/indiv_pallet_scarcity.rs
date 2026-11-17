@@ -32,6 +32,23 @@ use core::marker::PhantomData;
 /// Weight functions for `indiv_pallet_scarcity`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> indiv_pallet_scarcity::WeightInfo for WeightInfo<T> {
+	/// TMP WEIGHT: copied from `next-asset-hub-paseo` in individuality-community at `dc45fc3c`.
+	/// Replace with a benchmark for Asset Hub Polkadot.
+	///
+	/// Storage: `Scarcity::Instances` (r:2 w:1)
+	/// Proof: `Scarcity::Instances` (`max_values`: None, `max_size`: Some(53), added: 2528, mode: `MaxEncodedLen`)
+	/// Storage: `Scarcity::NftsByOwner` (r:1 w:0)
+	/// Proof: `Scarcity::NftsByOwner` (`max_values`: None, `max_size`: Some(90), added: 2565, mode: `MaxEncodedLen`)
+	fn migrate_location() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `392`
+		//  Estimated: `6046`
+		// Minimum execution time: 16_503_000 picoseconds.
+		Weight::from_parts(17_826_000, 0)
+			.saturating_add(Weight::from_parts(0, 6046))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 	/// Storage: `Scarcity::NextCollectionId` (r:1 w:1)
 	/// Proof: `Scarcity::NextCollectionId` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `Balances::Holds` (r:1 w:1)

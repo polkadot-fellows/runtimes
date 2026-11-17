@@ -322,6 +322,10 @@ impl indiv_pallet_scarcity::Config for Runtime {
 	type OnPurseOccupied = ();
 	// Metadata stays opaque bytes: no interface on this chain types any key.
 	type MetadataPolicy = ();
+	// A deployed contract holds any number of instances, so a game can keep several players'
+	// stakes. Every other key receives one while it holds none, and an address whose code is
+	// gone keeps what it held.
+	type ContractAccounts = ();
 }
 
 /// Resolves the origin of an NFT claim to the identity the credit's leaf binds.
