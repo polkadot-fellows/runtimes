@@ -24,9 +24,9 @@ pub mod lockdown;
 
 use crate::{
 	xcm_config::{CoretimeLocation, XcmRouter},
-	AccountId, BrokerId, BrokerPalletId, CrowdloanId, DelegatedStakingPalletId, OnDemandPalletId,
-	PoolsPalletId, ProxyType, Runtime, RuntimeEvent, Timestamp, TransparentProxyType,
-	TreasuryPalletId,
+	AccountId, AccumulateForwardPalletId, BrokerId, BrokerPalletId, CrowdloanId,
+	DelegatedStakingPalletId, OnDemandPalletId, PoolsPalletId, ProxyType, Runtime, RuntimeEvent,
+	Timestamp, TransparentProxyType, TreasuryPalletId,
 };
 use alloc::vec::Vec;
 use frame_support::{
@@ -67,6 +67,7 @@ impl Get<Vec<AccountId>> for SweptAccounts {
 			CrowdloanId::get(),
 			PoolsPalletId::get(),
 			DelegatedStakingPalletId::get(),
+			AccumulateForwardPalletId::get(),
 		]
 		.iter()
 		.map(AccountIdConversion::<AccountId>::into_account_truncating)
