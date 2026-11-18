@@ -115,8 +115,6 @@ use sp_runtime::{
 	ApplyExtrinsicResult, Debug, FixedU128, KeyTypeId, OpaqueValue, Perbill, Percent, Permill,
 };
 use sp_staking::{EraIndex, SessionIndex};
-#[cfg(any(feature = "std", test))]
-use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::prelude::*;
 use xcm_builder::PayOverXcm;
@@ -181,12 +179,6 @@ pub const BABE_GENESIS_EPOCH_CONFIG: babe_primitives::BabeEpochConfiguration =
 		c: PRIMARY_PROBABILITY,
 		allowed_slots: babe_primitives::AllowedSlots::PrimaryAndSecondaryVRFSlots,
 	};
-
-/// Native version.
-#[cfg(any(feature = "std", test))]
-pub fn native_version() -> NativeVersion {
-	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
-}
 
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
@@ -271,10 +263,29 @@ impl frame_system::Config for Runtime {
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 	type SingleBlockMigrations = migrations::SingleBlockMigrations;
-	type MultiBlockMigrator = ();
+	type MultiBlockMigrator = MultiBlockMigrations;
 	type PreInherents = ();
 	type PostInherents = ();
 	type PostTransactions = ();
+}
+
+parameter_types! {
+	pub MbmServiceWeight: Weight = Perbill::from_percent(80) * BlockWeights::get().max_block;
+}
+
+impl pallet_migrations::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type Migrations = migrations::MbmMigrations;
+	// Benchmarks need mocked migrations to guarantee that they succeed.
+	#[cfg(feature = "runtime-benchmarks")]
+	type Migrations = pallet_migrations::mock_helpers::MockedMigrations;
+	type CursorMaxLen = ConstU32<65_536>;
+	type IdentifierMaxLen = ConstU32<256>;
+	type MigrationStatusHandler = ();
+	type FailedMigrationHandler = frame_support::migrations::ForceUnstuckOnFailedMigration;
+	type MaxServiceWeight = MbmServiceWeight;
+	type WeightInfo = weights::pallet_migrations::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -392,7 +403,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type DustRemoval = ();
+	type DustRemoval = AccumulateForward;
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -405,6 +416,28 @@ impl pallet_balances::Config for Runtime {
 	type FreezeIdentifier = RuntimeFreezeReason;
 	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
+}
+
+parameter_types! {
+	pub const AccumulateForwardPalletId: PalletId =
+		polkadot_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
+	pub const ForwardPeriod: BlockNumber = HOURS;
+	pub const MinForwardAmount: Balance = 10 * UNITS;
+}
+
+impl pallet_accumulate_and_forward::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = AccumulateForwardPalletId;
+	type Forwarder = xcm_builder::TeleportForwarderForAccountId32<
+		xcm_config::XcmConfig,
+		AssetHubLocation,
+		xcm_config::TokenLocation,
+		polkadot_runtime_constants::xcm::DapStagingLocation,
+	>;
+	type TransferPeriod = ForwardPeriod;
+	type MinTransferAmount = MinForwardAmount;
+	type BlockNumberProvider = System;
+	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -774,7 +807,7 @@ impl pallet_treasury::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type SpendPeriod = SpendPeriod;
 	type Burn = Burn;
-	type BurnDestination = ();
+	type BurnDestination = pallet_accumulate_and_forward::LegacyAdapter<Runtime, Balances>;
 	type SpendFunds = Bounties;
 	type MaxApprovals = MaxApprovals;
 	type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
@@ -1256,7 +1289,9 @@ impl pallet_message_queue::Config for Runtime {
 	type IdleMaxServiceWeight = MessageQueueIdleServiceWeight;
 }
 
-impl parachains_dmp::Config for Runtime {}
+impl parachains_dmp::Config for Runtime {
+	type WeightInfo = weights::runtime_parachains_dmp::WeightInfo<Runtime>;
+}
 
 parameter_types! {
 	pub const HrmpChannelSizeAndCapacityWithSystemRatio: Percent = Percent::from_percent(100);
@@ -1451,6 +1486,10 @@ parameter_types! {
 	pub const PoolsPalletId: PalletId = PalletId(*b"py/nopls");
 	// Allow pools that got slashed up to 90% to remain operational.
 	pub const MaxPointsToBalance: u8 = 10;
+	/// Maximum number of era-keyed unbonding sub-pools (`SubPools::with_era`) per pool: the bonding
+	/// duration plus 4 eras during which an unlocked sub-pool keeps its own points-to-balance ratio
+	/// before it is merged into `SubPools::no_era`.
+	pub NominationPoolsMaxUnbondingPools: u32 = BondingDuration::get().saturating_add(4);
 }
 
 impl pallet_nomination_pools::Config for Runtime {
@@ -1462,7 +1501,7 @@ impl pallet_nomination_pools::Config for Runtime {
 	type U256ToBalance = polkadot_runtime_common::U256ToBalance;
 	type StakeAdapter =
 		pallet_nomination_pools::adapter::DelegateStake<Self, Staking, DelegatedStaking>;
-	type PostUnbondingPoolsWindow = frame_support::traits::ConstU32<4>;
+	type MaxUnbondingPools = NominationPoolsMaxUnbondingPools;
 	type MaxMetadataLen = frame_support::traits::ConstU32<256>;
 	// we use the same number of allowed unlocking chunks as with staking.
 	type MaxUnbonding = <Self as pallet_staking::Config>::MaxUnlockingChunks;
@@ -1774,6 +1813,8 @@ construct_runtime! {
 		// Dynamic, configurable parameters.
 		Parameters: pallet_parameters = 46,
 
+		AccumulateForward: pallet_accumulate_and_forward = 49,
+
 		// Parachains pallets. Start indices at 50 to leave room.
 		ParachainsOrigin: parachains_origin = 50,
 		Configuration: parachains_configuration = 51,
@@ -1806,6 +1847,9 @@ construct_runtime! {
 
 		// Asset rate.
 		AssetRate: pallet_asset_rate = 101,
+
+		// Multi-block migrations.
+		MultiBlockMigrations: pallet_migrations = 102,
 
 		// BEEFY Bridges support.
 		Beefy: pallet_beefy = 200,
@@ -1865,17 +1909,8 @@ pub mod migrations {
 	use super::*;
 
 	frame_support::parameter_types! {
-		pub const StateTrieMigrationName: &'static str = "StateTrieMigration";
 		pub const ElectionProviderMultiPhaseName: &'static str = "ElectionProviderMultiPhase";
 	}
-
-	/// Remove the `StateTrieMigration` pallet's storage. The state trie migration on Polkadot is
-	/// complete and the pallet has been removed from the runtime, see
-	/// <https://github.com/polkadot-fellows/runtimes/issues/905>.
-	pub type RemoveStateTrieMigrationPallet = frame_support::migrations::RemovePallet<
-		StateTrieMigrationName,
-		<Runtime as frame_system::Config>::DbWeight,
-	>;
 
 	/// Remove the `ElectionProviderMultiPhase` pallet's storage. Staking elections run on Asset
 	/// Hub, see <https://github.com/polkadot-fellows/runtimes/issues/1309>.
@@ -1885,17 +1920,16 @@ pub mod migrations {
 	>;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		parachains_on_demand::migration::MigrateV1ToV2<Runtime>,
-		parachains_scheduler::migration::MigrateV3ToV4<Runtime>,
-		parachains_configuration::migration::v13::MigrateToV13<Runtime>,
-		parachains_shared::migration::MigrateToV2<Runtime>,
-		RemoveStateTrieMigrationPallet,
-		RemoveElectionProviderMultiPhasePallet,
-	);
+	pub type Unreleased = (RemoveElectionProviderMultiPhasePallet,);
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;
+
+	/// Multi-block migrations to apply on runtime upgrade.
+	///
+	/// XCM delivery and `Transact` execution are not paused during MBMs. Migrations must tolerate
+	/// them or explicitly pause the affected paths.
+	pub type MbmMigrations = (parachains_dmp::migration::MigrateV0ToV1<Runtime>,);
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
@@ -1928,6 +1962,7 @@ mod benches {
 		[runtime_parachains::disputes, ParasDisputes]
 		// TODO: add `runtime_parachains::disputes::slashing` when its benchmark stops needing
 		// `pallet-staking`: <https://github.com/paritytech/polkadot-sdk/issues/12513>.
+		[runtime_parachains::dmp, Dmp]
 		[runtime_parachains::hrmp, Hrmp]
 		[runtime_parachains::inclusion, ParaInclusion]
 		[runtime_parachains::initializer, Initializer]
@@ -1936,6 +1971,7 @@ mod benches {
 		[runtime_parachains::on_demand, OnDemand]
 		[runtime_parachains::coretime, Coretime]
 		// Substrate
+		[pallet_accumulate_and_forward, AccumulateForward]
 		[pallet_bags_list, VoterList]
 		[pallet_balances, Balances]
 		[pallet_beefy_mmr, BeefyMmrLeaf]
@@ -1945,6 +1981,7 @@ mod benches {
 		[pallet_fast_unstake, FastUnstake]
 		[pallet_indices, Indices]
 		[pallet_message_queue, MessageQueue]
+		[pallet_migrations, MultiBlockMigrations]
 		[pallet_multisig, Multisig]
 		[pallet_offences, OffencesBench::<Runtime>]
 		[pallet_parameters, Parameters]
@@ -2064,6 +2101,14 @@ mod benches {
 		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
 		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
 			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
+
+		/// `Multisig::as_multi_threshold_1`, a single-call dispatcher to nest calls with.
+		fn wrap_call(call: RuntimeCall) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Multisig(pallet_multisig::Call::<Runtime>::as_multi_threshold_1 {
+				other_signatories: Vec::new(),
+				call: alloc::boxed::Box::new(call),
+			}))
 		}
 	}
 
@@ -3559,6 +3604,88 @@ mod post_ahm_filter_tests {
 
 			let origin = RuntimeOrigin::signed(sender);
 			assert!(call.dispatch(origin).is_ok());
+		});
+	}
+}
+
+#[cfg(test)]
+mod accumulate_forward_tests {
+	use super::*;
+	use frame_support::{
+		assert_ok,
+		traits::{
+			fungible::{Inspect, Mutate},
+			tokens::Preservation,
+			OnInitialize,
+		},
+	};
+
+	const ALICE: [u8; 32] = [1u8; 32];
+	const BOB: [u8; 32] = [2u8; 32];
+
+	fn new_test_ext(balances: Vec<(AccountId, Balance)>) -> sp_io::TestExternalities {
+		let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+		// The accumulation account is funded out of band. Without the ED, deposits are burned.
+		pallet_balances::GenesisConfig::<Runtime> {
+			balances: balances
+				.into_iter()
+				.chain([(AccumulateForward::accumulation_account(), ExistentialDeposit::get())])
+				.collect(),
+			..Default::default()
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+		t.into()
+	}
+
+	fn accumulated() -> Balance {
+		<Balances as Inspect<_>>::balance(&AccumulateForward::accumulation_account())
+	}
+
+	#[test]
+	fn dust_accumulates_instead_of_being_burned() {
+		// GIVEN Alice and Bob hold exactly the ED.
+		let ed = ExistentialDeposit::get();
+		new_test_ext(vec![(AccountId::from(ALICE), ed), (AccountId::from(BOB), ed)]).execute_with(
+			|| {
+				let issuance_before = Balances::total_issuance();
+				let accumulated_before = accumulated();
+
+				// WHEN Alice is reaped, leaving dust behind.
+				let dust = ed / 2;
+				assert_ok!(<Balances as Mutate<_>>::transfer(
+					&AccountId::from(ALICE),
+					&AccountId::from(BOB),
+					ed - dust,
+					Preservation::Expendable,
+				));
+
+				// THEN the dust lands in the accumulation account and issuance is unchanged.
+				assert_eq!(<Balances as Inspect<_>>::balance(&AccountId::from(ALICE)), 0);
+				assert_eq!(accumulated(), accumulated_before + dust);
+				assert_eq!(Balances::total_issuance(), issuance_before);
+			},
+		);
+	}
+
+	#[test]
+	fn treasury_burn_accumulates_instead_of_being_burned() {
+		// GIVEN a funded treasury with no pending spends.
+		let treasury = Treasury::account_id();
+		new_test_ext(vec![(treasury.clone(), 1_000 * UNITS)]).execute_with(|| {
+			let issuance_before = Balances::total_issuance();
+			let accumulated_before = accumulated();
+			let burn = Burn::get() * Treasury::pot();
+
+			// WHEN a spend period elapses.
+			System::set_block_number(SpendPeriod::get());
+			<Treasury as OnInitialize<BlockNumber>>::on_initialize(SpendPeriod::get());
+
+			// THEN the burn lands in the accumulation account and issuance is unchanged.
+			assert!(burn > 0);
+			assert_eq!(accumulated(), accumulated_before + burn);
+			assert_eq!(<Balances as Inspect<_>>::balance(&treasury), 1_000 * UNITS - burn);
+			assert_eq!(Balances::total_issuance(), issuance_before);
 		});
 	}
 }

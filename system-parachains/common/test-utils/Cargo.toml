@@ -11,8 +11,11 @@ publish = false
 [dependencies]
 codec = { workspace = true, default-features = true }
 
+cumulus-pallet-parachain-system = { workspace = true, default-features = true }
+
 frame-support = { workspace = true, default-features = true }
 frame-system = { workspace = true, default-features = true }
+pallet-accumulate-and-forward = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-session = { workspace = true, default-features = true }
 parachains-runtimes-test-utils = { workspace = true }

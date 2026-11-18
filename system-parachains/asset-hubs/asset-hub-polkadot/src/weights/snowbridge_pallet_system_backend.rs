@@ -57,6 +57,7 @@ impl<T: frame_system::Config> snowbridge_pallet_system_frontend::BackendWeightIn
 		Weight::from_parts(11_960_000, 0)
 			.saturating_add(Weight::from_parts(0, 1620))
 			.saturating_add(RocksDbWeight::get().reads(1))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 
 	/// Copy the weight generated for `fn submit_delivery_receipt() -> Weight` from ../../../../bridge-hubs/bridge-hub-polkadot/src/weights/snowbridge_pallet_outbound_queue_v2.rs
