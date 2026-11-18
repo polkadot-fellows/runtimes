@@ -362,7 +362,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const AccumulateForwardPalletId: PalletId =
 		kusama_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
-	pub const ForwardPeriod: BlockNumber = HOURS;
+	pub const ForwardPeriod: BlockNumber = kusama_runtime_constants::time::HOURS;
 	pub const MinForwardAmount: Balance = UNITS;
 }
 
@@ -376,10 +376,7 @@ impl pallet_accumulate_and_forward::Config for Runtime {
 	>;
 	type TransferPeriod = ForwardPeriod;
 	type MinTransferAmount = MinForwardAmount;
-	// Local clock: the relay one would fire on one parity only, as forwards happen on exact
-	// multiples of the period. TODO: use `RelaychainDataProvider` once
-	// https://github.com/paritytech/polkadot-sdk/issues/13149 lands.
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
 	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
@@ -1007,10 +1004,8 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		pallet_encointer_democracy::migrations::v2::MigrateV1toV2<Runtime>,
-		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
+		// Not yet enacted on Encointer, which runs v2.3.0 (storage version 6 on-chain).
 		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
-		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.

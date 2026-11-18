@@ -20,9 +20,11 @@ use codec::Decode;
 use frame_support::{
 	assert_noop, assert_ok,
 	traits::{
-		fungible::{Inspect, InspectHold},
-		Get,
+		fungible::{Inspect, InspectHold, Mutate},
+		tokens::Preservation,
+		Get, Hooks,
 	},
+	weights::Weight,
 };
 use frame_system::RawOrigin;
 use pallet_session::{HoldReason, NextKeys};
@@ -31,7 +33,7 @@ use parachains_runtimes_test_utils::{
 };
 use sp_keystore::{testing::MemoryKeystore, KeystoreExt};
 use sp_runtime::{
-	traits::{Dispatchable, TrailingZeroInput, Zero},
+	traits::{BlockNumberProvider, Dispatchable, TrailingZeroInput, Zero},
 	DispatchError, TokenError,
 };
 
@@ -147,4 +149,69 @@ pub fn session_key_deposit_works<Runtime>(
 		assert_eq!(free(&genesis_collator), ed + deposit);
 		assert_eq!(System::<Runtime>::consumers(&genesis_collator), consumers - 1);
 	});
+}
+
+/// Dust accumulates for the forward to Asset Hub instead of being burned here, where the burn would
+/// not show in the network total that Asset Hub tracks.
+pub fn dust_accumulates_instead_of_being_burned<Runtime>()
+where
+	Runtime: pallet_balances::Config + pallet_accumulate_and_forward::Config,
+	AccountIdOf<Runtime>: From<[u8; 32]>,
+{
+	type Balances<Runtime> = pallet_balances::Pallet<Runtime>;
+
+	// GIVEN a funded accumulation account and an account holding exactly the ED
+	let ed = <Runtime as pallet_balances::Config>::ExistentialDeposit::get();
+	let accumulation_account =
+		pallet_accumulate_and_forward::Pallet::<Runtime>::accumulation_account();
+	assert_ok!(Balances::<Runtime>::mint_into(&accumulation_account, ed));
+	let alice = AccountIdOf::<Runtime>::from([1u8; 32]);
+	let bob = AccountIdOf::<Runtime>::from([2u8; 32]);
+	assert_ok!(Balances::<Runtime>::mint_into(&alice, ed));
+	assert_ok!(Balances::<Runtime>::mint_into(&bob, ed));
+	let issuance_before = Balances::<Runtime>::total_issuance();
+	let accumulated_before = Balances::<Runtime>::balance(&accumulation_account);
+
+	// WHEN Alice is reaped, leaving dust behind
+	let dust = ed / 2u32.into();
+	assert_ok!(<Balances<Runtime> as Mutate<_>>::transfer(
+		&alice,
+		&bob,
+		ed - dust,
+		Preservation::Expendable,
+	));
+
+	// THEN the dust reaches the accumulation account and nothing is burned
+	assert_eq!(Balances::<Runtime>::balance(&alice), Zero::zero());
+	assert_eq!(Balances::<Runtime>::balance(&accumulation_account), accumulated_before + dust);
+	assert_eq!(Balances::<Runtime>::total_issuance(), issuance_before, "the dust is not burned");
+}
+
+/// The forward period is one hour of relay chain blocks, whatever the local block number is.
+pub fn forward_period_counts_relay_blocks<Runtime>(relay_hour: u32)
+where
+	Runtime: pallet_accumulate_and_forward::Config + cumulus_pallet_parachain_system::Config,
+	<Runtime as pallet_accumulate_and_forward::Config>::BlockNumberProvider:
+		BlockNumberProvider<BlockNumber = u32>,
+	<Runtime as pallet_accumulate_and_forward::Config>::Currency: Mutate<AccountIdOf<Runtime>>,
+{
+	use cumulus_pallet_parachain_system::RelaychainDataProvider;
+	use pallet_accumulate_and_forward::{Config, LastForwardBlock, Pallet};
+
+	// GIVEN a funded accumulation account, local block 1 and relay block 1000
+	assert_ok!(<Runtime as Config>::Currency::mint_into(
+		&Pallet::<Runtime>::accumulation_account(),
+		<Runtime as Config>::Currency::minimum_balance() +
+			<Runtime as Config>::MinTransferAmount::get(),
+	));
+	frame_system::Pallet::<Runtime>::set_block_number(1u32.into());
+	RelaychainDataProvider::<Runtime>::set_block_number(1000);
+
+	// WHEN `on_idle` runs
+	Pallet::<Runtime>::on_idle(1u32.into(), Weight::MAX);
+
+	// THEN the forward attempt is recorded at the relay block
+	assert_eq!(LastForwardBlock::<Runtime>::get(), Some(1000));
+	// AND the period is one hour of relay chain blocks
+	assert_eq!(<Runtime as Config>::TransferPeriod::get(), relay_hour);
 }

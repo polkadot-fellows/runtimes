@@ -14,9 +14,10 @@
 // limitations under the License.
 
 use super::{
-	AccountId, AllPalletsWithSystem, Architects, Balance, Balances, CollatorSelection, Fellows,
-	ParachainInfo, ParachainSystem, PolkadotXcm, PriceForParentDelivery, Runtime, RuntimeCall,
-	RuntimeEvent, RuntimeHoldReason, RuntimeOrigin, WeightToFee, XcmpQueue,
+	AccountId, AccumulateForward, AllPalletsWithSystem, Architects, Balance, Balances,
+	CollatorSelection, Fellows, ParachainInfo, ParachainSystem, PolkadotXcm,
+	PriceForParentDelivery, Runtime, RuntimeCall, RuntimeEvent, RuntimeHoldReason, RuntimeOrigin,
+	WeightToFee, XcmpQueue,
 };
 use cumulus_primitives_core::ParaId;
 use frame_support::{
@@ -212,6 +213,8 @@ parameter_types! {
 		PalletInstance(<crate::AmbassadorSalary as PalletInfoAccess>::index() as u8).into();
 	pub AmbassadorTreasuryLocation: Location =
 		PalletInstance(<crate::AmbassadorTreasury as PalletInfoAccess>::index() as u8).into();
+	pub AccumulateForwardLocation: Location =
+		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
 
 /// Locations that will not be charged fees in the executor,
@@ -227,6 +230,8 @@ pub type WaivedLocations = (
 	Equals<AmbassadorSalaryLocation>,
 	Equals<AmbassadorTreasuryLocation>,
 	LocalPlurality,
+	// Forwards of accumulated dust and slashes to the DAP.
+	Equals<AccumulateForwardLocation>,
 );
 
 /// Cases where a remote origin is accepted as trusted Teleporter for a given asset:
