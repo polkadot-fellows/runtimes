@@ -260,10 +260,6 @@ parameter_types! {
 	pub const PersonAuthDuration: u32 = 2 * 24 * 60 * 60; // 2 days
 	pub const MinPersonAuthUpdateInterval: u32 = 24 * 60 * 60; // 1 day
 	pub const MaxReservationQueueLength: u32 = 10;
-	pub const AccountsApiAllowance: StatementAllowance =
-		StatementAllowance { max_size: 500 * 1024, max_count: 2 };
-	pub const NotificationAllowance: StatementAllowance =
-		StatementAllowance { max_size: 10 * 1024, max_count: 1 };
 }
 
 impl indiv_pallet_resources::Config for Runtime {
@@ -272,12 +268,12 @@ impl indiv_pallet_resources::Config for Runtime {
 	type MemberService = Members;
 	type MinUsernameLength = MinUsernameLength;
 	type PersonAuthDuration = PersonAuthDuration;
-	type AccountsApiAllowance = AccountsApiAllowance;
+	type AccountsApiAllowance = crate::parameters::AccountsApiAllowance;
 	type StmtStoreSlotsPerPeriod = crate::parameters::StmtStoreSlotsPerPeriod;
 	type LiteStmtStoreSlotsPerPeriod = crate::parameters::LiteStmtStoreSlotsPerPeriod;
 	type StmtStoreCleanupLimit = crate::parameters::StmtStoreCleanupLimit;
 	type StmtStoreGraceWindow = crate::parameters::StmtStoreGraceWindow;
-	type NotificationAllowance = NotificationAllowance;
+	type NotificationAllowance = crate::parameters::NotificationAllowance;
 	type NotificationSlotsPerPeriod = crate::parameters::NotificationSlotsPerPeriod;
 	type LiteNotificationSlotsPerPeriod = crate::parameters::LiteNotificationSlotsPerPeriod;
 	type NotificationPeriodDuration = ConstU32<{ 24 * 60 * 60 }>;

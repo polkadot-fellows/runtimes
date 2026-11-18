@@ -716,6 +716,8 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		LitePersonhood(lite_personhood::PaidRegistrationPeriod.into()),
 		LitePersonhood(lite_personhood::PaidRegistrationsPerPeriod.into()),
 		LitePersonhood(lite_personhood::MaxLitePeople.into()),
+		StatementStorage(statement_storage::AccountsApiAllowance.into()),
+		StatementStorage(statement_storage::NotificationAllowance.into()),
 	];
 	let root_only = [
 		BulletinStorage(bulletin_storage::BulletinChainLocation.into()),

@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Multi-block migrations count the existing lite people, add recognition history to person records
     and record the granted allowance on existing statement store and notification entries.
   - Account signatures over messages that are not transactions are now checked against the message in a product signing context.
+- People Polkadot: the accounts API and notification statement allowances are dynamic parameters that Root or the Technical Maintenance voice can change. Both keep their current values, so the migration records the allowance existing entries were granted ([#1306](https://github.com/polkadot-fellows/runtimes/pull/1306)).
 - Polkadot and Kusama relays: add `pallet-migrations` to service multi-block migrations ([#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 - Polkadot and Kusama relays: migrate DMP queues to paged storage ([SDK #11909](https://github.com/paritytech/polkadot-sdk/pull/11909), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 - Polkadot Relay, Bridge Hub, Collectives and People: dust, treasury burns and slashes are no longer burnt or sent to the Relay Chain treasury. They accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).

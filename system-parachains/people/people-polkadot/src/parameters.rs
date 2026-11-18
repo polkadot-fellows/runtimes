@@ -34,6 +34,9 @@ pub mod dynamic_params {
 	#[dynamic_pallet_params]
 	#[codec(index = 0)]
 	pub mod statement_storage {
+		#[codec(index = 0)]
+		pub static AccountsApiAllowance: BoundedStatementAllowance =
+			BoundedStatementAllowance { max_size: 500 * 1024, max_count: 2 };
 		#[codec(index = 1)]
 		pub static StmtStoreSlotsPerPeriod: u32 = 20;
 		#[codec(index = 2)]
@@ -43,6 +46,9 @@ pub mod dynamic_params {
 		// Index 4 belonged to the removed `StmtStoreReplacementCooldown`. Do not reuse it.
 		#[codec(index = 5)]
 		pub static StmtStoreGraceWindow: u32 = 24 * 60 * 60;
+		#[codec(index = 6)]
+		pub static NotificationAllowance: BoundedStatementAllowance =
+			BoundedStatementAllowance { max_size: 10 * 1024, max_count: 1 };
 		#[codec(index = 7)]
 		pub static NotificationSlotsPerPeriod: u8 = 16;
 		#[codec(index = 8)]
@@ -173,6 +179,10 @@ pub type PeopleAirdropsPrizeSource = dynamic_params::people_airdrops::PrizeSourc
 /// Any account is a valid airdrop source, so the value is read unclamped.
 pub type GameAirdropSource = dynamic_params::game::AirdropSource;
 
+pub type AccountsApiAllowance =
+	StatementAllowanceGetter<dynamic_params::statement_storage::AccountsApiAllowance>;
+pub type NotificationAllowance =
+	StatementAllowanceGetter<dynamic_params::statement_storage::NotificationAllowance>;
 pub type LitePersonStatementLimit =
 	StatementAllowanceGetter<dynamic_params::statement_storage::LitePersonStatementLimit>;
 pub type PersonStatementLimit =
@@ -290,6 +300,8 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 		match key {
 			// Quotas, allowances and housekeeping.
 			RuntimeParametersKey::StatementStorage(
+				StatementStorageKey::AccountsApiAllowance(_) |
+				StatementStorageKey::NotificationAllowance(_) |
 				StatementStorageKey::StmtStoreSlotsPerPeriod(_) |
 				StatementStorageKey::LiteStmtStoreSlotsPerPeriod(_) |
 				StatementStorageKey::StmtStoreCleanupLimit(_) |
