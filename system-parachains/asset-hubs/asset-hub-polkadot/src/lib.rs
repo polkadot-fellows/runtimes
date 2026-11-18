@@ -114,8 +114,6 @@ use xcm_runtime_apis::{
 	fees::Error as XcmPaymentApiError,
 };
 
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
@@ -206,18 +204,12 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: Cow::Borrowed("statemint"),
 	spec_name: Cow::Borrowed("statemint"),
 	authoring_version: 1,
-	spec_version: 2_005_002,
+	spec_version: 2_005_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
 	system_version: 1,
 };
-
-/// The version information used to identify this runtime when compiled natively.
-#[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion {
-	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
-}
 
 /// Asset Hub Polkadot uses a 24s Aura slot duration.
 pub const SLOT_DURATION: u64 = 24_000;
@@ -1212,6 +1204,8 @@ parameter_types! {
 	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
 	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
 	pub LpFee: Permill = Permill::from_rational(3u32, 1_000u32);
+	/// Upper bound for per-pool swap fees set by `AdminOrigin` (polkadot-sdk#12369).
+	pub MaxSwapFee: Permill = Permill::from_percent(2);
 	// Storage deposit for pool setup within asset conversion pallet
 	// and pool's lp token creation within assets pallet.
 	pub const PoolSetupFee: Balance = system_para_deposit(1, 4) + AssetDeposit::get();
@@ -1240,6 +1234,8 @@ impl pallet_asset_conversion::Config for Runtime {
 	type PoolSetupFeeTarget = ResolveAssetTo<staking::DapStagingAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
 	type LPFee = LpFee;
+	type AdminOrigin = AssetsForceOrigin;
+	type MaxSwapFee = MaxSwapFee;
 	type PalletId = AssetConversionPalletId;
 	type MaxSwapPathLength = ConstU32<3>;
 	type MintMinLiquidity = ConstU128<100>;
@@ -1412,7 +1408,7 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
-				WhitelistedCaller,
+				EnsureXcm<IsFellowshipVoice<FellowshipLocation>>,
 			>::ensure_origin(origin.clone())
 			.map(|_success| ()),
 		}
@@ -2352,6 +2348,14 @@ mod benches {
 		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
 		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
 			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
+
+		/// `Multisig::as_multi_threshold_1`, a single-call dispatcher to nest calls with.
+		fn wrap_call(call: RuntimeCall) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Multisig(pallet_multisig::Call::<Runtime>::as_multi_threshold_1 {
+				other_signatories: Vec::new(),
+				call: alloc::boxed::Box::new(call),
+			}))
 		}
 	}
 
@@ -3598,44 +3602,36 @@ mod tests {
 		assert!(AllExceptReapStash::contains(&chill_other));
 	}
 
-	/// The nomination-pools `with_era` bound (`TotalUnbondingPools`) must stay pinned at its
-	/// historical maximum (32) across the `AreNominatorsSlashable` fast-unbond flip. Otherwise the
-	/// lowered nominator bonding duration would shrink the bound (32 -> 6), making oversized
-	/// historical sub-pools undecodable and destroying per-era unbonding accounting on the next
-	/// `unbond`.
+	/// The nomination-pools `with_era` bound (`MaxUnbondingPools`) must stay pinned at its
+	/// historical maximum (32) across the `AreNominatorsSlashable` fast-unbond flip. Otherwise
+	/// oversized historical sub-pools would become undecodable, destroying per-era unbonding
+	/// accounting on the next `unbond`. After the flip, the merge window
+	/// (`MaxUnbondingPools - nominator_bonding_duration`) widens from 4 to 30 eras.
 	#[test]
 	fn nomination_pools_bound_survives_nominator_unslashable_flip() {
-		use frame_support::traits::Get;
 		use sp_staking::StakingInterface;
 
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			// The bound the pallet actually uses for `SubPools::with_era`.
-			let total_unbonding_pools = || {
-				<Staking as StakingInterface>::nominator_bonding_duration() +
-					<Runtime as pallet_nomination_pools::Config>::PostUnbondingPoolsWindow::get()
+			let max_unbonding_pools =
+				|| <Runtime as pallet_nomination_pools::Config>::MaxUnbondingPools::get();
+			let merge_window = || {
+				max_unbonding_pools() - <Staking as StakingInterface>::nominator_bonding_duration()
 			};
 
 			// Pre-flip: nominators slashable, so the nominator bonding duration is the full
-			// `BondingDuration` and the post-unbonding window is the legacy 4. Set explicitly
-			// rather than relying on the storage default so the test pins both flag states
-			// itself.
+			// `BondingDuration`. Set explicitly rather than relying on the storage default so the
+			// test pins both flag states itself.
 			pallet_staking_async::AreNominatorsSlashable::<Runtime>::put(true);
 			assert_eq!(<Staking as StakingInterface>::nominator_bonding_duration(), 28);
-			assert_eq!(
-				<Runtime as pallet_nomination_pools::Config>::PostUnbondingPoolsWindow::get(),
-				4
-			);
-			assert_eq!(total_unbonding_pools(), 32);
+			assert_eq!(max_unbonding_pools(), 32);
+			assert_eq!(merge_window(), 4);
 
 			// The flip: nominators become non-slashable, so the nominator bonding duration drops to
-			// `NominatorFastUnbondDuration` (2). The window must widen to 30 so the bound stays 32.
+			// `NominatorFastUnbondDuration` (2). The bound must not move.
 			pallet_staking_async::AreNominatorsSlashable::<Runtime>::put(false);
 			assert_eq!(<Staking as StakingInterface>::nominator_bonding_duration(), 2);
-			assert_eq!(
-				<Runtime as pallet_nomination_pools::Config>::PostUnbondingPoolsWindow::get(),
-				30
-			);
-			assert_eq!(total_unbonding_pools(), 32);
+			assert_eq!(max_unbonding_pools(), 32);
+			assert_eq!(merge_window(), 30);
 		});
 	}
 
@@ -3671,6 +3667,35 @@ mod tests {
 			}
 			// A governance origin the router accepts for another module.
 			assert!(DynamicParameterOrigin::try_origin(StakingAdmin.into(), key).is_err());
+		}
+	}
+
+	#[test]
+	fn only_root_or_fellowship_sets_scheduler_and_message_queue_parameters() {
+		use dynamic_params::{message_queue::*, scheduler::*};
+		use frame_support::traits::EnsureOriginWithArg;
+		use pallet_custom_origins::Origin::{StakingAdmin, WhitelistedCaller};
+		use xcm::latest::prelude::*;
+
+		let keys = [
+			RuntimeParametersKey::Scheduler(MaxScheduledPerBlock.into()),
+			RuntimeParametersKey::Scheduler(MaximumWeight.into()),
+			RuntimeParametersKey::MessageQueue(MaxOnInitWeight.into()),
+			RuntimeParametersKey::MessageQueue(MaxOnIdleWeight.into()),
+		];
+		let fellowship_voice = FellowshipLocation::get()
+			.pushed_with_interior(Plurality { id: BodyId::Technical, part: BodyPart::Voice })
+			.unwrap();
+
+		for key in &keys {
+			for origin in
+				[RuntimeOrigin::root(), pallet_xcm::Origin::Xcm(fellowship_voice.clone()).into()]
+			{
+				assert!(DynamicParameterOrigin::try_origin(origin, key).is_ok());
+			}
+			for origin in [WhitelistedCaller.into(), StakingAdmin.into()] {
+				assert!(DynamicParameterOrigin::try_origin(origin, key).is_err());
+			}
 		}
 	}
 }

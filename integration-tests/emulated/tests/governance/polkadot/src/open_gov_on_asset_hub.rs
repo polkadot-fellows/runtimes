@@ -37,18 +37,16 @@ fn assethub_can_authorize_upgrade_for_itself() {
 
 	let call_hash = call_hash_of::<AssetHubPolkadot>(&authorize_upgrade);
 
-	// Err - when dispatch non-whitelisted
-	assert_err!(
-		dispatch_whitelisted_call_with_preimage::<AssetHubPolkadot>(
-			authorize_upgrade.clone(),
-			ok_origin.clone()
-		),
-		DispatchError::Module(sp_runtime::ModuleError {
-			index: 64,
-			error: [3, 0, 0, 0],
-			message: Some("CallIsNotWhitelisted")
-		})
-	);
+	// Ok - dispatching non-whitelisted defers the call (polkadot-sdk#11336)
+	assert_ok!(dispatch_whitelisted_call_with_preimage::<AssetHubPolkadot>(
+		authorize_upgrade.clone(),
+		ok_origin.clone()
+	));
+	AssetHubPolkadot::execute_with(|| {
+		assert!(pallet_whitelist::DeferredDispatch::<<AssetHubPolkadot as Chain>::Runtime>::contains_key(
+			call_hash
+		));
+	});
 
 	// whitelist
 	collectives_send_whitelist(
@@ -117,18 +115,16 @@ fn assethub_can_authorize_upgrade_for_relay_chain() {
 
 	let call_hash = call_hash_of::<AssetHubPolkadot>(&authorize_upgrade);
 
-	// Err - when dispatch non-whitelisted
-	assert_err!(
-		dispatch_whitelisted_call_with_preimage::<AssetHubPolkadot>(
-			authorize_upgrade.clone(),
-			ok_origin.clone()
-		),
-		DispatchError::Module(sp_runtime::ModuleError {
-			index: 64,
-			error: [3, 0, 0, 0],
-			message: Some("CallIsNotWhitelisted")
-		})
-	);
+	// Ok - dispatching non-whitelisted defers the call (polkadot-sdk#11336)
+	assert_ok!(dispatch_whitelisted_call_with_preimage::<AssetHubPolkadot>(
+		authorize_upgrade.clone(),
+		ok_origin.clone()
+	));
+	AssetHubPolkadot::execute_with(|| {
+		assert!(pallet_whitelist::DeferredDispatch::<<AssetHubPolkadot as Chain>::Runtime>::contains_key(
+			call_hash
+		));
+	});
 
 	// whitelist
 	collectives_send_whitelist(
@@ -221,18 +217,16 @@ fn assethub_can_authorize_upgrade_for_system_chains() {
 
 	let call_hash = call_hash_of::<AssetHubPolkadot>(&authorize_upgrade);
 
-	// Err - when dispatch non-whitelisted
-	assert_err!(
-		dispatch_whitelisted_call_with_preimage::<AssetHubPolkadot>(
-			authorize_upgrade.clone(),
-			ok_origin.clone()
-		),
-		DispatchError::Module(sp_runtime::ModuleError {
-			index: 64,
-			error: [3, 0, 0, 0],
-			message: Some("CallIsNotWhitelisted")
-		})
-	);
+	// Ok - dispatching non-whitelisted defers the call (polkadot-sdk#11336)
+	assert_ok!(dispatch_whitelisted_call_with_preimage::<AssetHubPolkadot>(
+		authorize_upgrade.clone(),
+		ok_origin.clone()
+	));
+	AssetHubPolkadot::execute_with(|| {
+		assert!(pallet_whitelist::DeferredDispatch::<<AssetHubPolkadot as Chain>::Runtime>::contains_key(
+			call_hash
+		));
+	});
 
 	// whitelist
 	collectives_send_whitelist(

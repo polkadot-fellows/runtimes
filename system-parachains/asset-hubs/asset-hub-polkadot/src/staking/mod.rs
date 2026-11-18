@@ -26,9 +26,7 @@ use crate::{governance::StakingAdmin, *};
 use codec::Encode;
 use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
-use frame_support::{
-	pallet_prelude::OptionQuery, storage_alias, traits::tokens::imbalance::ResolveTo, BoundedVec,
-};
+use frame_support::{traits::tokens::imbalance::ResolveTo, BoundedVec};
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
 use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
@@ -254,6 +252,8 @@ parameter_types! {
 	pub EjectGraceRatio: Perbill = Perbill::from_percent(100);
 	/// 5 DOT as the reward for the best signed submission.
 	pub RewardBase: Balance = UNITS * 5;
+	/// The DAP buffer account.
+	pub SignedRewardPot: Option<AccountId> = Some(Dap::buffer_account());
 }
 
 impl multi_block::signed::Config for Runtime {
@@ -266,6 +266,11 @@ impl multi_block::signed::Config for Runtime {
 	type RewardBase = RewardBase;
 	type MaxSubmissions = MaxSignedSubmissions;
 	type EstimateCallFee = TransactionPayment;
+	type MaxFeeRefund = multi_block::signed::FullSubmissionFee<Runtime, TransactionPayment>;
+	// Slashed deposits go to the DAP. Rewards and fee refunds are paid from the DAP buffer, which
+	// holds inactive issuance, so each payout is reactivated.
+	type Slash = Dap;
+	type RewardSource = multi_block::signed::ReactivatingPot<SignedRewardPot, Balances>;
 	type WeightInfo = weights::pallet_election_provider_multi_block_signed::WeightInfo<Runtime>;
 }
 
@@ -431,8 +436,26 @@ parameter_types! {
 	pub const ValidatorSetExportSession: SessionIndex = 4;
 }
 
+/// A validator is inactive in an era if it earned no era points.
+///
+/// Defined here instead of using the SDK's `()` impl, so that the rule only changes through an
+/// explicit runtime change.
+pub struct NoEraPoints;
+impl pallet_staking_async::IsValidatorInactive<AccountId> for NoEraPoints {
+	fn is_inactive(
+		_era: sp_staking::EraIndex,
+		_stash: &AccountId,
+		era_points: pallet_staking_async::RewardPoint,
+	) -> bool {
+		era_points == 0
+	}
+}
+
 impl pallet_staking_async::Config for Runtime {
 	type Filter = ();
+	// Makes the permissionless `chill_inactive` call live, with `ChillInactiveThreshold` defaulting
+	// to `HistoryDepth` eras (governance can change it via `set_staking_configs`).
+	type IsValidatorInactive = NoEraPoints;
 	type OldCurrency = Balances;
 	type Currency = Balances;
 	type CurrencyBalance = Balance;
@@ -718,37 +741,6 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 		<Runtime as multi_block::Config>::Verifier::set_minimum_score(minimum_score);
 
 		<Runtime as frame_system::Config>::DbWeight::get().writes(3)
-	}
-}
-
-// Deprecated: Holds the TI from March 14, 2026
-#[storage_alias(verbatim)]
-pub type March2026TI = StorageValue<Runtime, Balance, OptionQuery>;
-
-pub struct RemoveMarchTIValue;
-
-impl frame_support::traits::OnRuntimeUpgrade for RemoveMarchTIValue {
-	#[cfg(feature = "try-runtime")]
-	fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
-		if !March2026TI::exists() {
-			return Ok(Vec::new()); // Migration already ran
-		}
-		frame_support::ensure!(
-			March2026TI::get().unwrap() == EraPayout::MARCH_2026_TI,
-			"New value should match the old."
-		);
-		Ok(Vec::new())
-	}
-
-	fn on_runtime_upgrade() -> Weight {
-		March2026TI::kill();
-		<Runtime as frame_system::Config>::DbWeight::get().writes(1)
-	}
-
-	#[cfg(feature = "try-runtime")]
-	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-		frame_support::ensure!(!March2026TI::exists(), "March2026TI should be removed");
-		Ok(())
 	}
 }
 
