@@ -216,12 +216,13 @@ async fn the_migration_runs_to_completion() {
 	let ah_pre =
 		ah.execute_with(|| <Checks as ParaMigrationCheck<AssetHubPara>>::pre_check(&rc_pre));
 
-	// One block per batch of accounts, plus one per stage arm and some slack.
+	// One block per batch of accounts in the accounts stage and again in Sweep Dust, which walks
+	// what is left, plus one per stage arm and some slack.
 	let accounts = rc_pre.0.accounts.len() as u32;
 	let per_block = rc
 		.execute_with(pallet_rc2_migrator::Limits::<network::relay::Runtime>::get)
 		.items_per_block();
-	let max_blocks = accounts / per_block + 30;
+	let max_blocks = 2 * accounts / per_block + 30;
 
 	{
 		let mut to_ah = dmp_sink::<AssetHubPara>(&mut ah);
