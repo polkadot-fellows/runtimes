@@ -215,7 +215,7 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	HrmpDone,
 	/// Sweep the pallet accounts in [`Config::SweptAccounts`]. Burn each one's free balance and
 	/// teleport the total to [`Config::SweepBeneficiary`] on Asset Hub in one message. A failed
-	/// send rolls back the stage and is retried in the next block.
+	/// burn or send rolls back the stage, which is retried in the next block.
 	Sweep,
 	/// Reap the accounts left below the existential deposit, and the zero-balance husks.
 	///
@@ -963,7 +963,7 @@ pub mod pallet {
 		///
 		/// The caller runs it in a storage transaction, so an `Err` rolls the burns back too.
 		fn sweep_pots() -> Result<(), DispatchError> {
-			let total = sweep::SweepMigrator::<T>::burn_pots();
+			let total = sweep::SweepMigrator::<T>::burn_pots()?;
 			if total == 0 {
 				return Ok(());
 			}

@@ -20,41 +20,42 @@
 //! pot's balance on the Relay Chain and teleports the total to [`Config::SweepBeneficiary`] on
 //! Asset Hub.
 //!
-//! Sweep handles the whole list in one block. If sending the teleport fails, the entire stage
+//! Sweep handles the whole list in one block. If a burn or the teleport fails, the entire stage
 //! is rolled back and retried in the next block.
 
 #[cfg(test)]
 mod tests;
 
-use crate::{Config, Event, Pallet};
+use crate::{Config, Event, Pallet, LOG_TARGET};
 use core::marker::PhantomData;
 use frame_support::traits::{
 	fungible::{Inspect, Mutate},
 	tokens::{Fortitude, Precision, Preservation},
-	Defensive, Get,
+	Get,
 };
-use sp_runtime::traits::Zero;
+use sp_runtime::{traits::Zero, DispatchError};
 
 type NativeCurrency<T> = pallet_balances::Pallet<T>;
 
 pub struct SweepMigrator<T>(PhantomData<T>);
 
 impl<T: Config> SweepMigrator<T> {
-	/// Burn every pot. Return the total burned for the caller to record and teleport.
-	pub fn burn_pots() -> u128 {
+	/// Burn every pot. Return the total burned for the caller to record and teleport, or the
+	/// error of a pot that could not be burned.
+	pub fn burn_pots() -> Result<u128, DispatchError> {
 		T::SweptAccounts::get()
 			.iter()
-			.map(Self::burn_pot)
-			.fold(0u128, |total, burned| total.saturating_add(burned))
+			.try_fold(0u128, |total, pot| Ok(total.saturating_add(Self::burn_pot(pot)?)))
 	}
 
 	/// Burn `pot`'s free balance and return the amount.
 	///
 	/// Only the admin can put a hold, reserve, lock or freeze on a pot, or add a consumer
-	/// reference to it. So a pot holds only free balance, and all of it can be burned.
-	fn burn_pot(pot: &T::AccountId) -> u128 {
+	/// reference to it. So a pot holds only free balance, and all of it can be burned. If the
+	/// admin added one anyway, the burn fails, and the caller rolls back and retries the stage.
+	fn burn_pot(pot: &T::AccountId) -> Result<u128, DispatchError> {
 		if !frame_system::Account::<T>::contains_key(pot) {
-			return 0;
+			return Ok(0);
 		}
 		let free = <NativeCurrency<T> as Inspect<T::AccountId>>::balance(pot);
 		let burned = if free.is_zero() {
@@ -67,11 +68,12 @@ impl<T: Config> SweepMigrator<T> {
 				Precision::Exact,
 				Fortitude::Force,
 			)
-			.defensive_proof("a pot without a consumer reference can burn all of its free balance")
-			.unwrap_or_default()
+			.inspect_err(
+				|e| log::error!(target: LOG_TARGET, "Pot {pot:?} could not be burned: {e:?}"),
+			)?
 		};
 
 		Pallet::<T>::deposit_event(Event::PotSwept { who: pot.clone(), amount: burned });
-		burned
+		Ok(burned)
 	}
 }
