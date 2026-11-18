@@ -52,7 +52,11 @@ use frame_support::{
 	pallet_prelude::*,
 	sp_runtime::traits::Saturating,
 	storage::with_storage_layer,
-	traits::{Contains, EnsureOrigin, GetCallMetadata, Time},
+	traits::{
+		fungible::{Inspect, Mutate},
+		tokens::{Fortitude, Precision, Preservation},
+		Contains, EnsureOrigin, GetCallMetadata, Time,
+	},
 };
 use frame_system::pallet_prelude::*;
 use migrator_types::{PortableAccount, PortableProxyType};
@@ -227,6 +231,9 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 	},
 	/// Burn the audited issuance that no account holds.
 	TiCorrection,
+	/// Wait for the cool-off to end. Then reap the manager: burn its free balance, teleport it to
+	/// the manager's account on Asset Hub, and clear [`Manager`]. Then tell the Coretime chain to
+	/// end its lockdown. A failed reap or signal is retried in the next block.
 	CoolOff {
 		/// The block number at which the post migration cool-off period will end. It is absolute
 		/// and a pause does not move it.
@@ -435,6 +442,8 @@ pub mod pallet {
 	///
 	/// This account id has similar privileges to [`Config::AdminOrigin`] except that it
 	/// can not set the manager account id via `set_manager` call.
+	///
+	/// Reaped and cleared when the cool-off ends.
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
@@ -527,6 +536,9 @@ pub mod pallet {
 		DustSwept { who: T::AccountId, amount: u128, to: T::AccountId },
 		/// Unclaimed on-demand revenue was cleared from the on-demand pallet's record.
 		OnDemandRevenueCleared { amount: u128 },
+		/// The manager was reaped at the end of the cool-off, and is no longer the manager. Its
+		/// free balance was burned and sent to its account on Asset Hub.
+		ManagerReaped { who: T::AccountId, amount: u128 },
 	}
 
 	#[pallet::hooks]
@@ -870,10 +882,18 @@ pub mod pallet {
 				},
 				// wait cool off period before finishing migration
 				MigrationStage::CoolOff { end_at } if now >= end_at => {
-					if Self::send_to_ct(CtMigratorCall::EndLockdown).is_ok() {
-						Self::transition(MigrationStage::MigrationDone);
+					// The reap's burn and send commit or roll back together. Once it succeeds,
+					// `Manager` is clear, so a retry after a failed signal reaps nothing.
+					match with_storage_layer(Self::reap_manager) {
+						Ok(()) =>
+							if Self::send_to_ct(CtMigratorCall::EndLockdown).is_ok() {
+								Self::transition(MigrationStage::MigrationDone);
+							},
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "Reaping the manager failed, retrying: {e:?}");
+						},
 					}
-					T::DbWeight::get().reads_writes(3, 3)
+					T::DbWeight::get().reads_writes(9, 9)
 				},
 				// Waiting on the clock or a block height.
 				MigrationStage::Scheduled { .. } |
@@ -1015,6 +1035,36 @@ pub mod pallet {
 				Self::send_teleport(chunk.to_vec())?;
 			}
 			Ok(last_key)
+		}
+
+		/// Burn the manager's free balance, record it as moved to Asset Hub, send it to the
+		/// manager's account there, and clear [`Manager`]. Does nothing without a manager.
+		///
+		/// The manager is expected to hold only free balance. If anything else references the
+		/// account, the burn fails.
+		///
+		/// The caller runs it in a storage transaction, so an `Err` rolls the burn back too.
+		fn reap_manager() -> Result<(), DispatchError> {
+			let Some(manager) = Manager::<T>::take() else { return Ok(()) };
+			let amount = <pallet_balances::Pallet<T> as Inspect<T::AccountId>>::balance(&manager);
+			if amount != 0 {
+				<pallet_balances::Pallet<T> as Mutate<T::AccountId>>::burn_from(
+					&manager,
+					amount,
+					Preservation::Expendable,
+					Precision::Exact,
+					Fortitude::Force,
+				)?;
+				RcMigratedBalance::<T>::mutate(|migrated| {
+					defensive_assert!(migrated.kept >= amount, "burned more than is kept");
+					migrated.kept = migrated.kept.saturating_sub(amount);
+					migrated.ah_free = migrated.ah_free.saturating_add(amount);
+				});
+				let to = accounts::AccountsMigrator::<T>::ah_destination(&manager);
+				Self::send_teleport(vec![(to, amount)])?;
+			}
+			Self::deposit_event(Event::ManagerReaped { who: manager, amount });
+			Ok(())
 		}
 
 		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.

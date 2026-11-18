@@ -44,23 +44,6 @@ fn swept_events() -> Vec<(AccountId, u128)> {
 		.collect()
 }
 
-/// The expected teleport message to Asset Hub, with one deposit per `(account, amount)`.
-fn teleport(deposits: &[(AccountId, u128)]) -> (Location, Xcm<()>) {
-	let total: u128 = deposits.iter().map(|(_, amount)| amount).sum();
-	let mut message = vec![
-		UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
-		ReceiveTeleportedAsset((Location::parent(), total).into()),
-	];
-	message.extend(deposits.iter().map(|(who, amount)| DepositAsset {
-		assets: AssetFilter::Definite((Location::parent(), *amount).into()),
-		beneficiary: Location::new(
-			0,
-			[Junction::AccountId32 { network: None, id: who.clone().into() }],
-		),
-	}));
-	(ah_dest(), Xcm(message))
-}
-
 /// The expected teleport message to the sweep beneficiary on Asset Hub.
 fn teleport_to_beneficiary(amount: u128) -> (Location, Xcm<()>) {
 	teleport(&[(SWEEP_BENEFICIARY, amount)])

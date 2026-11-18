@@ -16,7 +16,7 @@
 
 use crate::{
 	mock::*, xcm_config::NothingOnceDataMigrationStarts, CtMigratorCall, CtRuntimeCall, Error,
-	Event, Manager, MigrationPhase, Paused, RcMigrationStage,
+	Event, Manager, MigratedBalances, MigrationPhase, Paused, RcMigratedBalance, RcMigrationStage,
 };
 use codec::Encode;
 use frame_support::{
@@ -480,6 +480,137 @@ fn a_failed_send_leaves_the_stage_alone_for_a_retry() {
 		SendFails::set(false);
 		run_blocks(1);
 		assert_stage(Stage::MigrationDone);
+		assert_eq!(sent_call(1), CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown));
+	});
+}
+
+/// Appoint Alice as manager, record the issuance as kept, and put the machine in its cool-off.
+/// Returns the block the cool-off ends at.
+fn cool_off_with_manager() -> u64 {
+	Manager::<Test>::put(ALICE);
+	RcMigratedBalance::<Test>::put(MigratedBalances {
+		kept: total_issuance(),
+		..Default::default()
+	});
+	let end_at = System::block_number() + COOL_OFF;
+	set_stage(Stage::CoolOff { end_at });
+	end_at
+}
+
+/// `(who, amount)` of every `ManagerReaped` event so far.
+fn reaped_events() -> Vec<(AccountId, u128)> {
+	System::events()
+		.into_iter()
+		.filter_map(|record| match record.event {
+			RuntimeEvent::Rc2Migrator(Event::ManagerReaped { who, amount }) => Some((who, amount)),
+			_ => None,
+		})
+		.collect()
+}
+
+#[test]
+fn the_manager_is_reaped_when_the_cool_off_ends() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a manager with balance, in the cool-off.
+		fund(&ALICE, 100);
+		let end_at = cool_off_with_manager();
+
+		// WHEN the cool-off has not ended. THEN the manager is left alone.
+		run_blocks(COOL_OFF - 1);
+		assert_stage(Stage::CoolOff { end_at });
+		assert_eq!(free(&ALICE), 100);
+		assert_eq!(Manager::<Test>::get(), Some(ALICE));
+		assert!(sent().is_empty());
+
+		// WHEN it ends. THEN the manager's balance is burned, the account is reaped, and it is no
+		// longer the manager.
+		run_blocks(1);
+		assert!(!frame_system::Account::<Test>::contains_key(&ALICE));
+		assert_eq!(Manager::<Test>::get(), None);
+		assert_eq!(reaped_events(), vec![(ALICE, 100)]);
+		assert_eq!(total_issuance(), 0);
+		// AND the balance is teleported to its account on Asset Hub and recorded as moved there,
+		// before the signal that ends the lockdown.
+		assert_eq!(
+			RcMigratedBalance::<Test>::get(),
+			MigratedBalances { kept: 0, ah_free: 100, ..Default::default() }
+		);
+		assert_eq!(sent().len(), 2);
+		assert_eq!(sent()[0], teleport(&[(ALICE, 100)]));
+		assert_eq!(sent_call(1), CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown));
+		assert_stage(Stage::MigrationDone);
+	});
+}
+
+#[test]
+fn a_manager_with_nothing_left_is_cleared_without_a_teleport() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a manager with no balance, in the cool-off.
+		cool_off_with_manager();
+
+		// WHEN the cool-off ends. THEN the manager is cleared, nothing is teleported, and the
+		// lockdown ends.
+		run_blocks(COOL_OFF);
+		assert_stage(Stage::MigrationDone);
+		assert_eq!(Manager::<Test>::get(), None);
+		assert_eq!(reaped_events(), vec![(ALICE, 0)]);
+		assert_eq!(sent().len(), 1);
+		assert_eq!(sent_call(0), CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown));
+	});
+}
+
+#[test]
+fn the_cool_off_holds_while_the_manager_cannot_be_reaped() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a manager with balance that another pallet references, in the cool-off.
+		fund(&ALICE, 100);
+		add_consumer(&ALICE);
+		let end_at = cool_off_with_manager();
+
+		// WHEN the cool-off ends. THEN the burn fails: the manager keeps its balance and its role,
+		// nothing is sent, and the cool-off holds.
+		run_blocks(COOL_OFF + 5);
+		assert_stage(Stage::CoolOff { end_at });
+		assert_eq!(free(&ALICE), 100);
+		assert_eq!(Manager::<Test>::get(), Some(ALICE));
+		assert_eq!(total_issuance(), 100);
+		assert!(reaped_events().is_empty());
+		assert!(sent().is_empty());
+
+		// WHEN the reference is gone. THEN the next block reaps the manager and ends the lockdown.
+		frame_system::Pallet::<Test>::dec_consumers(&ALICE);
+		run_blocks(1);
+		assert_stage(Stage::MigrationDone);
+		assert_eq!(reaped_events(), vec![(ALICE, 100)]);
+		assert_eq!(sent()[0], teleport(&[(ALICE, 100)]));
+	});
+}
+
+#[test]
+fn a_failed_send_rolls_the_reap_back_for_a_retry() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a manager with balance, in the cool-off, and a router that refuses everything.
+		fund(&ALICE, 100);
+		let end_at = cool_off_with_manager();
+		let migrated = RcMigratedBalance::<Test>::get();
+		SendFails::set(true);
+
+		// WHEN the cool-off ends. THEN the burn is rolled back with the send, and the cool-off
+		// holds.
+		run_blocks(COOL_OFF + 5);
+		assert_stage(Stage::CoolOff { end_at });
+		assert_eq!(free(&ALICE), 100);
+		assert_eq!(Manager::<Test>::get(), Some(ALICE));
+		assert_eq!(RcMigratedBalance::<Test>::get(), migrated);
+		assert!(reaped_events().is_empty());
+
+		// WHEN the router recovers. THEN the next block reaps the manager once and ends the
+		// lockdown.
+		SendFails::set(false);
+		run_blocks(1);
+		assert_stage(Stage::MigrationDone);
+		assert_eq!(sent().len(), 2);
+		assert_eq!(sent()[0], teleport(&[(ALICE, 100)]));
 		assert_eq!(sent_call(1), CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown));
 	});
 }

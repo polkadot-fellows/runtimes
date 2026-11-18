@@ -529,6 +529,23 @@ pub fn sent_call(n: usize) -> crate::CtRuntimeCall {
 	panic!("message {n} carried no Transact");
 }
 
+/// The expected teleport message to Asset Hub, with one deposit per `(account, amount)`.
+pub fn teleport(deposits: &[(AccountId, u128)]) -> (Location, Xcm<()>) {
+	let total: u128 = deposits.iter().map(|(_, amount)| amount).sum();
+	let mut message = vec![
+		UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
+		ReceiveTeleportedAsset((Location::parent(), total).into()),
+	];
+	message.extend(deposits.iter().map(|(who, amount)| DepositAsset {
+		assets: AssetFilter::Definite((Location::parent(), *amount).into()),
+		beneficiary: Location::new(
+			0,
+			[Junction::AccountId32 { network: None, id: who.clone().into() }],
+		),
+	}));
+	(ah_dest(), Xcm(message))
+}
+
 /// Give `who` exactly `amount` of free balance.
 pub fn fund(who: &AccountId, amount: u128) {
 	<Balances as Mutate<AccountId>>::set_balance(who, amount);
