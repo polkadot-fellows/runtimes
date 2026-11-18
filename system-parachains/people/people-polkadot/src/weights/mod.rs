@@ -38,6 +38,7 @@ pub mod indiv_pallet_people_lite;
 pub mod indiv_pallet_relay_randomness;
 pub mod indiv_pallet_resources;
 pub mod indiv_pallet_score;
+pub mod pallet_accumulate_and_forward;
 pub mod pallet_asset_conversion;
 pub mod pallet_asset_rate;
 pub mod pallet_asset_tx_payment;
