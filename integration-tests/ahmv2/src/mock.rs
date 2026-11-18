@@ -457,9 +457,9 @@ pub fn dmp_sink<P: Para>(
 
 /// Walk both chains from `Pending` to `MigrationDone` over their real queues.
 ///
-/// The data stages get at most `max_blocks` relay-chain blocks. After each of them, what the relay
-/// chain sent to the Coretime chain is delivered there, and what it sent to each of `others` is
-/// handed to that para's delivery.
+/// The data stages get at most `max_blocks` relay-chain blocks. After each of them, and after the
+/// block that ends the cool-off, what the relay chain sent to the Coretime chain is delivered
+/// there, and what it sent to each of `others` is handed to that para's delivery.
 ///
 /// `probe_rc` runs inside the relay chain at every stage the walk passes, `probe_ct` inside the
 /// Coretime chain at each of its stages. Each probe runs in a storage layer that is rolled back,
@@ -566,14 +566,21 @@ pub fn walk_migration(
 	};
 	ct.execute_with(drain_dmp::<CoretimePara>);
 
-	// The cool-off elapses and the finish signal reaches the Coretime chain.
-	let dmp = rc.execute_with(|| {
+	// The cool-off elapses. The block that ends it sends the manager's balance to Asset Hub and the
+	// finish signal to the Coretime chain.
+	let (dmp, to_others) = rc.execute_with(|| {
 		set_block_number_rc(cool_off_end - 1);
 		next_block_rc();
 		assert_eq!(rc_stage(), RcStage::MigrationDone);
 		probe_rc();
-		take_dmp(ct_para)
+		let to_others: Vec<_> = other_paras.iter().map(|para| take_dmp(*para)).collect();
+		(take_dmp(ct_para), to_others)
 	});
+	for ((_, deliver), dmp) in others.iter_mut().zip(to_others) {
+		if !dmp.is_empty() {
+			deliver(dmp);
+		}
+	}
 	ct.execute_with(|| {
 		enqueue_dmp::<CoretimePara>(dmp);
 		next_block_para::<CoretimePara>();

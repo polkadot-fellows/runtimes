@@ -91,6 +91,8 @@ pub struct RcAccountsPre {
 	/// The dust Sweep Dust sends to owners on Asset Hub. Two Relay Chain accounts can share a
 	/// destination there, so some of it can land on one of the accounts above.
 	pub dust: BTreeMap<AccountId32, u128>,
+	/// The manager, which the cool-off reaps.
+	pub manager: Option<AccountId32>,
 }
 
 /// How much `who`'s balance grew from `before` to `after`. Panics if it shrank, which no step of
@@ -148,22 +150,22 @@ impl RcMigrationCheck for AccountsChecker {
 			.collect();
 
 		let dust = crate::checks::dust::expected_dust().to_owners;
-		RcAccountsPre { accounts, ct_destinations, ah_destinations, dust }
+		RcAccountsPre { accounts, ct_destinations, ah_destinations, dust, manager }
 	}
 
 	fn post_check(rc_pre: &Self::RcPrePayload) -> Self::RcPostPayload {
-		let manager = pallet_rc2_migrator::Manager::<Rc>::get();
 		let ed = <Rc as pallet_balances::Config>::ExistentialDeposit::get();
 		for (who, account) in &rc_pre.accounts {
 			let data = account_data::<Rc>(who);
 			if account.deferred {
-				// Sweep empties the pots; its checker checks them.
-				if AccountsMigrator::<Rc>::is_swept(who) {
+				// Sweep empties the pots, and the cool-off reaps the manager; their checkers check
+				// them.
+				if AccountsMigrator::<Rc>::is_swept(who) || rc_pre.manager.as_ref() == Some(who) {
 					continue;
 				}
 				// Sweep Dust empties every other account below the existential deposit; its checker
 				// checks them.
-				if account.total < ed && manager.as_ref() != Some(who) {
+				if account.total < ed {
 					continue;
 				}
 				assert_eq!(
@@ -258,8 +260,8 @@ fn unattributed_hold(who: &AccountId32) -> Option<u128> {
 		.map(|hold| hold.amount)
 }
 
-/// Asset Hub balances of every destination, every owner Sweep Dust pays and the sweep
-/// beneficiary, and of the checking account, before the migration.
+/// Asset Hub balances of every destination, every owner Sweep Dust pays, the sweep beneficiary
+/// and the manager's payee, and of the checking account, before the migration.
 #[derive(Clone, Debug)]
 pub struct AhAccountsPre {
 	pub balances: BTreeMap<AccountId32, u128>,
@@ -273,19 +275,22 @@ impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
 
 	fn pre_check(rc_pre: &Self::RcPrePayload) -> Self::PrePayload {
 		let beneficiary = <Rc as pallet_rc2_migrator::Config>::SweepBeneficiary::get();
+		let manager_payee = rc_pre.manager.as_ref().map(AccountsMigrator::<Rc>::ah_destination);
 		let balances = rc_pre
 			.ah_destinations
 			.keys()
 			.chain(rc_pre.dust.keys())
 			.chain([&beneficiary])
+			.chain(manager_payee.as_ref())
 			.map(|dest| (dest.clone(), account_data::<Ah>(dest).total()))
 			.collect();
 		AhAccountsPre { balances, checking: ah_checking_account() }
 	}
 
 	fn post_check(rc_pre: &Self::RcPrePayload, _: &Self::RcPostPayload, ah_pre: Self::PrePayload) {
-		// The sweep beneficiary also receives the pots, so `SweepChecker` checks what it gets. A
-		// destination can also receive dust from another account, which Sweep Dust sends.
+		// The sweep beneficiary also receives the pots, so `SweepChecker` checks what it gets, and
+		// `ManagerChecker` checks what the manager's payee gets. A destination can also receive
+		// dust from another account, which Sweep Dust sends.
 		let beneficiary = <Rc as pallet_rc2_migrator::Config>::SweepBeneficiary::get();
 		let mut arrived = 0u128;
 		for (dest, before) in &ah_pre.balances {

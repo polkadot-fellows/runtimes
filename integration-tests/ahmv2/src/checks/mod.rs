@@ -27,6 +27,7 @@
 pub mod accounts;
 pub mod dust;
 pub mod issuance;
+pub mod manager;
 pub mod session;
 pub mod sweep;
 

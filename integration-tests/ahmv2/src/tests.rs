@@ -23,17 +23,19 @@
 use crate::{
 	checks::{
 		accounts::AccountsChecker, dust::SweepDustChecker, issuance::IssuanceChecker,
-		session::ValidatorsChecker, sweep::SweepChecker, ParaMigrationCheck, RcMigrationCheck,
+		manager::ManagerChecker, session::ValidatorsChecker, sweep::SweepChecker,
+		ParaMigrationCheck, RcMigrationCheck,
 	},
 	mock::*,
 };
 use codec::Encode;
 use cumulus_primitives_core::UpwardMessage;
-use frame_support::assert_ok;
+use frame_support::{assert_ok, traits::fungible::Mutate};
 use network::constants::{system_parachain, time::MINUTES};
 use pallet_message_queue::Event::{Processed, ProcessingFailed};
 use pallet_rc2_migrator::MigrationStage as RcStage;
 use sp_io::TestExternalities;
+use sp_runtime::AccountId32;
 use xcm::{latest::prelude::*, VersionedXcm};
 
 /// An XCM program that executes `call` on the destination with the sender's sovereign-account
@@ -201,7 +203,28 @@ fn run_handshake(rc: &mut TestExternalities, ct: &mut TestExternalities) -> Vec<
 }
 
 /// The checkers of every stage, run on each chain before and after the migration.
-type Checks = (AccountsChecker, ValidatorsChecker, SweepChecker, SweepDustChecker, IssuanceChecker);
+type Checks = (
+	AccountsChecker,
+	ValidatorsChecker,
+	SweepChecker,
+	SweepDustChecker,
+	ManagerChecker,
+	IssuanceChecker,
+);
+
+/// The account the full run appoints as manager.
+const MANAGER: AccountId32 = AccountId32::new([0x4d; 32]);
+
+/// Fund [`MANAGER`] with free balance only, and appoint it, so the cool-off has a manager to reap.
+fn appoint_manager() {
+	type Rc = network::relay::Runtime;
+	let balance = 100 * <Rc as pallet_balances::Config>::ExistentialDeposit::get();
+	assert_ok!(pallet_balances::Pallet::<Rc>::mint_into(&MANAGER, balance));
+	assert_ok!(pallet_rc2_migrator::Pallet::<Rc>::set_manager(
+		network::relay::RuntimeOrigin::root(),
+		Some(MANAGER),
+	));
+}
 
 /// The migration, driven end to end over live Relay Chain, Coretime and Asset Hub state, with the
 /// checks of every stage run before and after.
@@ -209,6 +232,7 @@ type Checks = (AccountsChecker, ValidatorsChecker, SweepChecker, SweepDustChecke
 async fn the_migration_runs_to_completion() {
 	let (mut rc, mut ct, mut ah) =
 		tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN), load(AssetHubPara::CHAIN));
+	rc.execute_with(appoint_manager);
 
 	let rc_pre = rc.execute_with(<Checks as RcMigrationCheck>::pre_check);
 	let ct_pre =
