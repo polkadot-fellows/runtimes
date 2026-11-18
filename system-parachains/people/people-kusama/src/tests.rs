@@ -16,15 +16,16 @@
 
 use crate::{
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Block, Runtime, RuntimeCall, RuntimeOrigin, WeightToFee,
+	Block, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys, WeightToFee,
 };
+use codec::Encode;
 use polkadot_primitives::AccountId;
 use sp_core::crypto::Ss58Codec;
 use xcm::prelude::*;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
 use frame_support::{assert_err, assert_ok};
-use parachains_runtimes_test_utils::GovernanceOrigin;
+use parachains_runtimes_test_utils::{ExtBuilder, GovernanceOrigin};
 use sp_runtime::Either;
 
 const ALICE: [u8; 32] = [1u8; 32];
@@ -170,4 +171,28 @@ fn governance_authorize_upgrade_works() {
 		Runtime,
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(AssetHubLocation::get())));
+}
+
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	ExtBuilder::<Runtime>::default().build().execute_with(
+		system_parachains_test_utils::dust_accumulates_instead_of_being_burned::<Runtime>,
+	);
+}
+
+#[test]
+fn forward_period_counts_relay_blocks() {
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		system_parachains_test_utils::forward_period_counts_relay_blocks::<Runtime>(
+			kusama_runtime_constants::time::HOURS,
+		)
+	});
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
 }

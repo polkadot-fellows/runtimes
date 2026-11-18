@@ -61,6 +61,7 @@ use xcm_executor::traits::ConvertLocation;
 use xcm_runtime_apis::conversions::LocationToAccountHelper;
 
 const ALICE: [u8; 32] = [1u8; 32];
+const BOB: [u8; 32] = [2u8; 32];
 const SOME_ASSET_ADMIN: [u8; 32] = [5u8; 32];
 
 frame_support::parameter_types! {
@@ -1329,93 +1330,6 @@ fn slash_goes_to_dap_buffer_account() {
 }
 
 #[test]
-fn migrate_bounty_account_assets_moves_dot_usdt_and_usdc() {
-	use asset_hub_polkadot_runtime::{
-		migrations::MigrateBountyAccountAssets, treasury::TreasuryPalletId,
-	};
-	use frame_support::traits::{
-		fungible::Mutate as _, tokens::fungibles::Mutate as _, Get as _, OnRuntimeUpgrade,
-		PalletInfoAccess,
-	};
-	use pallet_multi_asset_bounties::{Bounty, BountyStatus};
-	use polkadot_runtime_common::impls::VersionedLocatableAsset;
-	use sp_core::H256;
-	use sp_runtime::traits::AccountIdConversion;
-
-	const BOUNTY_ID: u32 = 7;
-	const USDT_ASSET_ID: u32 = 1984;
-	const USDC_ASSET_ID: u32 = 1337;
-	const UNRELATED_ASSET_ID: u32 = 99; // NOT used by multi-asset bounties, must NOT move
-	const DOT_AMOUNT: Balance = 100 * UNITS;
-	const USDT_AMOUNT: Balance = 250_000 * 1_000_000; // 6 decimals
-	const USDC_AMOUNT: Balance = 100_000 * 1_000_000; // 6 decimals
-	const UNRELATED_AMOUNT: Balance = 999 * 1_000_000;
-
-	ExtBuilder::<Runtime>::default().build().execute_with(|| {
-		let bounty = Bounty::<
-			AccountId,
-			Balance,
-			VersionedLocatableAsset,
-			H256,
-			xcm::v5::QueryId,
-			parachains_common::pay::VersionedLocatableAccount,
-		> {
-			asset_kind: VersionedLocatableAsset::V5 {
-				location: Location::new(0, []),
-				asset_id: AssetId(Location::new(
-					0,
-					[
-						PalletInstance(<Assets as PalletInfoAccess>::index() as u8),
-						GeneralIndex(USDT_ASSET_ID.into()),
-					],
-				)),
-			},
-			value: USDT_AMOUNT,
-			metadata: H256::zero(),
-			status: BountyStatus::CuratorUnassigned,
-		};
-		pallet_multi_asset_bounties::Bounties::<Runtime>::insert(BOUNTY_ID, bounty);
-
-		let pallet_id = TreasuryPalletId::get();
-		let old: AccountId = pallet_id.into_sub_account_truncating(("mbt", BOUNTY_ID));
-		let new: AccountId = pallet_id.into_sub_account_truncating((
-			pallet_multi_asset_bounties::BountyAccountPrefix::get(),
-			BOUNTY_ID,
-		));
-		assert_ne!(old, new);
-
-		// Native DOT (Balances).
-		Balances::mint_into(&old, DOT_AMOUNT).unwrap();
-		// Trust-backed assets the multi-asset bounties pallet supports.
-		for id in [USDT_ASSET_ID, USDC_ASSET_ID, UNRELATED_ASSET_ID] {
-			assert_ok!(Assets::force_create(
-				RuntimeHelper::root_origin(),
-				id.into(),
-				AccountId::from(SOME_ASSET_ADMIN).into(),
-				true,
-				1,
-			));
-		}
-		Assets::mint_into(USDT_ASSET_ID, &old, USDT_AMOUNT).unwrap();
-		Assets::mint_into(USDC_ASSET_ID, &old, USDC_AMOUNT).unwrap();
-		Assets::mint_into(UNRELATED_ASSET_ID, &old, UNRELATED_AMOUNT).unwrap();
-
-		MigrateBountyAccountAssets::on_runtime_upgrade();
-
-		// DOT (native), USDT and USDC moved.
-		assert_eq!(Balances::free_balance(&old), 0);
-		assert_eq!(Balances::free_balance(&new), DOT_AMOUNT);
-		assert_eq!(Assets::balance(USDT_ASSET_ID, &old), 0);
-		assert_eq!(Assets::balance(USDT_ASSET_ID, &new), USDT_AMOUNT);
-		assert_eq!(Assets::balance(USDC_ASSET_ID, &old), 0);
-		assert_eq!(Assets::balance(USDC_ASSET_ID, &new), USDC_AMOUNT);
-		// An asset not used by the multi-asset bounties pallet stays at the old account.
-		assert_eq!(Assets::balance(UNRELATED_ASSET_ID, &old), UNRELATED_AMOUNT);
-		assert_eq!(Assets::balance(UNRELATED_ASSET_ID, &new), 0);
-	});
-}
-
-#[test]
 fn session_keys_are_compatible_between_ah_and_rc() {
 	use asset_hub_polkadot_runtime::staking::RelayChainSessionKeys;
 	use sp_runtime::traits::OpaqueKeys;
@@ -1428,4 +1342,205 @@ fn session_keys_are_compatible_between_ah_and_rc() {
 		polkadot_runtime::SessionKeys::key_ids(),
 		"Session key type IDs must match between AssetHub and Polkadot"
 	);
+}
+
+/// Dust reaches the DAP instead of being burned, and is deactivated in the buffer.
+#[test]
+fn dust_goes_to_dap_and_is_deactivated() {
+	use frame_support::traits::{
+		fungible::{Inspect, Mutate},
+		tokens::Preservation,
+		Hooks,
+	};
+	use sp_runtime::BuildStorage;
+
+	let dap_buffer = pallet_dap::Pallet::<Runtime>::buffer_account();
+	let dap_staging = pallet_dap::Pallet::<Runtime>::staging_account();
+	let ed = ExistentialDeposit::get();
+
+	let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+	pallet_balances::GenesisConfig::<Runtime> {
+		balances: vec![
+			(AccountId::from(ALICE), ed),
+			(AccountId::from(BOB), ed),
+			(dap_buffer.clone(), ed),
+			(dap_staging.clone(), ed),
+		],
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	sp_io::TestExternalities::from(t).execute_with(|| {
+		let issuance_before = Balances::total_issuance();
+		let inactive_before = Balances::inactive_issuance();
+		let staging_before = <Balances as Inspect<_>>::balance(&dap_staging);
+		let buffer_before = <Balances as Inspect<_>>::balance(&dap_buffer);
+
+		// Reap Alice, leaving dust behind.
+		let dust = ed / 2;
+		assert_ok!(<Balances as Mutate<_>>::transfer(
+			&AccountId::from(ALICE),
+			&AccountId::from(BOB),
+			ed - dust,
+			Preservation::Expendable,
+		));
+
+		assert_eq!(<Balances as Inspect<_>>::balance(&AccountId::from(ALICE)), 0);
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), staging_before + dust);
+		assert_eq!(Balances::total_issuance(), issuance_before);
+
+		// The drain deactivates it: still issued, no longer active.
+		pallet_dap::Pallet::<Runtime>::on_idle(1, Weight::MAX);
+
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), staging_before);
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_buffer), buffer_before + dust);
+		assert_eq!(Balances::total_issuance(), issuance_before);
+		assert_eq!(Balances::inactive_issuance(), inactive_before + dust);
+	});
+}
+
+/// `Preserve` keeps staging at exactly its ED, so it is never reapable and the chain in
+/// https://github.com/paritytech/polkadot-sdk/issues/12130 never starts.
+#[test]
+fn dap_staging_account_keeps_ed_through_drain() {
+	use frame_support::traits::{
+		fungible::{Inspect, Mutate},
+		tokens::{DepositConsequence, Preservation, Provenance},
+		Hooks,
+	};
+	use sp_runtime::BuildStorage;
+
+	let dap_buffer = pallet_dap::Pallet::<Runtime>::buffer_account();
+	let dap_staging = pallet_dap::Pallet::<Runtime>::staging_account();
+	let ed = ExistentialDeposit::get();
+
+	let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+	pallet_balances::GenesisConfig::<Runtime> {
+		balances: vec![
+			(AccountId::from(ALICE), ed),
+			(AccountId::from(BOB), ed),
+			(dap_buffer.clone(), ed),
+			(dap_staging.clone(), ed),
+		],
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	sp_io::TestExternalities::from(t).execute_with(|| {
+		// Draining an empty staging account leaves the ED.
+		pallet_dap::Pallet::<Runtime>::on_idle(1, Weight::MAX);
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), ed);
+
+		// Dust arrives and drains in one pass, leaving the ED, not reaped.
+		let dust = ed / 2;
+		assert_ok!(<Balances as Mutate<_>>::transfer(
+			&AccountId::from(ALICE),
+			&AccountId::from(BOB),
+			ed - dust,
+			Preservation::Expendable,
+		));
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), ed + dust);
+
+		pallet_dap::Pallet::<Runtime>::on_idle(2, Weight::MAX);
+		assert_eq!(<Balances as Inspect<_>>::balance(&dap_staging), ed);
+		assert!(frame_system::Pallet::<Runtime>::account_exists(&dap_staging));
+
+		// Routed dust cannot bounce back out: a sub-ED deposit is refused.
+		assert_eq!(
+			<Balances as Inspect<_>>::can_deposit(
+				&AccountId::from(ALICE),
+				dust,
+				Provenance::Extant
+			),
+			DepositConsequence::BelowMinimum
+		);
+	});
+}
+
+/// Even if that chain were to start, it stops after one call: the deposit back into the emptied
+/// staging account fails `BelowMinimum`, so no fresh dust appears. Recursion would blow the stack.
+#[test]
+#[should_panic(expected = "Failed to deposit slash to DAP staging account")]
+fn dust_removal_terminates_when_staging_is_dusted() {
+	use frame_support::traits::{fungible::Mutate, tokens::Preservation};
+	use sp_runtime::BuildStorage;
+
+	let dap_staging = pallet_dap::Pallet::<Runtime>::staging_account();
+	let ed = ExistentialDeposit::get();
+
+	let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+	pallet_balances::GenesisConfig::<Runtime> {
+		balances: vec![(AccountId::from(BOB), ed), (dap_staging.clone(), ed)],
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	sp_io::TestExternalities::from(t).execute_with(|| {
+		// Reap staging itself, so its dust routes back into it.
+		let dust = ed / 2;
+		let _ = <Balances as Mutate<_>>::transfer(
+			&dap_staging,
+			&AccountId::from(BOB),
+			ed - dust,
+			Preservation::Expendable,
+		);
+	});
+}
+
+/// Regression test for the dotUSD supply drift fixed by #1334.
+///
+/// In `staging-xcm-executor` < 28.1.0 a failing `WithdrawAsset` rolled back the storage of the
+/// assets already withdrawn by the same instruction, but dropped their credit only afterwards. The
+/// credit drop decreased the asset's `supply` while the account balances stayed unchanged.
+#[test]
+fn failed_withdraw_asset_does_not_decrease_trust_backed_asset_supply() {
+	use frame_support::traits::fungibles::{Inspect, Mutate};
+	use xcm_executor::XcmExecutor;
+
+	const DOT_USD: AssetIdForTrustBackedAssets = 7873;
+	const AMOUNT: Balance = 1_000 * 1_000_000;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		let alice = AccountId::from(ALICE);
+		assert_ok!(Assets::force_create(
+			RuntimeHelper::root_origin(),
+			DOT_USD.into(),
+			AccountId::from(SOME_ASSET_ADMIN).into(),
+			true,
+			1,
+		));
+		assert_ok!(Assets::mint_into(DOT_USD, &alice, AMOUNT));
+		assert_eq!(Assets::total_issuance(DOT_USD), AMOUNT);
+
+		let dot_usd = AssetIdForTrustBackedAssetsConvertLatest::convert_back(&DOT_USD).unwrap();
+		// dotUSD sorts before DOT, so it is withdrawn first and the DOT withdrawal (Alice has
+		// none) fails afterwards.
+		let xcm = Xcm::<RuntimeCall>(vec![WithdrawAsset(
+			vec![(dot_usd, AMOUNT).into(), (DotLocation::get(), UNITS).into()].into(),
+		)]);
+
+		let mut hash = xcm.using_encoded(sp_io::hashing::blake2_256);
+		let outcome = XcmExecutor::<XcmConfig>::prepare_and_execute(
+			Location::new(0, [AccountId32 { network: None, id: ALICE }]),
+			xcm,
+			&mut hash,
+			Weight::MAX,
+			Weight::MAX,
+		);
+		assert!(matches!(outcome, Outcome::Incomplete { .. }), "unexpected outcome: {outcome:?}");
+
+		assert_eq!(Assets::balance(DOT_USD, &alice), AMOUNT);
+		assert_eq!(Assets::total_issuance(DOT_USD), AMOUNT);
+	});
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
 }

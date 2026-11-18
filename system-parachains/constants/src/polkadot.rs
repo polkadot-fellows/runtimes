@@ -20,24 +20,11 @@ pub const INDIVIDUALITY_NETWORK_SUFFIX: &[u8] = b"polkadot";
 pub mod account {
 	use frame_support::PalletId;
 
-	/// Polkadot treasury pallet id, used to convert into AccountId
-	pub const POLKADOT_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/trsry");
-	/// Alliance pallet ID.
-	/// Used as a temporary place to deposit a slashed imbalance before teleporting to the Treasury.
-	pub const ALLIANCE_PALLET_ID: PalletId = PalletId(*b"py/allia");
-	/// Referenda pallet ID.
-	/// Used as a temporary place to deposit a slashed imbalance before teleporting to the Treasury.
-	pub const REFERENDA_PALLET_ID: PalletId = PalletId(*b"py/refer");
-	/// Ambassador Referenda pallet ID.
-	/// Used as a temporary place to deposit a slashed imbalance before teleporting to the Treasury.
-	pub const AMBASSADOR_REFERENDA_PALLET_ID: PalletId = PalletId(*b"py/amref");
-	/// Identity pallet ID.
-	/// Used as a temporary place to deposit a slashed imbalance before teleporting to the Treasury.
-	pub const IDENTITY_PALLET_ID: PalletId = PalletId(*b"py/ident");
 	/// Fellowship treasury pallet ID
 	pub const FELLOWSHIP_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/feltr");
 	/// Ambassador treasury pallet ID
 	pub const AMBASSADOR_TREASURY_PALLET_ID: PalletId = PalletId(*b"py/ambtr");
+	pub use polkadot_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
 }
 
 /// Consensus-related.
@@ -155,6 +142,8 @@ pub mod locations {
 
 		pub EthereumNetwork: NetworkId = NetworkId::Ethereum { chain_id: 1 };
 	}
+
+	pub use polkadot_runtime_constants::xcm::DapStagingLocation;
 
 	/// `Contains` implementation for the asset hub location pluralities.
 	pub struct AssetHubPlurality;

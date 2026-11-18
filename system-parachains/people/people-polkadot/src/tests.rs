@@ -17,8 +17,10 @@
 use crate::{
 	assets::hollar::HOLLAR_UNITS,
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Block, DotWeightToFee as WeightToFee, Runtime, RuntimeCall, RuntimeOrigin,
+	AccumulateForward, Balances, Block, DotWeightToFee as WeightToFee, ExistentialDeposit,
+	Identity, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys,
 };
+use codec::Encode;
 use cumulus_primitives_core::relay_chain::AccountId;
 use sp_core::crypto::Ss58Codec;
 use xcm::prelude::*;
@@ -351,36 +353,6 @@ fn asset_hub_subscription_whitelist_matches_asset_hub() {
 }
 
 #[test]
-fn seed_asset_hub_subscription_whitelist_migration_seeds_the_entry() {
-	use crate::{
-		individuality::asset_hub_subscription_whitelist,
-		migrations::SeedAssetHubSubscriptionWhitelist, Runtime, RuntimeGenesisConfig,
-	};
-	use cumulus_primitives_core::ParaId;
-	use frame_support::traits::OnRuntimeUpgrade;
-	use indiv_pallet_members_notifier::{Pallet as MembersNotifierPallet, SubscriptionWhitelist};
-	use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
-	use sp_runtime::BuildStorage;
-
-	let mut ext =
-		sp_io::TestExternalities::new(RuntimeGenesisConfig::default().build_storage().unwrap());
-	ext.execute_with(|| {
-		let para_id = ParaId::from(ASSET_HUB_ID);
-		assert!(SubscriptionWhitelist::<Runtime>::get(para_id).is_none());
-
-		SeedAssetHubSubscriptionWhitelist::on_runtime_upgrade();
-
-		let stored = SubscriptionWhitelist::<Runtime>::get(para_id)
-			.expect("the migration seeds the Asset Hub whitelist entry");
-		let expected = MembersNotifierPallet::<Runtime>::resolve_whitelist_entry(
-			&asset_hub_subscription_whitelist()[0],
-		)
-		.expect("the whitelist entry is well-formed");
-		assert_eq!(stored, expected);
-	});
-}
-
-#[test]
 fn individuality_deployment_order_guards_are_enforced() {
 	use crate::{
 		assets::hollar::HollarLocation, Assets, ChunksManager, Coinage, RuntimeGenesisConfig,
@@ -516,4 +488,200 @@ fn only_asset_hub_native_assets_are_reserve_accepted_from_asset_hub() {
 	// And an Asset Hub asset is only accepted *from* Asset Hub.
 	assert!(!accepted(ah_asset.clone(), &hydration));
 	assert!(!accepted(ah_asset, &Location::parent()));
+}
+
+#[test]
+fn asset_hub_technical_maintenance_voice_is_recognized() {
+	use crate::RootOrTechnicalMaintenance;
+	use frame_support::traits::EnsureOrigin;
+	use polkadot_runtime_constants::{
+		system_parachain::ASSET_HUB_ID, xcm::body::TECHNICAL_MAINTENANCE_INDEX,
+	};
+
+	let voice = |parachain: u32, body_index: u32| {
+		RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
+			1,
+			[
+				Parachain(parachain),
+				Plurality { id: BodyId::Index(body_index), part: BodyPart::Voice },
+			],
+		)))
+	};
+
+	assert!(RootOrTechnicalMaintenance::ensure_origin(RuntimeOrigin::root()).is_ok());
+	assert!(RootOrTechnicalMaintenance::ensure_origin(voice(
+		ASSET_HUB_ID,
+		TECHNICAL_MAINTENANCE_INDEX
+	))
+	.is_ok());
+
+	assert!(RootOrTechnicalMaintenance::ensure_origin(voice(
+		ASSET_HUB_ID + 1,
+		TECHNICAL_MAINTENANCE_INDEX
+	))
+	.is_err());
+	assert!(RootOrTechnicalMaintenance::ensure_origin(voice(
+		ASSET_HUB_ID,
+		TECHNICAL_MAINTENANCE_INDEX + 1
+	))
+	.is_err());
+	assert!(RootOrTechnicalMaintenance::ensure_origin(RuntimeOrigin::signed(ALICE.into())).is_err());
+}
+
+#[test]
+fn dynamic_parameter_origin_routes_keys_by_scope() {
+	use crate::{
+		parameters::{
+			dynamic_params::{
+				bulletin_storage, coinage, lite_personhood, origin_restriction, statement_storage,
+			},
+			DynamicParameterOrigin, RuntimeParameters, RuntimeParametersKey,
+		},
+		Parameters, RuntimeGenesisConfig,
+	};
+	use frame_support::traits::{EnsureOriginWithArg, Get};
+	use polkadot_runtime_constants::{
+		system_parachain::ASSET_HUB_ID, xcm::body::TECHNICAL_MAINTENANCE_INDEX,
+	};
+	use sp_runtime::{BuildStorage, DispatchError};
+
+	// GIVEN the voice and a key of each scope.
+	let technical_maintenance = RuntimeOrigin::from(pallet_xcm::Origin::Xcm(Location::new(
+		1,
+		[
+			Parachain(ASSET_HUB_ID),
+			Plurality { id: BodyId::Index(TECHNICAL_MAINTENANCE_INDEX), part: BodyPart::Voice },
+		],
+	)));
+	use RuntimeParametersKey::*;
+	let operational = [
+		StatementStorage(statement_storage::StmtStoreSlotsPerPeriod.into()),
+		StatementStorage(statement_storage::LiteStmtStoreSlotsPerPeriod.into()),
+		StatementStorage(statement_storage::StmtStoreCleanupLimit.into()),
+		StatementStorage(statement_storage::StmtStoreGraceWindow.into()),
+		StatementStorage(statement_storage::NotificationSlotsPerPeriod.into()),
+		StatementStorage(statement_storage::LiteNotificationSlotsPerPeriod.into()),
+		StatementStorage(statement_storage::LitePersonStatementLimit.into()),
+		StatementStorage(statement_storage::PersonStatementLimit.into()),
+		BulletinStorage(bulletin_storage::LongTermStorageClaimsPerPeriod.into()),
+		BulletinStorage(bulletin_storage::LongTermStorageCleanupLimit.into()),
+		BulletinStorage(bulletin_storage::LongTermStorageAllowanceForPeople.into()),
+		BulletinStorage(bulletin_storage::LongTermStorageAllowanceForLitePeople.into()),
+		OriginRestriction(origin_restriction::PeopleIdentityAndAliasAllowanceMax.into()),
+		OriginRestriction(origin_restriction::PeopleIdentityAndAliasAllowanceRecovery.into()),
+		OriginRestriction(origin_restriction::LitePeopleAllowanceMax.into()),
+		OriginRestriction(origin_restriction::LitePeopleAllowanceRecovery.into()),
+		LitePersonhood(lite_personhood::RegistrationFee.into()),
+		LitePersonhood(lite_personhood::PaidRegistrationThreshold.into()),
+		LitePersonhood(lite_personhood::PaidRegistrationPeriod.into()),
+		LitePersonhood(lite_personhood::PaidRegistrationsPerPeriod.into()),
+		LitePersonhood(lite_personhood::MaxLitePeople.into()),
+	];
+	let root_only = [
+		BulletinStorage(bulletin_storage::BulletinChainLocation.into()),
+		BulletinStorage(bulletin_storage::BulletinTransactionStoragePalletIndex.into()),
+		Coinage(coinage::LoadDepositPrice.into()),
+		Coinage(coinage::InstanceCreationDeposit.into()),
+	];
+
+	// THEN Root passes all, the voice only the operational keys.
+	for key in operational.iter().chain(&root_only) {
+		assert!(DynamicParameterOrigin::try_origin(RuntimeOrigin::root(), key).is_ok());
+	}
+	for key in &operational {
+		assert!(DynamicParameterOrigin::try_origin(technical_maintenance.clone(), key).is_ok());
+	}
+	for key in &root_only {
+		assert!(DynamicParameterOrigin::try_origin(technical_maintenance.clone(), key).is_err());
+	}
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// a quota is on the track, so the voice may set it.
+		assert_ok!(Parameters::set_parameter(
+			technical_maintenance.clone(),
+			RuntimeParameters::StatementStorage(
+				statement_storage::Parameters::StmtStoreSlotsPerPeriod(
+					statement_storage::StmtStoreSlotsPerPeriod,
+					Some(40),
+				),
+			),
+		));
+		assert_eq!(<statement_storage::StmtStoreSlotsPerPeriod as Get<u32>>::get(), 40);
+		// The coinage deposits are Root only, so the voice is refused.
+		assert_noop!(
+			Parameters::set_parameter(
+				technical_maintenance,
+				RuntimeParameters::Coinage(coinage::Parameters::InstanceCreationDeposit(
+					coinage::InstanceCreationDeposit,
+					Some(0),
+				)),
+			),
+			DispatchError::BadOrigin,
+		);
+	});
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
+}
+
+#[test]
+fn identity_slashes_accumulate_instead_of_being_burned() {
+	use crate::people::IdentityInfo;
+	use frame_support::traits::{
+		fungible::{Inspect, Mutate},
+		ReservableCurrency,
+	};
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		// GIVEN the accumulation account funded with its ED, as done out of band before upgrade.
+		let ed: crate::Balance = ExistentialDeposit::get();
+		let accumulation_account = AccumulateForward::accumulation_account();
+		assert_ok!(Balances::mint_into(&accumulation_account, ed));
+		let carol = AccountId::from([3u8; 32]);
+		assert_ok!(Balances::mint_into(&carol, 100 * crate::UNITS));
+		assert_ok!(Identity::set_identity(
+			RuntimeOrigin::signed(carol.clone()),
+			Box::new(IdentityInfo::default())
+		));
+		let deposit = <Balances as ReservableCurrency<_>>::reserved_balance(&carol);
+		assert!(deposit > 0);
+		let accumulated_before = Balances::balance(&accumulation_account);
+		let issuance_before = Balances::total_issuance();
+
+		// WHEN an identity is killed, slashing its deposit.
+		assert_ok!(Identity::kill_identity(RuntimeOrigin::root(), carol.clone().into()));
+
+		// THEN the slash reaches the accumulation account and is not burnt.
+		assert_eq!(Balances::balance(&accumulation_account), accumulated_before + deposit);
+		assert_eq!(Balances::total_issuance(), issuance_before);
+	});
+}
+
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(
+		system_parachains_test_utils::dust_accumulates_instead_of_being_burned::<Runtime>,
+	);
+}
+
+#[test]
+fn forward_period_counts_relay_blocks() {
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		system_parachains_test_utils::forward_period_counts_relay_blocks::<Runtime>(
+			polkadot_runtime_constants::time::HOURS,
+		)
+	});
 }

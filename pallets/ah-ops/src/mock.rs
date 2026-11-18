@@ -75,6 +75,8 @@ impl pallet_assets::Config for Runtime {
 	type Currency = Balances;
 	type CreateOrigin = EnsureSigned<Self::AccountId>;
 	type ForceOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type CallbackHandle = ();
+	type AssetIdAllocator = ();
 	type Holder = ();
 	type Freezer = ();
 }
@@ -88,6 +90,7 @@ impl pallet_timestamp::Config for Runtime {
 
 impl pallet_staking_async::Config for Runtime {
 	type Filter = ();
+	type IsValidatorInactive = ();
 	type OldCurrency = Balances;
 	type Currency = Balances;
 	type CurrencyBalance = u128;

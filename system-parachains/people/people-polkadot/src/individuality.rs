@@ -170,7 +170,7 @@ impl indiv_pallet_members::Config for Runtime {
 	type OldRootRetentionDuration = ConstU64<600>;
 	type OnRingRootChange = MembersNotifier;
 	type OffchainWorkerInterval = ConstU32<1>;
-	type ManagerOrigin = IndividualityManagerOrigin;
+	type ManagerOrigin = RootOrTechnicalMaintenance;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::MembersBenchHelper;
 }
@@ -202,6 +202,7 @@ impl indiv_pallet_people::Config for Runtime {
 	type StaleAliasCleanupInterval = ConstU32<{ 5 * PARA_MINUTES }>;
 	type SelfInclusionDelay = SelfInclusionDelayValue;
 	type ManagerOrigin = EnsureRoot<AccountId>;
+	type Clock = RuntimeClock;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::PeopleBenchHelper;
 }
@@ -212,7 +213,7 @@ impl indiv_pallet_people_lite::Config for Runtime {
 	type PotId = LitePeoplePotId;
 	type RegistrationFee = crate::parameters::LitePersonRegistrationFee;
 	type Suffix = NetworkSuffix;
-	type AttestationAllowanceManager = IndividualityManagerOrigin;
+	type AttestationAllowanceManager = EnsureRoot<AccountId>;
 	type MemberService = Members;
 	type CollectionOwner = LitePeopleCollectionOwner;
 	type LiteRingExponent = LitePeopleRingExponent;
@@ -220,6 +221,11 @@ impl indiv_pallet_people_lite::Config for Runtime {
 	type AttestationSignature = Signature;
 	type LiteConsumerRegistrar = Resources;
 	type AccountContexts = LiteAccountContexts;
+	type MaxLitePeople = crate::parameters::MaxLitePeople;
+	type Clock = RuntimeClock;
+	type PaidRegistrationThreshold = crate::parameters::LitePaidRegistrationThreshold;
+	type PaidRegistrationPeriod = crate::parameters::LitePaidRegistrationPeriod;
+	type PaidRegistrationsPerPeriod = crate::parameters::LitePaidRegistrationsPerPeriod;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = benchmark_utils::PeopleLiteBenchmarkHelper;
 }
@@ -257,7 +263,6 @@ impl indiv_pallet_resources::Config for Runtime {
 	type StmtStoreSlotsPerPeriod = crate::parameters::StmtStoreSlotsPerPeriod;
 	type LiteStmtStoreSlotsPerPeriod = crate::parameters::LiteStmtStoreSlotsPerPeriod;
 	type StmtStoreCleanupLimit = crate::parameters::StmtStoreCleanupLimit;
-	type StmtStoreReplacementCooldown = crate::parameters::StmtStoreReplacementCooldown;
 	type StmtStoreGraceWindow = crate::parameters::StmtStoreGraceWindow;
 	type NotificationAllowance = NotificationAllowance;
 	type NotificationSlotsPerPeriod = crate::parameters::NotificationSlotsPerPeriod;
@@ -269,10 +274,11 @@ impl indiv_pallet_resources::Config for Runtime {
 	type EnsureLitePerson = indiv_pallet_people_lite::EnsureLitePerson<Runtime>;
 	type Clock = RuntimeClock;
 	type OffchainSignature = Signature;
+	type OnStmtStoreSlotCleared = ClearStmtStoreHolderUsage;
 	type LitePersonStatementLimit = crate::parameters::LitePersonStatementLimit;
 	type PersonStatementLimit = crate::parameters::PersonStatementLimit;
 	type MaxReservationQueueLength = MaxReservationQueueLength;
-	type ManagerOrigin = IndividualityManagerOrigin;
+	type ManagerOrigin = RootOrTechnicalMaintenance;
 	type LongTermStoragePeriodDuration = ConstU32<{ 14 * 24 * 60 * 60 }>; // 2 weeks
 																	   // Long-term storage grace window, kept smaller than the storage period.
 	type LongTermStorageGraceWindow = ConstU32<{ 60 * 60 }>; // 1 hour
@@ -310,7 +316,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type PaidUnloadTokenRingExponent = PaidUnloadTokenRingExponent;
 	type NativeFungible = Balances;
 	type Fungibles = NativeAndAssets;
-	type AdminOrigin = IndividualityManagerOrigin;
+	type AdminOrigin = EnsureRoot<AccountId>;
 	type SponsorOrigin = frame_system::EnsureSigned<AccountId>;
 	type EnablePermissionless = ConstBool<true>;
 	type LoadDeposit = CoinageLoadDeposit;
@@ -322,13 +328,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	>;
 	type MinimumExponent = ConstI8<0>;
 	type MaximumExponent = ConstI8<14>;
-	#[cfg(not(feature = "runtime-benchmarks"))]
 	type MinimumExponentForOutputUnloadFee = ConstI8<0>;
-	// The `as_unload_token_from_output_tx_ext` benchmark pays the unload fee from an output of
-	// exactly this denomination, so it must be large enough to cover the fee at the benchmark
-	// pool's exchange rate.
-	#[cfg(feature = "runtime-benchmarks")]
-	type MinimumExponentForOutputUnloadFee = ConstI8<4>;
 	type MaximumAge = parameters::CoinageMaximumAge;
 	type MaxSplitOutputs = ConstU32<32>;
 	type MaxConsolidation = ConstU32<64>;
@@ -384,15 +384,13 @@ parameter_types! {
 /// Pallet index of `MembersSubscriber` in Asset Hub Polkadot's `construct_runtime!`.
 pub const ASSET_HUB_MEMBERS_SUBSCRIBER_INDEX: u8 = 97;
 
-parameter_types! {
-	pub AssetHubSubscriptionWhitelist:
-		alloc::vec::Vec<indiv_pallet_members_notifier::GenesisWhitelistEntry> =
-			asset_hub_subscription_whitelist();
-}
-
 /// One-shot subscriptions any signed account may activate with
-/// `MembersNotifier::subscribe_whitelisted`, seeded into storage by
-/// [`SeedAssetHubSubscriptionWhitelist`](crate::migrations::SeedAssetHubSubscriptionWhitelist).
+/// `MembersNotifier::subscribe_whitelisted`.
+///
+/// Seeded into storage by the single-use `SeedSubscriptionWhitelist` migration that shipped in
+/// 2.5.0 and has since been removed. This as well as the coresponding
+/// `tests::asset_hub_subscription_whitelist_matches_asset_hub` can stay as temporary record of what
+/// was seeded.
 ///
 /// This is what lets Asset Hub Polkadot subscribe without a governance call: the collections,
 /// their exponents and the subscriber pallet index are fixed here, so the permissionless call can
@@ -443,6 +441,81 @@ pub enum RestrictedEntity {
 	PersonalIdentity(u64),
 	LitePerson(AccountId),
 	LiteAlias(Alias),
+	/// The holder of the statement store slot of an alias. Usage is tracked per alias, so it
+	/// follows the slot across replacements.
+	StmtStoreHolder(Alias),
+}
+
+/// Drops the usage record of a statement store slot holder once the slot entry is removed.
+pub struct ClearStmtStoreHolderUsage;
+impl indiv_pallet_resources::OnStmtStoreSlotCleared for ClearStmtStoreHolderUsage {
+	fn on_cleared(alias: &Alias) {
+		indiv_pallet_origin_restriction::Usages::<Runtime>::remove(
+			RestrictedEntity::StmtStoreHolder(*alias),
+		);
+	}
+}
+
+/// Relay chain blocks over which a statement store slot holder recovers the fee of one
+/// replacement (15 minutes).
+const STMT_STORE_HOLDER_RECOVERY_RELAY_BLOCKS: u32 = 150;
+
+/// The fee the origin restriction charges for one statement store slot replacement.
+///
+/// `replace_statement_store_account` pays no transaction fee, so the origin restriction charges
+/// its weight and length fee against the slot holder's allowance instead. The estimate uses an
+/// ECDSA signature, as it has a slightly higher cost than sr/ed25519, and a mortal era.
+fn stmt_store_replacement_fee() -> Balance {
+	use frame_support::{dispatch::GetDispatchInfo, weights::WeightToFee as _};
+	use sp_runtime::traits::ExtensionVariant;
+
+	let call =
+		RuntimeCall::Resources(indiv_pallet_resources::Call::replace_statement_store_account {
+			period: 0,
+			alias: [0u8; 32],
+			new_account: AccountId::new([0u8; 32]),
+			since: 0,
+		});
+	let signature =
+		sp_runtime::MultiSignature::Ecdsa(sp_core::ecdsa::Signature::from_raw([0u8; 65]));
+	let tx_ext: TxExtensionV1 = (
+		(
+			(),
+			pallet_verify_signature::VerifySignature::<Runtime>::Disabled,
+			indiv_pallet_people::extension::AsPerson::<Runtime>::new(None),
+			indiv_pallet_people_lite::extension::PeopleLiteAuth::<Runtime>::new(None),
+			indiv_pallet_members::extension::AsMember::<Runtime>::new(None),
+			indiv_pallet_coinage::extension::AsCoinage::<Runtime>::new(None),
+			indiv_pallet_resources::extension::AsResources::<Runtime>::new(Some(
+				indiv_pallet_resources::extension::AsResourcesInfo::ReplaceStatementStoreAccount(
+					signature,
+				),
+			)),
+			frame_system::AuthorizeCall::<Runtime>::new(),
+		),
+		indiv_pallet_origin_restriction::RestrictOrigin::<Runtime>::new(true),
+		frame_system::CheckNonZeroSender::<Runtime>::new(),
+		frame_system::CheckSpecVersion::<Runtime>::new(),
+		frame_system::CheckTxVersion::<Runtime>::new(),
+		frame_system::CheckGenesis::<Runtime>::new(),
+		frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(64, 0)),
+		frame_system::CheckNonce::<Runtime>::from(0),
+		frame_system::CheckWeight::<Runtime>::new(),
+		pallet_asset_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
+		frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+	)
+		.into();
+	let extrinsic = UncheckedExtrinsic::from_parts(
+		call,
+		generic::Preamble::General(ExtensionVariant::Other(TxExtensionOtherVersions::new(tx_ext))),
+	);
+	let weight_fee = <Runtime as pallet_transaction_payment::Config>::WeightToFee::weight_to_fee(
+		&extrinsic.get_dispatch_info().total_weight(),
+	);
+	let length_fee = <Runtime as pallet_transaction_payment::Config>::LengthToFee::weight_to_fee(
+		&Weight::from_parts(extrinsic.encoded_size() as u64, 0),
+	);
+	weight_fee.saturating_add(length_fee)
 }
 
 impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> for RestrictedEntity {
@@ -457,6 +530,14 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 			RestrictedEntity::LitePerson(_) | RestrictedEntity::LiteAlias(_) => Allowance {
 				max: crate::parameters::LitePeopleAllowanceMax::get(),
 				recovery_per_block: crate::parameters::LitePeopleAllowanceRecovery::get(),
+			},
+			// With `max: 0`, a replacement runs only as a one-time excess at zero usage, so at most
+			// once per recovery of its fee.
+			RestrictedEntity::StmtStoreHolder(_) => Allowance {
+				max: 0,
+				recovery_per_block: stmt_store_replacement_fee()
+					.div_ceil(Balance::from(STMT_STORE_HOLDER_RECOVERY_RELAY_BLOCKS))
+					.max(1),
 			},
 		}
 	}
@@ -473,6 +554,8 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 				Some(RestrictedEntity::LitePerson(account_id.clone())),
 			OriginCaller::PeopleLite(LiteAlias(rev_ca)) =>
 				Some(RestrictedEntity::LiteAlias(rev_ca.ca.alias)),
+			OriginCaller::Resources(indiv_pallet_resources::Origin::StmtStoreHolder(alias)) =>
+				Some(RestrictedEntity::StmtStoreHolder(*alias)),
 			_ => None,
 		}
 	}
@@ -481,19 +564,14 @@ impl indiv_pallet_origin_restriction::RestrictedEntity<OriginCaller, Balance> fo
 /// Calls that an entity with a zero allowance may still dispatch once, going into debt.
 pub struct OperationAllowedOneTimeExcess;
 impl ContainsPair<RestrictedEntity, RuntimeCall> for OperationAllowedOneTimeExcess {
-	#[cfg(not(feature = "runtime-benchmarks"))]
-	fn contains(_entity: &RestrictedEntity, _call: &RuntimeCall) -> bool {
-		false
-	}
-
-	// We need to have one for benchmarks.
-	#[cfg(feature = "runtime-benchmarks")]
 	fn contains(entity: &RestrictedEntity, call: &RuntimeCall) -> bool {
 		matches!(
 			(entity, call),
 			(
-				RestrictedEntity::LitePerson(_),
-				RuntimeCall::System(frame_system::Call::remark { .. })
+				RestrictedEntity::StmtStoreHolder(_),
+				RuntimeCall::Resources(
+					indiv_pallet_resources::Call::replace_statement_store_account { .. }
+				)
 			)
 		)
 	}
@@ -855,14 +933,8 @@ pub mod benchmark_utils {
 		}
 
 		fn fund_account(who: &AccountId, amount: Balance) {
-			let fee_reserve =
-				Coinage::get_paid_unload_token_fee_quote_in_asset(0, 1).unwrap_or_default();
-			<AssetsWithHolder as Mutate<_>>::mint_into(
-				HollarLocation::get(),
-				who,
-				amount.saturating_add(fee_reserve),
-			)
-			.expect("benchmark: account must be fundable");
+			<AssetsWithHolder as Mutate<_>>::mint_into(HollarLocation::get(), who, amount)
+				.expect("benchmark: account must be fundable");
 		}
 
 		fn create_extra_asset(seed: u32, who: &AccountId) -> Location {
@@ -933,6 +1005,12 @@ pub mod benchmark_utils {
 				provider,
 			)
 			.expect("benchmark: fee conversion pool must accept liquidity");
+
+			// Top up the unload caller; fee-failure benchmarks need exact funding.
+			let caller: AccountId = frame_benchmarking::account("caller", 0, 0);
+			let fee_reserve = Coinage::get_paid_unload_token_fee_quote_in_asset(0, 1)
+				.expect("benchmark: fee conversion pool must provide a quote");
+			Self::fund_account(&caller, fee_reserve);
 		}
 
 		fn create_people_proof(
@@ -1051,12 +1129,19 @@ pub mod benchmark_utils {
 	impl indiv_pallet_origin_restriction::BenchmarkHelper<OriginCaller, RuntimeCall>
 		for OriginRestrictionBenchmarkHelper
 	{
+		/// The statement store holder pair, whose allowance computes the replacement fee estimate
+		/// on every validation, so the extension weight covers that cost.
 		fn excess_pair() -> (OriginCaller, RuntimeCall) {
 			(
-				OriginCaller::PeopleLite(indiv_pallet_people_lite::Origin::LitePerson(
-					AccountId::new([0u8; 32]),
-				)),
-				RuntimeCall::System(frame_system::Call::remark { remark: Vec::new() }),
+				OriginCaller::Resources(indiv_pallet_resources::Origin::StmtStoreHolder([0u8; 32])),
+				RuntimeCall::Resources(
+					indiv_pallet_resources::Call::replace_statement_store_account {
+						period: 0,
+						alias: [0u8; 32],
+						new_account: AccountId::new([0u8; 32]),
+						since: 0,
+					},
+				),
 			)
 		}
 	}

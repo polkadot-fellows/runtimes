@@ -114,32 +114,6 @@ fn transfer_cost_min_multiplier() {
 }
 
 #[test]
-fn nominator_limit() {
-	use pallet_election_provider_multi_phase::WeightInfo;
-	// starting point of the nominators.
-	let all_voters: u32 = 10_000;
-
-	// assuming we want around 5k candidates and 1k active validators.
-	let all_targets: u32 = 5_000;
-	let desired: u32 = 1_000;
-	let weight_with = |active| {
-		<Runtime as pallet_election_provider_multi_phase::Config>::WeightInfo::submit_unsigned(
-			all_voters.max(active),
-			all_targets,
-			active,
-			desired,
-		)
-	};
-
-	let mut active = 1;
-	while weight_with(active).all_lte(OffchainSolutionWeightLimit::get()) || active == all_voters {
-		active += 1;
-	}
-
-	println!("can support {} nominators to yield a weight of {}", active, weight_with(active));
-}
-
-#[test]
 fn call_size() {
 	RuntimeCall::assert_size_under(256);
 }
@@ -175,4 +149,58 @@ fn check_treasury_pallet_id() {
 		<Treasury as frame_support::traits::PalletInfoAccess>::index() as u8,
 		kusama_runtime_constants::TREASURY_PALLET_ID
 	);
+}
+
+/// Dust accumulates for the forward to Asset Hub instead of being burned here, where the burn
+/// would not show in the network total.
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	use frame_support::{
+		assert_ok,
+		traits::{
+			fungible::{Inspect, Mutate},
+			tokens::Preservation,
+		},
+	};
+	use sp_runtime::BuildStorage;
+
+	const ALICE: [u8; 32] = [1u8; 32];
+	const BOB: [u8; 32] = [2u8; 32];
+
+	let accumulation_account = AccumulateForward::accumulation_account();
+	let ed = ExistentialDeposit::get();
+
+	let mut t = frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap();
+	pallet_balances::GenesisConfig::<Runtime> {
+		// Funded out of band; without the ED, dust is rejected and burned.
+		balances: vec![
+			(AccountId::from(ALICE), ed),
+			(AccountId::from(BOB), ed),
+			(accumulation_account.clone(), ed),
+		],
+		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	sp_io::TestExternalities::from(t).execute_with(|| {
+		let issuance_before = Balances::total_issuance();
+		let accumulated_before = <Balances as Inspect<_>>::balance(&accumulation_account);
+
+		// Reap Alice, leaving dust behind.
+		let dust = ed / 2;
+		assert_ok!(<Balances as Mutate<_>>::transfer(
+			&AccountId::from(ALICE),
+			&AccountId::from(BOB),
+			ed - dust,
+			Preservation::Expendable,
+		));
+
+		assert_eq!(<Balances as Inspect<_>>::balance(&AccountId::from(ALICE)), 0);
+		assert_eq!(
+			<Balances as Inspect<_>>::balance(&accumulation_account),
+			accumulated_before + dust
+		);
+		assert_eq!(Balances::total_issuance(), issuance_before);
+	});
 }

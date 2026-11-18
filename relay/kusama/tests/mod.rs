@@ -16,4 +16,5 @@
 
 mod asset_rate;
 mod location_conversion;
+mod proxy;
 mod treasury_burn_handler;

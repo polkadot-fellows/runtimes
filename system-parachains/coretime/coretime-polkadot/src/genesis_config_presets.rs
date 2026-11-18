@@ -36,6 +36,10 @@ fn coretime_polkadot_genesis(
 				.iter()
 				.cloned()
 				.map(|k| (k, CORETIME_POLKADOT_ED * 4096 * 4096))
+				.chain(core::iter::once((
+					AccumulateForward::accumulation_account(),
+					CORETIME_POLKADOT_ED
+				)))
 				.collect(),
 			dev_accounts: None,
 		},

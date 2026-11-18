@@ -49,14 +49,16 @@ use sp_runtime::traits::AccountIdConversion;
 use system_parachains_constants::polkadot::INDIVIDUALITY_NETWORK_SUFFIX;
 
 /// Root or the whitelisted caller origin.
-// TODO: Add the technical maintenance origin after #1236 is merged.
 pub type RootOrWhitelist = EitherOfDiverse<EnsureRoot<AccountId>, WhitelistedCaller>;
 
 /// PGAS, the non-transferable gas allowance a proven person may claim.
 ///
-/// The id sits far above the `AutoIncAssetId` range so that it can never collide with a
-/// user-registered trust-backed asset.
-pub const PGAS_ASSET_ID: AssetIdForTrustBackedAssets = 2_000_000_000;
+/// The id sits just below `50_000_000`, where the `AutoIncAssetId` sequence started
+/// (<https://github.com/polkadot-fellows/runtimes/pull/414>). Ids below `NextAssetId` can no longer
+/// be claimed by a permissionless `create`, only assigned by `ForceOrigin`, so the asset can never
+/// collide with a user-registered trust-backed asset, and creating it leaves the sequence
+/// untouched.
+pub const PGAS_ASSET_ID: AssetIdForTrustBackedAssets = 49_999_999;
 
 parameter_types! {
 	/// XCM location and pallet index of the `pallet-members-notifier` instance publishing ring
@@ -111,7 +113,8 @@ impl indiv_pallet_members_subscriber::Config for Runtime {
 	type SelfParaId = MembersSubscriberSelfParaId;
 	type MaxMissingRootsPerCollection = ConstU32<255>;
 	type MaxDeletedRingsPerCollection = ConstU32<100>;
-	type MaxGapScanPerBatch = ConstU32<32>;
+	type MaxGapScanPerCall = ConstU32<32>;
+	type GapScanCooldownSeconds = ConstU64<60>;
 	type PurgePageSize = ConstU32<100>;
 	type EnsureNotifierOrigin = EnsureNotifierSibling;
 	type EnsureTerminationOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureNotifierSibling>;

@@ -19,6 +19,7 @@ pallet-assets = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 pallet-identity = { workspace = true, default-features = true }
+pallet-parameters = { workspace = true, default-features = true }
 indiv-pallet-coinage = { workspace = true, default-features = true }
 indiv-pallet-members = { workspace = true, default-features = true }
 indiv-pallet-members-notifier = { workspace = true, default-features = true }
@@ -52,7 +53,9 @@ polkadot-system-emulated-network = { workspace = true }
 [features]
 runtime-benchmarks = [
 	"asset-hub-polkadot-runtime/runtime-benchmarks",
+	"asset-test-utils/runtime-benchmarks",
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"indiv-pallet-coinage/runtime-benchmarks",
@@ -66,6 +69,7 @@ runtime-benchmarks = [
 	"pallet-balances/runtime-benchmarks",
 	"pallet-identity/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
+	"pallet-parameters/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"people-polkadot-runtime/runtime-benchmarks",

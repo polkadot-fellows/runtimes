@@ -15,22 +15,20 @@
 // limitations under the License.
 
 use crate::{
-	coretime::{BrokerPalletId, CoretimeBurnAccount},
+	coretime::BrokerPalletId,
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
 	*,
 };
-use coretime::CoretimeAllocator;
 use cumulus_pallet_parachain_system::ValidationData;
 use cumulus_primitives_core::PersistedValidationData;
 use frame_support::{
 	assert_err, assert_ok,
 	traits::{
 		fungible::{Inspect, Mutate},
-		Get, OnInitialize,
+		OnInitialize,
 	},
 };
-use kusama_runtime_constants::system_parachain::coretime::TIMESLICE_PERIOD;
-use pallet_broker::{ConfigRecordOf, RCBlockNumberOf, SaleInfo};
+use pallet_broker::{ConfigRecordOf, SaleInfo};
 use parachains_runtimes_test_utils::{ExtBuilder, GovernanceOrigin};
 use sp_core::crypto::Ss58Codec;
 use sp_runtime::{traits::AccountIdConversion, Either};
@@ -64,7 +62,7 @@ fn advance_to(b: BlockNumber) {
 }
 
 #[test]
-fn bulk_revenue_is_burnt() {
+fn bulk_revenue_is_accumulated() {
 	ExtBuilder::<Runtime>::default()
 		.with_collators(vec![AccountId::from(ALICE)])
 		.with_session_keys(vec![(
@@ -91,15 +89,16 @@ fn bulk_revenue_is_burnt() {
 			let sale_start = SaleInfo::<Runtime>::get().unwrap().sale_start;
 			advance_to(sale_start + config.interlude_length);
 
-			// Check and set initial balances.
+			// The accumulation account holds its ED on chain, or inflows below it are burnt.
 			let broker_account = BrokerPalletId::get().into_account_truncating();
-			let coretime_burn_account = CoretimeBurnAccount::get();
+			let accumulation_account = AccumulateForward::accumulation_account();
 			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();
+			assert_ok!(Balances::mint_into(&accumulation_account, ExistentialDeposit::get()));
 			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * UNITS));
 			let alice_balance_before = Balances::balance(&AccountId::from(ALICE));
 			let treasury_balance_before = Balances::balance(&treasury_account);
 			let broker_balance_before = Balances::balance(&broker_account);
-			let burn_balance_before = Balances::balance(&coretime_burn_account);
+			let issuance_before = Balances::total_issuance();
 
 			// Purchase coretime.
 			assert_ok!(Broker::purchase(
@@ -107,32 +106,15 @@ fn bulk_revenue_is_burnt() {
 				100 * UNITS
 			));
 
-			// Alice decreases.
-			assert!(Balances::balance(&AccountId::from(ALICE)) < alice_balance_before);
-			// Treasury balance does not increase.
+			let price = alice_balance_before - Balances::balance(&AccountId::from(ALICE));
+			assert!(price > 0);
+			// The revenue lands in the accumulation account, to be burnt on Asset Hub.
+			assert_eq!(Balances::balance(&accumulation_account), ExistentialDeposit::get() + price);
 			assert_eq!(Balances::balance(&treasury_account), treasury_balance_before);
-			// Broker pallet account does not increase.
 			assert_eq!(Balances::balance(&broker_account), broker_balance_before);
-			// Coretime burn pot gets the funds.
-			assert!(Balances::balance(&coretime_burn_account) > burn_balance_before);
-
-			// They're burnt when a day has passed on chain.
-			// This needs to be asserted in an emulated test.
+			// Nothing is burnt here.
+			assert_eq!(Balances::total_issuance(), issuance_before);
 		});
-}
-
-#[test]
-fn timeslice_period_is_sane() {
-	// Config TimeslicePeriod is set to this constant - assumption in burning logic.
-	let timeslice_period_config: RCBlockNumberOf<CoretimeAllocator> =
-		<Runtime as pallet_broker::Config>::TimeslicePeriod::get();
-	assert_eq!(timeslice_period_config, TIMESLICE_PERIOD);
-
-	// Timeslice period constant non-zero - assumption in burning logic.
-	#[cfg(feature = "fast-runtime")]
-	assert_eq!(TIMESLICE_PERIOD, 20);
-	#[cfg(not(feature = "fast-runtime"))]
-	assert_eq!(TIMESLICE_PERIOD, 80);
 }
 
 #[test]
@@ -277,4 +259,28 @@ fn governance_authorize_upgrade_works() {
 		Runtime,
 		RuntimeOrigin,
 	>(GovernanceOrigin::Location(AssetHubLocation::get())));
+}
+
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	ExtBuilder::<Runtime>::default().build().execute_with(
+		system_parachains_test_utils::dust_accumulates_instead_of_being_burned::<Runtime>,
+	);
+}
+
+#[test]
+fn forward_period_counts_relay_blocks() {
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		system_parachains_test_utils::forward_period_counts_relay_blocks::<Runtime>(
+			kusama_runtime_constants::time::HOURS,
+		)
+	});
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
 }

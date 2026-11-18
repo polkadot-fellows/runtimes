@@ -14,6 +14,7 @@
 // limitations under the License.
 
 mod aliases;
+mod burn;
 mod claim_assets;
 mod coretime_interface;
 mod teleport;

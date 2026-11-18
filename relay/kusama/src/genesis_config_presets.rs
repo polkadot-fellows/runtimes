@@ -167,7 +167,14 @@ fn kusama_testnet_genesis(
 
 	serde_json::json!({
 		"balances": {
-			"balances": endowed_accounts.iter().map(|k| (k.clone(), ENDOWMENT)).collect::<Vec<_>>(),
+			"balances": endowed_accounts
+				.iter()
+				.map(|k| (k.clone(), ENDOWMENT))
+				.chain(core::iter::once((
+					AccumulateForward::accumulation_account(),
+					EXISTENTIAL_DEPOSIT,
+				)))
+				.collect::<Vec<_>>(),
 		},
 		"session": {
 			"keys": initial_authorities
