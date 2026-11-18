@@ -71,8 +71,6 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Debug, MultiAddress, Perbill,
 };
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
 	kusama::{consensus::*, currency::*, fee::WeightToFee, fellowship::IsFellowshipVoice},
@@ -127,12 +125,8 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
-		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
-		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
-		coretime::RetireCoretimeBurnAccount,
-	);
+	pub type Unreleased =
+		(pallet_broker::migration::MigrateV4ToV5<Runtime, BrokerFirstSaleRegion>,);
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;
@@ -159,18 +153,12 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("coretime-kusama"),
 	impl_name: Cow::Borrowed("coretime-kusama"),
 	authoring_version: 1,
-	spec_version: 2_005_002,
+	spec_version: 2_005_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
 	system_version: 1,
 };
-
-/// The version information used to identify this runtime when compiled natively.
-#[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion {
-	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
-}
 
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
@@ -231,6 +219,19 @@ impl pallet_broker::migration::v4::BlockToRelayHeightConversion<Runtime>
 
 	fn convert_block_length_to_relay_length(input_block_length: u32) -> u32 {
 		input_block_length * 2
+	}
+}
+
+/// `region_begin` of the first bulk sale, from the second `broker.SaleInitialized` event
+/// (block 86_947). `start_sales` ran twice and the first sale (block 53_793) was replaced
+/// before it rotated. Anchors the broker v5 migration's `sale_index` reconstruction.
+const CORETIME_KUSAMA_FIRST_SALE_REGION_BEGIN: u32 = 290_808;
+
+pub struct BrokerFirstSaleRegion;
+
+impl pallet_broker::migration::v5::FirstSaleRegion for BrokerFirstSaleRegion {
+	fn region_begin() -> u32 {
+		CORETIME_KUSAMA_FIRST_SALE_REGION_BEGIN
 	}
 }
 
@@ -313,7 +314,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const AccumulateForwardPalletId: PalletId =
 		kusama_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
-	pub const ForwardPeriod: BlockNumber = HOURS;
+	pub const ForwardPeriod: BlockNumber = kusama_runtime_constants::time::HOURS;
 	pub const MinForwardAmount: Balance = UNITS;
 }
 
@@ -327,10 +328,7 @@ impl pallet_accumulate_and_forward::Config for Runtime {
 	>;
 	type TransferPeriod = ForwardPeriod;
 	type MinTransferAmount = MinForwardAmount;
-	// Local clock: the relay one would fire on one parity only, as forwards happen on exact
-	// multiples of the period. TODO: use `RelaychainDataProvider` once
-	// https://github.com/paritytech/polkadot-sdk/issues/13149 lands.
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
 	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
@@ -907,6 +905,14 @@ mod benches {
 		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
 		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
 			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
+
+		/// `Multisig::as_multi_threshold_1`, a single-call dispatcher to nest calls with.
+		fn wrap_call(call: RuntimeCall) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Multisig(pallet_multisig::Call::<Runtime>::as_multi_threshold_1 {
+				other_signatories: Vec::new(),
+				call: alloc::boxed::Box::new(call),
+			}))
 		}
 	}
 

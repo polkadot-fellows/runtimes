@@ -138,6 +138,39 @@ fn sweep_retries_when_the_send_fails() {
 	});
 }
 
+#[test]
+fn sweep_holds_while_a_pot_cannot_be_burned() {
+	new_test_ext().execute_with(|| {
+		// GIVEN two pots with balance, one with a consumer reference, which only the admin can
+		// add to a pot.
+		let stuck = pallet_account();
+		fund(&stuck, 100);
+		fund(&other_pot(), 250);
+		frame_system::Pallet::<Test>::inc_consumers(&stuck).unwrap();
+		at_sweep();
+		let migrated = RcMigratedBalance::<Test>::get();
+
+		// WHEN the stage runs. THEN its burn fails, and the whole stage is rolled back: neither
+		// pot is burned, nothing is sent or recorded, and the stage stays.
+		run_blocks(1);
+		assert_stage(Stage::Sweep);
+		assert_eq!(free(&stuck), 100);
+		assert_eq!(free(&other_pot()), 250);
+		assert_eq!(total_issuance(), 350);
+		assert_eq!(RcMigratedBalance::<Test>::get(), migrated);
+		assert!(swept_events().is_empty());
+		assert!(sent().is_empty());
+
+		// WHEN the reference is gone. THEN the next block sweeps both pots.
+		frame_system::Pallet::<Test>::dec_consumers(&stuck);
+		run_blocks(1);
+		assert_stage(Stage::SweepDust { last_key: None });
+		assert_eq!(swept_events(), vec![(stuck, 100), (other_pot(), 250)]);
+		assert_eq!(sent(), vec![teleport_to_beneficiary(350)]);
+		assert_eq!(total_issuance(), 0);
+	});
+}
+
 /// `(free, reserved, frozen)` of `who`, and its `(providers, consumers)`.
 fn balance_and_refs(who: &AccountId) -> ((u128, u128, u128), (u32, u32)) {
 	let account = frame_system::Account::<Test>::get(who);
