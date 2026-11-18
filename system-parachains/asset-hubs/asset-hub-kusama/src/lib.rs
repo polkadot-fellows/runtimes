@@ -37,7 +37,6 @@ pub mod treasury;
 mod weights;
 pub mod xcm_config;
 
-use crate::governance::WhitelistedCaller;
 use alloc::{borrow::Cow, vec, vec::Vec};
 use assets_common::{
 	foreign_creators::ForeignCreators,
@@ -101,8 +100,6 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Debug, FixedU128, Perbill, Permill, Perquintill,
 };
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system_parachains_constants::{
 	async_backing::{
@@ -150,18 +147,12 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("statemine"),
 	impl_name: Cow::Borrowed("statemine"),
 	authoring_version: 1,
-	spec_version: 2_005_000,
+	spec_version: 2_005_003,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 15,
 	system_version: 1,
 };
-
-/// The version information used to identify this runtime when compiled natively.
-#[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion {
-	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
-}
 
 /// Asset Hub Kusama uses a 24s Aura slot duration.
 pub const SLOT_DURATION: u64 = 24_000;
@@ -381,6 +372,8 @@ parameter_types! {
 	pub const AssetConversionPalletId: PalletId = PalletId(*b"py/ascon");
 	pub const LiquidityWithdrawalFee: Permill = Permill::from_percent(0);
 	pub LpFee: Permill = Permill::from_rational(3u32, 1_000u32);
+	/// Upper bound for per-pool swap fees set by `AdminOrigin` (polkadot-sdk#12369).
+	pub MaxSwapFee: Permill = Permill::from_percent(2);
 	// Storage deposit for pool setup within asset conversion pallet
 	// and pool's lp token creation within assets pallet.
 	pub const PoolSetupFee: Balance = system_para_deposit(1, 4) + AssetDeposit::get();
@@ -465,6 +458,8 @@ impl pallet_asset_conversion::Config for Runtime {
 	type PoolSetupFeeTarget = ResolveAssetTo<xcm_config::TreasuryAccount, Self::Assets>;
 	type LiquidityWithdrawalFee = LiquidityWithdrawalFee;
 	type LPFee = LpFee;
+	type AdminOrigin = AssetsForceOrigin;
+	type MaxSwapFee = MaxSwapFee;
 	type PalletId = AssetConversionPalletId;
 	type MaxSwapPathLength = ConstU32<3>;
 	type MintMinLiquidity = ConstU128<100>;
@@ -660,6 +655,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 				RuntimeCall::System(..) |
 				// Not on AH RuntimeCall::Babe(..) |
 				RuntimeCall::Timestamp(..) |
+				RuntimeCall::CollatorSelection(..) |
 				RuntimeCall::Indices(pallet_indices::Call::claim {..}) |
 				RuntimeCall::Indices(pallet_indices::Call::free {..}) |
 				RuntimeCall::Indices(pallet_indices::Call::freeze {..}) |
@@ -859,11 +855,20 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			(ProxyType::Assets, ProxyType::AssetOwner) => true,
 			(ProxyType::Assets, ProxyType::AssetManager) => true,
 			(ProxyType::Staking, ProxyType::StakingOperator) => true,
+			// Only list proxy types whose calls are all allowed by `NonTransfer`.
 			(
 				ProxyType::NonTransfer,
-				ProxyType::Assets | ProxyType::AssetOwner | ProxyType::AssetManager,
-			) => false,
-			(ProxyType::NonTransfer, _) => true,
+				ProxyType::CancelProxy |
+				ProxyType::Collator |
+				ProxyType::Governance |
+				ProxyType::Staking |
+				ProxyType::StakingOperator |
+				ProxyType::NominationPools |
+				ProxyType::Auction |
+				ProxyType::ParaRegistration |
+				ProxyType::Society |
+				ProxyType::Spokesperson,
+			) => true,
 			_ => false,
 		}
 	}
@@ -988,11 +993,17 @@ impl cumulus_pallet_xcmp_queue::migration::v5::V5Config for Runtime {
 parameter_types! {
 	pub const Period: u32 = 6 * HOURS;
 	pub const Offset: u32 = 0;
+	/// One `NextKeys` entry plus one `KeyOwner` entry per session key.
+	pub SessionKeyDeposit: Balance = system_para_deposit(1, SessionKeys::max_encoded_len() as u32)
+		.saturating_add(system_para_deposit(
+			<SessionKeys as sp_runtime::traits::OpaqueKeys>::key_ids().len() as u32,
+			<Runtime as pallet_session::Config>::ValidatorId::max_encoded_len() as u32,
+		));
 }
 
 impl pallet_session::Config for Runtime {
 	type Currency = Balances;
-	type KeyDeposit = ();
+	type KeyDeposit = SessionKeyDeposit;
 	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	// we don't have stash and controller, thus we don't need the convert as well.
@@ -1439,10 +1450,6 @@ impl pallet_recovery::Config for Runtime {
 	type WeightInfo = weights::pallet_recovery::WeightInfo<Runtime>;
 }
 
-impl pallet_recovery::migrations::v0::MigrationConfig for Runtime {
-	type Currency = Balances;
-}
-
 /// Defines what origin can modify which dynamic parameters.
 pub struct DynamicParameterOrigin;
 impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParameterOrigin {
@@ -1465,7 +1472,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
-				WhitelistedCaller,
+				EnsureXcm<IsFellowshipVoice>,
 			>::ensure_origin(origin.clone())
 			.map(|_success| ()),
 		}
@@ -1968,6 +1975,11 @@ mod benches {
 
 	impl cumulus_pallet_session_benchmarking::Config for Runtime {
 		fn generate_session_keys_and_proof(owner: Self::AccountId) -> (Self::Keys, Vec<u8>) {
+			use frame_support::traits::fungible::Mutate;
+			// Mint the key deposit on top of the balance the benchmark already funded.
+			// TODO: Remove after https://github.com/paritytech/polkadot-sdk/issues/13336 is fixed.
+			Balances::mint_into(&owner, SessionKeyDeposit::get())
+				.expect("mint session key deposit");
 			let keys = SessionKeys::generate(&owner.encode(), None);
 			(keys.keys, keys.proof.encode())
 		}
@@ -2176,6 +2188,14 @@ mod benches {
 		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
 		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
 			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
+
+		/// `Multisig::as_multi_threshold_1`, a single-call dispatcher to nest calls with.
+		fn wrap_call(call: RuntimeCall) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Multisig(pallet_multisig::Call::<Runtime>::as_multi_threshold_1 {
+				other_signatories: Vec::new(),
+				call: alloc::boxed::Box::new(call),
+			}))
 		}
 	}
 
@@ -3010,6 +3030,89 @@ mod tests {
 		assert!(ProxyType::Staking.is_superset(&ProxyType::StakingOperator));
 	}
 
+	/// Every `is_superset` edge must be backed by the call filters, otherwise a proxy can
+	/// escalate itself by adding a "subset" proxy that allows more calls.
+	#[test]
+	fn proxy_type_superset_relation_matches_call_filters() {
+		use frame_support::traits::InstanceFilter;
+		use sp_runtime::MultiAddress;
+
+		let who = MultiAddress::Id(AccountId::from([0u8; 32]));
+		let remark = RuntimeCall::System(frame_system::Call::remark { remark: vec![] });
+		let calls = vec![
+			remark.clone(),
+			RuntimeCall::Balances(pallet_balances::Call::transfer_keep_alive {
+				dest: who.clone(),
+				value: 1,
+			}),
+			RuntimeCall::CollatorSelection(pallet_collator_selection::Call::leave_intent {}),
+			RuntimeCall::Session(pallet_session::Call::purge_keys {}),
+			RuntimeCall::Staking(pallet_staking_async::Call::chill {}),
+			RuntimeCall::StakingRcClient(pallet_staking_async_rc_client::Call::purge_keys {
+				max_delivery_and_remote_execution_fee: None,
+			}),
+			RuntimeCall::NominationPools(pallet_nomination_pools::Call::chill { pool_id: 0 }),
+			RuntimeCall::Treasury(pallet_treasury::Call::check_status { index: 0 }),
+			RuntimeCall::ConvictionVoting(pallet_conviction_voting::Call::remove_vote {
+				class: None,
+				index: 0,
+			}),
+			RuntimeCall::Society(pallet_society::Call::unbid {}),
+			RuntimeCall::Utility(pallet_utility::Call::batch { calls: vec![] }),
+			RuntimeCall::Multisig(pallet_multisig::Call::as_multi_threshold_1 {
+				other_signatories: vec![],
+				call: Box::new(remark),
+			}),
+			RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement {
+				delegate: who.clone(),
+				call_hash: Default::default(),
+			}),
+			RuntimeCall::Proxy(pallet_proxy::Call::add_proxy {
+				delegate: who.clone(),
+				proxy_type: ProxyType::StakingOperator,
+				delay: 0,
+			}),
+			RuntimeCall::Assets(TrustBackedAssetsCall::create {
+				id: 1.into(),
+				admin: who.clone(),
+				min_balance: 1,
+			}),
+			RuntimeCall::Assets(TrustBackedAssetsCall::mint {
+				id: 1.into(),
+				beneficiary: who,
+				amount: 1,
+			}),
+		];
+		let proxy_types = [
+			ProxyType::Any,
+			ProxyType::NonTransfer,
+			ProxyType::CancelProxy,
+			ProxyType::Assets,
+			ProxyType::AssetOwner,
+			ProxyType::AssetManager,
+			ProxyType::Collator,
+			ProxyType::Governance,
+			ProxyType::Staking,
+			ProxyType::NominationPools,
+			ProxyType::Auction,
+			ProxyType::ParaRegistration,
+			ProxyType::Society,
+			ProxyType::Spokesperson,
+			ProxyType::StakingOperator,
+		];
+
+		for sup in &proxy_types {
+			for sub in proxy_types.iter().filter(|sub| sup.is_superset(sub)) {
+				for call in calls.iter().filter(|call| sub.filter(call)) {
+					assert!(
+						sup.filter(call),
+						"{sup:?} is a superset of {sub:?}, but does not allow {call:?}"
+					);
+				}
+			}
+		}
+	}
+
 	#[test]
 	fn staking_operator_proxy_filter_works() {
 		use frame_support::traits::InstanceFilter;
@@ -3238,5 +3341,32 @@ mod tests {
 			ProxyType::NonTransfer.filter(&call),
 			"NonTransfer proxy must allow MultiAssetBounties::propose_curator",
 		);
+	}
+
+	#[test]
+	fn only_root_or_fellowship_sets_scheduler_and_message_queue_parameters() {
+		use dynamic_params::{message_queue::*, scheduler::*};
+		use pallet_custom_origins::Origin::{StakingAdmin, WhitelistedCaller};
+		use xcm::latest::prelude::*;
+
+		let keys = [
+			RuntimeParametersKey::Scheduler(MaxScheduledPerBlock.into()),
+			RuntimeParametersKey::Scheduler(MaximumWeight.into()),
+			RuntimeParametersKey::MessageQueue(MaxOnInitWeight.into()),
+			RuntimeParametersKey::MessageQueue(MaxOnIdleWeight.into()),
+		];
+		let fellowship_voice =
+			Location::new(1, [Plurality { id: BodyId::Technical, part: BodyPart::Voice }]);
+
+		for key in &keys {
+			for origin in
+				[RuntimeOrigin::root(), pallet_xcm::Origin::Xcm(fellowship_voice.clone()).into()]
+			{
+				assert!(DynamicParameterOrigin::try_origin(origin, key).is_ok());
+			}
+			for origin in [WhitelistedCaller.into(), StakingAdmin.into()] {
+				assert!(DynamicParameterOrigin::try_origin(origin, key).is_err());
+			}
+		}
 	}
 }

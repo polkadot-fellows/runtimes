@@ -6,18 +6,80 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Update all runtimes to `polkadot-sdk` `stable2609-2` ([#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+- Asset Hub Polkadot and Kusama: signed election submissions store their base deposit, fixed at registration; a migration derives it for stored submissions ([SDK #13722](https://github.com/paritytech/polkadot-sdk/pull/13722), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+- Collectives Polkadot: the Fellowship and Ambassador core-fellowship pallets measure time in Relay Chain blocks instead of Collectives blocks, so promotion and demotion periods keep their length in real time if the Collectives block time changes. A migration converts the stored periods and member timestamps: one 12-second Collectives block counts as two Relay Chain blocks ([SDK #6978](https://github.com/paritytech/polkadot-sdk/pull/6978), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+- People Polkadot ([#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)):
+  - Update Individuality to `sdk-2609-2-3004014` (stable2609-2) ([individuality-community#244](https://github.com/paritytech/individuality-community/pull/244)).
+  - Lite people are capped at 10,000, and paid lite registrations are throttled once a threshold is
+    reached.
+  - A statement store slot holder can move its slot to a new account, at most once every 15 minutes.
+  - Person records track recognition history.
+  - Multi-block migrations count the existing lite people, add recognition history to person records
+    and record the granted allowance on existing statement store and notification entries.
+  - Account signatures over messages that are not transactions are now checked against the message in a product signing context.
+- Polkadot and Kusama relays: add `pallet-migrations` to service multi-block migrations ([#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+- Polkadot and Kusama relays: migrate DMP queues to paged storage ([SDK #11909](https://github.com/paritytech/polkadot-sdk/pull/11909), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+- Polkadot Relay, Bridge Hub, Collectives and People: dust, treasury burns and slashes are no longer burnt or sent to the Relay Chain treasury. They accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).
+- Polkadot and Kusama system parachains using `pallet-accumulate-and-forward` measure its forward period in Relay Chain blocks ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).
+- Asset Hub Polkadot: the `Assets` proxy can dispatch every `Psm` call, `AssetOwner` can create and remove a PSM and set its admins and external assets, and `AssetManager` can set its fees, debt limit, circuit breakers and ceiling weights ([#1304](https://github.com/polkadot-fellows/runtimes/pull/1304)).
+
+### Removed
+
+- Polkadot & Kusama: remove `pallet-election-provider-multi-phase` and the on-chain election from the relay runtimes. Staking elections run on Asset Hub since the AHM, and a migration clears the pallet's storage ([#1313](https://github.com/polkadot-fellows/runtimes/pull/1313)).
+- Migrations that already ran ([#1371](https://github.com/polkadot-fellows/runtimes/pull/1371))
+
+### Fixed
+
+- Asset Hub Kusama: top up the Society payouts account so it matches the recorded pending payouts ([polkadot-sdk#12590](https://github.com/paritytech/polkadot-sdk/pull/12590)).
+- Coretime Polkadot and Kusama: bulk sales carry a sequential `sale_index` in `SaleInfo` and the `SaleInitialized` event. A migration back-fills it for the ongoing sale (28 on Polkadot, 33 on Kusama) ([SDK #10188](https://github.com/paritytech/polkadot-sdk/pull/10188), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+
+## [2.5.3] 06.11.2026
+
+### Changed
+
+- Update all runtimes to `polkadot-sdk` `stable2606-5`.
+- Update Individuality pallets from [`e69b079e`](https://github.com/paritytech/individuality-community/commit/e69b079ef93b6b0224ca81b96d4385f6dd4c8e22) to [`sdk-2606-5-3004004`](https://github.com/paritytech/individuality-community/tree/sdk-2606-5-3004004), which updates them to `polkadot-sdk` `stable2606-5`.
+- Asset Hub Polkadot and Kusama: the Fellowship controls the `Scheduler` and `MessageQueue` technical parameters ([#1346](https://github.com/polkadot-fellows/runtimes/pull/1346)).
+
+### Fixed
+
+- Asset Hub Polkadot and Kusama: `NonTransfer` proxies can call `CollatorSelection` again, as on the other system parachains. It was unintentionally dropped from the allowlist while `NonTransfer` still claimed to be a superset of `Collator` ([#1341](https://github.com/polkadot-fellows/runtimes/pull/1341)).
+- Collectives Polkadot: only `Any` proxies can call `pallet_salary::payout_other`, so other proxies can no longer pay the proxied account's salary to another account. `NonTransfer` proxies are no longer a superset of `Secretary` proxies ([#1341](https://github.com/polkadot-fellows/runtimes/pull/1341)).
+
+## [2.5.2] 27.10.2026
+
+### Fixed
+
+- Asset Hub Polkadot: multi-block migration recomputing `pallet-assets` total issuance for dotUSD (`7873`). dotUSD is frozen while it runs ([#1334](https://github.com/polkadot-fellows/runtimes/pull/1334)).
+
+## [2.5.1] 24.10.2026
+
 ### Removed
 
 - People Polkadot: remove the single-use `SeedSubscriptionWhitelist` migration that seeded the Asset Hub `MembersNotifier` subscription whitelist entry. It shipped in 2.5.0 and has run on chain. [#1292](https://github.com/polkadot-fellows/runtimes/pull/1292)).
 
 ### Changed
 
-- Asset Hub Polkadot: the `Assets` proxy can dispatch every `Psm` call, `AssetOwner` can create and remove a PSM and set its admins and external assets, and `AssetManager` can set its fees, debt limit, circuit breakers and ceiling weights ([#1304](https://github.com/polkadot-fellows/runtimes/pull/1304)).
+- Update Individuality pallets from [`53482baa`](https://github.com/paritytech/individuality-community/commit/53482baa337278c6c4c8115fb8d2b4b5def08ccb) to [`e69b079e`](https://github.com/paritytech/individuality-community/commit/e69b079ef93b6b0224ca81b96d4385f6dd4c8e22) ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331), [#1332](https://github.com/polkadot-fellows/runtimes/pull/1332)).
+- Asset Hub Polkadot: move missing membership-root detection to offchain-submitted scans with a 60-second cooldown after incoming updates. Migrate Members Subscriber timestamps from global to per-collection storage ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
+- `pallet-accumulate-and-forward`: measure `TransferPeriod` from the last forward instead of requiring exact block multiples ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
+- Bridge Hub Polkadot: Snowbridge validates sync committee BLS public keys ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
+- Bulletin Polkadot: dust and XCM delivery fees now accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub, instead of being burnt or stranded locally ([#1319](https://github.com/polkadot-fellows/runtimes/pull/1319)).
+- Asset Hub, Bridge Hub, Coretime and People Polkadot & Kusama, Collectives Polkadot, Bulletin Polkadot and Encointer: `pallet_session::set_keys` now holds a deposit priced with `system_para_deposit` so a first registration needs free balance of at least ED plus the deposit. Keys registered before this change stay deposit-free ([#1310](https://github.com/polkadot-fellows/runtimes/pull/1310)).
 - Coretime Kusama: bulk revenue now accumulates with dust and is burnt on Asset Hub through `pallet-accumulate-and-forward`, and a migration retires the `py/ctbrn` holding account ([#1301](https://github.com/polkadot-fellows/runtimes/pull/1301)).
 - Kusama relay: dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1289](https://github.com/polkadot-fellows/runtimes/pull/1289)).
 - Bridge Hub, Coretime, People and Encointer Kusama:  dust from reaped accounts now accumulates and is teleported to Asset Hub to be burned there ([#1287](https://github.com/polkadot-fellows/runtimes/pull/1287)).
 - Asset Hub Polkadot: `DustRemoval` resolves into the DAP staging account instead of burning, so dust is deactivated like every other sink ([#1288](https://github.com/polkadot-fellows/runtimes/pull/1288)).
 - Coretime Polkadot & Kusama, Asset Hub Polkadot: coretime bulk revenue is no longer teleported to the relay chain to be burnt. Polkadot forwards revenue, and now also dust from reaped accounts, to the DAP staging account on Asset Hub through `pallet-accumulate-and-forward`, and Asset Hub grants system-chain accumulation accounts free execution. Asset Hub Polkadot must be upgraded before Coretime Polkadot, otherwise the forwards are rejected and the teleported DOT is lost. Kusama teleports it to Asset Hub and burns it there, since KSM issuance is tracked on Asset Hub. A migration retires the `py/ctbrn` holding account on Coretime Polkadot. ([#1282](https://github.com/polkadot-fellows/runtimes/pull/1282)).
+
+### Fixed
+
+- Asset Hub and People Polkadot: update `ark-vrf` to 0.6.1 to fix batched ring proof verification ([#1332](https://github.com/polkadot-fellows/runtimes/pull/1332)).
+- Apply XCM hardening from [polkadot-sdk#13531](https://github.com/paritytech/polkadot-sdk/pull/13531) ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
+- People Polkadot: fix XCM fee refunds for non-DOT assets that could burn part of the fee ([#1331](https://github.com/polkadot-fellows/runtimes/pull/1331)).
 
 ## [2.5.0] 01.09.2026
 

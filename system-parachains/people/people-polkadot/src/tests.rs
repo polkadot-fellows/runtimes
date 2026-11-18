@@ -17,8 +17,10 @@
 use crate::{
 	assets::hollar::HOLLAR_UNITS,
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Block, DotWeightToFee as WeightToFee, Runtime, RuntimeCall, RuntimeOrigin,
+	AccumulateForward, Balances, Block, DotWeightToFee as WeightToFee, ExistentialDeposit,
+	Identity, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys,
 };
+use codec::Encode;
 use cumulus_primitives_core::relay_chain::AccountId;
 use sp_core::crypto::Ss58Codec;
 use xcm::prelude::*;
@@ -556,7 +558,6 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		StatementStorage(statement_storage::StmtStoreSlotsPerPeriod.into()),
 		StatementStorage(statement_storage::LiteStmtStoreSlotsPerPeriod.into()),
 		StatementStorage(statement_storage::StmtStoreCleanupLimit.into()),
-		StatementStorage(statement_storage::StmtStoreReplacementCooldown.into()),
 		StatementStorage(statement_storage::StmtStoreGraceWindow.into()),
 		StatementStorage(statement_storage::NotificationSlotsPerPeriod.into()),
 		StatementStorage(statement_storage::LiteNotificationSlotsPerPeriod.into()),
@@ -571,6 +572,10 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		OriginRestriction(origin_restriction::LitePeopleAllowanceMax.into()),
 		OriginRestriction(origin_restriction::LitePeopleAllowanceRecovery.into()),
 		LitePersonhood(lite_personhood::RegistrationFee.into()),
+		LitePersonhood(lite_personhood::PaidRegistrationThreshold.into()),
+		LitePersonhood(lite_personhood::PaidRegistrationPeriod.into()),
+		LitePersonhood(lite_personhood::PaidRegistrationsPerPeriod.into()),
+		LitePersonhood(lite_personhood::MaxLitePeople.into()),
 	];
 	let root_only = [
 		BulletinStorage(bulletin_storage::BulletinChainLocation.into()),
@@ -616,5 +621,67 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 			),
 			DispatchError::BadOrigin,
 		);
+	});
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
+}
+
+#[test]
+fn identity_slashes_accumulate_instead_of_being_burned() {
+	use crate::people::IdentityInfo;
+	use frame_support::traits::{
+		fungible::{Inspect, Mutate},
+		ReservableCurrency,
+	};
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		// GIVEN the accumulation account funded with its ED, as done out of band before upgrade.
+		let ed: crate::Balance = ExistentialDeposit::get();
+		let accumulation_account = AccumulateForward::accumulation_account();
+		assert_ok!(Balances::mint_into(&accumulation_account, ed));
+		let carol = AccountId::from([3u8; 32]);
+		assert_ok!(Balances::mint_into(&carol, 100 * crate::UNITS));
+		assert_ok!(Identity::set_identity(
+			RuntimeOrigin::signed(carol.clone()),
+			Box::new(IdentityInfo::default())
+		));
+		let deposit = <Balances as ReservableCurrency<_>>::reserved_balance(&carol);
+		assert!(deposit > 0);
+		let accumulated_before = Balances::balance(&accumulation_account);
+		let issuance_before = Balances::total_issuance();
+
+		// WHEN an identity is killed, slashing its deposit.
+		assert_ok!(Identity::kill_identity(RuntimeOrigin::root(), carol.clone().into()));
+
+		// THEN the slash reaches the accumulation account and is not burnt.
+		assert_eq!(Balances::balance(&accumulation_account), accumulated_before + deposit);
+		assert_eq!(Balances::total_issuance(), issuance_before);
+	});
+}
+
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(
+		system_parachains_test_utils::dust_accumulates_instead_of_being_burned::<Runtime>,
+	);
+}
+
+#[test]
+fn forward_period_counts_relay_blocks() {
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		system_parachains_test_utils::forward_period_counts_relay_blocks::<Runtime>(
+			polkadot_runtime_constants::time::HOURS,
+		)
 	});
 }

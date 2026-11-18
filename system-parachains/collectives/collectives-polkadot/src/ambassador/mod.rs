@@ -195,7 +195,7 @@ impl pallet_referenda::Config<AmbassadorReferendaInstance> for Runtime {
 	// - the FellowshipAdmin origin (i.e. token holder referendum);
 	// - a vote among all Head Ambassadors.
 	type KillOrigin = OpenGovOrHeadAmbassadors;
-	type Slash = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
+	type Slash = pallet_accumulate_and_forward::LegacyAdapter<Runtime, Balances>;
 	type Votes = Votes;
 	type Tally = pallet_ranked_collective::TallyOf<Runtime, AmbassadorCollectiveInstance>;
 	type SubmissionDeposit = SubmissionDeposit;
@@ -211,6 +211,7 @@ pub type AmbassadorCoreInstance = pallet_core_fellowship::Instance2;
 
 impl pallet_core_fellowship::Config<AmbassadorCoreInstance> for Runtime {
 	type WeightInfo = weights::pallet_core_fellowship_ambassador_core::WeightInfo<Runtime>;
+	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
 	type RuntimeEvent = RuntimeEvent;
 	type Members = pallet_ranked_collective::Pallet<Runtime, AmbassadorCollectiveInstance>;
 	type Balance = Balance;
@@ -334,7 +335,7 @@ impl pallet_treasury::Config<AmbassadorTreasuryInstance> for Runtime {
 	type RejectOrigin = OpenGovOrHeadAmbassadors;
 	type SpendPeriod = ConstU32<{ 7 * DAYS }>;
 	type Burn = Burn;
-	type BurnDestination = ();
+	type BurnDestination = pallet_accumulate_and_forward::LegacyAdapter<Runtime, Balances>;
 	type SpendFunds = ();
 	type MaxApprovals = ConstU32<100>;
 	type SpendOrigin = EitherOf<

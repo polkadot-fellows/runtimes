@@ -19,8 +19,8 @@
 use bulletin_polkadot_runtime::{
 	storage::{StorageCallInspector, StoragePriorityBoost, ValidateBulletinCalls},
 	xcm_config::{GovernanceLocation, LocationToAccountId, PeopleLocation},
-	Balances, Block, Executive, HopPromotion, Runtime, RuntimeCall, RuntimeOrigin, System,
-	TransactionStorage, TxExtension, UncheckedExtrinsic,
+	Balances, Block, Executive, HopPromotion, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys,
+	System, TransactionStorage, TxExtension, UncheckedExtrinsic,
 };
 use bulletin_transaction_storage_primitives::cids::{
 	calculate_cid, CidConfig, HashingAlgorithm, RAW_CODEC,
@@ -2202,4 +2202,28 @@ mod hop_promotion {
 			assert!(HopPromotion::is_promoted_on_chain(content_hash));
 		});
 	}
+}
+
+#[test]
+fn session_key_deposit_works() {
+	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
+		let generated = SessionKeys::generate(&owner.encode(), None);
+		(generated.keys, generated.proof.encode())
+	});
+}
+
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	new_test_ext().execute_with(
+		system_parachains_test_utils::dust_accumulates_instead_of_being_burned::<Runtime>,
+	);
+}
+
+#[test]
+fn forward_period_counts_relay_blocks() {
+	new_test_ext().execute_with(|| {
+		system_parachains_test_utils::forward_period_counts_relay_blocks::<Runtime>(
+			polkadot_runtime_constants::time::HOURS,
+		)
+	});
 }

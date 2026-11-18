@@ -25,6 +25,7 @@ coretime-polkadot-runtime = { workspace = true }
 runtime-benchmarks = [
 	"coretime-polkadot-runtime/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
+	"emulated-integration-tests-common/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 ]

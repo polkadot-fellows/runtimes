@@ -37,6 +37,7 @@ indiv-pallet-people-lite = { workspace = true }
 indiv-pallet-relay-randomness = { workspace = true }
 indiv-pallet-resources = { workspace = true }
 indiv-support = { workspace = true }
+pallet-accumulate-and-forward = { workspace = true }
 pallet-assets = { workspace = true }
 pallet-asset-conversion = { workspace = true }
 pallet-asset-rate = { workspace = true }
@@ -107,6 +108,7 @@ system-parachains-constants = { workspace = true }
 asset-hub-polkadot-runtime = { workspace = true }
 indiv-support = { workspace = true, features = ["genesis", "std"] }
 parachains-runtimes-test-utils = { workspace = true }
+system-parachains-test-utils = { workspace = true }
 verifiable = { workspace = true, features = ["builder-params", "std"] }
 
 [build-dependencies]
@@ -149,6 +151,7 @@ std = [
 	"indiv-pallet-resources/std",
 	"indiv-support/std",
 	"log/std",
+	"pallet-accumulate-and-forward/std",
 	"pallet-asset-conversion/std",
 	"pallet-asset-rate/std",
 	"pallet-asset-tx-payment/std",
@@ -231,6 +234,7 @@ runtime-benchmarks = [
 	"indiv-pallet-relay-randomness/runtime-benchmarks",
 	"indiv-pallet-resources/runtime-benchmarks",
 	"indiv-support/runtime-benchmarks",
+	"pallet-accumulate-and-forward/runtime-benchmarks",
 	"pallet-asset-conversion/runtime-benchmarks",
 	"pallet-asset-rate/runtime-benchmarks",
 	"pallet-asset-tx-payment/runtime-benchmarks",
@@ -252,6 +256,7 @@ runtime-benchmarks = [
 	"pallet-xcm-benchmarks/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
+	"parachains-runtimes-test-utils/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"polkadot-runtime-constants/runtime-benchmarks",
@@ -288,6 +293,7 @@ try-runtime = [
 	"indiv-pallet-people/try-runtime",
 	"indiv-pallet-relay-randomness/try-runtime",
 	"indiv-pallet-resources/try-runtime",
+	"pallet-accumulate-and-forward/try-runtime",
 	"pallet-asset-conversion/try-runtime",
 	"pallet-asset-rate/try-runtime",
 	"pallet-asset-tx-payment/try-runtime",
@@ -311,6 +317,7 @@ try-runtime = [
 	"pallet-xcm/try-runtime",
 	"parachain-info/try-runtime",
 	"parachains-common/try-runtime",
+	"parachains-runtimes-test-utils/try-runtime",
 	"polkadot-runtime-common/try-runtime",
 	"sp-runtime/try-runtime",
 	"system-parachains-common/try-runtime",
