@@ -15,8 +15,7 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 //! Checks of the Sweep stage: the Relay Chain pots hold only free balance before and end empty,
-//! the beneficiary's balance matches the expected range, and Asset Hub marks what arrived
-//! inactive.
+//! the beneficiary gains exactly what is sent to it, and Asset Hub marks what arrived inactive.
 
 use crate::{
 	checks::{ParaMigrationCheck, RcMigrationCheck},
@@ -36,9 +35,8 @@ pub struct RcSweepPre {
 	pub pots: Vec<(AccountId32, u128)>,
 	/// Where the pots' balance goes on Asset Hub.
 	pub beneficiary: AccountId32,
-	/// The whole balance of Asset Hub's own sovereign here. The accounts stage sends part of it to
-	/// the same beneficiary.
-	pub ah_sovereign: u128,
+	/// What the accounts stage sends from Asset Hub's own sovereign here to the same beneficiary.
+	pub ah_sovereign_share: u128,
 }
 
 fn total<T>(who: &AccountId32) -> u128
@@ -49,6 +47,25 @@ where
 	>,
 {
 	frame_system::Account::<T>::get(who).data.total()
+}
+
+/// What the accounts stage sends from Asset Hub's own sovereign account to the beneficiary,
+/// worked out from the account itself: its free balance, less the buffer that goes to the
+/// Coretime chain with a reserve. A share below the existential deposit goes there too.
+fn ah_sovereign_share() -> u128 {
+	let ah_sovereign: AccountId32 = ParaId::from(AssetHubPara::PARA_ID).into_account_truncating();
+	let data = frame_system::Account::<Rc>::get(&ah_sovereign).data;
+	let buffer = if data.reserved == 0 {
+		0
+	} else {
+		data.free.min(<Rc as pallet_rc2_migrator::Config>::CtFreeBuffer::get())
+	};
+	let share = data.free - buffer;
+	if share < <Rc as pallet_balances::Config>::ExistentialDeposit::get() {
+		0
+	} else {
+		share
+	}
 }
 
 /// Sweep burns only a pot's free balance, so a pot must hold nothing else.
@@ -78,12 +95,10 @@ impl RcMigrationCheck for SweepChecker {
 				(pot, amount)
 			})
 			.collect();
-		let ah_sovereign: AccountId32 =
-			ParaId::from(AssetHubPara::PARA_ID).into_account_truncating();
 		RcSweepPre {
 			pots,
 			beneficiary: <Rc as pallet_rc2_migrator::Config>::SweepBeneficiary::get(),
-			ah_sovereign: total::<Rc>(&ah_sovereign),
+			ah_sovereign_share: ah_sovereign_share(),
 		}
 	}
 
@@ -148,15 +163,16 @@ impl ParaMigrationCheck<AssetHubPara> for SweepChecker {
 		swept: &Self::RcPostPayload,
 		ah_pre: Self::PrePayload,
 	) {
-		// The beneficiary must gain at least the pots' snapshot balance. It may also receive free
-		// balance from Asset Hub's own sovereign account in the accounts stage.
+		// The beneficiary gains exactly the pots and Asset Hub's sovereign's share.
 		let arrived = total::<Ah>(&rc_pre.beneficiary)
 			.checked_sub(ah_pre)
 			.expect("the beneficiary did not shrink");
-		assert!(arrived >= *swept, "the beneficiary got {arrived}, less than the {swept} swept");
-		assert!(
-			arrived <= swept + rc_pre.ah_sovereign,
-			"the beneficiary got {arrived}, more than the {swept} swept and Asset Hub's sovereign"
+		assert_eq!(
+			arrived,
+			swept + rc_pre.ah_sovereign_share,
+			"the beneficiary got something other than the {swept} swept and the {} from Asset \
+			 Hub's sovereign",
+			rc_pre.ah_sovereign_share
 		);
 
 		// The beneficiary's pallet must mark at least the swept amount inactive, allowing for one

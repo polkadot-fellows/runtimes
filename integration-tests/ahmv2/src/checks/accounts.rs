@@ -17,7 +17,7 @@
 //! Checks of the accounts stage over all three chains.
 
 use crate::{
-	checks::{ParaMigrationCheck, RcMigrationCheck},
+	checks::{issuance::ah_checking_account, ParaMigrationCheck, RcMigrationCheck},
 	mock::{network, AssetHubPara, CoretimePara},
 };
 use migrator_types::translate_destination;
@@ -247,10 +247,12 @@ fn unattributed_hold(who: &AccountId32) -> Option<u128> {
 		.map(|hold| hold.amount)
 }
 
-/// Asset Hub balances of every destination before the migration.
+/// Asset Hub balances of every destination and of the sweep beneficiary, and of the checking
+/// account, before the migration.
 #[derive(Clone, Debug)]
 pub struct AhAccountsPre {
 	pub balances: BTreeMap<AccountId32, u128>,
+	pub checking: u128,
 }
 
 impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
@@ -259,21 +261,25 @@ impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
 	type PrePayload = AhAccountsPre;
 
 	fn pre_check(rc_pre: &Self::RcPrePayload) -> Self::PrePayload {
+		let beneficiary = <Rc as pallet_rc2_migrator::Config>::SweepBeneficiary::get();
 		let balances = rc_pre
 			.ah_destinations
 			.keys()
+			.chain([&beneficiary])
 			.map(|dest| (dest.clone(), account_data::<Ah>(dest).total()))
 			.collect();
-		AhAccountsPre { balances }
+		AhAccountsPre { balances, checking: ah_checking_account() }
 	}
 
 	fn post_check(rc_pre: &Self::RcPrePayload, _: &Self::RcPostPayload, ah_pre: Self::PrePayload) {
-		// `IssuanceChecker` checks the total received by Asset Hub, including other stages. The
-		// sweep beneficiary also receives pot balances, so `SweepChecker` checks its growth.
+		// The sweep beneficiary also receives the pots, so `SweepChecker` checks what it gets.
 		let beneficiary = <Rc as pallet_rc2_migrator::Config>::SweepBeneficiary::get();
-		for (dest, expected) in &rc_pre.ah_destinations {
-			let delta = grown(dest, ah_pre.balances[dest], account_data::<Ah>(dest).total());
+		let mut arrived = 0u128;
+		for (dest, before) in &ah_pre.balances {
+			let delta = grown(dest, *before, account_data::<Ah>(dest).total());
+			arrived += delta;
 
+			let Some(expected) = rc_pre.ah_destinations.get(dest) else { continue };
 			if expected.all_plain && *dest != beneficiary {
 				assert_eq!(delta, expected.total, "plain account {dest:?} must land on AH whole");
 			}
@@ -281,5 +287,12 @@ impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
 				assert_eq!(delta, 0, "pure-like {dest:?} must not land on AH");
 			}
 		}
+
+		// Everything the checking account paid out landed on one of these accounts.
+		let paid = ah_pre.checking - ah_checking_account();
+		assert_eq!(
+			paid, arrived,
+			"the checking account paid for something other than the migration"
+		);
 	}
 }

@@ -41,7 +41,9 @@ pub struct AhIssuancePre {
 	pub checking: u128,
 }
 
-fn ah_checking_account() -> u128 {
+/// The balance of Asset Hub's checking account, which pays out every teleport from the Relay
+/// Chain.
+pub(crate) fn ah_checking_account() -> u128 {
 	let checking = pallet_xcm::Pallet::<Ah>::check_account();
 	frame_system::Account::<Ah>::get(checking).data.total()
 }
