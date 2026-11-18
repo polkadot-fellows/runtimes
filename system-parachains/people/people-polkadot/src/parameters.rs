@@ -120,20 +120,26 @@ pub mod dynamic_params {
 		pub static MaxLitePeople: u32 = 10_000;
 	}
 
-	/// Coinage deposits (in DOT), coin lifetime and free unload token allowances.
+	/// Coinage deposits, coin lifetime and free unload token allowances.
 	#[dynamic_pallet_params]
 	#[codec(index = 4)]
 	pub mod coinage {
+		/// Load deposit held per loaded recycler key, in DOT.
 		#[codec(index = 0)]
 		pub static LoadDepositPrice: Balance = UNITS / 10;
+		/// Deposit held from the creator of a sponsored instance, in DOT.
 		#[codec(index = 1)]
 		pub static InstanceCreationDeposit: Balance = 10 * UNITS;
+		/// Number of transfers and splits after which a coin must be recycled.
 		#[codec(index = 2)]
 		pub static MaximumAge: u16 = 16;
+		/// Free unload token budget of a person per time period, in DOT.
 		#[codec(index = 3)]
 		pub static UnloadTokenAllowancePerTimePeriodForPeople: Balance = 20 * UNITS;
+		/// Free unload token budget of a lite person per time period, in DOT.
 		#[codec(index = 4)]
 		pub static UnloadTokenAllowancePerTimePeriodForLitePeople: Balance = 10 * UNITS;
+		/// Upper bound on the free unload tokens per time period, whatever the unload fee.
 		#[codec(index = 5)]
 		pub static MaxFreeUnloadTokensPerTimePeriod: u32 = 1000;
 	}
@@ -229,10 +235,10 @@ pub type CoinageLoadDepositPrice =
 	AtLeast<dynamic_params::coinage::LoadDepositPrice, frame_support::traits::ConstU128<1>>;
 pub type CoinageInstanceCreationDeposit = dynamic_params::coinage::InstanceCreationDeposit;
 
-/// Coinage maximum coin age, kept non-zero so a freshly loaded coin can always be used at least
-/// once before it has to be recycled.
+/// Coinage maximum coin age, kept at 2 or more: a recycler unloaded into coins yields coins of
+/// age 1, better to let them be transferred once before they have to be recycled.
 pub type CoinageMaximumAge =
-	AtLeast<dynamic_params::coinage::MaximumAge, frame_support::traits::ConstU16<1>>;
+	AtLeast<dynamic_params::coinage::MaximumAge, frame_support::traits::ConstU16<2>>;
 /// Free unload token allowances and cap. Zero is valid and disables free unload tokens.
 pub type CoinageUnloadTokenAllowancePerTimePeriodForPeople =
 	dynamic_params::coinage::UnloadTokenAllowancePerTimePeriodForPeople;
@@ -293,7 +299,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				origin.clone(),
 			)
 			.map(|_| ()),
-			// Where the chain sends data, and what coinage costs.
+			// Where the chain sends data, and the coinage settings.
 			RuntimeParametersKey::BulletinStorage(
 				BulletinStorageKey::BulletinChainLocation(_) |
 				BulletinStorageKey::BulletinTransactionStoragePalletIndex(_),
