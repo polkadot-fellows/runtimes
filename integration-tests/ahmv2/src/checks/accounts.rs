@@ -20,7 +20,6 @@ use crate::{
 	checks::{issuance::ah_checking_account, ParaMigrationCheck, RcMigrationCheck},
 	mock::{network, AssetHubPara, CoretimePara},
 };
-use frame_support::traits::Get;
 use migrator_types::translate_destination;
 use pallet_rc2_migrator::accounts::AccountsMigrator;
 use sp_runtime::AccountId32;
