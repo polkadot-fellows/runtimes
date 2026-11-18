@@ -18,6 +18,7 @@ permissions:
 jobs:
   rustfmt:
     runs-on: self-hosted
+    timeout-minutes: 120
 
     steps:
       - name: Checkout

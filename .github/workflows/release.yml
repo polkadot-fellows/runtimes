@@ -12,6 +12,7 @@ permissions:
 jobs:
   collect-release-information:
     runs-on: self-hosted
+    timeout-minutes: 120
     outputs:
       should-release: ${{ steps.run.outputs.should-release }}
       version: ${{ steps.run.outputs.version }}
@@ -27,6 +28,7 @@ jobs:
     needs: [ collect-release-information ]
     if: needs.collect-release-information.outputs.should-release == '1'
     runs-on: self-hosted
+    timeout-minutes: 120
     outputs:
       runtime: ${{ steps.runtime.outputs.runtime }}
     steps:
@@ -41,6 +43,7 @@ jobs:
     needs: [ runtime-matrix ]
     continue-on-error: true
     runs-on: self-hosted
+    timeout-minutes: 120
     strategy:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
@@ -105,6 +108,7 @@ jobs:
 
   publish-release:
     runs-on: self-hosted
+    timeout-minutes: 120
     needs: [ build-runtimes, collect-release-information ]
     permissions:
       contents: write
@@ -189,6 +193,7 @@ jobs:
     needs: [ runtime-matrix, publish-release ]
     continue-on-error: true
     runs-on: self-hosted
+    timeout-minutes: 120
     permissions:
       contents: write
     env:
@@ -224,6 +229,7 @@ jobs:
   package-try-runtime-and-logging-enabled-wasms:
     needs: [ build-runtimes, publish-release ]
     runs-on: self-hosted
+    timeout-minutes: 120
     permissions:
       contents: write
     steps:
