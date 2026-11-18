@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Account signatures over messages that are not transactions are now checked against the message in a product signing context.
 - Polkadot and Kusama relays: add `pallet-migrations` to service multi-block migrations ([#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 - Polkadot and Kusama relays: migrate DMP queues to paged storage ([SDK #11909](https://github.com/paritytech/polkadot-sdk/pull/11909), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
+- Polkadot Relay, Bridge Hub, Collectives and People: dust, treasury burns and slashes are no longer burnt or sent to the Relay Chain treasury. They accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).
+- Polkadot and Kusama system parachains using `pallet-accumulate-and-forward` measure its forward period in Relay Chain blocks ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).
 
 ### Removed
 
