@@ -18,6 +18,9 @@
 //!
 //! See <https://github.com/polkadot-fellows/runtimes/issues/1323>.
 //!
+//! TODO: Remove this module once it has enacted on both Asset Hubs, see
+//! <https://github.com/polkadot-fellows/runtimes/issues/1379>.
+//!
 //! # Phantom deciding slots
 //!
 //! The migration turned ongoing referenda whose call could not be mapped to Asset Hub into

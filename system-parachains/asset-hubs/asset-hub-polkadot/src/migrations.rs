@@ -263,7 +263,8 @@ pub type Unreleased = (
 	pallet_election_provider_multi_block::signed::migrations::v1::MigrateV0ToV1<Runtime>,
 	// Free the deciding slots the Asset Hub Migration left taken and drop cancelled referenda
 	// from track queues. Idempotent. See <https://github.com/polkadot-fellows/runtimes/issues/1323>.
-	// Remove once it has enacted on both Asset Hubs.
+	// TODO: Remove once it has enacted on both Asset Hubs, see
+	// <https://github.com/polkadot-fellows/runtimes/issues/1379>.
 	system_parachains_common::referenda_tracks::RepairReferendaTracks<Runtime>,
 );
 
