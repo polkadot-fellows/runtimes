@@ -19,7 +19,7 @@
 use super::{
 	parachains_origin, AccountId, AccumulateForward, AllPalletsWithSystem, Balances, Dmp,
 	FellowshipAdmin, GeneralAdmin, ParaId, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
-	StakingAdmin, TransactionByteFee, Treasurer, Treasury, WeightToFee, XcmPallet,
+	StakingAdmin, TransactionByteFee, Treasurer, WeightToFee, XcmPallet,
 };
 use frame_support::{
 	parameter_types,
@@ -61,8 +61,9 @@ parameter_types! {
 	pub CheckAccount: AccountId = XcmPallet::check_account();
 	/// Relay cannot mint locally.
 	pub NoTeleportTracking: Option<(AccountId, MintLocation)> = None;
-	/// Account of the treasury pallet.
-	pub TreasuryAccount: AccountId = Treasury::account_id();
+	/// The `pallet-accumulate-and-forward` account, which forwards to the DAP on Asset Hub.
+	pub AccumulateForwardAccount: AccountId = AccumulateForward::accumulation_account();
+	/// The same account, as a location.
 	pub AccumulateForwardLocation: Location =
 		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
@@ -261,9 +262,7 @@ impl xcm_executor::Config for XcmConfig {
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		// TODO: post-ahm move the Treasury funds from this local account to sovereign account
-		// of the new AH Treasury.
-		SendXcmFeeToAccount<Self::AssetTransactor, TreasuryAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, AccumulateForwardAccount>,
 	>;
 	// No bridges on the Relay Chain
 	type MessageExporter = ();

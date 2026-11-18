@@ -68,7 +68,8 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
-	// TODO: replace this with DAP account (for collecting fees) #1137
+	// TODO: route tx and XCM execution fees to the DAP once it allocates collator budgets,
+	// https://github.com/paritytech/polkadot-sdk/issues/11409
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
@@ -196,15 +197,17 @@ pub type Barrier = TrailingSetTopicAsId<
 
 parameter_types! {
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	// TODO: replace this with DAP account (for collecting fees) #1137
+	// TODO: no longer collects XCM fees, remove with the local treasury accounts #1144
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
-	// TODO: replace this with DAP account (for collecting fees) #1137
+	// TODO: no longer collects XCM fees, remove with the local treasury accounts #1144
 	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
 	// conversion is not `None`.
 	pub RelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(TreasuryAccount::get());
-	/// The `pallet-accumulate-and-forward` account, as a local location.
+	/// The `pallet-accumulate-and-forward` account, which forwards to the DAP on Asset Hub.
+	pub AccumulateForwardAccount: AccountId = AccumulateForward::accumulation_account();
+	/// The same account, as a location.
 	pub AccumulateForwardLocation: Location =
 		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
@@ -276,7 +279,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = ();
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<Self::AssetTransactor, RelayTreasuryPalletAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, AccumulateForwardAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;

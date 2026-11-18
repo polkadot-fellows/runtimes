@@ -69,10 +69,10 @@ parameter_types! {
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	// TODO: replace this with DAP account (for collecting fees) #1137
+	// TODO: no longer collects XCM fees, remove with the local treasury accounts #1144
 	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub const TreasurerBodyId: BodyId = BodyId::Treasury;
-	// TODO: replace this with DAP account (for collecting fees) #1137
+	// TODO: no longer collects XCM fees, remove with the local treasury accounts #1144
 	// Test [`treasury_pallet_account_not_none`] ensures that the result of location conversion is
 	// not `None`.
 	pub RelayTreasuryPalletAccount: AccountId =
@@ -83,7 +83,8 @@ parameter_types! {
 		location: AssetHubLocation::get(),
 		asset_id: (PalletInstance(50), GeneralIndex(1984)).into(),
 	};
-	// TODO: replace this with DAP account (for collecting fees) #1137
+	// TODO: route tx and XCM execution fees to the DAP once it allocates collator budgets,
+	// https://github.com/paritytech/polkadot-sdk/issues/11409
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
 }
@@ -213,6 +214,9 @@ parameter_types! {
 		PalletInstance(<crate::AmbassadorSalary as PalletInfoAccess>::index() as u8).into();
 	pub AmbassadorTreasuryLocation: Location =
 		PalletInstance(<crate::AmbassadorTreasury as PalletInfoAccess>::index() as u8).into();
+	/// The `pallet-accumulate-and-forward` account, which forwards to the DAP on Asset Hub.
+	pub AccumulateForwardAccount: AccountId = AccumulateForward::accumulation_account();
+	/// The same account, as a location.
 	pub AccumulateForwardLocation: Location =
 		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }
@@ -293,7 +297,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetExchanger = ();
 	type FeeManager = XcmFeeManagerFromComponents<
 		WaivedLocations,
-		SendXcmFeeToAccount<Self::AssetTransactor, RelayTreasuryPalletAccount>,
+		SendXcmFeeToAccount<Self::AssetTransactor, AccumulateForwardAccount>,
 	>;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
