@@ -68,8 +68,7 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 64;
 	pub FellowshipLocation: Location = Location::new(1, Parachain(system_parachain::COLLECTIVES_ID));
-	// TODO: route tx and XCM execution fees to the DAP once it allocates collator budgets,
-	// https://github.com/paritytech/polkadot-sdk/issues/11409
+	// TODO: route tx and XCM execution fees to the DAP, paritytech/polkadot-sdk#11409
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
@@ -207,7 +206,7 @@ parameter_types! {
 			.unwrap_or(TreasuryAccount::get());
 	/// The `pallet-accumulate-and-forward` account, which forwards to the DAP on Asset Hub.
 	pub AccumulateForwardAccount: AccountId = AccumulateForward::accumulation_account();
-	/// The same account, as a location.
+	/// The `pallet-accumulate-and-forward` account, as a local location.
 	pub AccumulateForwardLocation: Location =
 		AccountId32 { network: None, id: AccumulateForward::accumulation_account().into() }.into();
 }

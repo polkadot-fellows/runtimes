@@ -40,9 +40,7 @@ fn accumulated_funds_are_forwarded_to_the_dap() {
 	test_accumulate_forward_transfers_to_asset_hub::<BulletinPolkadot, AssetHubPolkadot>();
 }
 
-/// Teleports the native token from `$chain` to Asset Hub with a signed origin, which is not in
-/// `WaivedLocations` and so pays the delivery fee, and asserts that the fee reached the
-/// accumulation account, which forwards it to the DAP, rather than a local treasury account.
+/// A signed teleport from `$chain` pays a delivery fee into its accumulation account.
 macro_rules! assert_delivery_fee_reaches_the_accumulation_account {
 	( $chain:ident, $sender:ident, $dest:expr, $native:expr $(,)? ) => {{
 		type ChainRuntime = <$chain as Chain>::Runtime;
@@ -81,8 +79,7 @@ macro_rules! assert_delivery_fee_reaches_the_accumulation_account {
 	}};
 }
 
-/// XCM delivery fees on the relay and the system chains go to the DAP, not to the relay treasury
-/// or a local `py/trsry` account.
+/// XCM delivery fees on the relay and system chains go to the DAP.
 #[test]
 fn xcm_delivery_fees_reach_the_accumulation_account() {
 	Polkadot::execute_with(|| Dmp::make_parachain_reachable(AssetHubPolkadot::para_id()));

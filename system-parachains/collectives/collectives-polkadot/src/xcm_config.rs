@@ -83,8 +83,7 @@ parameter_types! {
 		location: AssetHubLocation::get(),
 		asset_id: (PalletInstance(50), GeneralIndex(1984)).into(),
 	};
-	// TODO: route tx and XCM execution fees to the DAP once it allocates collator budgets,
-	// https://github.com/paritytech/polkadot-sdk/issues/11409
+	// TODO: route tx and XCM execution fees to the DAP, paritytech/polkadot-sdk#11409
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	pub SelfParaId: ParaId = ParachainInfo::parachain_id();
 }

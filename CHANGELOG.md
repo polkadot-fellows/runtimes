@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Polkadot and Kusama relays: migrate DMP queues to paged storage ([SDK #11909](https://github.com/paritytech/polkadot-sdk/pull/11909), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 - Polkadot Relay, Bridge Hub, Collectives and People: dust, treasury burns and slashes are no longer burnt or sent to the Relay Chain treasury. They accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).
 - Polkadot and Kusama system parachains using `pallet-accumulate-and-forward` measure its forward period in Relay Chain blocks ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).
-- Polkadot Relay, Bridge Hub, Collectives, Coretime and People: XCM delivery fees are no longer sent to the Relay Chain treasury or a local `py/trsry` account. They accumulate in the `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub ([#XXXX](https://github.com/polkadot-fellows/runtimes/pull/XXXX)).
+- Polkadot Relay, Bridge Hub, Collectives, Coretime and People: XCM delivery fees go to the DAP on Asset Hub instead of a treasury account ([#1380](https://github.com/polkadot-fellows/runtimes/pull/1380)).
 
 ### Removed
 

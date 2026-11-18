@@ -85,8 +85,7 @@ parameter_types! {
 	pub RelayTreasuryPalletAccount: AccountId =
 		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
 			.unwrap_or(TreasuryAccount::get());
-	// TODO: route tx and XCM execution fees to the DAP once it allocates collator budgets,
-	// https://github.com/paritytech/polkadot-sdk/issues/11409
+	// TODO: route tx and XCM execution fees to the DAP, paritytech/polkadot-sdk#11409
 	pub StakingPot: AccountId = CollatorSelection::account_id();
 	/// The `pallet-accumulate-and-forward` account, which forwards to the DAP on Asset Hub.
 	pub AccumulateForwardAccount: AccountId = AccumulateForward::accumulation_account();
