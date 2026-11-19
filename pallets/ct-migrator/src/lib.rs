@@ -56,7 +56,7 @@ use frame_support::{
 	storage::with_storage_layer,
 	traits::{
 		fungible::{Inspect, Mutate, MutateHold},
-		Contains, EnsureOrigin, GetCallMetadata,
+		Contains, Currency, EnsureOrigin, GetCallMetadata,
 	},
 };
 use frame_system::pallet_prelude::*;
@@ -68,6 +68,10 @@ pub type BalanceOf<T> =
 	<<T as Config>::Currency as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 /// The migrator's currency, as opposed to the proxy pallet's.
 pub(crate) type CurrencyOf<T> = <T as Config>::Currency;
+/// The proxy pallet's balance; `pallet_proxy::BalanceOf` is private.
+type ProxyBalanceOf<T> = <<T as pallet_proxy::Config>::Currency as Currency<
+	<T as frame_system::Config>::AccountId,
+>>::Balance;
 
 const LOG_TARGET: &str = "runtime::ct-migrator";
 
@@ -149,7 +153,8 @@ pub mod pallet {
 		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
 		/// Native currency. Migrated balances are minted here; migrated reserves land as holds.
-		type Currency: Mutate<Self::AccountId>
+		/// Its balance is the proxy pallet's.
+		type Currency: Mutate<Self::AccountId, Balance = ProxyBalanceOf<Self>>
 			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>;
 
 		/// The overarching hold reason type.

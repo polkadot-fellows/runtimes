@@ -28,17 +28,13 @@ use frame_support::{
 	traits::{
 		fungible::{InspectHold, MutateHold},
 		tokens::Precision,
-		Currency, Get, ReservableCurrency,
+		Get, ReservableCurrency,
 	},
 };
 use migrator_types::PortableProxy;
-use sp_runtime::{traits::Zero, DispatchResult, SaturatedConversion, Saturating};
+use sp_runtime::{traits::Zero, DispatchResult, Saturating};
 
 pub type PortableProxyOf<T> = PortableProxy<<T as frame_system::Config>::AccountId>;
-/// The proxy pallet's balance; `pallet_proxy::BalanceOf` is private.
-type ProxyBalanceOf<T> = <<T as pallet_proxy::Config>::Currency as Currency<
-	<T as frame_system::Config>::AccountId,
->>::Balance;
 
 impl<T: Config> Pallet<T> {
 	/// Write a batch of proxy sets, each in a transaction of its own. A failed set is parked in
@@ -96,7 +92,6 @@ impl<T: Config> Pallet<T> {
 		if !migrated.is_zero() {
 			CurrencyOf::<T>::release(&reason, who, migrated, Precision::Exact)?;
 		}
-		let migrated: ProxyBalanceOf<T> = migrated.saturated_into::<u128>().saturated_into();
 
 		// written directly: `add_proxy_delegate` refuses a duplicate and reserves the full
 		// deposit from free balance
