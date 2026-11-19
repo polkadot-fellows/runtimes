@@ -903,21 +903,20 @@ pub mod pallet {
 			});
 
 			// send
-			Self::send_in_batches(to_ct, Self::send_accounts)?;
-			Self::send_in_batches(to_ah, Self::send_teleport)?;
+			Self::send_in_batches(&to_ct, Self::send_accounts)?;
+			Self::send_in_batches(&to_ah, Self::send_teleport)?;
 			Ok(last_key)
 		}
 
 		/// Hand `items` to `send` in batches of at most [`BlockLimits::items_per_xcm`], one
 		/// message each.
-		fn send_in_batches<I>(
-			items: Vec<I>,
+		fn send_in_batches<I: Clone>(
+			items: &[I],
 			send: impl Fn(Vec<I>) -> Result<(), Error<T>>,
 		) -> Result<(), Error<T>> {
 			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
-			let mut items = items.into_iter().peekable();
-			while items.peek().is_some() {
-				send(items.by_ref().take(per_xcm).collect())?;
+			for batch in items.chunks(per_xcm) {
+				send(batch.to_vec())?;
 			}
 			Ok(())
 		}
@@ -940,7 +939,7 @@ pub mod pallet {
 			let limit = Limits::<T>::get().items_per_block();
 			let proxy::BlockProxies { proxies, proxies_removed, announcements_removed } =
 				proxy::ProxyMigrator::<T>::migrate_many(limit);
-			Self::send_in_batches(proxies, Self::send_proxies)?;
+			Self::send_in_batches(&proxies, Self::send_proxies)?;
 			// A block with budget to spare has emptied both maps.
 			Ok(proxies_removed + announcements_removed < limit)
 		}
