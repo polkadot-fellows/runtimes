@@ -41,11 +41,10 @@ use frame_support::{
 	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
-		fungible::HoldConsideration,
-		tokens::{imbalance::ResolveTo, UnityOrOuterConversion},
-		ConstU32, ConstU8, ConstUint, Contains, EitherOf, EitherOfDiverse, EnsureOrigin,
-		EnsureOriginWithArg, FromContains, Get, InstanceFilter, KeyOwnerProofSystem,
-		LinearStoragePrice, PrivilegeCmp, ProcessMessage, ProcessMessageError, WithdrawReasons,
+		fungible::HoldConsideration, tokens::UnityOrOuterConversion, ConstU32, ConstU8, ConstUint,
+		Contains, EitherOf, EitherOfDiverse, EnsureOrigin, EnsureOriginWithArg, FromContains, Get,
+		InstanceFilter, KeyOwnerProofSystem, LinearStoragePrice, PrivilegeCmp, ProcessMessage,
+		ProcessMessageError, WithdrawReasons,
 	},
 	weights::{
 		constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MICROS},
@@ -61,7 +60,6 @@ use pallet_session::historical as session_historical;
 use pallet_staking::UseValidatorsMap;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{FeeDetails, FungibleAdapter, RuntimeDispatchInfo};
-use pallet_treasury::TreasuryAccountId;
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use polkadot_primitives::{
 	async_backing::Constraints, slashing, AccountId, AccountIndex, ApprovalVotingParams, Balance,
@@ -75,7 +73,7 @@ use polkadot_primitives::{
 use polkadot_runtime_common::{
 	auctions, claims, crowdloan, impl_runtime_weights,
 	impls::{
-		ContainsParts as ContainsLocationParts, DealWithFees, LocatableAssetConverter,
+		ContainsParts as ContainsLocationParts, LocatableAssetConverter, ToAuthor,
 		VersionedLocatableAsset, VersionedLocationConverter,
 	},
 	paras_registrar, prod_or_fast, slots,
@@ -539,11 +537,20 @@ parameter_types! {
 	/// This value increases the priority of `Operational` transactions by adding
 	/// a "virtual tip" that's equal to the `OperationalFeeMultiplier * final_fee`.
 	pub const OperationalFeeMultiplier: u8 = 5;
+	/// Share of fees for the DAP; the rest and all tips go to the block author.
+	pub const AccumulateForwardFeePercent: Percent = Percent::from_percent(80);
 }
+
+/// Splits fees between the DAP, via the accumulation account, and the block author.
+type DealWithFeesAccumulate = pallet_accumulate_and_forward::DealWithFeesSplit<
+	Runtime,
+	AccumulateForwardFeePercent,
+	ToAuthor<Runtime>,
+>;
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction = FungibleAdapter<Balances, DealWithFees<Runtime>>;
+	type OnChargeTransaction = FungibleAdapter<Balances, DealWithFeesAccumulate>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
@@ -680,7 +687,6 @@ parameter_types! {
 	pub const MaxNominators: u32 = 512;
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
 	pub const MaxNominations: u32 = 16;
-	pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
 impl pallet_staking::Config for Runtime {
@@ -690,9 +696,9 @@ impl pallet_staking::Config for Runtime {
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type UnixTime = Timestamp;
 	type CurrencyToVote = CurrencyToVote;
-	type RewardRemainder = ResolveTo<TreasuryAccount, Balances>;
+	type RewardRemainder = AccumulateForward;
 	type RuntimeEvent = RuntimeEvent;
-	type Slash = ResolveTo<TreasuryAccount, Balances>;
+	type Slash = AccumulateForward;
 	type Reward = ();
 	type SessionsPerEra = SessionsPerEra;
 	type BondingDuration = BondingDuration;
@@ -847,7 +853,7 @@ impl pallet_bounties::Config for Runtime {
 	type ChildBountyManager = ChildBounties;
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
-	type OnSlash = Treasury;
+	type OnSlash = pallet_accumulate_and_forward::LegacyAdapter<Runtime, Balances>;
 	type TransferAllAssets = (); // not used on the relay
 	type WeightInfo = weights::pallet_bounties::WeightInfo<Runtime>;
 }
@@ -1522,8 +1528,7 @@ impl pallet_delegated_staking::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type PalletId = DelegatedStakingPalletId;
 	type Currency = Balances;
-	// slashes are sent to the treasury.
-	type OnSlash = ResolveTo<TreasuryAccountId<Self>, Balances>;
+	type OnSlash = AccumulateForward;
 	type SlashRewardFraction = SlashRewardFraction;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type CoreStaking = Staking;
@@ -1919,8 +1924,88 @@ pub mod migrations {
 		<Runtime as frame_system::Config>::DbWeight,
 	>;
 
+	/// Moves the legacy `py/trsry` balance into the accumulation account, which forwards it to the
+	/// DAP on Asset Hub. Keeps the ED so the account is not reaped. Idempotent.
+	pub struct DrainLegacyTreasuryToAccumulationAccount;
+
+	impl frame_support::traits::OnRuntimeUpgrade for DrainLegacyTreasuryToAccumulationAccount {
+		fn on_runtime_upgrade() -> Weight {
+			use frame_support::traits::{
+				fungible::{Balanced, Inspect},
+				tokens::{Fortitude, Precision, Preservation},
+				OnUnbalanced,
+			};
+
+			let source = Treasury::account_id();
+			let amount = <Balances as Inspect<AccountId>>::reducible_balance(
+				&source,
+				Preservation::Preserve,
+				Fortitude::Polite,
+			);
+			if amount == 0 {
+				return <Runtime as frame_system::Config>::DbWeight::get().reads(1);
+			}
+
+			match <Balances as Balanced<AccountId>>::withdraw(
+				&source,
+				amount,
+				Precision::Exact,
+				Preservation::Preserve,
+				Fortitude::Polite,
+			) {
+				Ok(credit) => {
+					<AccumulateForward as OnUnbalanced<_>>::on_unbalanced(credit);
+					log::info!(target: "runtime::drain-legacy-treasury", "drained {amount:?}");
+				},
+				Err(_) => {
+					frame_support::defensive!("failed to withdraw from the legacy treasury");
+				},
+			}
+
+			// The source and accumulation accounts, in `System` and `Balances`.
+			<Runtime as frame_system::Config>::DbWeight::get().reads_writes(4, 4)
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::TryRuntimeError> {
+			use frame_support::traits::fungible::Inspect;
+			let accumulated = <Balances as Inspect<AccountId>>::balance(
+				&AccumulateForward::accumulation_account(),
+			);
+			let drainable = <Balances as Inspect<AccountId>>::reducible_balance(
+				&Treasury::account_id(),
+				frame_support::traits::tokens::Preservation::Preserve,
+				frame_support::traits::tokens::Fortitude::Polite,
+			);
+			Ok((accumulated, drainable).encode())
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+			use frame_support::traits::fungible::Inspect;
+			let (accumulated, drainable): (Balance, Balance) = Decode::decode(&mut &state[..])
+				.map_err(|_| "failed to decode pre-upgrade state")?;
+			frame_support::ensure!(
+				<Balances as Inspect<AccountId>>::reducible_balance(
+					&Treasury::account_id(),
+					frame_support::traits::tokens::Preservation::Preserve,
+					frame_support::traits::tokens::Fortitude::Polite,
+				) == 0,
+				"the legacy treasury was not drained"
+			);
+			frame_support::ensure!(
+				<Balances as Inspect<AccountId>>::balance(
+					&AccumulateForward::accumulation_account()
+				) == accumulated + drainable,
+				"the accumulation account did not receive the drained amount"
+			);
+			Ok(())
+		}
+	}
+
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (RemoveElectionProviderMultiPhasePallet,);
+	pub type Unreleased =
+		(RemoveElectionProviderMultiPhasePallet, DrainLegacyTreasuryToAccumulationAccount);
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;
@@ -3686,6 +3771,78 @@ mod accumulate_forward_tests {
 			assert_eq!(accumulated(), accumulated_before + burn);
 			assert_eq!(<Balances as Inspect<_>>::balance(&treasury), 1_000 * UNITS - burn);
 			assert_eq!(Balances::total_issuance(), issuance_before);
+		});
+	}
+
+	#[test]
+	fn tx_fees_split_between_the_dap_and_the_author() {
+		new_test_ext(vec![]).execute_with(|| {
+			use frame_support::traits::{fungible::Balanced, OnUnbalanced};
+			let accumulated_before = accumulated();
+			let (fee, tip) = (100 * UNITS, 10 * UNITS);
+
+			DealWithFeesAccumulate::on_unbalanceds(
+				[<Balances as Balanced<_>>::issue(fee), <Balances as Balanced<_>>::issue(tip)]
+					.into_iter(),
+			);
+
+			// 80% of the fee goes to the DAP; the rest and the tip go to the author.
+			assert_eq!(accumulated(), accumulated_before + fee * 80 / 100);
+		});
+	}
+
+	#[test]
+	fn slashes_and_reward_remainders_accumulate() {
+		new_test_ext(vec![]).execute_with(|| {
+			use frame_support::traits::{fungible::Balanced, Currency, OnUnbalanced};
+			let accumulated_before = accumulated();
+			let credit = || <Balances as Balanced<_>>::issue(UNITS);
+			let legacy = || <Balances as Currency<_>>::issue(UNITS);
+
+			<Runtime as pallet_staking::Config>::Slash::on_unbalanced(credit());
+			<Runtime as pallet_staking::Config>::RewardRemainder::on_unbalanced(credit());
+			<Runtime as pallet_delegated_staking::Config>::OnSlash::on_unbalanced(credit());
+			<Runtime as pallet_bounties::Config>::OnSlash::on_unbalanced(legacy());
+			<Runtime as pallet_referenda::Config>::Slash::on_unbalanced(legacy());
+
+			assert_eq!(accumulated(), accumulated_before + 5 * UNITS);
+		});
+	}
+
+	#[test]
+	fn legacy_treasury_drains_to_the_accumulation_account() {
+		use crate::migrations::DrainLegacyTreasuryToAccumulationAccount as Drain;
+		use frame_support::traits::OnRuntimeUpgrade;
+		let (treasury, ed) = (Treasury::account_id(), ExistentialDeposit::get());
+
+		new_test_ext(vec![(treasury.clone(), ed + 1_000 * UNITS)]).execute_with(|| {
+			let issuance_before = Balances::total_issuance();
+			let accumulated_before = accumulated();
+
+			Drain::on_runtime_upgrade();
+
+			// Everything but the ED moves, and nothing is burned.
+			assert_eq!(<Balances as Inspect<_>>::balance(&treasury), ed);
+			assert_eq!(accumulated(), accumulated_before + 1_000 * UNITS);
+			assert_eq!(Balances::total_issuance(), issuance_before);
+
+			// A second run is a no-op.
+			Drain::on_runtime_upgrade();
+			assert_eq!(accumulated(), accumulated_before + 1_000 * UNITS);
+		});
+	}
+
+	#[test]
+	fn legacy_treasury_drain_is_a_no_op_at_the_ed() {
+		use crate::migrations::DrainLegacyTreasuryToAccumulationAccount as Drain;
+		use frame_support::traits::OnRuntimeUpgrade;
+		let (treasury, ed) = (Treasury::account_id(), ExistentialDeposit::get());
+
+		new_test_ext(vec![(treasury.clone(), ed)]).execute_with(|| {
+			let accumulated_before = accumulated();
+			Drain::on_runtime_upgrade();
+			assert_eq!(<Balances as Inspect<_>>::balance(&treasury), ed);
+			assert_eq!(accumulated(), accumulated_before);
 		});
 	}
 }

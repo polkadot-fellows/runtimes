@@ -89,11 +89,9 @@ fn bulk_revenue_is_accumulated() {
 			// upgrade, or inflows below ED are burnt.
 			let broker_account = BrokerPalletId::get().into_account_truncating();
 			let accumulation_account = AccumulateForward::accumulation_account();
-			let treasury_account = xcm_config::RelayTreasuryPalletAccount::get();
 			assert_ok!(Balances::mint_into(&accumulation_account, ExistentialDeposit::get()));
 			assert_ok!(Balances::mint_into(&AccountId::from(ALICE), 200 * UNITS));
 			let alice_balance_before = Balances::balance(&AccountId::from(ALICE));
-			let treasury_balance_before = Balances::balance(&treasury_account);
 			let broker_balance_before = Balances::balance(&broker_account);
 			let issuance_before = Balances::total_issuance();
 
@@ -108,8 +106,6 @@ fn bulk_revenue_is_accumulated() {
 			assert!(price > 0);
 			// The accumulation account gets the funds.
 			assert_eq!(Balances::balance(&accumulation_account), ExistentialDeposit::get() + price);
-			// Treasury balance does not increase.
-			assert_eq!(Balances::balance(&treasury_account), treasury_balance_before);
 			// Broker pallet account does not increase.
 			assert_eq!(Balances::balance(&broker_account), broker_balance_before);
 			// Nothing is burnt.

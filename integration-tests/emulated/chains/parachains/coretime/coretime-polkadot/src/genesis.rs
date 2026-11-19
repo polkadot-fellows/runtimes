@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use coretime_polkadot_runtime::xcm_config::{RelayTreasuryPalletAccount, StakingPot};
+use coretime_polkadot_runtime::xcm_config::StakingPot;
 use emulated_integration_tests_common::{
 	accounts, build_genesis_storage, collators, SAFE_XCM_VERSION,
 };
@@ -30,8 +30,10 @@ pub fn genesis() -> Storage {
 		balances: coretime_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances()
 				.into_iter()
-				.chain([RelayTreasuryPalletAccount::get(), StakingPot::get()])
+				.chain([StakingPot::get()])
 				.map(|k| (k, ED * 4096))
+				// Only the ED, as on chain: endowing it would forward on the first idle block.
+				.chain([(coretime_polkadot_runtime::AccumulateForward::accumulation_account(), ED)])
 				.collect(),
 			dev_accounts: None,
 		},
