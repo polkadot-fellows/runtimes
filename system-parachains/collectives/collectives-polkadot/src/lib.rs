@@ -56,7 +56,7 @@ use alloc::{borrow::Cow, boxed::Box, vec, vec::Vec};
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use fellowship::{pallet_fellowship_origins, Architects, Fellows};
-use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
+use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp};
 use parameters::dynamic_params;
 use polkadot_runtime_common::impls::{
 	ContainsParts as ContainsLocationParts, VersionedLocatableAsset,
@@ -65,13 +65,11 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	generic, impl_opaque_keys,
-	traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT},
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill,
 };
 
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
@@ -99,12 +97,14 @@ use parachains_common::{
 };
 use sp_runtime::{Debug, FixedU128};
 use system_parachains_constants::{
-	polkadot::{account::*, consensus::*, currency::*, fee::WeightToFee},
+	polkadot::{
+		account::*, consensus::*, currency::*, fee::WeightToFee, locations::DapStagingLocation,
+	},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
 	SLOT_DURATION,
 };
 use xcm_config::{
-	AssetHubLocation, FellowshipAdminBodyId, LocationToAccountId, RelayChainLocation, SelfParaId,
+	AssetHubLocation, DotLocation, FellowshipAdminBodyId, RelayChainLocation, SelfParaId,
 	StakingPot, TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
 };
 
@@ -134,18 +134,12 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("collectives"),
 	impl_name: Cow::Borrowed("collectives"),
 	authoring_version: 1,
-	spec_version: 2_005_003,
+	spec_version: 2_006_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 7,
 	system_version: 0,
 };
-
-/// The version information used to identify this runtime when compiled natively.
-#[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion {
-	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
-}
 
 /// Privileged origin that represents Root or more than two thirds of the Alliance.
 pub type RootOrAllianceTwoThirdsMajority = EitherOfDiverse<
@@ -240,7 +234,7 @@ impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
-	type DustRemoval = ();
+	type DustRemoval = AccumulateForward;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
@@ -251,6 +245,27 @@ impl pallet_balances::Config for Runtime {
 	type FreezeIdentifier = ();
 	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
+}
+
+parameter_types! {
+	pub const AccumulateForwardPalletId: PalletId = ACCUMULATE_FORWARD_PALLET_ID;
+	pub const ForwardPeriod: BlockNumber = polkadot_runtime_constants::time::HOURS;
+	pub const MinForwardAmount: Balance = UNITS;
+}
+
+impl pallet_accumulate_and_forward::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = AccumulateForwardPalletId;
+	type Forwarder = xcm_builder::TeleportForwarderForAccountId32<
+		xcm_config::XcmConfig,
+		AssetHubLocation,
+		DotLocation,
+		DapStagingLocation,
+	>;
+	type TransferPeriod = ForwardPeriod;
+	type MinTransferAmount = MinForwardAmount;
+	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
+	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -690,7 +705,6 @@ pub const MAX_ALLIES: u32 = 100;
 
 parameter_types! {
 	pub const AllyDeposit: Balance = 1_000 * UNITS; // 1,000 DOT bond to join as an Ally
-	pub PolkadotTreasuryAccount: AccountId = POLKADOT_TREASURY_PALLET_ID.into_account_truncating();
 	// The number of blocks a member must wait between giving a retirement notice and retiring.
 	// Supposed to be greater than time required to `kick_member` with alliance motion.
 	pub const AllianceRetirementPeriod: BlockNumber = (90 * DAYS) + ALLIANCE_MOTION_DURATION;
@@ -703,7 +717,7 @@ impl pallet_alliance::Config for Runtime {
 	type MembershipManager = RootOrAllianceTwoThirdsMajority;
 	type AnnouncementOrigin = RootOrAllianceTwoThirdsMajority;
 	type Currency = Balances;
-	type Slashed = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
+	type Slashed = pallet_accumulate_and_forward::LegacyAdapter<Runtime, Balances>;
 	type InitializeMembers = AllianceMotion;
 	type MembershipChanged = AllianceMotion;
 	type RetirementPeriod = AllianceRetirementPeriod;
@@ -822,6 +836,7 @@ construct_runtime!(
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
 		TransactionPayment: pallet_transaction_payment = 11,
+		AccumulateForward: pallet_accumulate_and_forward = 12,
 
 		// Collator support. the order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -917,10 +932,73 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
-		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
-		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
+		// `pallet-core-fellowship` storage v1 -> v2 (polkadot-sdk#6978): both instances switch
+		// from local to Relay Chain block numbers.
+		pallet_core_fellowship::migration::MigrateV1ToV2<
+			Runtime,
+			CoreFellowshipToRelayBlockNumber,
+			fellowship::FellowshipCoreInstance,
+		>,
+		pallet_core_fellowship::migration::MigrateV1ToV2<
+			Runtime,
+			CoreFellowshipToRelayBlockNumber,
+			ambassador::AmbassadorCoreInstance,
+		>,
 	);
+
+	/// Relay Chain blocks per local block: this chain builds at most one block per slot, and its
+	/// slots are twice as long as the Relay Chain's.
+	pub const RELAY_BLOCKS_PER_LOCAL_BLOCK: BlockNumber =
+		(SLOT_DURATION / RELAY_CHAIN_SLOT_DURATION_MILLIS as u64) as BlockNumber;
+	// The conversion below relies on one block per slot and on each block waiting for the
+	// previous one to be included (no async backing). Once the migration has run on-chain, remove
+	// it together with this assertion, the constant and the converter.
+	const _: () = assert!(
+		BLOCK_PROCESSING_VELOCITY == 1 &&
+			UNINCLUDED_SEGMENT_CAPACITY == 1 &&
+			SLOT_DURATION.is_multiple_of(RELAY_CHAIN_SLOT_DURATION_MILLIS as u64)
+	);
+
+	type RelayBlockNumber = <cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime> as
+		sp_runtime::traits::BlockNumberProvider>::BlockNumber;
+
+	/// Converts `pallet-core-fellowship` block numbers from local to Relay Chain blocks.
+	///
+	/// Durations (the periods in `Params`) are the intended lengths of time, so they scale
+	/// exactly: `n` local blocks become `n * RELAY_BLOCKS_PER_LOCAL_BLOCK` relay blocks. Past
+	/// drift (missed slots) is deliberately ignored: the Relay Chain keeps time more regularly
+	/// than this chain, so relay blocks are closer to the intended periods.
+	///
+	/// Moments (each member's `last_promotion` and `last_proof`) are placed their converted
+	/// distance before the current relay block. Each local block is built on a relay parent at
+	/// least two relay blocks after the previous one's, because it waits for that block's
+	/// inclusion. So the converted distance never exceeds the real one, and a converted moment
+	/// is never earlier than the real one; any missed slots only move it later.
+	///
+	/// For `last_proof` this favors the member: demotion can never come early. For
+	/// `last_promotion` it can delay promotion eligibility by the drift since the member's last
+	/// promotion, compared with real time. That is accepted: early demotion must be impossible,
+	/// a late promotion is tolerable, and at the upgrade every member's eligibility is exactly
+	/// what it was in local blocks.
+	pub struct CoreFellowshipToRelayBlockNumber;
+	impl pallet_core_fellowship::migration::v2::ConvertBlockNumber<BlockNumber, RelayBlockNumber>
+		for CoreFellowshipToRelayBlockNumber
+	{
+		fn equivalent_moment_in_time(local_moment: BlockNumber) -> RelayBlockNumber {
+			let local_now = System::block_number();
+			let relay_now = ParachainSystem::last_relay_block_number();
+			let relay_distance = Self::equivalent_block_duration(local_now.abs_diff(local_moment));
+			if local_moment <= local_now {
+				relay_now.saturating_sub(relay_distance)
+			} else {
+				relay_now.saturating_add(relay_distance)
+			}
+		}
+
+		fn equivalent_block_duration(local_duration: BlockNumber) -> RelayBlockNumber {
+			local_duration.saturating_mul(RELAY_BLOCKS_PER_LOCAL_BLOCK)
+		}
+	}
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;
@@ -948,6 +1026,7 @@ mod benches {
 		[frame_system, SystemBench::<Runtime>]
 		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
 		[pallet_balances, Balances]
+		[pallet_accumulate_and_forward, AccumulateForward]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
 		[pallet_parameters, Parameters]
@@ -1063,6 +1142,14 @@ mod benches {
 		/// `Utility::batch`, so weighing a `Transact` recurses over every nested call.
 		fn batch_call(calls: Vec<RuntimeCall>) -> Option<RuntimeCall> {
 			Some(RuntimeCall::Utility(pallet_utility::Call::<Runtime>::batch { calls }))
+		}
+
+		/// `Multisig::as_multi_threshold_1`, a single-call dispatcher to nest calls with.
+		fn wrap_call(call: RuntimeCall) -> Option<RuntimeCall> {
+			Some(RuntimeCall::Multisig(pallet_multisig::Call::<Runtime>::as_multi_threshold_1 {
+				other_signatories: Vec::new(),
+				call: alloc::boxed::Box::new(call),
+			}))
 		}
 	}
 
@@ -1583,4 +1670,67 @@ fn alliance_deposit_matches_documented_curve() {
 			proposals, expected, actual
 		);
 	}
+}
+
+#[test]
+fn core_fellowship_migrates_to_relay_block_numbers() {
+	use frame_support::traits::{GetStorageVersion, OnRuntimeUpgrade, StorageVersion};
+	use pallet_core_fellowship::{
+		migration::{v1, v2::ConvertBlockNumber, MigrateV1ToV2},
+		MemberStatus,
+	};
+	use sp_runtime::BoundedVec;
+
+	type Converter = migrations::CoreFellowshipToRelayBlockNumber;
+	type Instance = fellowship::FellowshipCoreInstance;
+
+	sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+		// One 12s local block is two 6s relay blocks.
+		assert_eq!(migrations::RELAY_BLOCKS_PER_LOCAL_BLOCK, 2);
+
+		let local_now = 10_000;
+		let relay_now = 1_000_000;
+		System::set_block_number(local_now);
+		cumulus_pallet_parachain_system::LastRelayChainBlockNumber::<Runtime>::put(relay_now);
+
+		// Durations double; moments keep their converted distance from now.
+		assert_eq!(Converter::equivalent_block_duration(300), 600);
+		assert_eq!(Converter::equivalent_moment_in_time(local_now), relay_now);
+		assert_eq!(Converter::equivalent_moment_in_time(9_000), relay_now - 2_000);
+		assert_eq!(Converter::equivalent_moment_in_time(10_500), relay_now + 1_000);
+		assert_eq!(Converter::equivalent_moment_in_time(0), relay_now - 20_000);
+
+		// The full v1 -> v2 migration.
+		let who = AccountId::from([1u8; 32]);
+		v1::Params::<Runtime, Instance>::put(v1::ParamsOf::<Runtime, Instance> {
+			active_salary: BoundedVec::truncate_from(vec![10, 20]),
+			passive_salary: BoundedVec::truncate_from(vec![5, 10]),
+			demotion_period: BoundedVec::truncate_from(vec![100, 200]),
+			min_promotion_period: BoundedVec::truncate_from(vec![0, 300]),
+			offboard_timeout: 50,
+		});
+		v1::Member::<Runtime, Instance>::insert(
+			&who,
+			MemberStatus { is_active: true, last_promotion: 4_000, last_proof: 9_000 },
+		);
+		StorageVersion::new(1).put::<FellowshipCore>();
+
+		MigrateV1ToV2::<Runtime, Converter, Instance>::on_runtime_upgrade();
+
+		assert_eq!(FellowshipCore::on_chain_storage_version(), StorageVersion::new(2));
+		let params = pallet_core_fellowship::Params::<Runtime, Instance>::get();
+		assert_eq!(params.active_salary.into_inner(), vec![10, 20]);
+		assert_eq!(params.passive_salary.into_inner(), vec![5, 10]);
+		assert_eq!(params.demotion_period.into_inner(), vec![200, 400]);
+		assert_eq!(params.min_promotion_period.into_inner(), vec![0, 600]);
+		assert_eq!(params.offboard_timeout, 100);
+		assert_eq!(
+			pallet_core_fellowship::Member::<Runtime, Instance>::get(&who),
+			Some(MemberStatus {
+				is_active: true,
+				last_promotion: relay_now - 12_000,
+				last_proof: relay_now - 2_000,
+			})
+		);
+	});
 }

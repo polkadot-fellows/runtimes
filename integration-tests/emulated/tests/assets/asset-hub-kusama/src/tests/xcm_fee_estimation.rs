@@ -22,8 +22,10 @@ use crate::{
 };
 use emulated_integration_tests_common::impls::{Parachain, TestExt};
 use frame_support::{
+	assert_ok,
 	dispatch::RawOrigin,
 	sp_runtime::{traits::Dispatchable, DispatchResult},
+	storage::{with_transaction_unchecked, TransactionOutcome},
 	traits::fungible,
 };
 use xcm::prelude::*;
@@ -475,14 +477,43 @@ fn multi_hop_pay_fees_works() {
 			.unwrap();
 		assert_eq!(messages_to_query.len(), 1);
 		remote_message = messages_to_query[0].clone();
-		let asset_id_for_delivery_fees = VersionedAssetId::from(Location::parent());
-		let delivery_fees = Runtime::query_delivery_fees(
-			destination_to_query.clone(),
-			remote_message.clone(),
-			asset_id_for_delivery_fees,
+		// Penpal charges delivery fees in its native token, bought from the relay token in
+		// holding after the execution fees. The dry run no longer leaks the execution fee swap
+		// into this state (polkadot-sdk#12807), so replay that swap and quote the delivery fee
+		// swap against the resulting pool, as the SDK's `test_can_estimate_and_pay_exact_fees`
+		// does.
+		let delivery_fee_native = get_amount_from_versioned_assets(
+			Runtime::query_delivery_fees(
+				destination_to_query.clone(),
+				remote_message.clone(),
+				VersionedAssetId::from(AssetId(Location::here())),
+			)
+			.unwrap(),
+		);
+		let execution_fee_native = Runtime::query_weight_to_asset_fee(
+			local_xcm_weight,
+			VersionedAssetId::from(AssetId(Location::here())),
 		)
 		.unwrap();
-		local_delivery_fees = get_amount_from_versioned_assets(delivery_fees);
+		local_delivery_fees = with_transaction_unchecked(|| {
+			assert_ok!(pallet_asset_conversion::Pallet::<Runtime>::swap_tokens_for_exact_tokens(
+				<PenpalA as Chain>::RuntimeOrigin::signed(sender.clone()),
+				vec![bx!(Location::parent()), bx!(Location::here())],
+				execution_fee_native,
+				local_execution_fees,
+				sender.clone(),
+				false,
+			));
+			let needed =
+				pallet_asset_conversion::Pallet::<Runtime>::quote_price_tokens_for_exact_tokens(
+					Location::parent(),
+					Location::here(),
+					delivery_fee_native,
+					true,
+				)
+				.expect("pool exists and the delivery fee is nonzero; qed");
+			TransactionOutcome::Rollback(needed)
+		});
 	});
 
 	let mut intermediate_execution_fees = 0;
