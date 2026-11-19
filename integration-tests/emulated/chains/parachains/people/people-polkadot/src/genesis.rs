@@ -19,8 +19,7 @@ use emulated_integration_tests_common::{
 };
 use parachains_common::Balance;
 use people_polkadot_runtime::{
-	individuality::asset_hub_subscription_whitelist,
-	xcm_config::{RelayTreasuryPalletAccount, StakingPot},
+	individuality::asset_hub_subscription_whitelist, xcm_config::StakingPot,
 };
 use polkadot_runtime_constants::currency::UNITS as DOT;
 use sp_core::storage::Storage;
@@ -34,7 +33,7 @@ pub fn genesis() -> Storage {
 		balances: people_polkadot_runtime::BalancesConfig {
 			balances: accounts::init_balances()
 				.into_iter()
-				.chain([RelayTreasuryPalletAccount::get(), StakingPot::get()])
+				.chain([StakingPot::get()])
 				.map(|k| (k, ENDOWMENT))
 				.chain([(people_polkadot_runtime::AccumulateForward::accumulation_account(), ED)])
 				.collect(),

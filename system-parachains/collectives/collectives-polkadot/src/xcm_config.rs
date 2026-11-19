@@ -39,8 +39,7 @@ use polkadot_runtime_constants::{
 	fellowship::{ARCHITECTS_RANK, FELLOWS_RANK},
 	xcm::body::FELLOWSHIP_ADMIN_INDEX,
 };
-use sp_runtime::traits::{AccountIdConversion, TryConvert};
-use system_parachains_constants::TREASURY_PALLET_ID;
+use sp_runtime::traits::TryConvert;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -54,7 +53,7 @@ use xcm_builder::{
 	UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
-use xcm_executor::{traits::ConvertLocation, XcmExecutor};
+use xcm_executor::XcmExecutor;
 
 pub use system_parachains_constants::polkadot::locations::{
 	AssetHubLocation, AssetHubPlurality, RelayChainLocation,
@@ -68,16 +67,7 @@ parameter_types! {
 	pub UniversalLocation: InteriorLocation =
 		[GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(ParachainInfo::parachain_id().into())].into();
 	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	// TODO: no longer collects XCM fees, remove with the local treasury accounts #1144
-	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
 	pub const TreasurerBodyId: BodyId = BodyId::Treasury;
-	// TODO: no longer collects XCM fees, remove with the local treasury accounts #1144
-	// Test [`treasury_pallet_account_not_none`] ensures that the result of location conversion is
-	// not `None`.
-	pub RelayTreasuryPalletAccount: AccountId =
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
-			.unwrap_or(TreasuryAccount::get());
 	pub const FellowshipAdminBodyId: BodyId = BodyId::Index(FELLOWSHIP_ADMIN_INDEX);
 	pub AssetHubUsdt: LocatableAssetId = LocatableAssetId {
 		location: AssetHubLocation::get(),
@@ -179,15 +169,9 @@ pub type Barrier = TrailingSetTopicAsId<
 					// If the message is one that immediately attempts to pay for execution, then
 					// allow it.
 					AllowTopLevelPaidExecutionFrom<Everything>,
-					// Parent and its pluralities (i.e. governance bodies) and relay treasury get
-					// free execution.
+					// Parent and its pluralities (i.e. governance bodies) get free execution.
 					AllowExplicitUnpaidExecutionFrom<
-						(
-							ParentOrParentsPlurality,
-							Equals<RelayTreasuryLocation>,
-							Equals<AssetHubLocation>,
-							AssetHubPlurality,
-						),
+						(ParentOrParentsPlurality, Equals<AssetHubLocation>, AssetHubPlurality),
 						// Barriers run before any fee is taken: this must stay computation-only.
 						// Do not pass `TrustedAliasers` here.
 						CheapTrustedAliasers,
@@ -226,7 +210,6 @@ parameter_types! {
 pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
-	Equals<RelayTreasuryLocation>,
 	Equals<FellowshipTreasuryLocation>,
 	Equals<FellowshipSalaryLocation>,
 	Equals<SecretarySalaryLocation>,
@@ -408,12 +391,4 @@ impl pallet_xcm::Config for Runtime {
 impl cumulus_pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-}
-
-#[test]
-fn treasury_pallet_account_not_none() {
-	assert_eq!(
-		RelayTreasuryPalletAccount::get(),
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
-	)
 }

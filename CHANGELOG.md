@@ -25,11 +25,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Polkadot Relay, Bridge Hub, Collectives and People: dust, treasury burns and slashes are no longer burnt or sent to the Relay Chain treasury. They accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).
 - Polkadot and Kusama system parachains using `pallet-accumulate-and-forward` measure its forward period in Relay Chain blocks ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).
 - Polkadot Relay, Bridge Hub, Collectives, Coretime and People: XCM delivery fees go to the DAP on Asset Hub instead of a treasury account ([#1380](https://github.com/polkadot-fellows/runtimes/pull/1380)).
+- Polkadot Relay: transaction fees (80%), slashes and staking reward remainders go to the DAP on Asset Hub instead of the treasury, and the legacy `py/trsry` balance is drained to the DAP ([#1380](https://github.com/polkadot-fellows/runtimes/pull/1380)).
 
 ### Removed
 
 - Polkadot & Kusama: remove `pallet-election-provider-multi-phase` and the on-chain election from the relay runtimes. Staking elections run on Asset Hub since the AHM, and a migration clears the pallet's storage ([#1313](https://github.com/polkadot-fellows/runtimes/pull/1313)).
 - Migrations that already ran ([#1371](https://github.com/polkadot-fellows/runtimes/pull/1371))
+- Polkadot Bridge Hub, Collectives, Coretime and People: remove the unused local and Relay Chain treasury accounts and the `RelayTreasuryLocation` matchers. Snowbridge fees go to the DAP ([#1380](https://github.com/polkadot-fellows/runtimes/pull/1380)).
 
 ### Fixed
 

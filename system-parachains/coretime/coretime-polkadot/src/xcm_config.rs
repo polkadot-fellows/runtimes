@@ -35,8 +35,6 @@ use parachains_common::xcm_config::{
 };
 use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_constants::{fellowship::IsFellowshipVoice, system_parachain};
-use sp_runtime::traits::AccountIdConversion;
-use system_parachains_constants::TREASURY_PALLET_ID;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AliasChildLocation, AliasOriginRootUsingFilter,
@@ -50,7 +48,7 @@ use xcm_builder::{
 	TrailingSetTopicAsId, UsingComponents, WeightInfoBounds, WithComputedOrigin, WithUniqueTopic,
 	XcmFeeManagerFromComponents,
 };
-use xcm_executor::{traits::ConvertLocation, XcmExecutor};
+use xcm_executor::XcmExecutor;
 
 pub use system_parachains_constants::polkadot::locations::{
 	AssetHubLocation, AssetHubPlurality, RelayChainLocation,
@@ -176,7 +174,6 @@ pub type Barrier = TrailingSetTopicAsId<
 						(
 							ParentOrParentsPlurality,
 							FellowsPlurality,
-							Equals<RelayTreasuryLocation>,
 							Equals<AssetHubLocation>,
 							AssetHubPlurality,
 						),
@@ -195,15 +192,6 @@ pub type Barrier = TrailingSetTopicAsId<
 >;
 
 parameter_types! {
-	pub RelayTreasuryLocation: Location = (Parent, PalletInstance(polkadot_runtime_constants::TREASURY_PALLET_ID)).into();
-	// TODO: no longer collects XCM fees, remove with the local treasury accounts #1144
-	pub TreasuryAccount: AccountId = TREASURY_PALLET_ID.into_account_truncating();
-	// TODO: no longer collects XCM fees, remove with the local treasury accounts #1144
-	// Test [`crate::tests::treasury_pallet_account_not_none`] ensures that the result of location
-	// conversion is not `None`.
-	pub RelayTreasuryPalletAccount: AccountId =
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get())
-			.unwrap_or(TreasuryAccount::get());
 	/// The `pallet-accumulate-and-forward` account, which forwards to the DAP on Asset Hub.
 	pub AccumulateForwardAccount: AccountId = AccumulateForward::accumulation_account();
 	/// The `pallet-accumulate-and-forward` account, as a local location.
@@ -216,7 +204,6 @@ parameter_types! {
 pub type WaivedLocations = (
 	Equals<RootLocation>,
 	RelayOrOtherSystemParachains<AllSiblingSystemParachains, Runtime>,
-	Equals<RelayTreasuryLocation>,
 	FellowsPlurality,
 	// Forwards of accumulated coretime revenue to the DAP.
 	Equals<AccumulateForwardLocation>,
@@ -354,13 +341,4 @@ impl pallet_xcm::Config for Runtime {
 impl cumulus_pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-}
-
-#[cfg(test)]
-#[test]
-fn treasury_pallet_account_not_none() {
-	assert_eq!(
-		RelayTreasuryPalletAccount::get(),
-		LocationToAccountId::convert_location(&RelayTreasuryLocation::get()).unwrap()
-	)
 }
