@@ -54,7 +54,8 @@ fn portable_definitions_travel_and_every_entry_goes() {
 			Migrator::migrate_many(10),
 			BlockProxies {
 				proxies: vec![portable(&ALICE, vec![(CHARLIE, PortableProxyType::Any, 4)])],
-				removed: 3,
+				proxies_removed: 2,
+				announcements_removed: 1,
 			}
 		);
 		assert_eq!(
@@ -151,7 +152,10 @@ fn an_entry_without_portable_definitions_is_removed_too() {
 
 		// WHEN a block visits it. THEN nothing travels and the entry is gone; the next block
 		// finds the map empty.
-		assert_eq!(Migrator::migrate_many(1), BlockProxies { removed: 1, ..Default::default() });
+		assert_eq!(
+			Migrator::migrate_many(1),
+			BlockProxies { proxies_removed: 1, ..Default::default() }
+		);
 		assert!(!Proxies::<Test>::contains_key(&BOB));
 		assert_eq!(Migrator::migrate_many(1), BlockProxies::default());
 
@@ -207,14 +211,18 @@ fn announcements_go_once_the_proxy_map_is_empty() {
 			Migrator::migrate_many(1),
 			BlockProxies {
 				proxies: vec![portable(&ALICE, vec![(BOB, PortableProxyType::Any, 0)])],
-				removed: 1,
+				proxies_removed: 1,
+				announcements_removed: 0,
 			}
 		);
 		assert!(Announcements::<Test>::contains_key(&BOB));
 
 		// WHEN the next blocks run. THEN the announcement goes, and the block after finds
 		// both maps empty.
-		assert_eq!(Migrator::migrate_many(1), BlockProxies { removed: 1, ..Default::default() });
+		assert_eq!(
+			Migrator::migrate_many(1),
+			BlockProxies { announcements_removed: 1, ..Default::default() }
+		);
 		assert!(!Announcements::<Test>::contains_key(&BOB));
 		assert_eq!(Migrator::migrate_many(1), BlockProxies::default());
 	});

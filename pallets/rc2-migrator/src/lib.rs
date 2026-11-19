@@ -938,11 +938,11 @@ pub mod pallet {
 		/// removals included.
 		fn migrate_proxies_block() -> Result<bool, DispatchError> {
 			let limit = Limits::<T>::get().items_per_block();
-			let proxy::BlockProxies { proxies, removed } =
+			let proxy::BlockProxies { proxies, proxies_removed, announcements_removed } =
 				proxy::ProxyMigrator::<T>::migrate_many(limit);
 			Self::send_in_batches(proxies, Self::send_proxies)?;
 			// A block with budget to spare has emptied both maps.
-			Ok(removed < limit)
+			Ok(proxies_removed + announcements_removed < limit)
 		}
 
 		/// Send proxy sets to the Coretime chain, which writes them into its proxy pallet.

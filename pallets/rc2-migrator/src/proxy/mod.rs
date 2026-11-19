@@ -34,8 +34,10 @@ use sp_runtime::{traits::UniqueSaturatedInto, AccountId32};
 pub struct BlockProxies {
 	/// Sets to recreate on the Coretime chain.
 	pub proxies: Vec<PortableProxy<AccountId32>>,
-	/// Proxy and announcement entries removed.
-	pub removed: u32,
+	/// Proxy entries removed.
+	pub proxies_removed: u32,
+	/// Announcement entries removed.
+	pub announcements_removed: u32,
 }
 
 pub struct ProxyMigrator<T>(PhantomData<T>);
@@ -51,10 +53,10 @@ impl<T: Config> ProxyMigrator<T> {
 			if let Some(proxy) = Self::migrate_single(&who, &defs) {
 				out.proxies.push(proxy);
 			}
-			out.removed += 1;
+			out.proxies_removed += 1;
 		}
-		let budget = (limit - out.removed) as usize;
-		out.removed +=
+		let budget = (limit - out.proxies_removed) as usize;
+		out.announcements_removed =
 			pallet_proxy::Announcements::<T>::iter_keys().drain().take(budget).count() as u32;
 		out
 	}
