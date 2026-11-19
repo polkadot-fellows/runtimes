@@ -67,6 +67,9 @@ impl<T: Config> ProxyMigrator<T> {
 		who: &T::AccountId,
 		defs: &[ProxyDefinitionOf<T>],
 	) -> Option<PortableProxy<AccountId32>> {
+		// TODO(ahm-v2): an account a para derives from its sovereign (`Utility::as_derivative`, or
+		// a location under it) keeps its RC address, which the para does not control on the Coretime
+		// chain. None at the time of commit. Check again before release.
 		let delegates: Vec<_> = defs
 			.iter()
 			.filter_map(|def| {
