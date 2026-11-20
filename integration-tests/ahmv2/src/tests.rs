@@ -22,7 +22,10 @@
 
 use crate::{
 	checks::{
-		accounts::AccountsChecker, session::ValidatorsChecker, ParaMigrationCheck, RcMigrationCheck,
+		accounts::AccountsChecker,
+		asset_traps::{self, AssetTrapsChecker},
+		session::ValidatorsChecker,
+		ParaMigrationCheck, RcMigrationCheck,
 	},
 	mock::*,
 };
@@ -200,7 +203,7 @@ fn run_handshake(rc: &mut TestExternalities, ct: &mut TestExternalities) -> Vec<
 }
 
 /// The checkers of every stage, run on each chain before and after the migration.
-type Checks = (AccountsChecker, ValidatorsChecker);
+type Checks = (AccountsChecker, ValidatorsChecker, AssetTrapsChecker);
 
 /// The migration, driven end to end over live Relay Chain, Coretime and Asset Hub state, with the
 /// checks of every stage run before and after.
@@ -208,6 +211,7 @@ type Checks = (AccountsChecker, ValidatorsChecker);
 async fn the_migration_runs_to_completion() {
 	let (mut rc, mut ct, mut ah) =
 		tokio::join!(load(Chain::Relay), load(CoretimePara::CHAIN), load(AssetHubPara::CHAIN));
+	rc.execute_with(asset_traps::make_test_traps);
 
 	let rc_pre = rc.execute_with(<Checks as RcMigrationCheck>::pre_check);
 	let ct_pre =
@@ -228,6 +232,7 @@ async fn the_migration_runs_to_completion() {
 			&mut rc,
 			&mut ct,
 			max_blocks,
+			asset_traps::test_traps().into_iter().map(|(trap, _)| trap).collect(),
 			&mut [(AssetHubPara::PARA_ID.into(), &mut to_ah)],
 			|| (),
 			|| (),
@@ -325,4 +330,14 @@ fn ump_outcome(para: u32) -> Option<bool> {
 		}
 	}
 	None
+}
+
+/// The relay chain leaves unpaid any asset trap worth less than Asset Hub's existential deposit,
+/// so its copy of that deposit must be Asset Hub's.
+#[test]
+fn the_relay_chain_knows_asset_hubs_existential_deposit() {
+	assert_eq!(
+		<network::relay::Runtime as pallet_rc2_migrator::Config>::AhExistentialDeposit::get(),
+		network::ah::ExistentialDeposit::get(),
+	);
 }

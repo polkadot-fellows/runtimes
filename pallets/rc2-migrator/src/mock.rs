@@ -17,9 +17,12 @@
 //! Test runtime for `pallet-rc2-migrator`.
 
 use crate as pallet_rc2_migrator;
+use crate::AssetTrap;
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
-	derive_impl, ord_parameter_types, parameter_types,
+	derive_impl, ord_parameter_types,
+	pallet_prelude::{Identity, ValueQuery},
+	parameter_types,
 	traits::{
 		fungible::{HoldConsideration, InspectHold, Mutate, MutateHold},
 		ConstU128, ConstU32, Contains, Equals, InstanceFilter, LinearStoragePrice,
@@ -36,6 +39,7 @@ use runtime_parachains::{
 	configuration, dmp, hrmp as parachains_hrmp, origin as parachains_origin, paras, shared,
 };
 use scale_info::TypeInfo;
+use sp_core::H256;
 use sp_runtime::{
 	traits::{AccountIdConversion, BlakeTwo256, Hash, IdentityLookup},
 	transaction_validity::TransactionPriority,
@@ -296,6 +300,10 @@ pub const CT_PARA_ID: u32 = 1005;
 pub const AH_PARA_ID: u32 = 1000;
 /// Free balance that follows a deposit to the Coretime chain.
 pub const CT_FREE_BUFFER: u128 = 100;
+/// Asset Hub's existential deposit, below this chain's like the real one.
+pub const AH_ED: u128 = 5;
+/// The account on Asset Hub that receives the asset traps worth less than `AH_ED`.
+pub const DUST_BENEFICIARY: AccountId = AccountId32::new([20; 32]);
 pub const WARM_UP: u64 = 4;
 pub const COOL_OFF: u64 = 10;
 /// Relay-chain block time
@@ -352,6 +360,10 @@ impl SendXcm for RecordingRouter {
 	}
 }
 
+/// Stands in for `pallet-xcm`'s asset trap storage, which the runtime reaches the same way.
+#[frame_support::storage_alias]
+pub type XcmAssetTraps = StorageMap<XcmPallet, Identity, H256, u32, ValueQuery>;
+
 ord_parameter_types! {
 	pub const CoretimeAccount: AccountId = CORETIME;
 	pub const AdminAccount: AccountId = ADMIN;
@@ -359,6 +371,7 @@ ord_parameter_types! {
 
 parameter_types! {
 	pub MockPot: AccountId = pallet_account();
+	pub const DustBeneficiary: AccountId = DUST_BENEFICIARY;
 }
 
 impl pallet_rc2_migrator::Config for Test {
@@ -374,6 +387,9 @@ impl pallet_rc2_migrator::Config for Test {
 	type IntraMigrationCalls = TaggedRemark<INTRA_MIGRATION>;
 	type PostMigrationCalls = TaggedRemark<POST_MIGRATION>;
 	type SweptAccounts = Equals<MockPot>;
+	type XcmAssetTraps = XcmAssetTraps;
+	type AhExistentialDeposit = ConstU128<AH_ED>;
+	type AssetTrapDustBeneficiary = DustBeneficiary;
 }
 
 /// Tags for [`TaggedRemark`], one per call set.
@@ -463,6 +479,23 @@ pub fn sent_call(n: usize) -> crate::CtRuntimeCall {
 		}
 	}
 	panic!("message {n} carried no Transact");
+}
+
+/// Trap `trap` `times` more times, under the key `pallet-xcm` gives a trap: the hash of the
+/// claimer, in the current XCM version, and the assets as they are. Returns the key.
+pub fn make_trap(trap: &AssetTrap, times: u32) -> H256 {
+	let claimer = Location::try_from(trap.claimer.clone()).expect("claimer converts");
+	let hash = BlakeTwo256::hash_of(&(&claimer, &trap.assets));
+	XcmAssetTraps::mutate(hash, |n| *n += times);
+	hash
+}
+
+/// The trap a failed message from `claimer` leaves behind when it held `amount` of the native
+/// token.
+pub fn native_trap(claimer: impl Into<Location>, amount: u128) -> AssetTrap {
+	let claimer: Location = claimer.into();
+	let assets: Assets = (Here, amount).into();
+	AssetTrap { claimer: claimer.into(), assets: assets.into(), xcm_v1: false }
 }
 
 /// Give `who` exactly `amount` of free balance.

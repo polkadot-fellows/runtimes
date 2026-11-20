@@ -305,12 +305,14 @@ impl ParaMigrationCheck<AssetHubPara> for AccountsChecker {
 			}
 		}
 
-		// The checking account paid out exactly what the Relay Chain booked for here.
+		// The checking account paid out exactly what the Relay Chain booked for here: the
+		// accounts, and the asset traps, which land on other accounts.
 		let paid = ah_pre.checking - ah_checking_account();
 		assert_eq!(
-			paid, arrived,
+			paid,
+			arrived + rc_post.ah_asset_traps,
 			"the checking account paid for something other than the migration"
 		);
-		assert_eq!(paid, rc_post.ah_free);
+		assert_eq!(paid, rc_post.ah_free + rc_post.ah_asset_traps);
 	}
 }

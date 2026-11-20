@@ -12196,6 +12196,7 @@ dependencies = [
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
  "scale-info",
+ "sp-core 43.0.0",
  "sp-io 49.0.0",
  "sp-runtime 49.0.0",
  "staging-xcm",
@@ -13765,6 +13766,7 @@ dependencies = [
  "sp-tracing",
  "staging-kusama-runtime",
  "staging-xcm",
+ "staging-xcm-executor",
  "tokio",
 ]
 
@@ -13904,6 +13906,7 @@ dependencies = [
  "sp-consensus-babe",
  "sp-consensus-beefy",
  "sp-core 43.0.0",
+ "sp-dap",
  "sp-debug-derive 15.0.0",
  "sp-genesis-builder 0.25.0",
  "sp-inherents 44.0.0",

@@ -71,8 +71,9 @@ async fn the_lockdown_holds_at_every_stage() {
 	walk_migration(
 		&mut rc,
 		&mut ct,
-		// One block per data stage; 30 is room to spare over the 15 there are.
+		// One block per data stage; 30 is room to spare over the 16 there are.
 		30,
+		vec![],
 		&mut [],
 		|| {
 			rc_stages.borrow_mut().insert(discriminant(&rc_stage()));
@@ -85,7 +86,7 @@ async fn the_lockdown_holds_at_every_stage() {
 	);
 
 	// Every variant of the relay chain's `MigrationStage` was probed, and all three of Coretime's.
-	assert_eq!(rc_stages.borrow().len(), 21);
+	assert_eq!(rc_stages.borrow().len(), 23);
 	assert_eq!(ct_stages.borrow().len(), 3);
 }
 

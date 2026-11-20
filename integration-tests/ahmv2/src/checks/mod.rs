@@ -25,6 +25,7 @@
 //! Each stage adds its checker as one module here and one entry in the test's checker tuple.
 
 pub mod accounts;
+pub mod asset_traps;
 pub mod session;
 
 use crate::mock::Para;

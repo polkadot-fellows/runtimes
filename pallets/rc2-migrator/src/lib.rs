@@ -47,7 +47,7 @@ pub use pallet::*;
 
 use alloc::{vec, vec::Vec};
 use frame_support::{
-	defensive_assert,
+	defensive, defensive_assert,
 	pallet_prelude::*,
 	sp_runtime::traits::Saturating,
 	storage::with_storage_layer,
@@ -57,7 +57,11 @@ use frame_system::pallet_prelude::*;
 use migrator_types::{PortableAccount, PortableProxyType};
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
-use sp_runtime::AccountId32;
+use sp_core::H256;
+use sp_runtime::{
+	traits::{BlakeTwo256, Hash as _},
+	AccountId32,
+};
 use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::rc2-migrator";
@@ -141,6 +145,115 @@ pub struct MigratedBalances {
 	pub ah_free: u128,
 	/// Phantom issuance burned by the `TiCorrection` stage (issuance no account held).
 	pub ti_corrected: u128,
+	/// Asset traps the `PayAssetTraps` stage paid out on Asset Hub. Nothing is burned here for
+	/// them, so they do not come out of `kept`.
+	pub ah_asset_traps: u128,
+}
+
+/// An XCM asset trap, as `pallet-xcm`'s `AssetsTrapped` event reports it.
+#[derive(
+	Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen,
+)]
+pub struct AssetTrap {
+	/// The location that may claim the assets.
+	pub claimer: VersionedLocation,
+	/// The assets, in the XCM version they were trapped in. For an XCM v1 trap, in any version.
+	pub assets: VersionedAssets,
+	/// Whether the trap was made under XCM v1, which the current XCM types can no longer write.
+	pub xcm_v1: bool,
+}
+
+impl AssetTrap {
+	/// The key `pallet-xcm` keeps this trap under: the hash of the claimer, in the current XCM
+	/// version, and the assets.
+	///
+	/// `None` if no key can be worked out: the claimer has no form in the current XCM version,
+	/// or an XCM v1 trap is not one [`Self::xcm_v1_preimage`] can write.
+	pub fn hash(&self) -> Option<H256> {
+		let claimer = Location::try_from(self.claimer.clone()).ok()?;
+		if self.xcm_v1 {
+			return Some(BlakeTwo256::hash(&Self::xcm_v1_preimage(
+				&claimer,
+				self.native_amount()?,
+			)?));
+		}
+		Some(BlakeTwo256::hash_of(&(claimer, &self.assets)))
+	}
+
+	/// The bytes an XCM v1 trap of `amount` of the native token, claimable by `claimer`, is hashed
+	/// from. Only for the claimers v1 traps have: a parachain, or an account here.
+	///
+	/// v1 wrote a lone native-token asset the way v3 does, under its own version byte, and a
+	/// parachain the way the current version does. It wrote an account's network without the
+	/// `Option` around it.
+	fn xcm_v1_preimage(claimer: &Location, amount: u128) -> Option<Vec<u8>> {
+		let mut preimage = match claimer.unpack() {
+			(0, [Parachain(_)]) => claimer.encode(),
+			(0, [Junction::AccountId32 { network, id }]) => {
+				// v1's `NetworkId`: `Any`, `Named`, `Polkadot`, `Kusama`
+				let network: u8 = match network {
+					None => 0,
+					Some(NetworkId::Polkadot) => 2,
+					Some(NetworkId::Kusama) => 3,
+					Some(_) => return None,
+				};
+				// no parents, one junction, `AccountId32`
+				(0u8, 1u8, 1u8, network, id).encode()
+			},
+			_ => return None,
+		};
+		let asset = xcm::v3::MultiAsset {
+			id: xcm::v3::AssetId::Concrete(xcm::v3::MultiLocation::here()),
+			fun: xcm::v3::Fungibility::Fungible(amount),
+		};
+		// `VersionedMultiAssets::V1`
+		preimage.push(1);
+		preimage.extend(xcm::v3::MultiAssets::from(vec![asset]).encode());
+		Some(preimage)
+	}
+
+	/// How much of this chain's native token one such trap holds. `None` if it holds anything
+	/// else.
+	pub fn native_amount(&self) -> Option<u128> {
+		let assets = Assets::try_from(self.assets.clone()).ok()?;
+		match assets.inner().as_slice() {
+			[Asset { id: AssetId(id), fun: Fungibility::Fungible(amount) }]
+				if *id == Location::here() =>
+				Some(*amount),
+			_ => None,
+		}
+	}
+
+	/// The claimer as Asset Hub names it. An account here is paid as the same account there; a
+	/// parachain, or an account or body on one, as Asset Hub sees it from its side. `None` for
+	/// any other claimer, since Asset Hub may have no account for it.
+	pub fn ah_beneficiary(&self) -> Option<Location> {
+		let claimer = Location::try_from(self.claimer.clone()).ok()?;
+		match claimer.unpack() {
+			(0, [Junction::AccountId32 { id, .. }]) =>
+				Some(Location::new(0, [Junction::AccountId32 { network: None, id: *id }])),
+			(0, [Parachain(_)]) |
+			(
+				0,
+				[Parachain(_), Junction::AccountId32 { .. } |
+				Junction::AccountKey20 { .. } |
+				Junction::Plurality { .. }],
+			) => Some(Location::new(1, claimer.interior().clone())),
+			_ => None,
+		}
+	}
+}
+
+/// Why [`Pallet::submit_asset_traps`] left an asset trap in `pallet-xcm`.
+#[derive(Encode, Decode, DecodeWithMemTracking, Clone, Copy, PartialEq, Eq, Debug, TypeInfo)]
+pub enum AssetTrapRejection {
+	/// `pallet-xcm` holds no such trap: it was never made, it was claimed, it was already taken,
+	/// or it is an XCM v1 trap of a kind [`AssetTrap::hash`] cannot work out the key of.
+	NotHeld,
+	/// The trap holds something other than this chain's native token.
+	NotNative,
+	/// The claimer is not one Asset Hub is known to have an account for.
+	ClaimerNotOnAssetHub,
 }
 
 /// Wall-clock type the schedule is expressed in.
@@ -176,11 +289,19 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		/// The block number at which the warm-up period will end. It is absolute and a pause
 		/// does not move it.
 		///
-		/// After the warm-up period ends, the Relay Chain will start to send the migration data
-		/// to the Coretime chain. Calls are filtered from `WaitingForCt` on; inbound messages and
-		/// teleports keep executing until then, so what other chains queued drains.
+		/// After the warm-up period ends, the Relay Chain waits for the asset traps and then
+		/// starts to send the migration data to the Coretime chain. Calls are filtered from
+		/// `WaitingForCt` on; inbound messages and teleports keep executing until then, so what
+		/// other chains queued drains.
 		end_at: BlockNumber,
 	},
+	/// Waiting for the manager to hand over the XCM asset traps with
+	/// [`Pallet::submit_asset_traps`], which also ends this stage. `on_initialize` never does.
+	///
+	/// From here inbound messages are refused unless they come from the Coretime chain or Asset
+	/// Hub, and accounts here lost `claim_assets` at `WaitingForCt`. So only those two chains can
+	/// still claim a trap.
+	WaitingForAssetTraps,
 	/// Initializing the account migration process.
 	AccountsInit,
 	/// Migrating account balances, their reserves, and the holds those reserves become.
@@ -212,6 +333,8 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		last_key: Option<HrmpChannelId>,
 	},
 	HrmpDone,
+	/// Pay the asset traps [`Pallet::submit_asset_traps`] took to their claimers on Asset Hub.
+	PayAssetTraps,
 	/// Empty the pots whose balance has no owning account to migrate it with, such as the
 	/// treasury's.
 	Sweep,
@@ -245,7 +368,7 @@ pub enum MigrationPhase {
 	/// been told to start and only [`Config::IntraMigrationCalls`] pass. Inbound messages and
 	/// teleports still execute, so what other chains sent before the start drains.
 	WarmUp,
-	/// [`MigrationStage::AccountsInit`] through [`MigrationStage::CoolOff`]: the data is
+	/// [`MigrationStage::WaitingForAssetTraps`] through [`MigrationStage::CoolOff`]: the data is
 	/// snapshotted and sent to the Coretime chain. Inbound messages are refused unless they come
 	/// from the Coretime chain or Asset Hub, and no teleport is trusted.
 	DataMigration,
@@ -285,7 +408,7 @@ impl<AccountId, BlockNumber, Moment> MigrationStage<AccountId, BlockNumber, Mome
 		self.phase() != MigrationPhase::NotStarted
 	}
 
-	/// Whether data has started moving: true from [`Self::AccountsInit`] on, and stays true
+	/// Whether data has started moving: true from [`Self::WaitingForAssetTraps`] on, and stays true
 	/// after [`Self::MigrationDone`].
 	pub fn data_migration_started(&self) -> bool {
 		matches!(self.phase(), MigrationPhase::DataMigration | MigrationPhase::Done)
@@ -378,6 +501,19 @@ pub mod pallet {
 
 		/// Accounts the accounts stage leaves alone for Sweep to empty: the chain's pots.
 		type SweptAccounts: Contains<Self::AccountId>;
+
+		/// `pallet-xcm`'s asset traps: how many times each was trapped, by [`AssetTrap::hash`].
+		/// `pallet-xcm` keeps this storage private, so the runtime passes a storage alias.
+		type XcmAssetTraps: frame_support::storage::StorageMap<H256, u32, Query = u32>;
+
+		/// Asset Hub's existential deposit. A trap worth less goes to
+		/// [`Config::AssetTrapDustBeneficiary`] instead of its claimer, since it could not open the
+		/// claimer's account there.
+		type AhExistentialDeposit: Get<u128>;
+
+		/// The account on Asset Hub that receives the asset traps worth less than Asset Hub's
+		/// existential deposit. It must already exist there, since such a deposit cannot open it.
+		type AssetTrapDustBeneficiary: Get<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -438,6 +574,12 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Paused<T: Config> = StorageValue<_, bool, ValueQuery>;
 
+	/// The asset traps [`Pallet::submit_asset_traps`] took out of `pallet-xcm`, with how many
+	/// times each was trapped.
+	#[pallet::storage]
+	pub type TakenAssetTraps<T: Config> =
+		StorageMap<_, Blake2_128Concat, AssetTrap, u32, ValueQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The migration can only be scheduled while it is pending.
@@ -462,6 +604,8 @@ pub mod pallet {
 		BadLimits,
 		/// The account's balance could not be withdrawn whole.
 		FailedToWithdrawAccount,
+		/// Asset traps were submitted while the machine was not waiting for them.
+		NotWaitingForAssetTraps,
 	}
 
 	#[pallet::event]
@@ -505,6 +649,15 @@ pub mod pallet {
 		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
 		/// retry it.
 		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
+		/// An asset trap was taken out of `pallet-xcm` into [`TakenAssetTraps`], `count` times
+		/// over.
+		AssetTrapTaken { hash: H256, trap: AssetTrap, count: u32 },
+		/// An asset trap was left in `pallet-xcm`, for `reason`. Nothing changed.
+		AssetTrapRejected { trap: AssetTrap, reason: AssetTrapRejection },
+		/// An asset trap was paid out to `beneficiary` on Asset Hub: its claimer, or
+		/// [`Config::AssetTrapDustBeneficiary`] if it was worth less than Asset Hub's existential
+		/// deposit.
+		AssetTrapPaid { trap: AssetTrap, beneficiary: Location, amount: u128 },
 	}
 
 	#[pallet::hooks]
@@ -680,9 +833,70 @@ pub mod pallet {
 			Limits::<T>::put(limits);
 			Ok(())
 		}
+
+		/// Take asset traps out of `pallet-xcm`, so nobody can claim them there, and keep them in
+		/// [`TakenAssetTraps`].
+		///
+		/// Only accepted in [`MigrationStage::WaitingForAssetTraps`]. A trap is taken whole,
+		/// however many times it was trapped. One that cannot be taken, or that
+		/// [`MigrationStage::PayAssetTraps`] could not pay, is reported with
+		/// [`Event::AssetTrapRejected`], and the others still go through. With `finished`, the
+		/// machine moves on to [`MigrationStage::AccountsInit`] after the given traps.
+		#[pallet::call_index(9)]
+		#[pallet::weight(
+			// the manager and the stage, then each trap in `pallet-xcm` and here
+			T::DbWeight::get().reads_writes(2, 1).saturating_add(
+				T::DbWeight::get().reads_writes(2, 2).saturating_mul(traps.len() as u64)
+			)
+		)]
+		pub fn submit_asset_traps(
+			origin: OriginFor<T>,
+			traps: Vec<AssetTrap>,
+			finished: bool,
+		) -> DispatchResult {
+			Self::ensure_admin_or_manager(origin)?;
+			ensure!(
+				RcMigrationStage::<T>::get() == MigrationStage::WaitingForAssetTraps,
+				Error::<T>::NotWaitingForAssetTraps
+			);
+
+			for trap in traps {
+				match Self::take_asset_trap(&trap) {
+					Ok((hash, count)) =>
+						Self::deposit_event(Event::AssetTrapTaken { hash, trap, count }),
+					Err(reason) => Self::deposit_event(Event::AssetTrapRejected { trap, reason }),
+				}
+			}
+
+			if finished {
+				Self::transition(MigrationStage::AccountsInit);
+			}
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Take `trap` out of `pallet-xcm` into [`TakenAssetTraps`], if the payout can pay it.
+		/// Returns its key in `pallet-xcm` and how many times it was trapped.
+		fn take_asset_trap(trap: &AssetTrap) -> Result<(H256, u32), AssetTrapRejection> {
+			use frame_support::storage::StorageMap as _;
+
+			// checked here so the payout cannot fail
+			trap.native_amount().ok_or(AssetTrapRejection::NotNative)?;
+			trap.ah_beneficiary().ok_or(AssetTrapRejection::ClaimerNotOnAssetHub)?;
+
+			let hash = trap.hash().ok_or(AssetTrapRejection::NotHeld)?;
+			let count = T::XcmAssetTraps::get(hash);
+			ensure!(count > 0, AssetTrapRejection::NotHeld);
+			// adds to an earlier take if Asset Hub or the Coretime chain trapped the same assets
+			// again since
+			let total = TakenAssetTraps::<T>::get(trap).saturating_add(count);
+
+			T::XcmAssetTraps::remove(hash);
+			TakenAssetTraps::<T>::insert(trap, total);
+			Ok((hash, count))
+		}
+
 		/// Ensure that the origin is root or [`Config::AdminOrigin`].
 		fn ensure_root_or_admin(origin: OriginFor<T>) -> DispatchResult {
 			if ensure_root(origin.clone()).is_err() {
@@ -721,7 +935,7 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(3, 3)
 				},
 				MigrationStage::WarmUp { end_at } if now >= end_at => {
-					Self::transition(MigrationStage::AccountsInit);
+					Self::transition(MigrationStage::WaitingForAssetTraps);
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::AccountsInit => {
@@ -794,8 +1008,21 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::HrmpDone => {
-					Self::transition(MigrationStage::Sweep);
+					Self::transition(MigrationStage::PayAssetTraps);
 					T::DbWeight::get().reads_writes(1, 1)
+				},
+				MigrationStage::PayAssetTraps => {
+					// Payouts and sends commit or roll back together.
+					match with_storage_layer(Self::pay_asset_traps_block) {
+						Ok(true) => Self::transition(MigrationStage::Sweep),
+						Ok(false) => (),
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "Asset trap block failed, retrying: {e:?}");
+						},
+					}
+					T::DbWeight::get()
+						.reads_writes(2, 2)
+						.saturating_mul(Limits::<T>::get().items_per_block().into())
 				},
 				MigrationStage::Sweep => {
 					// TODO(ahm-v2): sweep the pots, `T::SweptAccounts`, to the Asset Hub
@@ -821,10 +1048,11 @@ pub mod pallet {
 					}
 					T::DbWeight::get().reads_writes(3, 3)
 				},
-				// Waiting on the clock or a block height.
+				// Waiting on the clock, a block height, the Coretime chain or the manager.
 				MigrationStage::Scheduled { .. } |
 				MigrationStage::WaitingForCt |
 				MigrationStage::WarmUp { .. } |
+				MigrationStage::WaitingForAssetTraps |
 				MigrationStage::CoolOff { .. } => T::DbWeight::get().reads(1),
 				// Nothing runs before the schedule or after the end.
 				MigrationStage::Pending | MigrationStage::MigrationDone =>
@@ -875,6 +1103,55 @@ pub mod pallet {
 			Ok(last_key)
 		}
 
+		/// One block of the asset trap payout. Returns whether every taken trap has been paid.
+		///
+		/// The caller runs it in a storage transaction, so an `Err` rolls the whole block back.
+		fn pay_asset_traps_block() -> Result<bool, DispatchError> {
+			let limits = Limits::<T>::get();
+			let dust_beneficiary = Location::new(
+				0,
+				[Junction::AccountId32 {
+					network: None,
+					id: T::AssetTrapDustBeneficiary::get().into(),
+				}],
+			);
+			let mut payouts = Vec::new();
+			let mut dust = 0u128;
+			for (trap, count) in
+				TakenAssetTraps::<T>::drain().take(limits.items_per_block() as usize)
+			{
+				// both were checked when the trap was taken
+				let (Some(claimer), Some(amount)) = (trap.ah_beneficiary(), trap.native_amount())
+				else {
+					defensive!("a taken asset trap can be paid");
+					continue;
+				};
+				let amount = amount.saturating_mul(count.into());
+				// too little to open the claimer's account, so it goes to one that exists
+				let beneficiary = if amount < T::AhExistentialDeposit::get() {
+					dust = dust.saturating_add(amount);
+					dust_beneficiary.clone()
+				} else {
+					payouts.push((claimer.clone(), amount));
+					claimer
+				};
+				Self::deposit_event(Event::AssetTrapPaid { trap, beneficiary, amount });
+			}
+
+			let paid = payouts.iter().fold(dust, |paid, (_, amount)| paid.saturating_add(*amount));
+			RcMigratedBalance::<T>::mutate(|migrated| {
+				migrated.ah_asset_traps = migrated.ah_asset_traps.saturating_add(paid);
+			});
+			for chunk in payouts.chunks(limits.items_per_xcm as usize) {
+				Self::teleport_to_ah(chunk.to_vec())?;
+			}
+			// in a message of its own, so it cannot fail any other payout
+			if dust > 0 {
+				Self::teleport_to_ah(vec![(dust_beneficiary, dust)])?;
+			}
+			Ok(TakenAssetTraps::<T>::iter_keys().next().is_none())
+		}
+
 		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.
 		fn send_accounts(
 			accounts: Vec<PortableAccount<AccountId32, u128>>,
@@ -889,42 +1166,51 @@ pub mod pallet {
 		/// existential deposit here, which is above Asset Hub's, so each deposit endows its
 		/// account.
 		fn send_teleport(beneficiaries: Vec<(T::AccountId, u128)>) -> Result<(), Error<T>> {
+			let count = beneficiaries.len() as u32;
+			let deposits = beneficiaries
+				.into_iter()
+				.map(|(who, amount)| {
+					let who =
+						Location::new(0, [Junction::AccountId32 { network: None, id: who.into() }]);
+					(who, amount)
+				})
+				.collect();
+			let amount = Self::teleport_to_ah(deposits)?;
+			Self::deposit_event(Event::AccountsTeleported { count, amount });
+			Ok(())
+		}
+
+		/// Teleport the sum of `deposits` to Asset Hub in one message, and deposit each amount
+		/// with its beneficiary, as Asset Hub names it. Returns the sum.
+		///
+		/// A deposit that fails on Asset Hub fails the rest of the message. So each beneficiary
+		/// must be one Asset Hub has an account for, and each amount at least Asset Hub's
+		/// existential deposit unless that account already exists.
+		fn teleport_to_ah(deposits: Vec<(Location, u128)>) -> Result<u128, Error<T>> {
 			// the native token, as Asset Hub names it
 			let native = |amount: u128| Asset {
 				id: AssetId(Location::parent()),
 				fun: Fungibility::Fungible(amount),
 			};
 
-			// one deposit per account, and the total they add up to
-			let count = beneficiaries.len() as u32;
-			let mut total = 0u128;
-			let mut deposits = Vec::with_capacity(beneficiaries.len());
-			for (who, amount) in beneficiaries {
-				total = total.saturating_add(amount);
-				deposits.push(DepositAsset {
-					assets: AssetFilter::Definite(native(amount).into()),
-					beneficiary: Location::new(
-						0,
-						[Junction::AccountId32 { network: None, id: who.into() }],
-					),
-				});
-			}
-
 			// teleport the total in, then split it
+			let total =
+				deposits.iter().fold(0u128, |total, (_, amount)| total.saturating_add(*amount));
 			let mut message = vec![
 				UnpaidExecution { weight_limit: WeightLimit::Unlimited, check_origin: None },
 				ReceiveTeleportedAsset(native(total).into()),
 			];
-			message.extend(deposits);
+			message.extend(deposits.into_iter().map(|(beneficiary, amount)| DepositAsset {
+				assets: AssetFilter::Definite(native(amount).into()),
+				beneficiary,
+			}));
 
 			let dest = Location::new(0, [Parachain(T::AhParaId::get())]);
 			send_xcm::<T::SendXcm>(dest, Xcm(message)).map_err(|e| {
 				log::error!(target: LOG_TARGET, "Teleport to AH failed: {e:?}");
 				Error::<T>::XcmSendFailed
 			})?;
-
-			Self::deposit_event(Event::AccountsTeleported { count, amount: total });
-			Ok(())
+			Ok(total)
 		}
 
 		/// Send a `pallet-ct-migrator` call to the Coretime chain as a single XCM `Transact`.

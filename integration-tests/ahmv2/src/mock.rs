@@ -457,7 +457,8 @@ pub fn dmp_sink<P: Para>(
 
 /// Walk both chains from `Pending` to `MigrationDone` over their real queues.
 ///
-/// The data stages get at most `max_blocks` relay-chain blocks. After each of them, what the relay
+/// `asset_traps` are handed over all at once while the relay chain waits for them. The data stages
+/// get at most `max_blocks` relay-chain blocks. After each of them, what the relay
 /// chain sent to the Coretime chain is delivered there, and what it sent to each of `others` is
 /// handed to that para's delivery.
 ///
@@ -468,6 +469,7 @@ pub fn walk_migration(
 	rc: &mut TestExternalities,
 	ct: &mut TestExternalities,
 	max_blocks: u32,
+	asset_traps: Vec<pallet_rc2_migrator::AssetTrap>,
 	others: &mut [Destination],
 	probe_rc: impl Fn(),
 	probe_ct: impl Fn(),
@@ -523,6 +525,14 @@ pub fn walk_migration(
 
 		set_block_number_rc(end_at - 1);
 		next_block_rc();
+		assert_eq!(rc_stage(), RcStage::WaitingForAssetTraps);
+		probe_rc();
+
+		assert_ok!(pallet_rc2_migrator::Pallet::<RelayRuntime>::submit_asset_traps(
+			network::relay::RuntimeOrigin::root(),
+			asset_traps,
+			true,
+		));
 		assert_eq!(rc_stage(), RcStage::AccountsInit);
 	});
 

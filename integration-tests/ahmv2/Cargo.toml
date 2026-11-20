@@ -35,6 +35,7 @@ sp-storage = { workspace = true, default-features = true }
 sp-tracing = { workspace = true, default-features = true }
 tokio = { features = ["macros", "rt-multi-thread", "sync"], workspace = true }
 xcm = { workspace = true, default-features = true }
+xcm-executor = { workspace = true, default-features = true }
 
 # Runtimes for one network are compiled per build; see the `polkadot` and `kusama` features.
 asset-hub-polkadot-runtime = { workspace = true, optional = true }
