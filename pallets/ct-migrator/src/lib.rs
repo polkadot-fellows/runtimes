@@ -160,10 +160,11 @@ pub mod pallet {
 		/// Calls that are allowed after the migration finished.
 		type PostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
-		/// Holds the migrated HRMP deposits for their channel sides: `pallet-hrmp-para`.
+		/// Takes over the migrated HRMP deposits for their channel sides, out of the
+		/// [`HoldReason::HrmpDeposit`] hold: `pallet-hrmp-para`.
 		///
 		/// It must name a para's sovereign account as [`migrator_types::sibling_account`] does.
-		type HrmpDeposits: ReceiveMigratedDeposits;
+		type HrmpDeposits: ReceiveMigratedDeposits<Self::RuntimeHoldReason>;
 	}
 
 	#[pallet::composite_enum]
@@ -345,9 +346,7 @@ pub mod pallet {
 		#[pallet::call_index(8)]
 		#[pallet::weight(
 			// two sides a record
-			T::DbWeight::get()
-				.reads_writes(2, 2)
-				.saturating_add(T::HrmpDeposits::weight_of_receive_deposit())
+			T::HrmpDeposits::weight_of_receive_deposit()
 				.saturating_mul(2)
 				.saturating_mul(deposits.len() as u64)
 		)]

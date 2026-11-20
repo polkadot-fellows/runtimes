@@ -17,7 +17,8 @@
 use crate::{
 	assets::hollar::HOLLAR_UNITS,
 	xcm_config::{AssetHubLocation, LocationToAccountId, RelayChainLocation},
-	Block, DotWeightToFee as WeightToFee, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys,
+	AccumulateForward, Balances, Block, DotWeightToFee as WeightToFee, ExistentialDeposit,
+	Identity, Runtime, RuntimeCall, RuntimeOrigin, SessionKeys,
 };
 use codec::Encode;
 use cumulus_primitives_core::relay_chain::AccountId;
@@ -557,7 +558,6 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		StatementStorage(statement_storage::StmtStoreSlotsPerPeriod.into()),
 		StatementStorage(statement_storage::LiteStmtStoreSlotsPerPeriod.into()),
 		StatementStorage(statement_storage::StmtStoreCleanupLimit.into()),
-		StatementStorage(statement_storage::StmtStoreReplacementCooldown.into()),
 		StatementStorage(statement_storage::StmtStoreGraceWindow.into()),
 		StatementStorage(statement_storage::NotificationSlotsPerPeriod.into()),
 		StatementStorage(statement_storage::LiteNotificationSlotsPerPeriod.into()),
@@ -572,12 +572,20 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		OriginRestriction(origin_restriction::LitePeopleAllowanceMax.into()),
 		OriginRestriction(origin_restriction::LitePeopleAllowanceRecovery.into()),
 		LitePersonhood(lite_personhood::RegistrationFee.into()),
+		LitePersonhood(lite_personhood::PaidRegistrationThreshold.into()),
+		LitePersonhood(lite_personhood::PaidRegistrationPeriod.into()),
+		LitePersonhood(lite_personhood::PaidRegistrationsPerPeriod.into()),
+		LitePersonhood(lite_personhood::MaxLitePeople.into()),
 	];
 	let root_only = [
 		BulletinStorage(bulletin_storage::BulletinChainLocation.into()),
 		BulletinStorage(bulletin_storage::BulletinTransactionStoragePalletIndex.into()),
 		Coinage(coinage::LoadDepositPrice.into()),
 		Coinage(coinage::InstanceCreationDeposit.into()),
+		Coinage(coinage::MaximumAge.into()),
+		Coinage(coinage::UnloadTokenAllowancePerTimePeriodForPeople.into()),
+		Coinage(coinage::UnloadTokenAllowancePerTimePeriodForLitePeople.into()),
+		Coinage(coinage::MaxFreeUnloadTokensPerTimePeriod.into()),
 	];
 
 	// THEN Root passes all, the voice only the operational keys.
@@ -606,7 +614,7 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 			),
 		));
 		assert_eq!(<statement_storage::StmtStoreSlotsPerPeriod as Get<u32>>::get(), 40);
-		// The coinage deposits are Root only, so the voice is refused.
+		// The coinage settings are Root only, so the voice is refused.
 		assert_noop!(
 			Parameters::set_parameter(
 				technical_maintenance,
@@ -621,9 +629,124 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 }
 
 #[test]
+fn coinage_parameters_reach_the_pallet() {
+	use crate::{
+		parameters::{dynamic_params::coinage, RuntimeParameters},
+		xcm_config::RelayLocation,
+		Coinage, Parameters, RuntimeGenesisConfig, UNITS,
+	};
+	use sp_runtime::BuildStorage;
+
+	let set = |parameter| {
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::Coinage(parameter)
+		));
+	};
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// GIVEN the defaults.
+		assert_eq!(Coinage::get_load_deposit(), (RelayLocation::get(), UNITS / 10));
+		assert_eq!(Coinage::get_maximum_age(), 16);
+		assert_eq!(Coinage::get_unload_token_allowance_per_time_period_for_people(), 20 * UNITS);
+		assert_eq!(
+			Coinage::get_unload_token_allowance_per_time_period_for_lite_people(),
+			10 * UNITS
+		);
+		assert_eq!(Coinage::get_max_free_unload_tokens_per_time_period(), 1000);
+
+		// WHEN Root sets each parameter.
+		set(coinage::Parameters::LoadDepositPrice(coinage::LoadDepositPrice, Some(UNITS)));
+		set(coinage::Parameters::MaximumAge(coinage::MaximumAge, Some(32)));
+		set(coinage::Parameters::UnloadTokenAllowancePerTimePeriodForPeople(
+			coinage::UnloadTokenAllowancePerTimePeriodForPeople,
+			Some(40 * UNITS),
+		));
+		set(coinage::Parameters::UnloadTokenAllowancePerTimePeriodForLitePeople(
+			coinage::UnloadTokenAllowancePerTimePeriodForLitePeople,
+			Some(0),
+		));
+		set(coinage::Parameters::MaxFreeUnloadTokensPerTimePeriod(
+			coinage::MaxFreeUnloadTokensPerTimePeriod,
+			Some(5),
+		));
+
+		// THEN coinage reads the new values.
+		assert_eq!(Coinage::get_load_deposit(), (RelayLocation::get(), UNITS));
+		assert_eq!(Coinage::get_maximum_age(), 32);
+		assert_eq!(Coinage::get_unload_token_allowance_per_time_period_for_people(), 40 * UNITS);
+		assert_eq!(Coinage::get_unload_token_allowance_per_time_period_for_lite_people(), 0);
+		assert_eq!(Coinage::get_max_free_unload_tokens_per_time_period(), 5);
+
+		// The maximum age is kept at 2 or more and the load deposit price non-zero.
+		set(coinage::Parameters::MaximumAge(coinage::MaximumAge, Some(0)));
+		set(coinage::Parameters::LoadDepositPrice(coinage::LoadDepositPrice, Some(0)));
+		assert_eq!(Coinage::get_maximum_age(), 2);
+		assert_eq!(Coinage::get_load_deposit().1, 1);
+	});
+}
+
+#[test]
 fn session_key_deposit_works() {
 	system_parachains_test_utils::session_key_deposit_works::<Runtime>(|owner| {
 		let generated = SessionKeys::generate(&owner.encode(), None);
 		(generated.keys, generated.proof.encode())
+	});
+}
+
+#[test]
+fn identity_slashes_accumulate_instead_of_being_burned() {
+	use crate::people::IdentityInfo;
+	use frame_support::traits::{
+		fungible::{Inspect, Mutate},
+		ReservableCurrency,
+	};
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		// GIVEN the accumulation account funded with its ED, as done out of band before upgrade.
+		let ed: crate::Balance = ExistentialDeposit::get();
+		let accumulation_account = AccumulateForward::accumulation_account();
+		assert_ok!(Balances::mint_into(&accumulation_account, ed));
+		let carol = AccountId::from([3u8; 32]);
+		assert_ok!(Balances::mint_into(&carol, 100 * crate::UNITS));
+		assert_ok!(Identity::set_identity(
+			RuntimeOrigin::signed(carol.clone()),
+			Box::new(IdentityInfo::default())
+		));
+		let deposit = <Balances as ReservableCurrency<_>>::reserved_balance(&carol);
+		assert!(deposit > 0);
+		let accumulated_before = Balances::balance(&accumulation_account);
+		let issuance_before = Balances::total_issuance();
+
+		// WHEN an identity is killed, slashing its deposit.
+		assert_ok!(Identity::kill_identity(RuntimeOrigin::root(), carol.clone().into()));
+
+		// THEN the slash reaches the accumulation account and is not burnt.
+		assert_eq!(Balances::balance(&accumulation_account), accumulated_before + deposit);
+		assert_eq!(Balances::total_issuance(), issuance_before);
+	});
+}
+
+#[test]
+fn dust_accumulates_instead_of_being_burned() {
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(
+		system_parachains_test_utils::dust_accumulates_instead_of_being_burned::<Runtime>,
+	);
+}
+
+#[test]
+fn forward_period_counts_relay_blocks() {
+	use parachains_runtimes_test_utils::ExtBuilder;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		system_parachains_test_utils::forward_period_counts_relay_blocks::<Runtime>(
+			polkadot_runtime_constants::time::HOURS,
+		)
 	});
 }

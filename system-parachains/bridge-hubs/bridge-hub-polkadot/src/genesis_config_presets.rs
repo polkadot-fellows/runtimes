@@ -35,6 +35,10 @@ fn bridge_hub_polkadot_genesis(
 				.iter()
 				.cloned()
 				.map(|k| (k, BRIDGE_HUB_POLKADOT_ED * 4096 * 4096))
+				.chain(core::iter::once((
+					AccumulateForward::accumulation_account(),
+					BRIDGE_HUB_POLKADOT_ED
+				)))
 				.collect(),
 			dev_accounts: None,
 		},

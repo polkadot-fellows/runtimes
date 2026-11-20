@@ -16,8 +16,8 @@
 
 use super::*;
 use crate::mock::*;
-use frame_support::{assert_noop, assert_ok};
-use migrator_types::{ChannelId, DepositSide, PortableHoldReason};
+use frame_support::{assert_noop, assert_ok, traits::fungible::InspectHold};
+use migrator_types::{sibling_account, ChannelId, DepositSide, PortableHoldReason};
 use sp_runtime::DispatchError::BadOrigin;
 
 const PARA: u32 = 2001;
@@ -81,14 +81,14 @@ fn receive_moves_the_migrated_hold_to_the_channel_sides() {
 				ChannelId { sender: PARA, recipient: OTHER },
 				DepositSide::Sender
 			)),
-			Some(50)
+			Some(pallet_hrmp_para::Deposit { amount: 50, depositor: sov(PARA) })
 		);
 		assert_eq!(
 			pallet_hrmp_para::Deposits::<Test>::get((
 				ChannelId { sender: OTHER, recipient: PARA },
 				DepositSide::Recipient
 			)),
-			Some(40)
+			Some(pallet_hrmp_para::Deposit { amount: 40, depositor: sov(PARA) })
 		);
 		assert_eq!(free(&sov(PARA)), 10);
 		assert_eq!(total_issuance(), issuance);
@@ -99,20 +99,17 @@ fn receive_moves_the_migrated_hold_to_the_channel_sides() {
 	});
 }
 
+/// The accounts stage indexes the reserves with the amounts of the records, so the migrated hold
+/// covers them: `pallet-hrmp-para` holds what there is and reports the shortfall as a defect.
 #[test]
-fn a_short_hold_is_made_up_from_free_balance() {
+#[should_panic(expected = "hrmp-para: moved holds not as wanted")]
+fn a_short_hold_is_defensive() {
 	new_test_ext().execute_with(|| {
-		// GIVEN a para whose sovereign had reserved less than its records say, but has free
-		// balance here.
+		// GIVEN a para whose sovereign had reserved less than its records say.
 		migrate_account(PARA, 100, 30);
 
-		// WHEN its deposit arrives.
+		// WHEN its deposit arrives. THEN the shortfall is not taken from free balance.
 		CtMigrator::do_receive_hrmp_deposits(vec![record(PARA, OTHER, 50, 0)]);
-
-		// THEN the whole deposit is held, the shortfall taken from free balance.
-		assert_eq!(held(HoldReason::HrmpDeposit, &sov(PARA)), 0);
-		assert_eq!(channel_held(PARA), 50);
-		assert_eq!(free(&sov(PARA)), 80);
 	});
 }
 
@@ -232,6 +229,7 @@ fn a_record_holds_both_sides_on_their_paras() {
 #[test]
 fn only_root_receives_hrmp_deposits() {
 	new_test_ext().execute_with(|| {
+		migrate_account(PARA, 10, 50);
 		let deposits = vec![record(PARA, OTHER, 50, 0)];
 		assert_noop!(
 			CtMigrator::receive_hrmp_deposits(RuntimeOrigin::signed(ADMIN), deposits.clone()),

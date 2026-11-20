@@ -9,9 +9,9 @@ use frame_support::{
 	traits::{ConstU32, EnsureOrigin, EnsureOriginWithArg},
 };
 use indiv_pallet_resources::types::LongTermStorageAllocation;
-pub use indiv_support::parameters::StatementAllowanceParameter;
-use indiv_support::parameters::{
-	AtLeast, AtLeastOne, AtMost, BenchmarkMax, StatementAllowanceGetter,
+use indiv_support::{
+	parameters::{AtLeast, AtLeastOne, AtMost, BenchmarkMax, StatementAllowanceGetter},
+	statement_allowance::BoundedStatementAllowance,
 };
 use polkadot_runtime_constants::system_parachain::BULLETIN_ID;
 use xcm::latest::prelude::{Location, Parachain};
@@ -39,8 +39,7 @@ pub mod dynamic_params {
 		pub static LiteStmtStoreSlotsPerPeriod: u32 = 10;
 		#[codec(index = 3)]
 		pub static StmtStoreCleanupLimit: u32 = 50;
-		#[codec(index = 4)]
-		pub static StmtStoreReplacementCooldown: u32 = 60;
+		// Index 4 belonged to the removed `StmtStoreReplacementCooldown`. Do not reuse it.
 		#[codec(index = 5)]
 		pub static StmtStoreGraceWindow: u32 = 24 * 60 * 60;
 		#[codec(index = 7)]
@@ -48,11 +47,11 @@ pub mod dynamic_params {
 		#[codec(index = 8)]
 		pub static LiteNotificationSlotsPerPeriod: u8 = 8;
 		#[codec(index = 10)]
-		pub static LitePersonStatementLimit: StatementAllowanceParameter =
-			StatementAllowanceParameter { max_size: 50 * 1024, max_count: 15 };
+		pub static LitePersonStatementLimit: BoundedStatementAllowance =
+			BoundedStatementAllowance { max_size: 50 * 1024, max_count: 15 };
 		#[codec(index = 11)]
-		pub static PersonStatementLimit: StatementAllowanceParameter =
-			StatementAllowanceParameter { max_size: 100 * 1024, max_count: 30 };
+		pub static PersonStatementLimit: BoundedStatementAllowance =
+			BoundedStatementAllowance { max_size: 100 * 1024, max_count: 30 };
 	}
 
 	/// Bulletin destination and long-term storage allocation limits.
@@ -101,22 +100,48 @@ pub mod dynamic_params {
 		pub static LitePeopleAllowanceRecovery: Balance = 3 * MILLICENTS;
 	}
 
-	/// Lite-person registration pricing.
+	/// Lite-person registration pricing, cap and throttling.
 	#[dynamic_pallet_params]
 	#[codec(index = 3)]
 	pub mod lite_personhood {
 		#[codec(index = 0)]
 		pub static RegistrationFee: Balance = 75 * UNITS;
+		/// Number of lite people from which paid registrations are throttled.
+		#[codec(index = 1)]
+		pub static PaidRegistrationThreshold: u32 = 2_000;
+		/// Length of a paid registration period in seconds.
+		#[codec(index = 2)]
+		pub static PaidRegistrationPeriod: u32 = SECONDS_PER_DAY;
+		/// Number of paid registrations accepted per period once the threshold is reached.
+		#[codec(index = 3)]
+		pub static PaidRegistrationsPerPeriod: u32 = 10;
+		/// Maximum number of lite people, attested and paid together.
+		#[codec(index = 4)]
+		pub static MaxLitePeople: u32 = 10_000;
 	}
 
-	/// Coinage deposits, both in DOT.
+	/// Coinage deposits, coin lifetime and free unload token allowances.
 	#[dynamic_pallet_params]
 	#[codec(index = 4)]
 	pub mod coinage {
+		/// Load deposit held per loaded recycler key, in DOT.
 		#[codec(index = 0)]
 		pub static LoadDepositPrice: Balance = UNITS / 10;
+		/// Deposit held from the creator of a sponsored instance, in DOT.
 		#[codec(index = 1)]
 		pub static InstanceCreationDeposit: Balance = 10 * UNITS;
+		/// Number of transfers and splits after which a coin must be recycled.
+		#[codec(index = 2)]
+		pub static MaximumAge: u16 = 16;
+		/// Free unload token budget of a person per time period, in DOT.
+		#[codec(index = 3)]
+		pub static UnloadTokenAllowancePerTimePeriodForPeople: Balance = 20 * UNITS;
+		/// Free unload token budget of a lite person per time period, in DOT.
+		#[codec(index = 4)]
+		pub static UnloadTokenAllowancePerTimePeriodForLitePeople: Balance = 10 * UNITS;
+		/// Upper bound on the free unload tokens per time period, whatever the unload fee.
+		#[codec(index = 5)]
+		pub static MaxFreeUnloadTokensPerTimePeriod: u32 = 1000;
 	}
 }
 
@@ -142,12 +167,6 @@ pub type StmtStoreCleanupLimit = BenchmarkMax<
 		ConstU32<STMT_STORE_CLEANUP_LIMIT_CAP>,
 	>,
 	ConstU32<STMT_STORE_CLEANUP_LIMIT_CAP>,
->;
-
-/// Statement replacement cooldown, kept non-zero and at most one day.
-pub type StmtStoreReplacementCooldown = AtMost<
-	AtLeastOne<dynamic_params::statement_storage::StmtStoreReplacementCooldown>,
-	ConstU32<SECONDS_PER_DAY>,
 >;
 
 /// Statement-store grace window, kept non-zero.
@@ -197,11 +216,36 @@ pub type LitePeopleAllowanceRecovery = AtLeast<
 pub type LitePersonRegistrationFee =
 	AtLeast<dynamic_params::lite_personhood::RegistrationFee, ExistentialDeposit>;
 
+/// Maximum number of lite people. Any value is valid; zero stops every lite registration.
+pub type MaxLitePeople = dynamic_params::lite_personhood::MaxLitePeople;
+
+/// Lite people count from which paid registrations are throttled. Any value is valid.
+pub type LitePaidRegistrationThreshold = dynamic_params::lite_personhood::PaidRegistrationThreshold;
+
+/// Paid lite registration period. Zero disables the paid registration throttling.
+pub type LitePaidRegistrationPeriod = dynamic_params::lite_personhood::PaidRegistrationPeriod;
+
+/// Paid lite registrations per period. Zero stops paid registrations beyond the threshold.
+pub type LitePaidRegistrationsPerPeriod =
+	dynamic_params::lite_personhood::PaidRegistrationsPerPeriod;
+
 /// Coinage load deposit price, kept non-zero so sponsored loads always take some collateral (the
 /// pallet's integrity test requires it).
 pub type CoinageLoadDepositPrice =
 	AtLeast<dynamic_params::coinage::LoadDepositPrice, frame_support::traits::ConstU128<1>>;
 pub type CoinageInstanceCreationDeposit = dynamic_params::coinage::InstanceCreationDeposit;
+
+/// Coinage maximum coin age, kept at 2 or more: a recycler unloaded into coins yields coins of
+/// age 1, better to let them be transferred once before they have to be recycled.
+pub type CoinageMaximumAge =
+	AtLeast<dynamic_params::coinage::MaximumAge, frame_support::traits::ConstU16<2>>;
+/// Free unload token allowances and cap. Zero is valid and disables free unload tokens.
+pub type CoinageUnloadTokenAllowancePerTimePeriodForPeople =
+	dynamic_params::coinage::UnloadTokenAllowancePerTimePeriodForPeople;
+pub type CoinageUnloadTokenAllowancePerTimePeriodForLitePeople =
+	dynamic_params::coinage::UnloadTokenAllowancePerTimePeriodForLitePeople;
+pub type CoinageMaxFreeUnloadTokensPerTimePeriod =
+	dynamic_params::coinage::MaxFreeUnloadTokensPerTimePeriod;
 
 /// Routes each parameter key to the origin allowed to set it. Every key is listed so that a new
 /// one fails to compile until routed.
@@ -227,7 +271,6 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				StatementStorageKey::StmtStoreSlotsPerPeriod(_) |
 				StatementStorageKey::LiteStmtStoreSlotsPerPeriod(_) |
 				StatementStorageKey::StmtStoreCleanupLimit(_) |
-				StatementStorageKey::StmtStoreReplacementCooldown(_) |
 				StatementStorageKey::StmtStoreGraceWindow(_) |
 				StatementStorageKey::NotificationSlotsPerPeriod(_) |
 				StatementStorageKey::LiteNotificationSlotsPerPeriod(_) |
@@ -246,18 +289,28 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				OriginRestrictionKey::LitePeopleAllowanceMax(_) |
 				OriginRestrictionKey::LitePeopleAllowanceRecovery(_),
 			) |
-			RuntimeParametersKey::LitePersonhood(LitePersonhoodKey::RegistrationFee(_)) =>
-				<RootOrTechnicalMaintenance as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
-					origin.clone(),
-				)
-				.map(|_| ()),
-			// Where the chain sends data, and what coinage costs.
+			RuntimeParametersKey::LitePersonhood(
+				LitePersonhoodKey::RegistrationFee(_) |
+				LitePersonhoodKey::PaidRegistrationThreshold(_) |
+				LitePersonhoodKey::PaidRegistrationPeriod(_) |
+				LitePersonhoodKey::PaidRegistrationsPerPeriod(_) |
+				LitePersonhoodKey::MaxLitePeople(_),
+			) => <RootOrTechnicalMaintenance as EnsureOrigin<RuntimeOrigin>>::ensure_origin(
+				origin.clone(),
+			)
+			.map(|_| ()),
+			// Where the chain sends data, and the coinage settings.
 			RuntimeParametersKey::BulletinStorage(
 				BulletinStorageKey::BulletinChainLocation(_) |
 				BulletinStorageKey::BulletinTransactionStoragePalletIndex(_),
 			) |
 			RuntimeParametersKey::Coinage(
-				CoinageKey::LoadDepositPrice(_) | CoinageKey::InstanceCreationDeposit(_),
+				CoinageKey::LoadDepositPrice(_) |
+				CoinageKey::InstanceCreationDeposit(_) |
+				CoinageKey::MaximumAge(_) |
+				CoinageKey::UnloadTokenAllowancePerTimePeriodForPeople(_) |
+				CoinageKey::UnloadTokenAllowancePerTimePeriodForLitePeople(_) |
+				CoinageKey::MaxFreeUnloadTokensPerTimePeriod(_),
 			) => frame_system::ensure_root(origin.clone()),
 		}
 		.map_err(|_| origin)

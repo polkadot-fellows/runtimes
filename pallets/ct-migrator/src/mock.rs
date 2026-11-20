@@ -143,16 +143,20 @@ parameter_types! {
 /// `pallet-hrmp-para`, unless [`HrmpDepositsFail`] is set.
 pub struct MockHrmpDeposits;
 
-impl ReceiveMigratedDeposits for MockHrmpDeposits {
-	fn receive_deposit(key: DepositKey, amount: u128) -> DispatchResult {
+impl ReceiveMigratedDeposits<RuntimeHoldReason> for MockHrmpDeposits {
+	fn receive_deposit(
+		key: DepositKey,
+		amount: u128,
+		source: &RuntimeHoldReason,
+	) -> DispatchResult {
 		if HrmpDepositsFail::get() {
 			return Err(DispatchError::Other("deposit refused"));
 		}
-		<HrmpPara as ReceiveMigratedDeposits>::receive_deposit(key, amount)
+		HrmpPara::receive_deposit(key, amount, source)
 	}
 
 	fn weight_of_receive_deposit() -> Weight {
-		<HrmpPara as ReceiveMigratedDeposits>::weight_of_receive_deposit()
+		<HrmpPara as ReceiveMigratedDeposits<RuntimeHoldReason>>::weight_of_receive_deposit()
 	}
 }
 
@@ -197,7 +201,7 @@ pub fn sent_call(n: usize) -> crate::Rc2RuntimeCall {
 	let (_, Xcm(instructions)) = sent().get(n).expect("message was sent").clone();
 	for instruction in instructions {
 		if let Instruction::Transact { call, .. } = instruction {
-			return crate::Rc2RuntimeCall::decode(&mut &call.into_encoded()[..])
+			return crate::Rc2RuntimeCall::decode(&mut call.encoded())
 				.expect("payload decodes as a relay-chain call");
 		}
 	}
