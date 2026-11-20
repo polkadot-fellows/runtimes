@@ -57,6 +57,8 @@ fn a_signed_account_drives_nothing() {
 			),
 			BadOrigin
 		);
+		assert_noop!(CtMigrator::receive_accounts(RuntimeOrigin::signed(ALICE), vec![]), BadOrigin);
+		assert_noop!(CtMigrator::receive_proxies(RuntimeOrigin::signed(ALICE), vec![]), BadOrigin);
 		assert_stage(MigrationStage::Pending);
 	});
 }
