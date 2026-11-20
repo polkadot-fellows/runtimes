@@ -195,6 +195,9 @@ pub struct Deposit<T: Config> {
 pub trait BenchmarkHelper<Group> {
 	/// A group anyone can pause. Should be the one with the most calls.
 	fn group() -> Group;
+
+	/// Turns on pausing with a deposit, if the runtime ships with it off.
+	fn enable() {}
 }
 
 #[frame_support::pallet]
@@ -226,8 +229,8 @@ pub mod pallet {
 		type ValidCall: Contains<Self::CallName>;
 
 		/// The least it costs to pause or extend a single call. A call in a group costs at least
-		/// what the group costs.
-		#[pallet::constant]
+		/// what the group costs. Zero means single calls can only be paused by
+		/// [`Call::force_pause`].
 		type CallDeposit: Get<BalanceOf<Self>>;
 
 		/// Pauses and unpauses single calls. Nothing else should be able to touch it.
@@ -250,12 +253,11 @@ pub mod pallet {
 		/// Measures time for pauses and cooldowns.
 		type BlockNumberProvider: BlockNumberProvider;
 
-		/// How long a pause lasts, and how much each [`Call::extend`] adds.
-		#[pallet::constant]
+		/// How long a pause lasts, and how much each [`Call::extend`] adds. Zero means nothing can be
+		/// paused with a deposit.
 		type PauseDuration: Get<BlockNumberOf<Self>>;
 
 		/// How long the calls of a pause can't be paused again after an unpause with slash.
-		#[pallet::constant]
 		type Cooldown: Get<BlockNumberOf<Self>>;
 
 		/// How many calls one group can pause.
@@ -368,11 +370,8 @@ pub mod pallet {
 		}
 
 		fn integrity_test() {
-			assert!(!T::PauseDuration::get().is_zero(), "a pause must last at least one block");
 			assert!(T::MaxDepositsPerPause::get() > 0, "a pause needs room for its first deposit");
 			assert!(T::MaxActivePauses::get() > 0, "there must be room for at least one pause");
-
-			assert!(!T::CallDeposit::get().is_zero(), "a single call is free to pause");
 
 			let groups = T::Groups::all();
 			assert!(
@@ -389,10 +388,6 @@ pub mod pallet {
 				assert!(
 					calls.iter().all(T::ValidCall::contains),
 					"a group has a call that doesn't exist: {group:?}"
-				);
-				assert!(
-					T::Groups::deposit(&group).is_none_or(|deposit| !deposit.is_zero()),
-					"a group is free to pause: {group:?}"
 				);
 			}
 		}
@@ -423,7 +418,7 @@ pub mod pallet {
 			let calls = Self::calls_to_pause(&target)?;
 
 			let deposit = Self::hold_deposit(&who, &target)?;
-			let until = now.saturating_add(T::PauseDuration::get());
+			let until = now.saturating_add(Self::pause_duration()?);
 			let deposits = BoundedVec::truncate_from(alloc::vec![deposit]);
 			Self::do_pause(&target, calls, Some(until), deposits, false)?;
 
@@ -453,7 +448,7 @@ pub mod pallet {
 
 			let deposit = Self::hold_deposit(&who, &target)?;
 			pause.deposits.try_push(deposit).map_err(|_| Error::<T>::TooManyDeposits)?;
-			let new_until = until.saturating_add(T::PauseDuration::get());
+			let new_until = until.saturating_add(Self::pause_duration()?);
 			Self::reschedule_expiry(&target, &mut pause, new_until)?;
 			Pauses::<T>::insert(&target, pause);
 
@@ -578,25 +573,45 @@ impl<T: Config> Pallet<T> {
 			.into_iter()
 			.map(|group| GroupInfo {
 				calls: T::Groups::calls(&group),
-				deposit: T::Groups::deposit(&group),
+				deposit: Self::group_deposit(&group),
 				group,
 			})
 			.collect()
 	}
 
-	/// What pausing `call` on its own costs. `None` if it can't be paused on its own, because it
-	/// doesn't exist or a group it's in can only be paused by Root.
+	/// What pausing `group` costs. `None` if only Root can pause it.
+	fn group_deposit(group: &T::Group) -> Option<BalanceOf<T>> {
+		// A free pause would make the whole thing pointless, so zero means it's off.
+		T::Groups::deposit(group).filter(|deposit| !deposit.is_zero())
+	}
+
+	/// What pausing `call` on its own costs. `None` if it can't be paused on its own with a
+	/// deposit: it doesn't exist, tx-pause never pauses it, single calls are off, or a group it's
+	/// in can only be paused by Root.
 	pub fn call_deposit(call: &T::CallName) -> Option<BalanceOf<T>> {
-		if !T::ValidCall::contains(call) {
+		if !T::ValidCall::contains(call) || !Self::can_pause(call) {
 			return None;
 		}
-		let mut deposit = T::CallDeposit::get();
+		let mut deposit = Some(T::CallDeposit::get()).filter(|deposit| !deposit.is_zero())?;
 		for group in T::Groups::all() {
 			if T::Groups::calls(&group).contains(call) {
-				deposit = deposit.max(T::Groups::deposit(&group)?);
+				deposit = deposit.max(Self::group_deposit(&group)?);
 			}
 		}
 		Some(deposit)
+	}
+
+	/// Whether tx-pause would pause `call`. A call another pause already holds looks unpausable
+	/// to tx-pause, but that's fine.
+	fn can_pause(call: &T::CallName) -> bool {
+		PausedCalls::<T>::contains_key(call) || T::TransactionPause::can_pause(call.clone())
+	}
+
+	/// How long a pause lasts. Zero means pausing with a deposit is off.
+	fn pause_duration() -> Result<BlockNumberOf<T>, DispatchError> {
+		let duration = T::PauseDuration::get();
+		ensure!(!duration.is_zero(), Error::<T>::NotPausable);
+		Ok(duration)
 	}
 
 	/// The calls `target` pauses, if all of them can be paused.
@@ -610,21 +625,15 @@ impl<T: Config> Pallet<T> {
 		};
 		ensure!(!calls.is_empty(), Error::<T>::NotPausable);
 		let calls = CallsOf::<T>::try_from(calls).map_err(|_| Error::<T>::TooManyCalls)?;
-		// A call another pause already holds would look unpausable to tx-pause, but that's fine.
-		let pausable = |call: &T::CallName| {
-			PausedCalls::<T>::contains_key(call) || T::TransactionPause::can_pause(call.clone())
-		};
-		ensure!(calls.iter().all(pausable), Error::<T>::NotPausable);
+		ensure!(calls.iter().all(Self::can_pause), Error::<T>::NotPausable);
 		Ok(calls)
 	}
 
 	fn hold_deposit(who: &T::AccountId, target: &TargetOf<T>) -> Result<Deposit<T>, DispatchError> {
 		let amount = match target {
-			Target::Group(group) => T::Groups::deposit(group).ok_or(Error::<T>::NotPausable)?,
+			Target::Group(group) => Self::group_deposit(group).ok_or(Error::<T>::NotPausable)?,
 			Target::Call(call) => Self::call_deposit(call).ok_or(Error::<T>::NotPausable)?,
 		};
-		// A free pause would make the whole thing pointless.
-		ensure!(!amount.is_zero(), Error::<T>::NotPausable);
 		T::Currency::hold(&HoldReason::Pause.into(), who, amount)?;
 
 		Self::deposit_event(Event::DepositHeld {

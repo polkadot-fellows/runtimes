@@ -748,3 +748,57 @@ fn expiry_survives_ids_moving_on() {
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }
+
+#[test]
+fn unpausable_calls_have_no_price() {
+	new_test_ext().execute_with(|| {
+		// tx-pause never pauses these.
+		assert_eq!(KillSwitch::call_deposit(&full_name("System", "remark")), None);
+		assert_eq!(KillSwitch::call_deposit(&full_name("KillSwitch", "unpause")), None);
+		assert_eq!(KillSwitch::call_deposit(&full_name("Balances", "transfer_keep_alive")), None);
+
+		// A call that's already paused still has its price, so the pause can be extended.
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), call("upgrade_accounts")));
+		assert_eq!(
+			KillSwitch::call_deposit(&full_name("Balances", "upgrade_accounts")),
+			Some(CALL_DEPOSIT)
+		);
+		assert_ok!(KillSwitch::extend(RuntimeOrigin::signed(2), call("upgrade_accounts")));
+	});
+}
+
+#[test]
+fn zero_turns_pausing_off() {
+	new_test_ext().execute_with(|| {
+		CallDeposit::set(0);
+		assert_eq!(KillSwitch::call_deposit(&full_name("Balances", "upgrade_accounts")), None);
+		assert_noop!(
+			KillSwitch::pause(RuntimeOrigin::signed(1), call("upgrade_accounts")),
+			Error::<Test>::NotPausable
+		);
+		// Groups still work.
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
+
+		GroupDeposit::set(0);
+		assert_noop!(KillSwitch::pause(RuntimeOrigin::signed(1), burn()), Error::<Test>::NotPausable);
+		assert!(KillSwitch::pause_groups().iter().all(|info| info.deposit.is_none()));
+		// Paused before it was turned off, still ends normally and gets refunded.
+		assert_noop!(
+			KillSwitch::extend(RuntimeOrigin::signed(2), transfer()),
+			Error::<Test>::NotPausable
+		);
+		run_to_relay(1 + PAUSE_DURATION);
+		assert_eq!(held(1), 0);
+
+		// Root can still pause.
+		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), burn(), None));
+
+		GroupDeposit::set(DEPOSIT);
+		PauseDuration::set(0);
+		assert_noop!(
+			KillSwitch::pause(RuntimeOrigin::signed(1), transfer()),
+			Error::<Test>::NotPausable
+		);
+		assert_ok!(KillSwitch::do_try_state());
+	});
+}

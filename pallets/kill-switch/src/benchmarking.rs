@@ -26,7 +26,7 @@ fn set_relay_block<T: Config>(n: u32) {
 /// A funded account that can pay for every deposit of a full pause.
 fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let who: T::AccountId = account(name, index, 0);
-	let deposit = T::Groups::deposit(&T::BenchmarkHelper::group())
+	let deposit = Pallet::<T>::group_deposit(&T::BenchmarkHelper::group())
 		.expect("group is priced")
 		.max(T::CallDeposit::get());
 	let amount = T::Currency::minimum_balance()
@@ -37,6 +37,7 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 
 /// The group with the most calls.
 fn target<T: Config>() -> TargetOf<T> {
+	T::BenchmarkHelper::enable();
 	Target::Group(T::BenchmarkHelper::group())
 }
 
