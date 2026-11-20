@@ -805,3 +805,15 @@ fn zero_turns_pausing_off() {
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }
+
+#[test]
+fn slashing_a_forced_pause_does_nothing_extra() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), transfer(), None));
+		assert_ok!(KillSwitch::unpause(RuntimeOrigin::root(), transfer(), true));
+
+		System::assert_has_event(Event::Unpaused { target: transfer(), slashed: false }.into());
+		assert_eq!(Cooldowns::<Test>::iter().count(), 0);
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
+	});
+}

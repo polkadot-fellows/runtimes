@@ -472,6 +472,8 @@ pub mod pallet {
 
 			let pause = Pauses::<T>::get(&target).ok_or(Error::<T>::NotPaused)?;
 			Self::ensure_admin(origin, &pause, AdminAction::Unpause(target.clone()))?;
+			// A forced pause has no deposit, so there's nothing to slash and no cooldown.
+			let slash = slash && !pause.deposits.is_empty();
 			Self::do_unpause(&target, &pause);
 			Self::settle_deposits(&target, &pause.deposits, slash);
 
