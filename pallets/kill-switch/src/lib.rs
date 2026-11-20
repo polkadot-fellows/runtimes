@@ -253,8 +253,8 @@ pub mod pallet {
 		/// Measures time for pauses and cooldowns.
 		type BlockNumberProvider: BlockNumberProvider;
 
-		/// How long a pause lasts, and how much each [`Call::extend`] adds. Zero means nothing can be
-		/// paused with a deposit.
+		/// How long a pause lasts, and how much each [`Call::extend`] adds. Zero means nothing can
+		/// be paused with a deposit.
 		type PauseDuration: Get<BlockNumberOf<Self>>;
 
 		/// How long the calls of a pause can't be paused again after an unpause with slash.

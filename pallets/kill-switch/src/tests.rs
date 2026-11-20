@@ -780,7 +780,10 @@ fn zero_turns_pausing_off() {
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
 
 		GroupDeposit::set(0);
-		assert_noop!(KillSwitch::pause(RuntimeOrigin::signed(1), burn()), Error::<Test>::NotPausable);
+		assert_noop!(
+			KillSwitch::pause(RuntimeOrigin::signed(1), burn()),
+			Error::<Test>::NotPausable
+		);
 		assert!(KillSwitch::pause_groups().iter().all(|info| info.deposit.is_none()));
 		// Paused before it was turned off, still ends normally and gets refunded.
 		assert_noop!(

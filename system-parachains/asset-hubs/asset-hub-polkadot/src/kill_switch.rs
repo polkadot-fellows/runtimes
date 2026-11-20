@@ -155,7 +155,6 @@ impl KillSwitchGroup {
 	}
 }
 
-
 /// Root can do everything. The Fellowship can end and extend pauses, but can't pause anything
 /// itself or touch a pause Root started.
 pub struct KillSwitchAdmin;
