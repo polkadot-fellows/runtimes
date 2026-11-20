@@ -84,8 +84,8 @@ impl Contains<RuntimeCallNameOf<Runtime>> for NeverPausable {
 /// its own.
 ///
 /// tx-pause works on whole calls, so a group covers every asset those calls touch, not a single
-/// asset. It only stops extrinsics and XCM `Transact`. Contracts going through the precompiles and
-/// assets arriving over XCM aren't covered yet.
+/// asset. It only stops extrinsics and XCM `Transact`. Contracts going through the precompiles,
+/// assets arriving over XCM, and swaps for paying fees in another asset aren't covered yet.
 #[derive(
 	Clone,
 	Copy,
@@ -155,11 +155,6 @@ impl KillSwitchGroup {
 	}
 }
 
-parameter_types! {
-	pub const KillSwitchPauseDuration: BlockNumber = RC_DAYS;
-	pub const KillSwitchCooldown: BlockNumber = 7 * RC_DAYS;
-	pub const KillSwitchCallDeposit: Balance = 10_000 * UNITS;
-}
 
 /// Root can do everything. The Fellowship can end and extend pauses, but can't pause anything
 /// itself or touch a pause Root started.
@@ -215,10 +210,12 @@ impl pallet_kill_switch::PauseGroups<KillSwitchGroup, RuntimeCallNameOf<Runtime>
 	}
 
 	fn deposit(group: &KillSwitchGroup) -> Option<Balance> {
+		use dynamic_params::kill_switch::*;
 		Some(match group {
-			KillSwitchGroup::Psm | KillSwitchGroup::Swaps => 10_000 * UNITS,
-			// These hit every asset, or everything leaving the chain.
-			KillSwitchGroup::AssetTransfers | KillSwitchGroup::XcmTransfers => 50_000 * UNITS,
+			KillSwitchGroup::Psm => PsmDeposit::get(),
+			KillSwitchGroup::Swaps => SwapsDeposit::get(),
+			KillSwitchGroup::AssetTransfers => AssetTransfersDeposit::get(),
+			KillSwitchGroup::XcmTransfers => XcmTransfersDeposit::get(),
 		})
 	}
 }
@@ -237,6 +234,24 @@ impl Contains<RuntimeCallNameOf<Runtime>> for ExistingCall {
 	}
 }
 
+/// Sets the deposits we'd suggest turning the kill switch on with: 10k DOT for the PSM, swaps and
+/// single calls, 50k DOT for asset and XCM transfers, which hit every asset or everything leaving
+/// the chain. On chain this is a governance call, this is for tests and benchmarks.
+#[cfg(any(feature = "std", feature = "runtime-benchmarks"))]
+pub fn set_suggested_deposits() {
+	use dynamic_params::kill_switch::{Parameters as P, *};
+	for param in [
+		P::PsmDeposit(PsmDeposit, Some(10_000 * UNITS)),
+		P::SwapsDeposit(SwapsDeposit, Some(10_000 * UNITS)),
+		P::AssetTransfersDeposit(AssetTransfersDeposit, Some(50_000 * UNITS)),
+		P::XcmTransfersDeposit(XcmTransfersDeposit, Some(50_000 * UNITS)),
+		P::CallDeposit(CallDeposit, Some(10_000 * UNITS)),
+	] {
+		Parameters::set_parameter(RuntimeOrigin::root(), RuntimeParameters::KillSwitch(param))
+			.expect("root can set parameters");
+	}
+}
+
 #[cfg(feature = "runtime-benchmarks")]
 pub struct KillSwitchBenchmarkHelper;
 #[cfg(feature = "runtime-benchmarks")]
@@ -245,6 +260,10 @@ impl pallet_kill_switch::BenchmarkHelper<KillSwitchGroup> for KillSwitchBenchmar
 		// The one with the most calls.
 		KillSwitchGroup::AssetTransfers
 	}
+
+	fn enable() {
+		set_suggested_deposits();
+	}
 }
 
 impl pallet_kill_switch::Config for Runtime {
@@ -252,7 +271,7 @@ impl pallet_kill_switch::Config for Runtime {
 	type CallName = RuntimeCallNameOf<Runtime>;
 	type Groups = KillSwitchGroups;
 	type ValidCall = ExistingCall;
-	type CallDeposit = KillSwitchCallDeposit;
+	type CallDeposit = dynamic_params::kill_switch::CallDeposit;
 	type TransactionPause = TxPause;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
@@ -260,8 +279,8 @@ impl pallet_kill_switch::Config for Runtime {
 	type OnSlash = Dap;
 	type AdminOrigin = KillSwitchAdmin;
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
-	type PauseDuration = KillSwitchPauseDuration;
-	type Cooldown = KillSwitchCooldown;
+	type PauseDuration = dynamic_params::kill_switch::PauseDuration;
+	type Cooldown = dynamic_params::kill_switch::Cooldown;
 	type MaxCallsPerTarget = ConstU32<16>;
 	type MaxDepositsPerPause = ConstU32<10>;
 	// The 4 groups, the rest is for single calls.

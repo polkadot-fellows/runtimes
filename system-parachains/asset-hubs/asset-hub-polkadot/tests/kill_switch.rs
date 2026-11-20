@@ -16,7 +16,7 @@
 //! Runtime tests for the kill switch and the tx-pause instance behind it.
 
 use asset_hub_polkadot_runtime::{
-	kill_switch::{KillSwitchCallDeposit, KillSwitchGroup},
+	kill_switch::{set_suggested_deposits, KillSwitchGroup},
 	xcm_config::{FellowshipLocation, XcmConfig},
 	AllPalletsWithoutSystem, Balances, KillSwitch, Runtime, RuntimeCall, RuntimeHoldReason,
 	RuntimeOrigin, SessionKeys, TxPause,
@@ -52,8 +52,9 @@ fn test_ext() -> sp_io::TestExternalities {
 		.build()
 }
 
-/// Alice with enough for any deposit.
+/// Alice with enough for any deposit, with the kill switch turned on.
 fn funded_alice() -> AccountId {
+	set_suggested_deposits();
 	let alice = AccountId::from(ALICE);
 	assert_ok!(Balances::mint_into(&alice, 200_000 * UNITS));
 	alice
@@ -210,7 +211,7 @@ fn can_pause_a_single_call() {
 		assert_ok!(KillSwitch::pause(TestRuntimeHelper::origin_of(alice.clone()), call));
 
 		// Not in any group, so the plain call deposit.
-		assert_eq!(held(&alice), KillSwitchCallDeposit::get());
+		assert_eq!(held(&alice), 10_000 * UNITS);
 		assert!(is_filtered(balance_transfer(), &alice));
 		assert!(!is_filtered(asset_transfer(), &alice));
 	});
@@ -219,6 +220,7 @@ fn can_pause_a_single_call() {
 #[test]
 fn single_calls_cost_at_least_their_group() {
 	test_ext().execute_with(|| {
+		set_suggested_deposits();
 		let name = |pallet: &str, call: &str| {
 			(
 				pallet.as_bytes().to_vec().try_into().unwrap(),
@@ -234,8 +236,45 @@ fn single_calls_cost_at_least_their_group() {
 #[test]
 fn lists_every_group() {
 	test_ext().execute_with(|| {
+		set_suggested_deposits();
 		let groups = KillSwitch::pause_groups();
 		assert_eq!(groups.len(), 4);
 		assert!(groups.iter().all(|info| !info.calls.is_empty() && info.deposit.is_some()));
+	});
+}
+
+#[test]
+fn ships_switched_off() {
+	test_ext().execute_with(|| {
+		let alice = AccountId::from(ALICE);
+		assert_ok!(Balances::mint_into(&alice, 200_000 * UNITS));
+
+		assert!(KillSwitch::pause_groups().iter().all(|info| info.deposit.is_none()));
+		assert_noop!(
+			KillSwitch::pause(TestRuntimeHelper::origin_of(alice), group(KillSwitchGroup::Psm)),
+			pallet_kill_switch::Error::<Runtime>::NotPausable
+		);
+		// Root still can.
+		assert_ok!(KillSwitch::force_pause(
+			TestRuntimeHelper::root_origin(),
+			group(KillSwitchGroup::Psm),
+			None
+		));
+	});
+}
+
+#[test]
+fn only_root_sets_the_deposits() {
+	use asset_hub_polkadot_runtime::{dynamic_params::kill_switch, Parameters, RuntimeParameters};
+	test_ext().execute_with(|| {
+		let param = RuntimeParameters::KillSwitch(kill_switch::Parameters::CallDeposit(
+			kill_switch::CallDeposit,
+			Some(1),
+		));
+		assert_noop!(
+			Parameters::set_parameter(fellowship(), param.clone()),
+			DispatchError::BadOrigin
+		);
+		assert_ok!(Parameters::set_parameter(TestRuntimeHelper::root_origin(), param));
 	});
 }

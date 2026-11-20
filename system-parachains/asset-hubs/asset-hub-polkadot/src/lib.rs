@@ -1406,6 +1406,9 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 				TechnicalMaintenance,
 			>::ensure_origin(origin.clone())
 			.map(|_| ()),
+			// Root only. A fast track that could set these to zero would make pausing free.
+			RuntimeParametersKey::KillSwitch(_) =>
+				EnsureRoot::<AccountId>::ensure_origin(origin.clone()).map(|_| ()),
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
@@ -1552,6 +1555,34 @@ pub mod dynamic_params {
 		/// Maximum aliases processed by one stale-alias sweep call.
 		#[codec(index = 14)]
 		pub static MaxStaleAliasBatch: u32 = 32;
+	}
+
+	/// Kill switch deposits and timings. A deposit of zero means nobody can pause that with a
+	/// deposit, so the kill switch ships switched off and governance turns it on.
+	#[dynamic_pallet_params]
+	#[codec(index = 4)]
+	pub mod kill_switch {
+		/// Deposit for pausing the PSM.
+		#[codec(index = 0)]
+		pub static PsmDeposit: Balance = 0;
+		/// Deposit for pausing swaps.
+		#[codec(index = 1)]
+		pub static SwapsDeposit: Balance = 0;
+		/// Deposit for pausing asset transfers.
+		#[codec(index = 2)]
+		pub static AssetTransfersDeposit: Balance = 0;
+		/// Deposit for pausing XCM transfers.
+		#[codec(index = 3)]
+		pub static XcmTransfersDeposit: Balance = 0;
+		/// The least it costs to pause a single call.
+		#[codec(index = 4)]
+		pub static CallDeposit: Balance = 0;
+		/// How long a pause lasts, and how much each extension adds. In relay chain blocks.
+		#[codec(index = 5)]
+		pub static PauseDuration: BlockNumber = RC_DAYS;
+		/// How long a slashed target can't be paused again. In relay chain blocks.
+		#[codec(index = 6)]
+		pub static Cooldown: BlockNumber = 7 * RC_DAYS;
 	}
 }
 
