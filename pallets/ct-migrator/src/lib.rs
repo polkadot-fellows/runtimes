@@ -46,6 +46,7 @@ mod mock;
 mod tests;
 
 pub mod accounts;
+pub mod hrmp;
 
 pub use pallet::*;
 
@@ -59,7 +60,8 @@ use frame_support::{
 	},
 };
 use frame_system::pallet_prelude::*;
-use migrator_types::PortableHoldReason;
+use hrmp_primitives::ReceiveMigratedDeposits;
+use migrator_types::{PortableHoldReason, PortableHrmpChannelRecord};
 use sp_runtime::DispatchError;
 use xcm::prelude::*;
 
@@ -157,6 +159,12 @@ pub mod pallet {
 
 		/// Calls that are allowed after the migration finished.
 		type PostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
+
+		/// Takes over the migrated HRMP deposits for their channel sides, out of the
+		/// [`HoldReason::HrmpDeposit`] hold: `pallet-hrmp-para`.
+		///
+		/// It must name a para's sovereign account as [`migrator_types::sibling_account`] does.
+		type HrmpDeposits: ReceiveMigratedDeposits<Self::RuntimeHoldReason>;
 	}
 
 	#[pallet::composite_enum]
@@ -233,6 +241,8 @@ pub mod pallet {
 		},
 		/// A batch of migrated accounts was processed.
 		AccountsReceived { count_good: u32, count_bad: u32 },
+		/// A batch of migrated HRMP deposits was processed.
+		HrmpDepositsReceived { count_good: u32, count_bad: u32 },
 	}
 
 	#[pallet::call]
@@ -326,6 +336,26 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 			Self::do_receive_accounts(accounts);
+			Ok(())
+		}
+
+		/// Hold a batch of HRMP deposits migrated from the relay chain for their channel sides.
+		/// See [`Pallet::do_receive_hrmp_deposits`]. Never fails: a deposit that cannot be held
+		/// is logged, the rest of the batch goes through.
+		// TODO(ahm-v2): proper benchmark
+		#[pallet::call_index(8)]
+		#[pallet::weight(
+			// two sides a record
+			T::HrmpDeposits::weight_of_receive_deposit()
+				.saturating_mul(2)
+				.saturating_mul(deposits.len() as u64)
+		)]
+		pub fn receive_hrmp_deposits(
+			origin: OriginFor<T>,
+			deposits: Vec<PortableHrmpChannelRecord>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			Self::do_receive_hrmp_deposits(deposits);
 			Ok(())
 		}
 	}

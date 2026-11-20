@@ -30,7 +30,7 @@ use crate::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Contains, Equals},
+	traits::{ConstU32, Contains, Equals},
 };
 use frame_system::EnsureRoot;
 use kusama_runtime_constants::{currency::UNITS, system_parachain::ASSET_HUB_ID};
@@ -67,6 +67,7 @@ impl pallet_rc2_migrator::Config for Runtime {
 	type CtParaId = BrokerId;
 	type AhParaId = AhParaId;
 	type CtFreeBuffer = CtFreeBuffer;
+	type HrmpRecordsPerBlock = ConstU32<200>;
 	type TimeProvider = Timestamp;
 	type CtOrigin = EnsureXcm<Equals<Broker>>;
 	type AdminOrigin = EnsureRoot<AccountId>;

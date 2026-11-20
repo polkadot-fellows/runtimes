@@ -34,12 +34,15 @@ impl pallet_ct_migrator::Config for Runtime {
 	type PreMigrationCalls = lockdown::CallsEnabledBeforeMigration;
 	type IntraMigrationCalls = lockdown::CallsEnabledDuringMigration;
 	type PostMigrationCalls = frame_support::traits::Everything;
+	// TODO(ahm-v2): `HrmpPara` once it is in the runtime.
+	type HrmpDeposits = ();
 }
 
 #[cfg(test)]
 mod tests {
 	use crate::{AccountId, Runtime, RuntimeCall};
 	use codec::Encode;
+	use migrator_types::{ChannelId, PortableHrmpChannelRecord};
 	use pallet_ct_migrator::accounts::PortableAccountOf;
 	use pallet_rc2_migrator::{CtMigratorCall, CtRuntimeCall};
 
@@ -69,6 +72,21 @@ mod tests {
 			.encode(),
 			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::receive_accounts {
 				accounts
+			})
+			.encode(),
+		);
+		let deposits = vec![PortableHrmpChannelRecord {
+			channel: ChannelId { sender: 2000, recipient: 2001 },
+			sender_deposit: 10,
+			recipient_deposit: 0,
+		}];
+		assert_eq!(
+			CtRuntimeCall::CtMigrator(CtMigratorCall::ReceiveHrmpDeposits {
+				deposits: deposits.clone()
+			})
+			.encode(),
+			RuntimeCall::CtMigrator(pallet_ct_migrator::Call::<Runtime>::receive_hrmp_deposits {
+				deposits
 			})
 			.encode(),
 		);
