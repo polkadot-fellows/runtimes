@@ -89,7 +89,9 @@ pub fn never_pausable_pallets() -> [&'static str; 28] {
 pub struct NeverPausable;
 impl Contains<RuntimeCallNameOf<Runtime>> for NeverPausable {
 	fn contains((pallet, call): &RuntimeCallNameOf<Runtime>) -> bool {
-		never_pausable_pallets().iter().any(|never| never.as_bytes() == pallet.as_slice()) ||
+		never_pausable_pallets()
+			.iter()
+			.any(|never| never.as_bytes() == pallet.as_slice()) ||
 			(pallet.as_slice() == PolkadotXcm::name().as_bytes() && call.as_slice() == b"send")
 	}
 }
