@@ -152,6 +152,15 @@ jobs:
           RUST_LOG: "remote-ext=info"
           PACKAGE: ${{ matrix.runtime.package }}
 
+      # `cargo test -p <runtime>` does not run its dependencies' unit tests. Run the shared crate's
+      # once, on one matrix entry.
+      - name: Test system-parachains-common
+        if: matrix.runtime.name == 'asset-hub-polkadot'
+        run: cargo test -p system-parachains-common --release --locked -q --features try-runtime
+        env:
+          RUSTFLAGS: "-C debug-assertions"
+          SKIP_WASM_BUILD: 1
+
       - name: Test benchmarks ${{ matrix.runtime.name }}
         run: |
           PACKAGE_NAME="$PACKAGE"
