@@ -43,39 +43,53 @@ impl pallet_tx_pause::Config for Runtime {
 	type WeightInfo = pallet_tx_pause::weights::SubstrateWeight<Runtime>;
 }
 
-/// Calls that can never be paused, so the chain keeps running and governance and the Fellowship
-/// can always step in. That's every call of the pallets below, plus `PolkadotXcm::send` so they can
-/// still send messages out.
+/// Pallets whose calls can never be paused:
+///
+/// - what keeps the chain running, and what governance and the Fellowship need to step in,
+/// - what other chains call over XCM, like bridge status reports and People chain updates,
+/// - what takes unsigned or authorized transactions. Those don't pay fees, so a paused one would
+///   still get into blocks for free.
 ///
 /// Wrappers like `Utility` are in here too. The call filter still checks every call inside them.
+pub fn never_pausable_pallets() -> [&'static str; 28] {
+	[
+		System::name(),
+		ParachainSystem::name(),
+		Timestamp::name(),
+		Session::name(),
+		CollatorSelection::name(),
+		XcmpQueue::name(),
+		MessageQueue::name(),
+		StakingRcClient::name(),
+		MultiBlockElection::name(),
+		MultiBlockElectionVerifier::name(),
+		MultiBlockElectionUnsigned::name(),
+		MultiBlockElectionSigned::name(),
+		TxPause::name(),
+		KillSwitch::name(),
+		Preimage::name(),
+		Scheduler::name(),
+		Referenda::name(),
+		ConvictionVoting::name(),
+		Whitelist::name(),
+		Utility::name(),
+		Multisig::name(),
+		Proxy::name(),
+		Parameters::name(),
+		ToKusamaXcmRouter::name(),
+		MembersSubscriber::name(),
+		AliasAccounts::name(),
+		Pgas::name(),
+		Claims::name(),
+	]
+}
+
+/// Every call of [`never_pausable_pallets`], plus `PolkadotXcm::send` so governance and the
+/// Fellowship can still send messages out.
 pub struct NeverPausable;
 impl Contains<RuntimeCallNameOf<Runtime>> for NeverPausable {
 	fn contains((pallet, call): &RuntimeCallNameOf<Runtime>) -> bool {
-		let never_pausable = [
-			System::name(),
-			ParachainSystem::name(),
-			Timestamp::name(),
-			Session::name(),
-			CollatorSelection::name(),
-			XcmpQueue::name(),
-			MessageQueue::name(),
-			StakingRcClient::name(),
-			MultiBlockElection::name(),
-			MultiBlockElectionVerifier::name(),
-			MultiBlockElectionUnsigned::name(),
-			MultiBlockElectionSigned::name(),
-			TxPause::name(),
-			KillSwitch::name(),
-			Preimage::name(),
-			Scheduler::name(),
-			Referenda::name(),
-			ConvictionVoting::name(),
-			Whitelist::name(),
-			Utility::name(),
-			Multisig::name(),
-			Proxy::name(),
-		];
-		never_pausable.iter().any(|never| never.as_bytes() == pallet.as_slice()) ||
+		never_pausable_pallets().iter().any(|never| never.as_bytes() == pallet.as_slice()) ||
 			(pallet.as_slice() == PolkadotXcm::name().as_bytes() && call.as_slice() == b"send")
 	}
 }
@@ -128,6 +142,8 @@ impl KillSwitchGroup {
 		];
 		const ASSET_TRANSFERS: &[&str] = &[
 			"transfer",
+			// The asset's admin can move anyone's balance with it.
+			"force_transfer",
 			"transfer_keep_alive",
 			"transfer_approved",
 			"transfer_all",
@@ -238,7 +254,10 @@ impl Contains<RuntimeCallNameOf<Runtime>> for ExistingCall {
 /// the chain. On chain this is a governance call, this is for tests and benchmarks.
 #[cfg(any(feature = "std", feature = "runtime-benchmarks"))]
 pub fn set_suggested_deposits() {
-	use dynamic_params::kill_switch::{Parameters as P, *};
+	use dynamic_params::kill_switch::{
+		AssetTransfersDeposit, CallDeposit, Parameters as P, PsmDeposit, SwapsDeposit,
+		XcmTransfersDeposit,
+	};
 	for param in [
 		P::PsmDeposit(PsmDeposit, Some(10_000 * UNITS)),
 		P::SwapsDeposit(SwapsDeposit, Some(10_000 * UNITS)),
@@ -246,8 +265,11 @@ pub fn set_suggested_deposits() {
 		P::XcmTransfersDeposit(XcmTransfersDeposit, Some(50_000 * UNITS)),
 		P::CallDeposit(CallDeposit, Some(10_000 * UNITS)),
 	] {
-		Parameters::set_parameter(RuntimeOrigin::root(), RuntimeParameters::KillSwitch(param))
-			.expect("root can set parameters");
+		pallet_parameters::Pallet::<Runtime>::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::KillSwitch(param),
+		)
+		.expect("root can set parameters");
 	}
 }
 
@@ -318,6 +340,63 @@ mod tests {
 			for call in KillSwitchGroups::calls(&group) {
 				assert!(!NeverPausable::contains(&call), "{group:?} would pause {call:?}");
 			}
+		}
+	}
+
+	/// A new pallet has to go here or into [`never_pausable_pallets`], so nobody adds one whose
+	/// calls anyone can pause without thinking about it.
+	#[test]
+	fn every_pallet_is_pausable_or_not() {
+		let pausable = [
+			ParachainInfo::name(),
+			WeightReclaim::name(),
+			MultiBlockMigrations::name(),
+			Balances::name(),
+			TransactionPayment::name(),
+			AssetTxPayment::name(),
+			Vesting::name(),
+			Dap::name(),
+			Authorship::name(),
+			Aura::name(),
+			AuraExt::name(),
+			PolkadotXcm::name(),
+			CumulusXcm::name(),
+			SnowbridgeSystemFrontend::name(),
+			Indices::name(),
+			VerifySignature::name(),
+			Assets::name(),
+			Uniques::name(),
+			Nfts::name(),
+			ForeignAssets::name(),
+			PoolAssets::name(),
+			AssetConversion::name(),
+			Psm::name(),
+			AssetsFreezer::name(),
+			AssetsHolder::name(),
+			Treasury::name(),
+			Origins::name(),
+			Bounties::name(),
+			ChildBounties::name(),
+			AssetRate::name(),
+			MultiAssetBounties::name(),
+			NominationPools::name(),
+			VoterList::name(),
+			DelegatedStaking::name(),
+			Staking::name(),
+			Revive::name(),
+			AssetsPrecompiles::name(),
+			AssetsPrecompilesPermit::name(),
+			VestingPrecompiles::name(),
+			DotnsGateway::name(),
+			OriginRestriction::name(),
+			NetworkSuffix::name(),
+			PgasAllowance::name(),
+			AhOps::name(),
+		];
+		let never = never_pausable_pallets();
+		for pallet in RuntimeCall::get_module_names() {
+			let listed = pausable.contains(pallet) as u8 + never.contains(pallet) as u8;
+			assert_eq!(listed, 1, "{pallet} must be either pausable or never pausable");
 		}
 	}
 

@@ -1406,9 +1406,11 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 				TechnicalMaintenance,
 			>::ensure_origin(origin.clone())
 			.map(|_| ()),
-			// Root only. A fast track that could set these to zero would make pausing free.
+			// Root only. A fast track that could set a deposit to 1 planck would make pausing
+			// close to free.
 			RuntimeParametersKey::KillSwitch(_) =>
-				EnsureRoot::<AccountId>::ensure_origin(origin.clone()).map(|_| ()),
+				<EnsureRoot<AccountId> as EnsureOrigin<_>>::ensure_origin(origin.clone())
+					.map(|_| ()),
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
