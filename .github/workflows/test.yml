@@ -98,6 +98,7 @@ jobs:
   runtime-test:
     needs: [runtime-matrix]
     runs-on: self-hosted
+    timeout-minutes: 120
     strategy:
       matrix:
         runtime: ${{ fromJSON(needs.runtime-matrix.outputs.runtime) }}
@@ -192,6 +193,7 @@ jobs:
   integration-test:
     needs: [integration-test-matrix]
     runs-on: self-hosted
+    timeout-minutes: 120
     strategy:
       matrix:
         itest: ${{ fromJSON(needs.integration-test-matrix.outputs.itest) }}
@@ -234,6 +236,7 @@ jobs:
   ahm-v2-test:
     if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
     runs-on: self-hosted
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -327,6 +330,7 @@ jobs:
   build-chain-spec-generator:
     if: github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-extended-checks')
     runs-on: self-hosted
+    timeout-minutes: 120
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
@@ -366,6 +370,7 @@ jobs:
     needs: [check-release-pr]
     if: needs.check-release-pr.outputs.run-extended-checks == '1'
     runs-on: self-hosted
+    timeout-minutes: 120
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # v0.11.0
@@ -416,6 +421,7 @@ jobs:
   build-runtimes:
     needs: [ runtime-matrix ]
     runs-on: self-hosted
+    timeout-minutes: 120
     strategy:
       # Ensure the other jobs are continue
       fail-fast: false

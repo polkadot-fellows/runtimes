@@ -50,6 +50,7 @@ jobs:
   prepare-snapshots:
     needs: [runtime-matrix]
     runs-on: self-hosted
+    timeout-minutes: 120
     permissions:
       actions: write
       contents: read
@@ -174,6 +175,7 @@ jobs:
   check-migrations:
     needs: [runtime-matrix, prepare-snapshots]
     runs-on: self-hosted
+    timeout-minutes: 120
     if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
     strategy:
       fail-fast: false
@@ -315,6 +317,7 @@ jobs:
   # If you add more jobs, remember to add them to the "needs" array.
   confirmMigrationsPassed:
     runs-on: self-hosted
+    timeout-minutes: 120
     name: All migrations passed
     if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
     needs: [check-migrations]
