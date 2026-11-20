@@ -770,7 +770,7 @@ fn unpausable_calls_have_no_price() {
 #[test]
 fn zero_turns_pausing_off() {
 	new_test_ext().execute_with(|| {
-		CallDeposit::set(0);
+		CallDepositAmount::set(0);
 		assert_eq!(KillSwitch::call_deposit(&full_name("Balances", "upgrade_accounts")), None);
 		assert_noop!(
 			KillSwitch::pause(RuntimeOrigin::signed(1), call("upgrade_accounts")),
@@ -797,7 +797,7 @@ fn zero_turns_pausing_off() {
 		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), burn(), None));
 
 		GroupDeposit::set(DEPOSIT);
-		PauseDuration::set(0);
+		PauseLength::set(0);
 		assert_noop!(
 			KillSwitch::pause(RuntimeOrigin::signed(1), transfer()),
 			Error::<Test>::NotPausable

@@ -164,8 +164,8 @@ parameter_types! {
 	pub static RelayBlock: u64 = 1;
 	// Like parameters, governance can change these or set them to zero.
 	pub static GroupDeposit: u64 = DEPOSIT;
-	pub static CallDeposit: u64 = CALL_DEPOSIT;
-	pub static PauseDuration: u64 = PAUSE_DURATION;
+	pub static CallDepositAmount: u64 = CALL_DEPOSIT;
+	pub static PauseLength: u64 = PAUSE_DURATION;
 	pub static MoneyUpgraded: bool = false;
 }
 
@@ -227,14 +227,14 @@ impl Config for Test {
 	type CallName = RuntimeCallNameOf<Test>;
 	type Groups = Groups;
 	type ValidCall = ExistingCall;
-	type CallDeposit = CallDeposit;
+	type CallDeposit = CallDepositAmount;
 	type TransactionPause = TxPause;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type OnSlash = ResolveTo<ConstU64<TREASURY>, Balances>;
 	type AdminOrigin = AdminOrigin;
 	type BlockNumberProvider = MockRelay;
-	type PauseDuration = PauseDuration;
+	type PauseDuration = PauseLength;
 	type Cooldown = ConstU64<COOLDOWN>;
 	type MaxCallsPerTarget = ConstU32<MAX_CALLS>;
 	type MaxDepositsPerPause = ConstU32<MAX_DEPOSITS>;
