@@ -6,6 +6,7 @@ repository = "https://github.com/polkadot-fellows/runtimes.git"
 license = "GPL-3.0-only"                                        # TODO <https://github.com/polkadot-fellows/runtimes/issues/29>
 
 [workspace.dependencies]
+pallet-kill-switch = { path = "pallets/kill-switch", default-features = false }
 pallet-rc-migrator = { path = "pallets/rc-migrator", default-features = false }
 pallet-ah-ops = { path = "pallets/ah-ops", default-features = false }
 pallet-election-provider-multi-block = { version = "0.13.0", default-features = false }
@@ -216,6 +217,7 @@ pallet-timestamp = { version = "49.0.0", default-features = false }
 pallet-transaction-payment = { version = "50.0.0", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { version = "50.0.0", default-features = false }
 pallet-treasury = { version = "49.0.0", default-features = false }
+pallet-tx-pause = { version = "31.0.0", default-features = false }
 pallet-uniques = { version = "51.0.0", default-features = false }
 pallet-utility = { version = "50.0.0", default-features = false }
 pallet-verify-signature = { version = "0.13.0", default-features = false }
@@ -365,6 +367,7 @@ members = [
 	"integration-tests/zombienet",
 	"pallets/ah-ops",
 	"pallets/ct-migrator",
+	"pallets/kill-switch",
 	"pallets/rc-migrator",
 	"pallets/rc2-migrator",
 	"pallets/rc2-migrator/primitives",

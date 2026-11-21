@@ -1779,6 +1779,7 @@ dependencies = [
  "pallet-delegated-staking",
  "pallet-election-provider-multi-block",
  "pallet-indices",
+ "pallet-kill-switch",
  "pallet-message-queue",
  "pallet-migrations",
  "pallet-multi-asset-bounties",
@@ -1806,6 +1807,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
+ "pallet-tx-pause",
  "pallet-uniques",
  "pallet-utility",
  "pallet-verify-signature",
@@ -11783,6 +11785,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-kill-switch"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-tx-pause",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api 44.0.0",
+ "sp-io 49.0.0",
+ "sp-runtime 49.0.0",
+]
+
+[[package]]
 name = "pallet-membership"
 version = "50.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12705,6 +12724,18 @@ dependencies = [
  "serde",
  "sp-core 43.0.0",
  "sp-runtime 49.0.0",
+]
+
+[[package]]
+name = "pallet-tx-pause"
+version = "31.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f402500c3caf6dfd3b8188853e5f4b3e2e9f27835f4a570493035456a2e2c78"
+dependencies = [
+ "docify",
+ "parity-scale-codec",
+ "polkadot-sdk-frame",
+ "scale-info",
 ]
 
 [[package]]
