@@ -22,7 +22,8 @@
 
 use crate::{
 	checks::{
-		accounts::AccountsChecker, session::ValidatorsChecker, ParaMigrationCheck, RcMigrationCheck,
+		accounts::AccountsChecker, dust::SweepDustChecker, issuance::IssuanceChecker,
+		session::ValidatorsChecker, sweep::SweepChecker, ParaMigrationCheck, RcMigrationCheck,
 	},
 	mock::*,
 };
@@ -200,7 +201,7 @@ fn run_handshake(rc: &mut TestExternalities, ct: &mut TestExternalities) -> Vec<
 }
 
 /// The checkers of every stage, run on each chain before and after the migration.
-type Checks = (AccountsChecker, ValidatorsChecker);
+type Checks = (AccountsChecker, ValidatorsChecker, SweepChecker, SweepDustChecker, IssuanceChecker);
 
 /// The migration, driven end to end over live Relay Chain, Coretime and Asset Hub state, with the
 /// checks of every stage run before and after.
@@ -215,12 +216,13 @@ async fn the_migration_runs_to_completion() {
 	let ah_pre =
 		ah.execute_with(|| <Checks as ParaMigrationCheck<AssetHubPara>>::pre_check(&rc_pre));
 
-	// One block per batch of accounts, plus one per stage arm and some slack.
+	// One block per batch of accounts in the accounts stage and again in Sweep Dust, which walks
+	// what is left, plus one per stage arm and some slack.
 	let accounts = rc_pre.0.accounts.len() as u32;
 	let per_block = rc
 		.execute_with(pallet_rc2_migrator::Limits::<network::relay::Runtime>::get)
 		.items_per_block();
-	let max_blocks = accounts / per_block + 30;
+	let max_blocks = 2 * accounts / per_block + 30;
 
 	{
 		let mut to_ah = dmp_sink::<AssetHubPara>(&mut ah);
