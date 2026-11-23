@@ -631,6 +631,50 @@ fn accounts_stage_rewound_to_init_moves_nothing_twice() {
 	});
 }
 
+/// A rewind to the warm-up lets XCM change the issuance before the walk starts again.
+/// `AccountsInit` reads `kept` again, so the books still add up.
+#[test]
+fn accounts_stage_rewound_to_warm_up_reads_kept_again() {
+	new_test_ext().execute_with(|| {
+		// GIVEN 2 plain accounts, 1 of which leaves per block.
+		Limits::<Test>::put(BlockLimits { items_per_xcm: 1, xcm_per_block: 1 });
+		fund(&account(0), 100);
+		fund(&account(1), 100);
+
+		// WHEN the stage initialises and runs one block. THEN 1 account is gone.
+		RcMigrationStage::<Test>::put(Stage::AccountsInit);
+		run_blocks(2);
+		assert_eq!(frame_system::Account::<Test>::iter().count(), 1);
+
+		// WHEN the migration is set back to the warm-up, as `force_set_stage` does, and a
+		// teleport mints 100 for a new account there.
+		RcMigrationStage::<Test>::put(Stage::WarmUp { end_at: System::block_number() + 1 });
+		fund(&account(2), 100);
+
+		// THEN the warm-up passes without the issuance check firing, and `AccountsInit` reads
+		// `kept` again.
+		run_blocks(2);
+		assert_stage(Stage::AccountsOngoing { last_key: None });
+		assert_eq!(RcMigratedBalance::<Test>::get().kept, total_issuance());
+
+		// WHEN the walk runs to the end. THEN the chain is empty.
+		run_blocks(3);
+		assert_stage(Stage::AccountsDone);
+		assert_eq!(frame_system::Account::<Test>::iter().count(), 0);
+		assert_eq!(total_issuance(), 0);
+
+		// AND each of the 3 accounts was teleported once, and the books count all 3.
+		let (teleported, amount) = teleported_events()
+			.iter()
+			.fold((0, 0), |(n, a), (count, amount)| (n + count, a + amount));
+		assert_eq!((teleported, amount), (3, 300));
+		assert_eq!(
+			RcMigratedBalance::<Test>::get(),
+			MigratedBalances { kept: 0, ah_free: 300, ..Default::default() }
+		);
+	});
+}
+
 #[test]
 fn accounts_stage_retries_a_block_whose_send_failed() {
 	new_test_ext().execute_with(|| {

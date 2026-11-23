@@ -725,7 +725,11 @@ pub mod pallet {
 		// TODO(ahm-v2): proper benchmark
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
 			let stage = RcMigrationStage::<T>::get();
-			if stage.is_ongoing() {
+			// `AccountsInit` sets `kept`, so the check starts after it. A rewind to the warm-up
+			// lets XCM change the issuance until `AccountsInit` runs again.
+			if stage.phase() == MigrationPhase::DataMigration &&
+				!matches!(stage, MigrationStage::AccountsInit)
+			{
 				Self::check_kept_equals_issuance();
 			}
 			if Paused::<T>::get() {
@@ -760,13 +764,11 @@ pub mod pallet {
 					// runs before this pallet's, so a spend in this block already happened
 					// before `kept` is set.
 					Self::stop_treasury_spending();
-					// Set once: a rewind to this stage keeps what was booked so far.
-					if !RcMigratedBalance::<T>::exists() {
-						RcMigratedBalance::<T>::put(MigratedBalances {
-							kept: pallet_balances::TotalIssuance::<T>::get(),
-							..Default::default()
-						});
-					}
+					// `kept` is the issuance still here, so read it on every run, in case a rewind
+					// went through the warm-up. What was booked as migrated stays.
+					RcMigratedBalance::<T>::mutate(|migrated| {
+						migrated.kept = pallet_balances::TotalIssuance::<T>::get();
+					});
 					let records = accounts::AccountsMigrator::<T>::init();
 					Self::transition(MigrationStage::AccountsOngoing { last_key: None });
 					T::DbWeight::get().reads_writes(4, 4).saturating_add(
