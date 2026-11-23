@@ -50,9 +50,8 @@ impl<T: Config> SweepMigrator<T> {
 
 	/// Burn `pot`'s free balance and return the amount.
 	///
-	/// Only the admin can put a hold, reserve, lock or freeze on a pot, or add a consumer
-	/// reference to it. So a pot holds only free balance, and all of it can be burned. If the
-	/// admin added one anyway, the burn fails, and the caller rolls back and retries the stage.
+	/// A pot must hold only free balance, see [`Config::SweptAccounts`]. If it holds anything
+	/// else, the burn fails, and the caller rolls back and retries the stage.
 	fn burn_pot(pot: &T::AccountId) -> Result<u128, DispatchError> {
 		if !frame_system::Account::<T>::contains_key(pot) {
 			return Ok(0);
