@@ -4,7 +4,7 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [2.6.0] 18.11.2026
 
 ### Added
 
@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Polkadot and Kusama relays: migrate DMP queues to paged storage ([SDK #11909](https://github.com/paritytech/polkadot-sdk/pull/11909), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 - Polkadot Relay, Bridge Hub, Collectives and People: dust, treasury burns and slashes are no longer burnt or sent to the Relay Chain treasury. They accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).
 - Polkadot and Kusama system parachains using `pallet-accumulate-and-forward` measure its forward period in Relay Chain blocks ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).
+- People Polkadot: more coinage settings are governance-mutable through `pallet-parameters`, all `Root` only: the maximum coin age and the free unload token allowances of people and lite people and their cap ([#1273](https://github.com/polkadot-fellows/runtimes/pull/1273)).
 
 ### Removed
 
