@@ -313,7 +313,9 @@ jobs:
 
       - name: Install dependencies for fmt
         if: startsWith(steps.get-pr-comment.outputs.group2, 'fmt')
-        run: cargo install taplo-cli --version ${{ env.TAPLO_VERSION }}
+        run: |
+          cargo install taplo-cli --version ${{ env.TAPLO_VERSION }}
+          cargo install zepter --version ${{ env.ZEPTER_VERSION }} --locked -q && zepter --version
 
       - name: Run cmd
         id: cmd

@@ -65,7 +65,7 @@ parser_bench.add_argument('--pallet', help='Pallet(s) space separated', nargs='*
 """
 FMT 
 """
-parser_fmt = subparsers.add_parser('fmt', help='Formats code')
+parser_fmt = subparsers.add_parser('fmt', help='Formats code (cargo +nightly-VERSION fmt), fixes crate features (zepter) and formats configs (taplo format)')
 for arg, config in common_args.items():
     parser_fmt.add_argument(arg, **config)
 
@@ -209,11 +209,22 @@ elif args.command == 'fmt':
     print(f'Formatting with `{command}`')
     nightly_status = os.system(f'{command}')
 
+    # Fix feature propagation in `Cargo.toml` files, see `.config/zepter.yaml`.
+    # `zepter` runs with `--offline`, so the dependencies have to be fetched first.
+    zepter_status = os.system(f'cargo +nightly-{nightly_version} metadata --format-version=1 --locked > /dev/null')
+    if zepter_status == 0:
+        command = "zepter run default"
+        print(f'Fixing features with `{command}`')
+        zepter_status = os.system(command)
+    if zepter_status != 0:
+        print('❌ Zepter failed to fix features, run `zepter` locally to see the issues')
+
+    # Runs after `zepter`, so its `Cargo.toml` changes are formatted too.
     command = "taplo format --config .config/taplo.toml"
     print(f'Formatting toml files with `{command}`')
     taplo_status = os.system(command)
 
-    if nightly_status != 0 or taplo_status != 0:
+    if nightly_status != 0 or zepter_status != 0 or taplo_status != 0:
         print('❌ Failed to format code')
         if not args.continue_on_fail:
             sys.exit(1)
