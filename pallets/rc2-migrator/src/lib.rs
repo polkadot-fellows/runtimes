@@ -383,6 +383,9 @@ pub mod pallet {
 		type PostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
 		/// The chain's pots. The accounts stage leaves them alone; Sweep empties each one in turn.
+		///
+		/// Each pot must hold only free balance, with no hold, reserve, lock, freeze or consumer
+		/// reference. Sweep cannot burn a pot that has one, and holds until it is gone.
 		type SweptAccounts: Get<Vec<Self::AccountId>>;
 
 		/// The account on Asset Hub that receives swept pot balances and the portion of Asset Hub's
