@@ -42,6 +42,7 @@ mod tests;
 pub mod xcm_config;
 
 pub mod accounts;
+pub mod sweep;
 
 pub use pallet::*;
 
@@ -51,13 +52,17 @@ use frame_support::{
 	pallet_prelude::*,
 	sp_runtime::traits::Saturating,
 	storage::with_storage_layer,
-	traits::{Contains, EnsureOrigin, GetCallMetadata, Time},
+	traits::{
+		fungible::{Inspect, Mutate},
+		tokens::{Fortitude, Precision, Preservation},
+		Contains, EnsureOrigin, GetCallMetadata, Time,
+	},
 };
 use frame_system::pallet_prelude::*;
 use migrator_types::{PortableAccount, PortableProxyType};
 use polkadot_parachain_primitives::primitives::{HrmpChannelId, Id as ParaId};
 use polkadot_runtime_common::paras_registrar;
-use sp_runtime::AccountId32;
+use sp_runtime::{traits::Bounded, AccountId32};
 use xcm::prelude::*;
 
 const LOG_TARGET: &str = "runtime::rc2-migrator";
@@ -96,9 +101,9 @@ impl BlockLimits {
 	/// Maximum number of items in a single XCM.
 	///
 	/// A teleport to Asset Hub uses one instruction per item and an XCM can have at most 100
-	/// instructions, two of which are the header. This also keeps the Coretime batches well
-	/// below the 50 KiB DMP message size limit.
-	pub const MAX_ITEMS_PER_XCM: u32 = 98;
+	/// instructions, two of which are the header and one the `SetTopic` the router adds. This
+	/// also keeps the Coretime batches well below the 50 KiB DMP message size limit.
+	pub const MAX_ITEMS_PER_XCM: u32 = 97;
 
 	/// The most items a block may be told to move.
 	pub const MAX_ITEMS_PER_BLOCK: u32 = 1600;
@@ -212,19 +217,23 @@ pub enum MigrationStage<AccountId, BlockNumber, Moment> {
 		last_key: Option<HrmpChannelId>,
 	},
 	HrmpDone,
-	/// Empty the pots whose balance has no owning account to migrate it with, such as the
-	/// treasury's.
+	/// Sweep the pallet accounts in [`Config::SweptAccounts`]. Burn each one's free balance and
+	/// teleport the total to [`Config::SweepBeneficiary`] on Asset Hub in one message. A failed
+	/// burn or send rolls back the stage, which is retried in the next block.
 	Sweep,
-	/// Reap the accounts left below the existential deposit, and the zero-balance husks.
+	/// Empty the accounts left below the existential deposit, and remove those nothing else
+	/// needs.
 	///
-	/// Runs after the accounts stage because most of what it reaps does not exist until the
-	/// earlier stages have run, and because [`Self::TiCorrection`] reads its output: burning the
-	/// issuance no account holds is only safe once the husks are gone.
+	/// Runs before [`Self::TiCorrection`]. Afterwards, balance is left only on the manager and on
+	/// accounts at or above the existential deposit.
 	SweepDust {
 		last_key: Option<AccountId>,
 	},
 	/// Burn the audited issuance that no account holds.
 	TiCorrection,
+	/// Wait for the cool-off to end. Then reap the manager: burn its free balance, teleport it to
+	/// the manager's account on Asset Hub, and clear [`Manager`]. Then tell the Coretime chain to
+	/// end its lockdown. A failed reap or signal is retried in the next block.
 	CoolOff {
 		/// The block number at which the post migration cool-off period will end. It is absolute
 		/// and a pause does not move it.
@@ -332,12 +341,16 @@ pub mod pallet {
 		> + pallet_balances::Config<Balance = u128>
 		+ paras_registrar::Config<Currency = pallet_balances::Pallet<Self>>
 		+ runtime_parachains::hrmp::Config
+		// `AccountsInit` clears the on-demand revenue record.
+		+ runtime_parachains::on_demand::Config<Currency = pallet_balances::Pallet<Self>>
 		// The runtime says which proxy permissions have a meaning on the Coretime chain.
 		+ pallet_proxy::Config<
 			Currency = pallet_balances::Pallet<Self>,
 			ProxyType: TryInto<PortableProxyType>,
 		> + pallet_multisig::Config<Currency = pallet_balances::Pallet<Self>>
 		+ pallet_preimage::Config
+		// `AccountsInit` stops the treasury spending.
+		+ pallet_treasury::Config<Currency = pallet_balances::Pallet<Self>>
 	{
 		/// The overarching event type.
 		#[allow(deprecated)]
@@ -351,6 +364,10 @@ pub mod pallet {
 
 		/// Para id of Asset Hub, where free balance is teleported to.
 		type AhParaId: Get<u32>;
+
+		/// Asset Hub's existential deposit.
+		#[pallet::constant]
+		type AhExistentialDeposit: Get<u128>;
 
 		/// Free balance that follows a migrated deposit to the Coretime chain, so the owner can
 		/// pay fees there without a teleport first.
@@ -376,8 +393,15 @@ pub mod pallet {
 		/// Calls that are allowed after the migration finished.
 		type PostMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
 
-		/// Accounts the accounts stage leaves alone for Sweep to empty: the chain's pots.
-		type SweptAccounts: Contains<Self::AccountId>;
+		/// The chain's pots. The accounts stage leaves them alone; Sweep empties each one in turn.
+		///
+		/// Each pot must hold only free balance, with no hold, reserve, lock, freeze or consumer
+		/// reference. Sweep cannot burn a pot that has one, and holds until it is gone.
+		type SweptAccounts: Get<Vec<Self::AccountId>>;
+
+		/// The account on Asset Hub that receives swept pot balances and the portion of Asset Hub's
+		/// Relay Chain sovereign balance destined for Asset Hub.
+		type SweepBeneficiary: Get<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -421,6 +445,8 @@ pub mod pallet {
 	///
 	/// This account id has similar privileges to [`Config::AdminOrigin`] except that it
 	/// can not set the manager account id via `set_manager` call.
+	///
+	/// Reaped and cleared when the cool-off ends.
 	#[pallet::storage]
 	pub type Manager<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
@@ -505,6 +531,17 @@ pub mod pallet {
 		/// An account could not be withdrawn and was left as it was. Rewind to `AccountsInit` to
 		/// retry it.
 		AccountNotWithdrawn { who: T::AccountId, error: DispatchError },
+		/// A pot was emptied. Its balance is sent to the sweep beneficiary with the other swept
+		/// balances.
+		PotSwept { who: T::AccountId, amount: u128 },
+		/// An account below the existential deposit was emptied. Its balance is sent to `to` on
+		/// Asset Hub: its owner's account there, or the sweep beneficiary.
+		DustSwept { who: T::AccountId, amount: u128, to: T::AccountId },
+		/// Unclaimed on-demand revenue was cleared from the on-demand pallet's record.
+		OnDemandRevenueCleared { amount: u128 },
+		/// The manager was reaped at the end of the cool-off, and is no longer the manager. Its
+		/// free balance was burned and sent to its account on Asset Hub.
+		ManagerReaped { who: T::AccountId, amount: u128 },
 	}
 
 	#[pallet::hooks]
@@ -706,10 +743,18 @@ pub mod pallet {
 		/// Execute one block of the stage machine.
 		// TODO(ahm-v2): proper benchmark
 		fn progress_migration(now: BlockNumberFor<T>) -> Weight {
-			if Paused::<T>::get() {
-				return T::DbWeight::get().reads(1);
+			let stage = RcMigrationStage::<T>::get();
+			// `AccountsInit` sets `kept`, so the check starts after it. A rewind to the warm-up
+			// lets XCM change the issuance until `AccountsInit` runs again.
+			if stage.phase() == MigrationPhase::DataMigration &&
+				!matches!(stage, MigrationStage::AccountsInit)
+			{
+				Self::check_kept_equals_issuance();
 			}
-			match RcMigrationStage::<T>::get() {
+			if Paused::<T>::get() {
+				return T::DbWeight::get().reads(4);
+			}
+			match stage {
 				// The scheduled start is compared against the clock, which at `on_initialize` still
 				// holds the previous block's timestamp -- so the migration begins on the first
 				// block after the one whose timestamp passed `start`.
@@ -724,17 +769,28 @@ pub mod pallet {
 					Self::transition(MigrationStage::AccountsInit);
 					T::DbWeight::get().reads_writes(1, 1)
 				},
+				// Explicit invariant, from here until `MigrationDone`: only this pallet transfers
+				// balance between accounts or changes the total issuance.
+				// TODO(ahm-v2): transaction fees break the invariant: they go to the treasury pot
+				// and the block author. To fix it, refuse signed transactions during the migration,
+				// except the manager's, and make the manager's calls free.
 				MigrationStage::AccountsInit => {
-					// Set once: a rewind to this stage keeps what was booked so far.
-					if !RcMigratedBalance::<T>::exists() {
-						RcMigratedBalance::<T>::put(MigratedBalances {
-							kept: pallet_balances::TotalIssuance::<T>::get(),
-							..Default::default()
-						});
-					}
+					// Clear the on-demand revenue record before `kept` is set. Otherwise a later
+					// claim could withdraw from the on-demand pot without this pallet recording it.
+					// Nothing can add revenue once the migration has started.
+					Self::clear_on_demand_revenue(now);
+					// Stop the treasury from spending, for the same reason. The treasury's hook
+					// runs before this pallet's, so a spend in this block already happened
+					// before `kept` is set.
+					Self::stop_treasury_spending();
+					// `kept` is the issuance still here, so read it on every run, in case a rewind
+					// went through the warm-up. What was booked as migrated stays.
+					RcMigratedBalance::<T>::mutate(|migrated| {
+						migrated.kept = pallet_balances::TotalIssuance::<T>::get();
+					});
 					let records = accounts::AccountsMigrator::<T>::init();
 					Self::transition(MigrationStage::AccountsOngoing { last_key: None });
-					T::DbWeight::get().reads_writes(2, 2).saturating_add(
+					T::DbWeight::get().reads_writes(4, 4).saturating_add(
 						T::DbWeight::get().reads_writes(records.into(), records.into()),
 					)
 				},
@@ -798,15 +854,30 @@ pub mod pallet {
 					T::DbWeight::get().reads_writes(1, 1)
 				},
 				MigrationStage::Sweep => {
-					// TODO(ahm-v2): sweep the pots, `T::SweptAccounts`, to the Asset Hub
-					// beneficiary. The on-demand pot holds revenue only if the Coretime
-					// chain has not claimed it yet.
-					Self::transition(MigrationStage::SweepDust { last_key: None });
-					T::DbWeight::get().reads_writes(1, 1)
+					// Burns and the send commit or roll back together.
+					match with_storage_layer(Self::sweep_pots) {
+						Ok(()) => Self::transition(MigrationStage::SweepDust { last_key: None }),
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "Sweep failed, retrying: {e:?}");
+						},
+					}
+					let pots = T::SweptAccounts::get().len() as u64;
+					T::DbWeight::get()
+						.reads_writes(3, 3)
+						.saturating_add(T::DbWeight::get().reads_writes(6 * pots, 6 * pots))
 				},
-				MigrationStage::SweepDust { .. } => {
-					Self::transition(MigrationStage::TiCorrection);
-					T::DbWeight::get().reads_writes(1, 1)
+				MigrationStage::SweepDust { last_key } => {
+					// Burns and sends commit or roll back together.
+					match with_storage_layer(|| Self::sweep_dust_block(last_key)) {
+						Ok(None) => Self::transition(MigrationStage::TiCorrection),
+						Ok(last_key) => Self::transition(MigrationStage::SweepDust { last_key }),
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "Sweep Dust block failed, retrying: {e:?}");
+						},
+					}
+					T::DbWeight::get()
+						.reads_writes(6, 6)
+						.saturating_mul(Limits::<T>::get().items_per_block().into())
 				},
 				MigrationStage::TiCorrection => {
 					Self::transition(MigrationStage::CoolOff {
@@ -816,10 +887,18 @@ pub mod pallet {
 				},
 				// wait cool off period before finishing migration
 				MigrationStage::CoolOff { end_at } if now >= end_at => {
-					if Self::send_to_ct(CtMigratorCall::EndLockdown).is_ok() {
-						Self::transition(MigrationStage::MigrationDone);
+					// The reap's burn and send commit or roll back together. Once it succeeds,
+					// `Manager` is clear, so a retry after a failed signal reaps nothing.
+					match with_storage_layer(Self::reap_manager) {
+						Ok(()) =>
+							if Self::send_to_ct(CtMigratorCall::EndLockdown).is_ok() {
+								Self::transition(MigrationStage::MigrationDone);
+							},
+						Err(e) => {
+							log::error!(target: LOG_TARGET, "Reaping the manager failed, retrying: {e:?}");
+						},
 					}
-					T::DbWeight::get().reads_writes(3, 3)
+					T::DbWeight::get().reads_writes(9, 9)
 				},
 				// Waiting on the clock or a block height.
 				MigrationStage::Scheduled { .. } |
@@ -875,6 +954,124 @@ pub mod pallet {
 			Ok(last_key)
 		}
 
+		/// Clear unclaimed on-demand revenue from the record before `RcMigratedBalance` is set up.
+		///
+		/// Orders close when the migration starts, and the warm-up gives the Coretime chain a
+		/// timeslice to claim the revenue earned before that. Anything still unclaimed stays in the
+		/// pot, and Sweep sends it to the sweep beneficiary.
+		fn clear_on_demand_revenue(now: BlockNumberFor<T>) {
+			let amount = runtime_parachains::on_demand::Pallet::<T>::claim_revenue_until(
+				now.saturating_add(1u32.into()),
+			);
+			if amount != 0 {
+				log::warn!(target: LOG_TARGET, "Cleared {amount} of unclaimed on-demand revenue");
+				Self::deposit_event(Event::OnDemandRevenueCleared { amount });
+			}
+		}
+
+		/// Check that `RcMigratedBalance::kept` equals total issuance, as required by the invariant
+		/// at the `AccountsInit` arm of `progress_migration`. A mismatch is logged and triggers a
+		/// debug assertion. The check cannot identify or fix its cause.
+		fn check_kept_equals_issuance() {
+			let Ok(migrated) = RcMigratedBalance::<T>::try_get() else { return };
+			let issuance = pallet_balances::TotalIssuance::<T>::get();
+			if migrated.kept != issuance {
+				log::error!(
+					target: LOG_TARGET,
+					"Total issuance changed without this pallet recording it: kept {}, total \
+					 issuance {issuance}",
+					migrated.kept
+				);
+				frame_support::defensive!(
+					"total issuance changed without this pallet recording it"
+				);
+			}
+		}
+
+		/// Stop the treasury's spend periods, which burn or pay out of its pot without this pallet
+		/// recording it. Removing `LastSpendPeriod` would not work: the hook sets it again.
+		///
+		/// Not restored after the migration: since AHM v1 the treasury has nothing to pay out here,
+		/// and a spend period would only burn whatever reaches the pot.
+		fn stop_treasury_spending() {
+			pallet_treasury::LastSpendPeriod::<T>::put(
+				<pallet_treasury::BlockNumberFor<T> as Bounded>::max_value(),
+			);
+		}
+
+		/// Burn the pots, record the total as moved to Asset Hub, and send it to the sweep
+		/// beneficiary there.
+		///
+		/// The caller runs it in a storage transaction, so an `Err` rolls the burns back too.
+		fn sweep_pots() -> Result<(), DispatchError> {
+			let total = sweep::SweepMigrator::<T>::burn_pots()?;
+			if total == 0 {
+				return Ok(());
+			}
+			RcMigratedBalance::<T>::mutate(|migrated| {
+				defensive_assert!(migrated.kept >= total, "burned more than is kept");
+				migrated.kept = migrated.kept.saturating_sub(total);
+				migrated.ah_free = migrated.ah_free.saturating_add(total);
+			});
+			Self::send_teleport(vec![(T::SweepBeneficiary::get(), total)])?;
+			Ok(())
+		}
+
+		/// Sweep one block of dust, record it as moved to Asset Hub, and send it there. Return
+		/// where the next block continues from.
+		///
+		/// The caller runs it in a storage transaction, so an `Err` rolls the burns back too.
+		fn sweep_dust_block(
+			last_key: Option<T::AccountId>,
+		) -> Result<Option<T::AccountId>, DispatchError> {
+			let manager = Manager::<T>::get();
+			let sweep::BlockDust { to_ah, last_key } =
+				sweep::SweepMigrator::<T>::sweep_dust(last_key, manager.as_ref());
+
+			let total: u128 = to_ah.iter().map(|(_, amount)| amount).sum();
+			RcMigratedBalance::<T>::mutate(|migrated| {
+				defensive_assert!(migrated.kept >= total, "burned more than is kept");
+				migrated.kept = migrated.kept.saturating_sub(total);
+				migrated.ah_free = migrated.ah_free.saturating_add(total);
+			});
+
+			let per_xcm = Limits::<T>::get().items_per_xcm as usize;
+			for chunk in to_ah.chunks(per_xcm) {
+				Self::send_teleport(chunk.to_vec())?;
+			}
+			Ok(last_key)
+		}
+
+		/// Burn the manager's free balance, record it as moved to Asset Hub, send it to the
+		/// manager's account there, and clear [`Manager`]. Does nothing without a manager.
+		///
+		/// The manager is expected to hold only free balance. If anything else references the
+		/// account, the burn fails.
+		///
+		/// The caller runs it in a storage transaction, so an `Err` rolls the burn back too.
+		fn reap_manager() -> Result<(), DispatchError> {
+			let Some(manager) = Manager::<T>::take() else { return Ok(()) };
+			let amount = <pallet_balances::Pallet<T> as Inspect<T::AccountId>>::balance(&manager);
+			if amount != 0 {
+				<pallet_balances::Pallet<T> as Mutate<T::AccountId>>::burn_from(
+					&manager,
+					amount,
+					Preservation::Expendable,
+					Precision::Exact,
+					Fortitude::Force,
+				)?;
+				RcMigratedBalance::<T>::mutate(|migrated| {
+					defensive_assert!(migrated.kept >= amount, "burned more than is kept");
+					migrated.kept = migrated.kept.saturating_sub(amount);
+					migrated.ah_free = migrated.ah_free.saturating_add(amount);
+				});
+				let to = accounts::AccountsMigrator::<T>::ah_destination(&manager);
+				Self::send_teleport(vec![(to, amount)])?;
+			}
+			Self::deposit_event(Event::ManagerReaped { who: manager, amount });
+			Ok(())
+		}
+
 		/// Send withdrawn accounts to the Coretime chain, which mints them with their holds.
 		fn send_accounts(
 			accounts: Vec<PortableAccount<AccountId32, u128>>,
@@ -885,9 +1082,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Teleport free balances to their owners on Asset Hub. Every amount is at least the
-		/// existential deposit here, which is above Asset Hub's, so each deposit endows its
-		/// account.
+		/// Teleport balances to Asset Hub, with one deposit per beneficiary.
 		fn send_teleport(beneficiaries: Vec<(T::AccountId, u128)>) -> Result<(), Error<T>> {
 			// the native token, as Asset Hub names it
 			let native = |amount: u128| Asset {

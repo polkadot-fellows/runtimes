@@ -16,7 +16,7 @@
 
 use crate::{
 	mock::*, xcm_config::NothingOnceDataMigrationStarts, CtMigratorCall, CtRuntimeCall, Error,
-	Event, Manager, MigrationPhase, Paused, RcMigrationStage,
+	Event, Manager, MigratedBalances, MigrationPhase, Paused, RcMigratedBalance, RcMigrationStage,
 };
 use codec::Encode;
 use frame_support::{
@@ -484,6 +484,137 @@ fn a_failed_send_leaves_the_stage_alone_for_a_retry() {
 	});
 }
 
+/// Appoint Alice as manager, record the issuance as kept, and put the machine in its cool-off.
+/// Returns the block the cool-off ends at.
+fn cool_off_with_manager() -> u64 {
+	Manager::<Test>::put(ALICE);
+	RcMigratedBalance::<Test>::put(MigratedBalances {
+		kept: total_issuance(),
+		..Default::default()
+	});
+	let end_at = System::block_number() + COOL_OFF;
+	set_stage(Stage::CoolOff { end_at });
+	end_at
+}
+
+/// `(who, amount)` of every `ManagerReaped` event so far.
+fn reaped_events() -> Vec<(AccountId, u128)> {
+	System::events()
+		.into_iter()
+		.filter_map(|record| match record.event {
+			RuntimeEvent::Rc2Migrator(Event::ManagerReaped { who, amount }) => Some((who, amount)),
+			_ => None,
+		})
+		.collect()
+}
+
+#[test]
+fn the_manager_is_reaped_when_the_cool_off_ends() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a manager with balance, in the cool-off.
+		fund(&ALICE, 100);
+		let end_at = cool_off_with_manager();
+
+		// WHEN the cool-off has not ended. THEN the manager is left alone.
+		run_blocks(COOL_OFF - 1);
+		assert_stage(Stage::CoolOff { end_at });
+		assert_eq!(free(&ALICE), 100);
+		assert_eq!(Manager::<Test>::get(), Some(ALICE));
+		assert!(sent().is_empty());
+
+		// WHEN it ends. THEN the manager's balance is burned, the account is reaped, and it is no
+		// longer the manager.
+		run_blocks(1);
+		assert!(!frame_system::Account::<Test>::contains_key(&ALICE));
+		assert_eq!(Manager::<Test>::get(), None);
+		assert_eq!(reaped_events(), vec![(ALICE, 100)]);
+		assert_eq!(total_issuance(), 0);
+		// AND the balance is teleported to its account on Asset Hub and recorded as moved there,
+		// before the signal that ends the lockdown.
+		assert_eq!(
+			RcMigratedBalance::<Test>::get(),
+			MigratedBalances { kept: 0, ah_free: 100, ..Default::default() }
+		);
+		assert_eq!(sent().len(), 2);
+		assert_eq!(sent()[0], teleport(&[(ALICE, 100)]));
+		assert_eq!(sent_call(1), CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown));
+		assert_stage(Stage::MigrationDone);
+	});
+}
+
+#[test]
+fn a_manager_with_nothing_left_is_cleared_without_a_teleport() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a manager with no balance, in the cool-off.
+		cool_off_with_manager();
+
+		// WHEN the cool-off ends. THEN the manager is cleared, nothing is teleported, and the
+		// lockdown ends.
+		run_blocks(COOL_OFF);
+		assert_stage(Stage::MigrationDone);
+		assert_eq!(Manager::<Test>::get(), None);
+		assert_eq!(reaped_events(), vec![(ALICE, 0)]);
+		assert_eq!(sent().len(), 1);
+		assert_eq!(sent_call(0), CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown));
+	});
+}
+
+#[test]
+fn the_cool_off_holds_while_the_manager_cannot_be_reaped() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a manager with balance that another pallet references, in the cool-off.
+		fund(&ALICE, 100);
+		add_consumer(&ALICE);
+		let end_at = cool_off_with_manager();
+
+		// WHEN the cool-off ends. THEN the burn fails: the manager keeps its balance and its role,
+		// nothing is sent, and the cool-off holds.
+		run_blocks(COOL_OFF + 5);
+		assert_stage(Stage::CoolOff { end_at });
+		assert_eq!(free(&ALICE), 100);
+		assert_eq!(Manager::<Test>::get(), Some(ALICE));
+		assert_eq!(total_issuance(), 100);
+		assert!(reaped_events().is_empty());
+		assert!(sent().is_empty());
+
+		// WHEN the reference is gone. THEN the next block reaps the manager and ends the lockdown.
+		frame_system::Pallet::<Test>::dec_consumers(&ALICE);
+		run_blocks(1);
+		assert_stage(Stage::MigrationDone);
+		assert_eq!(reaped_events(), vec![(ALICE, 100)]);
+		assert_eq!(sent()[0], teleport(&[(ALICE, 100)]));
+	});
+}
+
+#[test]
+fn a_failed_send_rolls_the_reap_back_for_a_retry() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a manager with balance, in the cool-off, and a router that refuses everything.
+		fund(&ALICE, 100);
+		let end_at = cool_off_with_manager();
+		let migrated = RcMigratedBalance::<Test>::get();
+		SendFails::set(true);
+
+		// WHEN the cool-off ends. THEN the burn is rolled back with the send, and the cool-off
+		// holds.
+		run_blocks(COOL_OFF + 5);
+		assert_stage(Stage::CoolOff { end_at });
+		assert_eq!(free(&ALICE), 100);
+		assert_eq!(Manager::<Test>::get(), Some(ALICE));
+		assert_eq!(RcMigratedBalance::<Test>::get(), migrated);
+		assert!(reaped_events().is_empty());
+
+		// WHEN the router recovers. THEN the next block reaps the manager once and ends the
+		// lockdown.
+		SendFails::set(false);
+		run_blocks(1);
+		assert_stage(Stage::MigrationDone);
+		assert_eq!(sent().len(), 2);
+		assert_eq!(sent()[0], teleport(&[(ALICE, 100)]));
+		assert_eq!(sent_call(1), CtRuntimeCall::CtMigrator(CtMigratorCall::EndLockdown));
+	});
+}
+
 #[test]
 fn force_set_stage_needs_a_pause_and_the_admins_powers() {
 	// GIVEN a machine waiting on the Coretime chain, not paused.
@@ -903,5 +1034,96 @@ fn teleport_trust_ends_when_the_data_migration_starts() {
 				"at {stage:?}"
 			);
 		}
+	});
+}
+
+/// `amount` of every `OnDemandRevenueCleared` event so far.
+fn cleared_revenue_events() -> Vec<u128> {
+	System::events()
+		.into_iter()
+		.filter_map(|record| match record.event {
+			RuntimeEvent::Rc2Migrator(Event::OnDemandRevenueCleared { amount }) => Some(amount),
+			_ => None,
+		})
+		.collect()
+}
+
+#[test]
+fn the_accounts_stage_clears_unclaimed_on_demand_revenue() {
+	new_test_ext().execute_with(|| {
+		// GIVEN on-demand revenue the Coretime chain has not claimed, more than the pot holds.
+		fund(&ALICE, 500);
+		let pot = OnDemand::account_id();
+		fund(&pot, 10);
+		record_on_demand_revenue(vec![0, 30]);
+
+		// WHEN the accounts stage starts.
+		set_stage(Stage::AccountsInit);
+		run_blocks(1);
+
+		// THEN the record is cleared before `RcMigratedBalance` is set up, the pot is left for
+		// Sweep, and the issuance did not move.
+		assert_eq!(cleared_revenue_events(), vec![30]);
+		assert_eq!(OnDemand::claim_revenue_until(System::block_number() + 1), 0);
+		assert_eq!(free(&pot), 10);
+		assert_eq!(crate::RcMigratedBalance::<Test>::get().kept, 510);
+	});
+}
+
+/// Run the treasury's hook at block `n`, as the runtime does before this pallet's.
+fn treasury_hook_at(n: u64) {
+	System::set_block_number(n);
+	<Treasury as frame_support::traits::OnInitialize<u64>>::on_initialize(n);
+}
+
+#[test]
+fn the_treasury_stops_spending_once_the_accounts_stage_starts() {
+	new_test_ext().execute_with(|| {
+		// GIVEN a funded treasury whose spend periods burn a share of its pot.
+		let pot = TreasuryAccount::get();
+		fund(&pot, 1_000);
+		fund(&ALICE, 500);
+		treasury_hook_at(1);
+		// Left alone, the next spend period burns from the pot, and the issuance falls with it.
+		frame_support::hypothetically!({
+			treasury_hook_at(2_000);
+			assert!(free(&pot) < 1_000);
+			assert!(total_issuance() < 1_500);
+		});
+
+		// WHEN the accounts stage starts.
+		set_stage(Stage::AccountsInit);
+		run_blocks(1);
+
+		// THEN no spend period ever passes again: the pot and the issuance stay as they were.
+		for n in [2_000, 10_000, u32::MAX as u64] {
+			treasury_hook_at(n);
+		}
+		assert_eq!(free(&pot), 1_000);
+		assert_eq!(total_issuance(), 1_500);
+	});
+}
+
+#[test]
+#[should_panic(expected = "total issuance changed without this pallet recording it")]
+fn an_issuance_change_this_pallet_did_not_record_is_reported() {
+	new_test_ext().execute_with(|| {
+		// GIVEN `RcMigratedBalance` is set up.
+		fund(&ALICE, 500);
+		set_stage(Stage::AccountsInit);
+		run_blocks(1);
+
+		// WHEN something other than the migration burns balance.
+		<Balances as frame_support::traits::fungible::Mutate<AccountId>>::burn_from(
+			&ALICE,
+			1,
+			frame_support::traits::tokens::Preservation::Expendable,
+			frame_support::traits::tokens::Precision::Exact,
+			frame_support::traits::tokens::Fortitude::Polite,
+		)
+		.unwrap();
+
+		// THEN the next block reports it and triggers a debug assertion.
+		run_blocks(1);
 	});
 }

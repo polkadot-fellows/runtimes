@@ -29,14 +29,14 @@ use frame_support::{
 	traits::{
 		fungible::{Inspect, Mutate, MutateFreeze, MutateHold},
 		tokens::{Fortitude, Precision, Preservation},
-		Contains, Get, LockableCurrency, ReservableCurrency, StorePreimage,
+		Get, LockableCurrency, ReservableCurrency, StorePreimage,
 	},
 	BoundedVec,
 };
 use migrator_types::{
 	MaxPortableHolds, PortableAccount, PortableHold, PortableHoldReason, PortableProxyType,
 };
-use polkadot_parachain_primitives::primitives::IsSystem;
+use polkadot_parachain_primitives::primitives::{Id as ParaId, IsSystem};
 use polkadot_runtime_common::paras_registrar;
 use runtime_parachains::{configuration, hrmp};
 use scale_info::TypeInfo;
@@ -399,16 +399,34 @@ impl<T: Config> AccountsMigrator<T> {
 			ah_free = 0;
 		}
 
-		// TODO(ahm-v2): Asset Hub's own sovereign lands on `sibl` + 1000 on Asset Hub, which
-		// nothing there controls. Send it to the sweep beneficiary instead.
-		let dest = migrator_types::translate_destination(who);
-		let to_ct = (!holds.is_empty() || !ct_free.is_zero()).then(|| PortableAccount {
-			who: dest.clone(),
+		let has_holds = !holds.is_empty();
+		let has_assets_for_ah = !ah_free.is_zero();
+		let has_assets_for_ct = !ct_free.is_zero();
+
+		let migrate_to_ct = has_assets_for_ct || has_holds;
+
+		let info_for_ct = migrate_to_ct.then(|| PortableAccount {
+			who: migrator_types::translate_destination(who),
 			free: ct_free,
 			holds,
 		});
-		let to_ah = (!ah_free.is_zero()).then_some((dest, ah_free));
-		Withdrawal { to_ct, to_ah }
+		let info_for_ah = has_assets_for_ah.then(|| (Self::ah_destination(who), ah_free));
+		Withdrawal { to_ct: info_for_ct, to_ah: info_for_ah }
+	}
+
+	/// Return the destination for `who`'s Asset Hub balance, using
+	/// [`migrator_types::translate_destination`] unless `who` is Asset Hub's sovereign account.
+	///
+	/// Translating Asset Hub's sovereign account would produce its sibling account on Asset Hub
+	/// itself, which Asset Hub cannot control as a sibling. Its balance goes to
+	/// [`Config::SweepBeneficiary`] instead.
+	pub fn ah_destination(who: &T::AccountId) -> T::AccountId {
+		let ah_sovereign: T::AccountId = ParaId::from(T::AhParaId::get()).into_account_truncating();
+		if *who == ah_sovereign {
+			T::SweepBeneficiary::get()
+		} else {
+			migrator_types::translate_destination(who)
+		}
 	}
 
 	/// Release `who`'s reserve and attribute it to the deposits recorded for the account.
@@ -514,6 +532,6 @@ impl<T: Config> AccountsMigrator<T> {
 
 	/// Whether Sweep empties `who`, [`Config::SweptAccounts`].
 	pub fn is_swept(who: &T::AccountId) -> bool {
-		T::SweptAccounts::contains(who)
+		T::SweptAccounts::get().contains(who)
 	}
 }
