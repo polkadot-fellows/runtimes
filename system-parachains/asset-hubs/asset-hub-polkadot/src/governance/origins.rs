@@ -82,7 +82,10 @@ pub mod pallet_custom_origins {
 		/// composition, stay on stricter paths until deliberately wired here.
 		ProsperityEmergency,
 		/// Origin for maintenance of dotNS operational values, in its contracts and in the
-		/// runtime: durations, windows, size caps, call limits and similar settings.
+		/// runtime: durations, windows, size caps and call limits. Each value is bounded, and a
+		/// change cannot affect positions already open. It moves no funds, sets no prices,
+		/// decides no names (grants, revocations, reservations) and does not upgrade or rewire
+		/// the protocol.
 		DotnsMaintenance,
 	}
 
