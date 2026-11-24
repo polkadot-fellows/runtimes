@@ -166,6 +166,7 @@ parameter_types! {
 	pub static GroupDeposit: u64 = DEPOSIT;
 	pub static CallDepositAmount: u64 = CALL_DEPOSIT;
 	pub static PauseLength: u64 = PAUSE_DURATION;
+	pub static CooldownLength: u64 = COOLDOWN;
 	pub static MoneyUpgraded: bool = false;
 }
 
@@ -202,7 +203,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, AdminAction<TargetOf<Test>>> for AdminOr
 		};
 		match action {
 			AdminAction::ForcePause(_) => Err(o),
-			AdminAction::Unpause(_) | AdminAction::Extend(_) =>
+			AdminAction::Unpause(_) | AdminAction::Extend(_) | AdminAction::Settle(_) =>
 				<EnsureSignedBy<Fellowship, u64> as EnsureOrigin<_>>::try_origin(o).map(|_| ()),
 		}
 	}
@@ -235,7 +236,7 @@ impl Config for Test {
 	type AdminOrigin = AdminOrigin;
 	type BlockNumberProvider = MockRelay;
 	type PauseDuration = PauseLength;
-	type Cooldown = ConstU64<COOLDOWN>;
+	type Cooldown = CooldownLength;
 	type MaxCallsPerTarget = ConstU32<MAX_CALLS>;
 	type MaxDepositsPerPause = ConstU32<MAX_DEPOSITS>;
 	type MaxActivePauses = ConstU32<MAX_ACTIVE_PAUSES>;

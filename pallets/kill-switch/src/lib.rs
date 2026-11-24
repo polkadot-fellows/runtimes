@@ -36,13 +36,17 @@
 //! - [`Call::force_extend`]: [`Config::AdminOrigin`]. Moves the end of a pause.
 //! - [`Call::force_pause`]: [`Config::AdminOrigin`]. No deposit and no cooldown check. Takes over a
 //!   pause someone paid for and refunds it. Only whoever can start such a pause can end or move it.
+//! - [`Call::settle`]: [`Config::AdminOrigin`]. Refunds or slashes the deposits of a pause that ran
+//!   out by itself. A slash starts the same cooldown as [`Call::unpause`].
 //!
 //! [`Config::AdminOrigin`] gets told what the caller wants to do as an [`AdminAction`], so the
 //! runtime decides who can do what. Usually the Fellowship can unpause and extend, and Root can do
 //! everything.
 //!
-//! A pause that nobody ends runs out by itself and its deposits are given back. If the Fellowship
-//! thinks a pause was abuse, it has to slash it with [`Call::unpause`] while it is still active.
+//! A pause that nobody ends runs out by itself, and its calls work again. Its deposits stay on hold
+//! in [`EndedPauses`] until the Fellowship or Root settles them with [`Call::settle`], so a pause
+//! can still be slashed after it ended, without anyone having to decide under a clock. Ending a
+//! pause early with [`Call::unpause`] settles its deposits right away.
 //!
 //! Time is measured with [`Config::BlockNumberProvider`], usually relay chain blocks. Pauses with
 //! an end are kept in one list of ids, sorted by when they end, and `on_poll` ends the ones that
@@ -142,6 +146,8 @@ pub enum AdminAction<Target> {
 	/// Start a pause with [`Call::force_pause`]. Also needed to end or move a pause started that
 	/// way.
 	ForcePause(Target),
+	/// Refund or slash the deposits of a pause that ran out, with [`Call::settle`].
+	Settle(Target),
 }
 
 /// The groups of calls a runtime lets people pause.
@@ -175,6 +181,21 @@ pub struct PauseInfo<T: Config> {
 	/// Started through [`Call::force_pause`]. Ending or moving it needs
 	/// [`AdminAction::ForcePause`].
 	pub forced: bool,
+}
+
+/// A pause that ran out by itself, with its deposits still on hold until [`Call::settle`].
+#[derive(
+	Encode, Decode, CloneNoBound, PartialEqNoBound, EqNoBound, DebugNoBound, TypeInfo, MaxEncodedLen,
+)]
+#[scale_info(skip_type_params(T))]
+#[codec(mel_bound())]
+pub struct EndedPause<T: Config> {
+	/// What was paused.
+	pub target: TargetOf<T>,
+	/// The calls it held, for the cooldown if it gets slashed.
+	pub calls: CallsOf<T>,
+	/// The deposits still on hold. Never empty.
+	pub deposits: BoundedVec<Deposit<T>, T::MaxDepositsPerPause>,
 }
 
 /// A deposit on hold behind a pause.
@@ -308,6 +329,10 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type PausedCalls<T: Config> = StorageMap<_, Blake2_128Concat, T::CallName, u32, ValueQuery>;
 
+	/// Pauses that ran out by itself, by id, whose deposits wait for [`Call::settle`].
+	#[pallet::storage]
+	pub type EndedPauses<T: Config> = StorageMap<_, Twox64Concat, PauseId, EndedPause<T>>;
+
 	/// Targets that can't be paused until the given block, except by [`Call::force_pause`].
 	#[pallet::storage]
 	pub type Cooldowns<T: Config> = StorageMap<_, Blake2_128Concat, TargetOf<T>, BlockNumberOf<T>>;
@@ -321,8 +346,11 @@ pub mod pallet {
 		Extended { target: TargetOf<T>, who: Option<T::AccountId>, until: BlockNumberOf<T> },
 		/// The Fellowship or Root ended a pause.
 		Unpaused { target: TargetOf<T>, slashed: bool },
-		/// A pause ran out and its deposits were given back.
-		Expired { target: TargetOf<T> },
+		/// A pause ran out and its calls work again. If it had deposits, they stay on hold until
+		/// [`Call::settle`] is called with `id`.
+		Expired { target: TargetOf<T>, id: PauseId },
+		/// The deposits of a pause that ran out were refunded or slashed.
+		Settled { target: TargetOf<T>, id: PauseId, slashed: bool },
 		/// `target` and each of its calls can't be paused again until `until`.
 		CooldownStarted { target: TargetOf<T>, until: BlockNumberOf<T> },
 		/// A deposit was put on hold.
@@ -361,6 +389,8 @@ pub mod pallet {
 		TooManyPauses,
 		/// The group pauses more than [`Config::MaxCallsPerTarget`] calls.
 		TooManyCalls,
+		/// No pause with this id ran out with deposits left to settle.
+		NothingToSettle,
 	}
 
 	#[pallet::hooks]
@@ -476,16 +506,8 @@ pub mod pallet {
 			let slash = slash && !pause.deposits.is_empty();
 			Self::do_unpause(&target, &pause);
 			Self::settle_deposits(&target, &pause.deposits, slash);
-
-			let cooldown = T::Cooldown::get();
-			if slash && !cooldown.is_zero() {
-				let until = now.saturating_add(cooldown);
-				Cooldowns::<T>::insert(&target, until);
-				// Otherwise the same calls could be paused again one by one.
-				for call in pause.calls.iter() {
-					Cooldowns::<T>::insert(Target::Call(call.clone()), until);
-				}
-				Self::deposit_event(Event::CooldownStarted { target: target.clone(), until });
+			if slash {
+				Self::start_cooldown(&target, &pause.calls, now);
 			}
 
 			Self::deposit_event(Event::Unpaused { target, slashed: slash });
@@ -549,6 +571,31 @@ pub mod pallet {
 			Self::deposit_event(Event::Paused { target, who: None, until });
 			Ok(Some(T::WeightInfo::force_pause(refunded)).into())
 		}
+
+		/// Refund or slash the deposits of the pause `id`, which ran out by itself.
+		///
+		/// A slash also starts the cooldown, like [`Call::unpause`] does. It runs from now, not
+		/// from when the pause ended.
+		#[pallet::call_index(5)]
+		#[pallet::weight(T::WeightInfo::settle(T::MaxDepositsPerPause::get()))]
+		pub fn settle(
+			origin: OriginFor<T>,
+			id: PauseId,
+			slash: bool,
+		) -> DispatchResultWithPostInfo {
+			let ended = EndedPauses::<T>::get(id).ok_or(Error::<T>::NothingToSettle)?;
+			T::AdminOrigin::ensure_origin(origin, &AdminAction::Settle(ended.target.clone()))?;
+			let now = T::BlockNumberProvider::current_block_number();
+
+			EndedPauses::<T>::remove(id);
+			Self::settle_deposits(&ended.target, &ended.deposits, slash);
+			if slash {
+				Self::start_cooldown(&ended.target, &ended.calls, now);
+			}
+
+			Self::deposit_event(Event::Settled { target: ended.target, id, slashed: slash });
+			Ok(Some(T::WeightInfo::settle(ended.deposits.len() as u32)).into())
+		}
 	}
 }
 
@@ -567,6 +614,32 @@ impl<T: Config> Pallet<T> {
 		};
 		T::AdminOrigin::ensure_origin(origin, &action)?;
 		Ok(())
+	}
+
+	/// Puts `target` and each of its calls on cooldown, if there is one.
+	///
+	/// A cooldown that already runs longer is kept, so a slash after governance lowered
+	/// [`Config::Cooldown`] can't cut an earlier one short.
+	fn start_cooldown(target: &TargetOf<T>, calls: &CallsOf<T>, now: BlockNumberOf<T>) {
+		let cooldown = T::Cooldown::get();
+		if cooldown.is_zero() {
+			return;
+		}
+		let until = now.saturating_add(cooldown);
+		let extend = |key: TargetOf<T>| {
+			Cooldowns::<T>::mutate(key, |end| *end = Some(end.map_or(until, |end| end.max(until))));
+		};
+		extend(target.clone());
+		// Otherwise the same calls could be paused again one by one.
+		for call in calls.iter() {
+			extend(Target::Call(call.clone()));
+		}
+		Self::deposit_event(Event::CooldownStarted { target: target.clone(), until });
+	}
+
+	/// Every pause that ran out and still waits for [`Call::settle`], by id. For the runtime API.
+	pub fn ended_pauses() -> alloc::vec::Vec<(PauseId, EndedPause<T>)> {
+		EndedPauses::<T>::iter().collect()
 	}
 
 	/// Every group the runtime offers, with its calls and deposit. For the runtime API.
@@ -590,6 +663,9 @@ impl<T: Config> Pallet<T> {
 	/// What pausing `call` on its own costs. `None` if it can't be paused on its own with a
 	/// deposit: it doesn't exist, tx-pause never pauses it, single calls are off, or a group it's
 	/// in can only be paused by Root.
+	///
+	/// A group whose deposit is still zero counts as Root-only here. Otherwise its calls could be
+	/// paused one by one for less than governance means the group to cost, before it set a price.
 	pub fn call_deposit(call: &T::CallName) -> Option<BalanceOf<T>> {
 		if !T::ValidCall::contains(call) || !Self::can_pause(call) {
 			return None;
@@ -646,7 +722,7 @@ impl<T: Config> Pallet<T> {
 		Ok(Deposit { who: who.clone(), amount })
 	}
 
-	/// Slashes or gives back the deposits of a pause that already ended.
+	/// Slashes or gives back the deposits of a pause that already ended or is ending now.
 	///
 	/// This can't fail, the pause is gone either way. A release only fails if the account can't
 	/// take the funds back, which shouldn't happen for an account that holds them.
@@ -744,12 +820,21 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	/// Ends a pause that ran out and gives its deposits back. The hook already took it off the
-	/// expiry list.
+	/// Ends a pause that ran out. Its deposits stay on hold for [`Call::settle`]. The hook already
+	/// took it off the expiry list.
 	pub(crate) fn do_expire(target: &TargetOf<T>, pause: &PauseInfo<T>) {
 		Self::lift(target, pause);
-		Self::settle_deposits(target, &pause.deposits, false);
-		Self::deposit_event(Event::Expired { target: target.clone() });
+		if !pause.deposits.is_empty() {
+			EndedPauses::<T>::insert(
+				pause.id,
+				EndedPause {
+					target: target.clone(),
+					calls: pause.calls.clone(),
+					deposits: pause.deposits.clone(),
+				},
+			);
+		}
+		Self::deposit_event(Event::Expired { target: target.clone(), id: pause.id });
 	}
 
 	fn reschedule_expiry(
@@ -834,8 +919,8 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	/// Checks that the expiry queue, the pauses, the paused calls and the deposits agree with each
-	/// other.
+	/// Checks that the expiry queue, the pauses, the ended pauses, the paused calls and the
+	/// deposits agree with each other.
 	#[cfg(any(feature = "try-runtime", test))]
 	pub(crate) fn do_try_state() -> Result<(), sp_runtime::TryRuntimeError> {
 		use frame_support::traits::fungible::InspectHold;
@@ -884,6 +969,14 @@ impl<T: Config> Pallet<T> {
 			}
 			ensure!(pause.forced == pause.deposits.is_empty(), "a pause has the wrong deposits");
 			for Deposit { who, amount } in pause.deposits {
+				let total = held.entry(who).or_default();
+				*total = total.saturating_add(amount);
+			}
+		}
+		for (id, ended) in EndedPauses::<T>::iter() {
+			ensure!(!PauseTargets::<T>::contains_key(id), "an ended pause is still active");
+			ensure!(!ended.deposits.is_empty(), "an ended pause has nothing to settle");
+			for Deposit { who, amount } in ended.deposits {
 				let total = held.entry(who).or_default();
 				*total = total.saturating_add(amount);
 			}

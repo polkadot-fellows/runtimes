@@ -102,6 +102,7 @@ impl Contains<RuntimeCallNameOf<Runtime>> for NeverPausable {
 /// tx-pause works on whole calls, so a group covers every asset those calls touch, not a single
 /// asset. It only stops extrinsics and XCM `Transact`. Contracts going through the precompiles,
 /// assets arriving over XCM, and swaps for paying fees in another asset aren't covered yet.
+/// Neither are transfers of pool LP tokens (`PoolAssets`).
 #[derive(
 	Clone,
 	Copy,
@@ -173,8 +174,8 @@ impl KillSwitchGroup {
 	}
 }
 
-/// Root can do everything. The Fellowship can end and extend pauses, but can't pause anything
-/// itself or touch a pause Root started.
+/// Root can do everything. The Fellowship can end and extend pauses and settle the deposits of
+/// pauses that ran out, but can't pause anything itself or touch a pause Root started.
 pub struct KillSwitchAdmin;
 impl<Target> EnsureOriginWithArg<RuntimeOrigin, AdminAction<Target>> for KillSwitchAdmin {
 	type Success = ();
@@ -186,7 +187,7 @@ impl<Target> EnsureOriginWithArg<RuntimeOrigin, AdminAction<Target>> for KillSwi
 		};
 		match action {
 			AdminAction::ForcePause(_) => Err(o),
-			AdminAction::Unpause(_) | AdminAction::Extend(_) =>
+			AdminAction::Unpause(_) | AdminAction::Extend(_) | AdminAction::Settle(_) =>
 				<EnsureXcm<IsFellowshipVoice<FellowshipLocation>> as EnsureOrigin<_>>::try_origin(o)
 					.map(|_| ()),
 		}

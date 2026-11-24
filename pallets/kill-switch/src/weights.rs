@@ -35,6 +35,7 @@ pub trait WeightInfo {
 	fn force_pause(d: u32, ) -> Weight;
 	fn on_poll_base() -> Weight;
 	fn on_poll_expire() -> Weight;
+	fn settle(d: u32, ) -> Weight;
 }
 
 impl WeightInfo for () {
@@ -78,5 +79,13 @@ impl WeightInfo for () {
 		Weight::from_parts(30_000_000, 4_000)
 			.saturating_add(RocksDbWeight::get().reads(4_u64))
 			.saturating_add(RocksDbWeight::get().writes(5_u64))
+	}
+	fn settle(d: u32, ) -> Weight {
+		Weight::from_parts(30_000_000, 4_000)
+			.saturating_add(Weight::from_parts(40_000_000, 3_000).saturating_mul(d.into()))
+			.saturating_add(RocksDbWeight::get().reads(2_u64))
+			.saturating_add(RocksDbWeight::get().reads((3_u64).saturating_mul(d.into())))
+			.saturating_add(RocksDbWeight::get().writes(4_u64))
+			.saturating_add(RocksDbWeight::get().writes((3_u64).saturating_mul(d.into())))
 	}
 }
