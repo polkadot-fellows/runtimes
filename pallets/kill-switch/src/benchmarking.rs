@@ -178,7 +178,8 @@ mod benchmarks {
 		set_relay_block::<T>(10);
 		let target = pause_with_deposits::<T>(T::MaxDepositsPerPause::get());
 		fill_queue::<T>(0);
-		let until = Pauses::<T>::get(&target).unwrap().until.unwrap();
+		let info = Pauses::<T>::get(&target).unwrap();
+		let (until, pause_id) = (info.until.unwrap(), info.id);
 		T::BlockNumberProvider::set_block_number(until);
 
 		#[block]
@@ -187,6 +188,26 @@ mod benchmarks {
 		}
 
 		assert!(!Pauses::<T>::contains_key(&target));
+		assert!(EndedPauses::<T>::contains_key(pause_id));
+	}
+
+	/// Settling an ended pause with `d` deposits. Slashing is the more expensive path, it also
+	/// starts the cooldown.
+	#[benchmark]
+	fn settle(d: Linear<1, { T::MaxDepositsPerPause::get() }>) -> Result<(), BenchmarkError> {
+		set_relay_block::<T>(10);
+		let target = pause_with_deposits::<T>(d);
+		let info = Pauses::<T>::get(&target).unwrap();
+		T::BlockNumberProvider::set_block_number(info.until.unwrap());
+		Pallet::<T>::process_expiries(&mut WeightMeter::new());
+		assert!(EndedPauses::<T>::contains_key(info.id));
+		let origin = admin_origin::<T>(AdminAction::Settle(target.clone()))?;
+
+		#[extrinsic_call]
+		_(origin as T::RuntimeOrigin, info.id, true);
+
+		assert!(!EndedPauses::<T>::contains_key(info.id));
+		Ok(())
 	}
 
 	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::Test);
