@@ -309,8 +309,7 @@ impl pallet_kill_switch::Config for Runtime {
 	type MaxDepositsPerPause = ConstU32<10>;
 	// The 4 groups, the rest is for single calls.
 	type MaxActivePauses = ConstU32<64>;
-	// Placeholder until the pallet is benchmarked on this chain.
-	type WeightInfo = ();
+	type WeightInfo = weights::pallet_kill_switch::WeightInfo<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = KillSwitchBenchmarkHelper;
 }
