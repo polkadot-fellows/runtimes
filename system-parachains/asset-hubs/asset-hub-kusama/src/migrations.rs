@@ -25,6 +25,8 @@ pub type Unreleased = (
 	cumulus_pallet_parachain_system::migration::MigrateV3ToV4<crate::Runtime>,
 	// polkadot-sdk#13333: `ChildBountyCount` left the pallet; its raw value is still on chain.
 	RemoveChildBountyCount,
+	// Sets `ChillInactiveThreshold`, which has no default since polkadot-sdk#13536.
+	crate::staking::SetChillInactiveThreshold,
 );
 
 frame_support::parameter_types! {

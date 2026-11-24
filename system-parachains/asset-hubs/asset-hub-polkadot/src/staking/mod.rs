@@ -436,28 +436,13 @@ parameter_types! {
 	pub const ValidatorSetExportSession: SessionIndex = 4;
 }
 
-/// A validator is inactive in an era if it earned no era points.
-///
-/// Defined here instead of using the SDK's `()` impl, so that the rule only changes through an
-/// explicit runtime change.
-pub struct NoEraPoints;
-impl pallet_staking_async::IsValidatorInactive<AccountId> for NoEraPoints {
-	fn is_inactive(
-		_era: sp_staking::EraIndex,
-		_stash: &AccountId,
-		era_points: &[(sp_staking::ServiceKind, pallet_staking_async::RewardPoint)],
-	) -> bool {
-		era_points.iter().all(|(_, points)| *points == 0)
-	}
-}
-
 impl pallet_staking_async::Config for Runtime {
 	type Filter = ();
-	// TODO 2611-review: Since polkadot-sdk#13536, `ChillInactiveThreshold` has no default, so the
-	// permissionless `chill_inactive` call stays disabled until governance sets it via
-	// `set_staking_configs`. It used to default to `HistoryDepth` eras.
-	type IsValidatorInactive = NoEraPoints;
-	// Only used by `pallet-validator-collators`, which this runtime does not have.
+	// `chill_inactive` treats a validator as inactive in an era if it earned zero points in every
+	// service, relay chain consensus included.
+	type IsValidatorInactive = pallet_staking_async::AllZero;
+	// Validators do not collate on system chains yet. This runtime has no
+	// `pallet-validator-set-announcer`.
 	type OnEraStart = ();
 	type OldCurrency = Balances;
 	type Currency = Balances;
@@ -692,31 +677,6 @@ where
 	}
 }
 
-// polkadot-sdk#13032: The election miner submits unsigned solutions as authorized transactions,
-// which need `frame_system::AuthorizeCall` (already the first extension of the pipeline).
-impl<LocalCall> frame_system::offchain::CreateAuthorizedTransaction<LocalCall> for Runtime
-where
-	RuntimeCall: From<LocalCall>,
-{
-	fn create_extension() -> Self::Extension {
-		(
-			frame_system::AuthorizeCall::<Runtime>::new(),
-			frame_system::CheckNonZeroSender::<Runtime>::new(),
-			frame_system::CheckSpecVersion::<Runtime>::new(),
-			frame_system::CheckTxVersion::<Runtime>::new(),
-			frame_system::CheckGenesis::<Runtime>::new(),
-			frame_system::CheckEra::<Runtime>::from(generic::Era::Immortal),
-			frame_system::CheckNonce::<Runtime>::from(0),
-			frame_system::CheckWeight::<Runtime>::new(),
-			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
-			pallet_claims::PrevalidateAttests::<Runtime>::new(),
-			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
-			pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::default(),
-		)
-			.into()
-	}
-}
-
 pub struct InitiateStakingAsync;
 
 impl InitiateStakingAsync {
@@ -773,6 +733,62 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 	}
 }
 
+/// Sets `ChillInactiveThreshold` through `set_staking_configs` if none is stored, so the value
+/// meets the same checks as a governance call. polkadot-sdk#13536 removed its default. A value set
+/// by governance is kept.
+pub struct SetChillInactiveThreshold;
+impl SetChillInactiveThreshold {
+	/// Eras, within the last `HistoryDepth`, a validator must be inactive in to be chilled.
+	// TODO: consider raising it to the largest value with margin once re-benchmarked.
+	// Close to 2.6.0, which required every era of `HistoryDepth` (84). The threshold must keep
+	// `chill_inactive` within one normal extrinsic, and the asset-hub-westend weights since
+	// polkadot-sdk#13536 show 84 does not fit.
+	pub const THRESHOLD: u32 = 64;
+}
+impl frame_support::traits::OnRuntimeUpgrade for SetChillInactiveThreshold {
+	fn on_runtime_upgrade() -> Weight {
+		use pallet_staking_async::{
+			ConfigOp::{Noop, Set},
+			WeightInfo as _,
+		};
+
+		let read = <Runtime as frame_system::Config>::DbWeight::get().reads(1);
+		if pallet_staking_async::ChillInactiveThreshold::<Runtime>::exists() {
+			return read;
+		}
+		if let Err(e) = pallet_staking_async::Pallet::<Runtime>::set_staking_configs(
+			frame_system::RawOrigin::Root.into(),
+			Noop,
+			Noop,
+			Noop,
+			Noop,
+			Noop,
+			Noop,
+			Noop,
+			Noop,
+			Set(Self::THRESHOLD),
+		) {
+			log::error!(
+				target: "runtime::asset-hub-polkadot",
+				"Failed to set `ChillInactiveThreshold` to {}: {e:?}",
+				Self::THRESHOLD
+			);
+		}
+		read.saturating_add(
+			<Runtime as pallet_staking_async::Config>::WeightInfo::set_staking_configs_all_set(),
+		)
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
+		frame_support::ensure!(
+			pallet_staking_async::ChillInactiveThreshold::<Runtime>::exists(),
+			"no `ChillInactiveThreshold` stored"
+		);
+		Ok(())
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -787,6 +803,53 @@ mod tests {
 	use sp_runtime::Percent;
 	use sp_staking::budget::IssuanceCurve as _;
 	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
+
+	/// This runtime chills a validator only if it earned zero points in every service, relay chain
+	/// consensus included.
+	#[test]
+	fn validator_is_inactive_only_with_zero_points_in_every_service() {
+		use pallet_staking_async::IsValidatorInactive;
+		use sp_staking::ServiceKind::{self, Collation, RelayConsensus};
+
+		let is_inactive = |points: &[(ServiceKind, u32)]| {
+			<Runtime as pallet_staking_async::Config>::IsValidatorInactive::is_inactive(
+				0,
+				&AccountId::from([0u8; 32]),
+				points,
+			)
+		};
+
+		assert!(is_inactive(&[]));
+		assert!(is_inactive(&[(RelayConsensus, 0)]));
+		assert!(!is_inactive(&[(RelayConsensus, 1)]));
+		assert!(!is_inactive(&[(RelayConsensus, 0), (Collation, 1)]));
+	}
+
+	/// Covers the `SetChillInactiveThreshold` migration. Remove together with it.
+	#[test]
+	fn set_chill_inactive_threshold_sets_value_if_absent_and_keeps_governance_value() {
+		use frame_support::traits::OnRuntimeUpgrade;
+		use pallet_staking_async::ChillInactiveThreshold;
+
+		sp_io::TestExternalities::new_empty().execute_with(|| {
+			// GIVEN no threshold is stored
+			assert_eq!(ChillInactiveThreshold::<Runtime>::get(), None);
+			// WHEN the upgrade runs
+			SetChillInactiveThreshold::on_runtime_upgrade();
+			// THEN `set_staking_configs` accepted and stored the migration's threshold
+			assert_eq!(
+				ChillInactiveThreshold::<Runtime>::get(),
+				Some(SetChillInactiveThreshold::THRESHOLD)
+			);
+
+			// GIVEN governance set a different threshold
+			ChillInactiveThreshold::<Runtime>::put(10);
+			// WHEN the upgrade runs
+			SetChillInactiveThreshold::on_runtime_upgrade();
+			// THEN the governance value is kept
+			assert_eq!(ChillInactiveThreshold::<Runtime>::get(), Some(10));
+		});
+	}
 
 	// TODO: in the future, make these tests use remote-ext and increase their longevity.
 
