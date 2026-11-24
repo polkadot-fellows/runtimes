@@ -173,4 +173,25 @@ impl<T: frame_system::Config> pallet_whitelist::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
+	// TODO 2611-bench: copied from polkadot-sdk master. Zero because `DispatchWhitelistedOrigin`
+	// does not accept `Authorized`, so the benchmark is `Weightless`.
+	/// The range of component `n` is `[1, 4194294]`.
+	fn authorize_dispatch_whitelisted_call(_n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 0_000 picoseconds.
+		Weight::from_parts(0, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+	}
+	// TODO 2611-bench: copied from polkadot-sdk master (see above).
+	/// The range of component `n` is `[1, 3932150]`.
+	fn authorize_dispatch_whitelisted_call_with_preimage(_n: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 0_000 picoseconds.
+		Weight::from_parts(0, 0)
+			.saturating_add(Weight::from_parts(0, 0))
+	}
 }

@@ -236,6 +236,9 @@ parameter_types! {
 			version: hex!("06000000"), // https://notes.ethereum.org/@bbusa/fusaka-bpo-timeline
 			epoch: 411392,
 		},
+		// TODO 2611-review: Glamsterdam is not scheduled on mainnet yet. Set the real epoch
+		// (and check the version) once it is.
+		gloas: Fork { version: hex!("07000000"), epoch: u64::MAX },
 	};
 }
 
@@ -269,6 +272,10 @@ parameter_types! {
 		fulu: Fork {
 			version: hex!("06000000"),
 			epoch: 50000000,
+		},
+		gloas: Fork {
+			version: hex!("07000000"),
+			epoch: 60000000,
 		},
 	};
 }

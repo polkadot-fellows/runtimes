@@ -413,8 +413,6 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type FreezeIdentifier = RuntimeFreezeReason;
-	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
 }
 
@@ -1214,8 +1212,11 @@ impl parachains_session_info::Config for Runtime {
 impl parachains_inclusion::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type DisputesHandler = ParasDisputes;
-	type RewardValidators =
-		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, StakingAhClient>;
+	type RewardValidators = parachains_reward_points::RewardValidatorsWithEraPoints<
+		Runtime,
+		StakingAhClient,
+		ConstU32<20>,
+	>;
 	type MessageQueue = MessageQueue;
 	type WeightInfo = weights::runtime_parachains_inclusion::WeightInfo<Runtime>;
 }
@@ -1300,6 +1301,7 @@ parameter_types! {
 impl parachains_hrmp::Config for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
+	type DepositProvider = Hrmp;
 	type ChannelManager = EitherOfDiverse<
 		EitherOf<EnsureRoot<Self::AccountId>, GeneralAdmin>,
 		EnsureXcm<IsVoiceOfBody<AssetHubLocation, GeneralAdminBodyId>>,
@@ -1378,8 +1380,11 @@ impl parachains_initializer::Config for Runtime {
 
 impl parachains_disputes::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type RewardValidators =
-		parachains_reward_points::RewardValidatorsWithEraPoints<Runtime, StakingAhClient>;
+	type RewardValidators = parachains_reward_points::RewardValidatorsWithEraPoints<
+		Runtime,
+		StakingAhClient,
+		ConstU32<20>,
+	>;
 	type SlashingHandler = parachains_slashing::SlashValidatorsForDisputes<ParasSlashing>;
 	type WeightInfo = weights::runtime_parachains_disputes::WeightInfo<Runtime>;
 }

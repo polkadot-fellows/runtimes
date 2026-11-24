@@ -615,4 +615,19 @@ impl<T: frame_system::Config> pallet_referenda::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	// TODO 2611-bench: copied from polkadot-sdk master asset-hub-westend
+	/// Storage: `Referenda::ReferendumInfoFor` (r:1 w:1)
+	/// Proof: `Referenda::ReferendumInfoFor` (`max_values`: None, `max_size`: Some(936), added: 3411, mode: `MaxEncodedLen`)
+	/// Storage: `System::Account` (r:1 w:1)
+	/// Proof: `System::Account` (`max_values`: None, `max_size`: Some(128), added: 2603, mode: `MaxEncodedLen`)
+	fn slash_submission_deposit() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `1707`
+		//  Estimated: `4401`
+		// Minimum execution time: 47_928_000 picoseconds.
+		Weight::from_parts(50_667_000, 0)
+			.saturating_add(Weight::from_parts(0, 4401))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
 }

@@ -1157,4 +1157,32 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 			.saturating_add(T::DbWeight::get().writes(5))
 			.saturating_add(Weight::from_parts(0, 2591).saturating_mul(l.into()))
 	}
+	// TODO 2611-bench: copied from polkadot-sdk master asset-hub-westend
+	/// Storage: `Staking::ActiveEra` (r:1 w:0)
+	/// Proof: `Staking::ActiveEra` (`max_values`: Some(1), `max_size`: Some(13), added: 508, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::ErasStakersOverview` (r:999 w:0)
+	/// Proof: `Staking::ErasStakersOverview` (`max_values`: None, `max_size`: Some(92), added: 2567, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::ErasRewardPoints` (r:1 w:1)
+	/// Proof: `Staking::ErasRewardPoints` (`max_values`: None, `max_size`: Some(36018), added: 38493, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::ErasValidatorIncentiveWeight` (r:999 w:0)
+	/// Proof: `Staking::ErasValidatorIncentiveWeight` (`max_values`: None, `max_size`: Some(68), added: 2543, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::ErasRewardPointsByService` (r:1 w:1)
+	/// Proof: `Staking::ErasRewardPointsByService` (`max_values`: None, `max_size`: Some(36027), added: 38502, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::ErasSumWeightedPoints` (r:1 w:1)
+	/// Proof: `Staking::ErasSumWeightedPoints` (`max_values`: None, `max_size`: Some(28), added: 2503, mode: `MaxEncodedLen`)
+	/// The range of component `v` is `[1, 1000]`.
+	fn reward_service_points(v: u32, ) -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `81368 + v * (80 ±0)`
+		//  Estimated: `39492 + v * (2567 ±0)`
+		// Minimum execution time: 306_751_000 picoseconds.
+		Weight::from_parts(680_318_764, 0)
+			.saturating_add(Weight::from_parts(0, 39492))
+			// Standard Error: 21_220
+			.saturating_add(Weight::from_parts(10_157_520, 0).saturating_mul(v.into()))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(v.into())))
+			.saturating_add(T::DbWeight::get().writes(3))
+			.saturating_add(Weight::from_parts(0, 2567).saturating_mul(v.into()))
+	}
 }

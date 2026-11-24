@@ -159,7 +159,10 @@ parameter_types! {
 #[allow(deprecated, missing_docs)]
 pub mod migrations {
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = ();
+	pub type Unreleased = (
+		// polkadot-sdk#12876: `LastProcessedHrmpMessage` gains the HRMP sender.
+		cumulus_pallet_parachain_system::migration::MigrateV3ToV4<crate::Runtime>,
+	);
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;
@@ -336,8 +339,6 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type FreezeIdentifier = ();
-	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
 }
 

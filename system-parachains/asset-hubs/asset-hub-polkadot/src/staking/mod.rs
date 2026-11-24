@@ -445,17 +445,20 @@ impl pallet_staking_async::IsValidatorInactive<AccountId> for NoEraPoints {
 	fn is_inactive(
 		_era: sp_staking::EraIndex,
 		_stash: &AccountId,
-		era_points: pallet_staking_async::RewardPoint,
+		era_points: &[(sp_staking::ServiceKind, pallet_staking_async::RewardPoint)],
 	) -> bool {
-		era_points == 0
+		era_points.iter().all(|(_, points)| *points == 0)
 	}
 }
 
 impl pallet_staking_async::Config for Runtime {
 	type Filter = ();
-	// Makes the permissionless `chill_inactive` call live, with `ChillInactiveThreshold` defaulting
-	// to `HistoryDepth` eras (governance can change it via `set_staking_configs`).
+	// TODO 2611-review: Since polkadot-sdk#13536, `ChillInactiveThreshold` has no default, so the
+	// permissionless `chill_inactive` call stays disabled until governance sets it via
+	// `set_staking_configs`. It used to default to `HistoryDepth` eras.
 	type IsValidatorInactive = NoEraPoints;
+	// Only used by `pallet-validator-collators`, which this runtime does not have.
+	type OnEraStart = ();
 	type OldCurrency = Balances;
 	type Currency = Balances;
 	type CurrencyBalance = Balance;
@@ -563,6 +566,7 @@ impl Convert<rc_client::ValidatorSetReport<AccountId>, Xcm<()>> for ValidatorSet
 	fn convert(report: rc_client::ValidatorSetReport<AccountId>) -> Xcm<()> {
 		rc_client::build_transact_xcm(
 			RelayChainRuntimePallets::AhClient(AhClientCalls::ValidatorSet(report)).encode(),
+			OriginKind::Native,
 		)
 	}
 }
@@ -576,7 +580,7 @@ impl Convert<rc_client::KeysMessage<AccountId>, Xcm<()>> for KeysMessageToXcm {
 			rc_client::KeysMessage::PurgeKeys { stash } =>
 				RelayChainRuntimePallets::AhClient(AhClientCalls::PurgeKeys { stash }).encode(),
 		};
-		rc_client::build_transact_xcm(encoded_call)
+		rc_client::build_transact_xcm(encoded_call, OriginKind::Native)
 	}
 }
 
@@ -685,6 +689,31 @@ where
 {
 	fn create_bare(call: RuntimeCall) -> UncheckedExtrinsic {
 		generic::UncheckedExtrinsic::new_bare(call).into()
+	}
+}
+
+// polkadot-sdk#13032: The election miner submits unsigned solutions as authorized transactions,
+// which need `frame_system::AuthorizeCall` (already the first extension of the pipeline).
+impl<LocalCall> frame_system::offchain::CreateAuthorizedTransaction<LocalCall> for Runtime
+where
+	RuntimeCall: From<LocalCall>,
+{
+	fn create_extension() -> Self::Extension {
+		(
+			frame_system::AuthorizeCall::<Runtime>::new(),
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckEra::<Runtime>::from(generic::Era::Immortal),
+			frame_system::CheckNonce::<Runtime>::from(0),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<Runtime>::from(0, None),
+			pallet_claims::PrevalidateAttests::<Runtime>::new(),
+			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+			pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::default(),
+		)
+			.into()
 	}
 }
 

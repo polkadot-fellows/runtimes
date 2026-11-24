@@ -346,8 +346,6 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type FreezeIdentifier = RuntimeFreezeReason;
-	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
 }
 
@@ -1652,6 +1650,9 @@ parameter_types! {
 
 impl pallet_revive::Config for Runtime {
 	type Time = Timestamp;
+	// TODO 2611-review: Westend keeps this at zero until every eth-rpc serving the chain reads
+	// receipt data V2 (polkadot-sdk master, asset-hub-westend).
+	type MaxOutsideFrameLogs = ConstU32<0>;
 	type Balance = Balance;
 	type Currency = Balances;
 	type RuntimeEvent = RuntimeEvent;
