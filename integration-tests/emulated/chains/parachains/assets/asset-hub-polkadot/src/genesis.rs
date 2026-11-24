@@ -75,14 +75,18 @@ pub fn genesis() -> sp_core::storage::Storage {
 			..Default::default()
 		},
 		collator_selection: asset_hub_polkadot_runtime::CollatorSelectionConfig {
-			invulnerables: collators::invulnerables().iter().cloned().map(|(acc, _)| acc).collect(),
+			invulnerables: collators::invulnerables()
+				.iter()
+				.cloned()
+				.map(|(acc, _, _)| acc)
+				.collect(),
 			candidacy_bond: ED * 16,
 			..Default::default()
 		},
 		session: asset_hub_polkadot_runtime::SessionConfig {
 			keys: collators::session_keys()
 				.into_iter()
-				.map(|(acc, aura)| {
+				.map(|(acc, aura, _)| {
 					(
 						acc.clone(),                                      // account id
 						acc,                                              // validator id
