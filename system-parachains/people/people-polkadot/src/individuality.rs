@@ -673,7 +673,7 @@ impl indiv_pallet_score::Config for Runtime {
 parameter_types! {
 	pub const PlayDepositReason: RuntimeHoldReason =
 		RuntimeHoldReason::Game(indiv_pallet_game::HoldReason::PlayDeposit);
-	pub const PlayDepositDefault: Balance = 2 * UNITS;
+	pub const PlayDepositDefault: Balance = 1_000_000_000 * UNITS;
 	// The game clients signal WebRTC over one session per peer, with a request and a response
 	// channel. Android caps a statement at 1 KiB. iOS uses the 500 KiB chat cap, but sends a
 	// compact SDP without candidates and at most 12 candidates per batch, which fit in 1 KiB. A
@@ -1798,7 +1798,9 @@ pub mod benchmark_utils {
 
 		fn fund_account(acc: AccountId) {
 			use frame_support::traits::Currency;
-			let balance = 1_000_000_000_000_000u128;
+			// Enough to place the play deposit and keep a spendable balance.
+			let balance = indiv_pallet_game::PlayDepositAmount::<Runtime>::get()
+				.saturating_add(1_000_000_000_000_000u128);
 			let _ = Balances::make_free_balance_be(&acc, balance);
 		}
 
