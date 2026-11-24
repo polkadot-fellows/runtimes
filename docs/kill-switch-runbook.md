@@ -27,12 +27,13 @@ Some calls can never be paused: governance, the kill switch itself, XCM `send`, 
 other system chains drive over XCM. The full list is `never_pausable_pallets()` in
 `system-parachains/asset-hubs/asset-hub-polkadot/src/kill_switch.rs`.
 
-Paused calls are blocked for signed extrinsics and for XCM `Transact`. These paths still go
-through a pause:
+Paused calls are blocked for signed extrinsics and for XCM `Transact`. These paths keep working
+during a pause:
 
 - EVM contracts calling precompiles
 - incoming XCM that deposits or withdraws assets
 - swaps used to pay transaction fees in a pool asset
+- transfers of pool LP tokens (`PoolAssets`)
 
 If the problem can be reached through one of them, a pause alone won't stop it. Escalate to Root
 right away.
@@ -40,7 +41,8 @@ right away.
 ## Who can do what
 
 - **Anyone:** `pause` and `extend`, each with a deposit.
-- **Fellowship:** `unpause` (refund or slash) and `force_extend` on paused-for pauses.
+- **Fellowship:** `unpause` (refund or slash) and `force_extend` on paused-for pauses, and
+  `settle` (refund or slash) on paused-for pauses that ran out.
 - **Root:** everything the Fellowship can do, plus `force_pause`, which needs no deposit and can
   have no end. Only Root can end or move a forced pause.
 
@@ -52,12 +54,11 @@ ships with every deposit at 0, which means only Root can pause until a referendu
 | Who                     | Step                                                       | Expected time |
 | ----------------------- | ---------------------------------------------------------- | ------------- |
 | anyone                  | spots the issue and pauses                                  | minutes       |
-| W3F / Parity            | notice and take over the deposit for a longer pause         | ~12h          |
+| W3F / Parity            | notice and keep it going with their own `extend` deposits   | ~12h          |
 | Fellowship              | vote to extend or unpause                                   | ~24h          |
-| Fellowship / Parity     | prepare a fix release                                       | 48h to 72h    |
-| governance              | enact the fix                                               | ~24h          |
+| Fellowship / Parity     | fix released and enacted on-chain                           | ~72h (to check) |
 
-So a real bug can need a pause of about 4 to 5 days end to end, plus buffer. Pause length,
+So a real bug can need a pause of about 3 to 4 days end to end, plus buffer. Pause length,
 extension costs and limits should be tuned so a pause can last that long without one person
 having to fund all of it.
 
@@ -67,11 +68,15 @@ having to fund all of it.
    issue they're reacting to and confirm the paused calls are the right ones.
 2. **Real bug.** Keep it paused. Extend with `force_extend` before it runs out, or take it over
    with a Root `force_pause` if the fix will take long. Prepare the fix.
-   **Put the deposit refund in the same proposal as the fix**, so nobody has to remember it later.
-3. **False positive.** `unpause` with a refund.
+   A Root `force_pause` takeover refunds the deposits behind the pause right away. If the pause
+   instead runs out or gets unpaused by the fix, **put the refund (`settle` or `unpause` without
+   slash) in the same proposal as the fix**, so nobody has to remember it later.
+3. **False positive.** `unpause` with a refund. The deposits come back right away.
 4. **Malicious or griefing.** `unpause` with a slash. The slashed deposit goes to the DAP, and
    the target and each of its calls go on cooldown.
-5. **Not sure yet.** Leave it until it's clear. Don't rush a slash or refund call.
+5. **Not sure yet.** Let it run out. The calls work again, but the deposits stay locked and
+   slashable until someone calls `settle(id, slash)`, with the id from the `Expired` event. There's
+   no deadline, so take the time to look into it.
 
 ## Fellowship commitments
 
@@ -88,23 +93,26 @@ so in the Fellowship channel, and links the issue being reacted to.
 unpause with a slash. If it's not clear yet whether the pause was honest, the vote can be to
 extend and look further. Nobody should be rushed into a slash.
 
-**Have a fix release ready within 48 to 72 hours** if the pause was for a real bug. The proposal
-that enacts the fix also refunds the deposits behind the pause.
-
-**Back a Treasury tip for useful pauses.** When a pause turns out to have protected the chain, the
-Fellowship puts up a Treasury proposal to tip whoever locked the deposit X% of it (to be agreed),
-and encourages people to vote for it. One proposal can cover everyone who paid into that pause.
+**Get the fix enacted on-chain within 72 hours** if the pause was for a real bug. What counts is
+the fix being live, not just voted on. The proposal that enacts the fix also refunds the deposits
+behind the pause. The 72 hours is a working number, to be checked against how long past fix
+referenda actually took before this goes up for a vote.
 
 These are targets, not guarantees. If one is missed, the fallback is a Root referendum. The
-times W3F and Parity need to take over a deposit (about 12h) are not the Fellowship's to promise.
+times W3F and Parity need to start extending with their own deposits (about 12h) are not the
+Fellowship's to promise.
 They're in the table above as assumptions until W3F and Parity confirm them.
+
+## Tips
+
+Whoever puts up a deposit locks a lot of funds and takes the slash risk, and an honest pause only
+gets them their own funds back. Anyone can open a Treasury tip for a pause that protected the
+chain. Whether to pay one is up to OpenGov. It isn't a Fellowship commitment.
 
 ## Planned changes
 
 Still being discussed on [#1344](https://github.com/polkadot-fellows/runtimes/pull/1344):
 
-- Deposits stay held and slashable after a pause ends, instead of being refunded at expiry. The
-  Fellowship or Root releases or slashes them later by pause id.
 - Escalating deposits for long pauses: the Nth period in a row costs `base + (N - 1) * step`,
   where `step` is a percentage of `base`. Every paid pause and extension counts, whoever pays.
   Switching to an overlapping group doesn't reset it. It resets once the calls have been
@@ -121,6 +129,7 @@ Proposed cost of keeping a 10k group paused with 6h periods:
 
 These are deposits, not fees. An honest pause gets them back, so the cost is mostly the lockup.
 The first 12h is meant to be affordable for whoever spots the problem. After that, W3F or
-Parity are expected to take over the deposits.
+Parity are expected to pay for the extensions with their own deposits. The first pauser's
+deposit stays locked until the pause is settled.
 
 This runbook will be updated once these land.
