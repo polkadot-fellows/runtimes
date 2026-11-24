@@ -73,13 +73,31 @@ having to fund all of it.
    the target and each of its calls go on cooldown.
 5. **Not sure yet.** Leave it until it's clear. Don't rush a slash or refund call.
 
-## Tips for honest pauses
+## Fellowship commitments
 
-Pausing the chain to protect it means locking up a large deposit. When a pause turns out to have
-protected the chain, the Fellowship will suggest that the Treasury tip the depositor a share of
-the deposit they locked, and will put up that Treasury proposal and encourage people to support
-it. This isn't done on-chain by the kill switch. It's a commitment on how the Fellowship handles
-these cases.
+> Proposed. To be agreed by the whole Fellowship through a referendum on the Members track, with
+> a remark pointing at this version of the text. Until then, this is only a proposal.
+
+When something on Asset Hub Polkadot is paused through the kill switch, the Fellowship commits
+to the following.
+
+**Look at it within 12 hours.** Someone in the Fellowship checks what was paused and why, says
+so in the Fellowship channel, and links the issue being reacted to.
+
+**Decide within 24 hours.** There is a Fellowship vote to extend, unpause with a refund, or
+unpause with a slash. If it's not clear yet whether the pause was honest, the vote can be to
+extend and look further. Nobody should be rushed into a slash.
+
+**Have a fix release ready within 48 to 72 hours** if the pause was for a real bug. The proposal
+that enacts the fix also refunds the deposits behind the pause.
+
+**Back a Treasury tip for useful pauses.** When a pause turns out to have protected the chain, the
+Fellowship puts up a Treasury proposal to tip whoever locked the deposit X% of it (to be agreed),
+and encourages people to vote for it. One proposal can cover everyone who paid into that pause.
+
+These are targets, not guarantees. If one is missed, the fallback is a Root referendum. The
+times W3F and Parity need to take over a deposit (about 12h) are not the Fellowship's to promise.
+They're in the table above as assumptions until W3F and Parity confirm them.
 
 ## Planned changes
 
