@@ -161,7 +161,7 @@ fn tx_pause_origins_are_disabled() {
 }
 
 #[test]
-fn pause_expires_and_deposit_is_released() {
+fn pause_expires_and_deposit_stays_locked() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
 
@@ -172,16 +172,107 @@ fn pause_expires_and_deposit_is_released() {
 		assert!(transfer_works());
 		assert!(Pauses::<Test>::get(transfer()).is_none());
 		assert!(Expiries::<Test>::get().is_empty());
-		System::assert_has_event(Event::Expired { target: transfer() }.into());
+		System::assert_has_event(Event::Expired { target: transfer(), id: 0 }.into());
 
-		// Nobody stepped in, so the deposit comes back right away.
+		// Nobody stepped in, but the deposit stays locked until someone looks at it.
+		assert_eq!(held(1), DEPOSIT);
+		assert_eq!(Balances::free_balance(1), 1_000 - DEPOSIT);
+		assert_eq!(KillSwitch::ended_pauses().len(), 1);
+		assert_eq!(EndedPauses::<Test>::get(0).unwrap().target, transfer());
+		// It's not active anymore, so `settle` is the way, not `unpause`.
+		assert_noop!(KillSwitch::unpause(fellowship(), transfer(), true), Error::<Test>::NotPaused);
+		assert_ok!(KillSwitch::do_try_state());
+
+		assert_ok!(KillSwitch::settle(fellowship(), 0, false));
 		assert_eq!(held(1), 0);
 		assert_eq!(Balances::free_balance(1), 1_000);
+		assert!(EndedPauses::<Test>::get(0).is_none());
 		System::assert_has_event(
 			Event::DepositReleased { target: transfer(), who: 1, amount: DEPOSIT }.into(),
 		);
-		// And it can't be slashed after the fact.
-		assert_noop!(KillSwitch::unpause(fellowship(), transfer(), true), Error::<Test>::NotPaused);
+		System::assert_has_event(
+			Event::Settled { target: transfer(), id: 0, slashed: false }.into(),
+		);
+		// A refund doesn't start a cooldown.
+		assert!(!Cooldowns::<Test>::contains_key(transfer()));
+		assert_ok!(KillSwitch::do_try_state());
+	});
+}
+
+#[test]
+fn can_slash_a_pause_after_it_ended() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
+		assert_ok!(KillSwitch::extend(RuntimeOrigin::signed(2), transfer()));
+		run_to_relay(1 + 2 * PAUSE_DURATION);
+		assert!(transfer_works());
+		assert_eq!((held(1), held(2)), (DEPOSIT, DEPOSIT));
+
+		// The Fellowship takes its time, then decides it was abuse.
+		RelayBlock::set(100);
+		assert_ok!(KillSwitch::settle(fellowship(), 0, true));
+		assert_eq!((held(1), held(2)), (0, 0));
+		assert_eq!(Balances::free_balance(1), 1_000 - DEPOSIT);
+		assert_eq!(Balances::free_balance(TREASURY), 2 * DEPOSIT);
+		System::assert_has_event(
+			Event::Settled { target: transfer(), id: 0, slashed: true }.into(),
+		);
+
+		// The cooldown runs from the slash, not from when the pause ended.
+		System::assert_has_event(
+			Event::CooldownStarted { target: transfer(), until: 100 + COOLDOWN }.into(),
+		);
+		for target in [transfer(), call("transfer_allow_death")] {
+			assert_noop!(
+				KillSwitch::pause(RuntimeOrigin::signed(3), target),
+				Error::<Test>::InCooldown
+			);
+		}
+		assert_ok!(KillSwitch::do_try_state());
+	});
+}
+
+#[test]
+fn fails_to_settle() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(KillSwitch::settle(fellowship(), 0, false), Error::<Test>::NothingToSettle);
+
+		// Still active, that's what `unpause` is for.
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
+		assert_noop!(KillSwitch::settle(fellowship(), 0, false), Error::<Test>::NothingToSettle);
+
+		run_to_relay(1 + PAUSE_DURATION);
+		assert_noop!(
+			KillSwitch::settle(RuntimeOrigin::signed(1), 0, false),
+			DispatchError::BadOrigin
+		);
+		assert_ok!(KillSwitch::settle(fellowship(), 0, false));
+		assert_noop!(KillSwitch::settle(fellowship(), 0, true), Error::<Test>::NothingToSettle);
+
+		// A timed Root pause has no deposits, so there's nothing left behind.
+		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), burn(), Some(20)));
+		run_to_relay(20);
+		assert!(KillSwitch::ended_pauses().is_empty());
+		assert_ok!(KillSwitch::do_try_state());
+	});
+}
+
+#[test]
+fn can_pause_again_before_settling() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
+		run_to_relay(1 + PAUSE_DURATION);
+
+		// The locked deposit doesn't stand in the way of a new pause.
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), transfer()));
+		assert!(!transfer_works());
+		assert_eq!(Pauses::<Test>::get(transfer()).unwrap().id, 1);
+		assert_ok!(KillSwitch::do_try_state());
+
+		// Settling the old one doesn't touch the new one.
+		assert_ok!(KillSwitch::settle(fellowship(), 0, false));
+		assert!(!transfer_works());
+		assert_eq!((held(1), held(2)), (0, DEPOSIT));
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }
@@ -407,6 +498,29 @@ fn unpause_with_slash_starts_cooldown() {
 }
 
 #[test]
+fn slash_never_shortens_a_cooldown() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
+		assert_ok!(KillSwitch::unpause(fellowship(), transfer(), true));
+		assert_eq!(Cooldowns::<Test>::get(call("transfer_allow_death")), Some(1 + COOLDOWN));
+
+		// Governance shortens the cooldown, then another group with the same call gets slashed.
+		CooldownLength::set(2);
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), group(Group::Money)));
+		assert_ok!(KillSwitch::unpause(fellowship(), group(Group::Money), true));
+		assert_eq!(Cooldowns::<Test>::get(group(Group::Money)), Some(3));
+
+		// The call keeps its longer cooldown.
+		RelayBlock::set(5);
+		assert_eq!(Cooldowns::<Test>::get(call("transfer_allow_death")), Some(1 + COOLDOWN));
+		assert_noop!(
+			KillSwitch::pause(RuntimeOrigin::signed(3), call("transfer_allow_death")),
+			Error::<Test>::InCooldown
+		);
+	});
+}
+
+#[test]
 fn root_can_pause_during_cooldown() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
@@ -506,11 +620,14 @@ fn new_pause_only_settles_its_own_deposits() {
 		run_to_relay(1 + PAUSE_DURATION);
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), transfer()));
 
-		// The first pause ran out and was refunded, slashing the new one only hits its depositor.
+		// The first pause ran out, slashing the new one only hits its depositor.
 		assert_ok!(KillSwitch::unpause(fellowship(), transfer(), true));
-		assert_eq!(Balances::free_balance(1), 1_000);
+		assert_eq!(held(1), DEPOSIT);
 		assert_eq!(Balances::free_balance(2), 1_000 - DEPOSIT);
 		assert_eq!(Balances::free_balance(TREASURY), DEPOSIT);
+		// And the first one is settled on its own.
+		assert_ok!(KillSwitch::settle(fellowship(), 0, false));
+		assert_eq!(Balances::free_balance(1), 1_000);
 	});
 }
 
@@ -604,7 +721,7 @@ fn can_pause_single_call() {
 
 		run_to_relay(1 + PAUSE_DURATION);
 		assert!(transfer_works());
-		assert_eq!(held(1), 0);
+		assert_eq!(held(1), DEPOSIT);
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }
@@ -785,12 +902,13 @@ fn zero_turns_pausing_off() {
 			Error::<Test>::NotPausable
 		);
 		assert!(KillSwitch::pause_groups().iter().all(|info| info.deposit.is_none()));
-		// Paused before it was turned off, still ends normally and gets refunded.
+		// Paused before it was turned off, still ends normally and can be refunded.
 		assert_noop!(
 			KillSwitch::extend(RuntimeOrigin::signed(2), transfer()),
 			Error::<Test>::NotPausable
 		);
 		run_to_relay(1 + PAUSE_DURATION);
+		assert_ok!(KillSwitch::settle(fellowship(), 0, false));
 		assert_eq!(held(1), 0);
 
 		// Root can still pause.
