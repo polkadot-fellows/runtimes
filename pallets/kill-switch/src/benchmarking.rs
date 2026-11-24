@@ -87,14 +87,11 @@ mod benchmarks {
 		let target = target::<T>();
 		let who = funded_account::<T>("pauser", 0);
 		fill_queue::<T>(1);
-		// Worst case: an old cooldown has to be cleaned up.
-		Cooldowns::<T>::insert(&target, BlockNumberOf::<T>::from(10u32));
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(who), target.clone());
 
 		assert!(Pauses::<T>::contains_key(&target));
-		assert!(!Cooldowns::<T>::contains_key(&target));
 	}
 
 	#[benchmark]
@@ -118,7 +115,7 @@ mod benchmarks {
 		fill_queue::<T>(0);
 		let origin = admin_origin::<T>(AdminAction::Unpause(target.clone()))?;
 
-		// Slashing is the more expensive path, it also starts the cooldown.
+		// Slashing is the more expensive path.
 		#[extrinsic_call]
 		_(origin as T::RuntimeOrigin, target.clone(), true);
 
@@ -191,8 +188,7 @@ mod benchmarks {
 		assert!(EndedPauses::<T>::contains_key(pause_id));
 	}
 
-	/// Settling an ended pause with `d` deposits. Slashing is the more expensive path, it also
-	/// starts the cooldown.
+	/// Settling an ended pause with `d` deposits. Slashing is the more expensive path.
 	#[benchmark]
 	fn settle(d: Linear<1, { T::MaxDepositsPerPause::get() }>) -> Result<(), BenchmarkError> {
 		set_relay_block::<T>(10);

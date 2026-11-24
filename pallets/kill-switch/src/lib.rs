@@ -31,13 +31,12 @@
 //! - [`Call::extend`]: anyone. Holds another deposit and pushes the end out by another
 //!   [`Config::PauseDuration`].
 //! - [`Call::unpause`]: [`Config::AdminOrigin`]. Ends the pause and slashes or refunds every
-//!   deposit behind it. A slash also puts the target on cooldown for [`Config::Cooldown`], along
-//!   with each of its calls on its own, so it can't be paused again right away.
+//!   deposit behind it.
 //! - [`Call::force_extend`]: [`Config::AdminOrigin`]. Moves the end of a pause.
-//! - [`Call::force_pause`]: [`Config::AdminOrigin`]. No deposit and no cooldown check. Takes over a
-//!   pause someone paid for and refunds it. Only whoever can start such a pause can end or move it.
+//! - [`Call::force_pause`]: [`Config::AdminOrigin`]. No deposit. Takes over a pause someone paid
+//!   for and refunds it. Only whoever can start such a pause can end or move it.
 //! - [`Call::settle`]: [`Config::AdminOrigin`]. Refunds or slashes the deposits of a pause that ran
-//!   out by itself. A slash starts the same cooldown as [`Call::unpause`].
+//!   out by itself.
 //!
 //! [`Config::AdminOrigin`] gets told what the caller wants to do as an [`AdminAction`], so the
 //! runtime decides who can do what. Usually the Fellowship can unpause and extend, and Root can do
@@ -192,8 +191,6 @@ pub struct PauseInfo<T: Config> {
 pub struct EndedPause<T: Config> {
 	/// What was paused.
 	pub target: TargetOf<T>,
-	/// The calls it held, for the cooldown if it gets slashed.
-	pub calls: CallsOf<T>,
 	/// The deposits still on hold. Never empty.
 	pub deposits: BoundedVec<Deposit<T>, T::MaxDepositsPerPause>,
 }
@@ -271,15 +268,12 @@ pub mod pallet {
 		/// Who can unpause, extend without a deposit, and force pause. See [`AdminAction`].
 		type AdminOrigin: EnsureOriginWithArg<Self::RuntimeOrigin, AdminAction<TargetOf<Self>>>;
 
-		/// Measures time for pauses and cooldowns.
+		/// Measures time for pauses.
 		type BlockNumberProvider: BlockNumberProvider;
 
 		/// How long a pause lasts, and how much each [`Call::extend`] adds. Zero means nothing can
 		/// be paused with a deposit.
 		type PauseDuration: Get<BlockNumberOf<Self>>;
-
-		/// How long the calls of a pause can't be paused again after an unpause with slash.
-		type Cooldown: Get<BlockNumberOf<Self>>;
 
 		/// How many calls one group can pause.
 		#[pallet::constant]
@@ -333,10 +327,6 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type EndedPauses<T: Config> = StorageMap<_, Twox64Concat, PauseId, EndedPause<T>>;
 
-	/// Targets that can't be paused until the given block, except by [`Call::force_pause`].
-	#[pallet::storage]
-	pub type Cooldowns<T: Config> = StorageMap<_, Blake2_128Concat, TargetOf<T>, BlockNumberOf<T>>;
-
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -351,8 +341,6 @@ pub mod pallet {
 		Expired { target: TargetOf<T>, id: PauseId },
 		/// The deposits of a pause that ran out were refunded or slashed.
 		Settled { target: TargetOf<T>, id: PauseId, slashed: bool },
-		/// `target` and each of its calls can't be paused again until `until`.
-		CooldownStarted { target: TargetOf<T>, until: BlockNumberOf<T> },
 		/// A deposit was put on hold.
 		DepositHeld { target: TargetOf<T>, who: T::AccountId, amount: BalanceOf<T> },
 		/// A deposit was given back.
@@ -369,8 +357,6 @@ pub mod pallet {
 		AlreadyPaused,
 		/// The target isn't paused.
 		NotPaused,
-		/// A pause of this target was slashed recently, it can't be paused again yet.
-		InCooldown,
 		/// The pause has no end. It only ends through `unpause`.
 		OpenEnded,
 		/// The pause already ran out, it just hasn't been cleaned up yet.
@@ -441,10 +427,6 @@ pub mod pallet {
 			let now = T::BlockNumberProvider::current_block_number();
 
 			ensure!(!Pauses::<T>::contains_key(&target), Error::<T>::AlreadyPaused);
-			if let Some(end) = Cooldowns::<T>::get(&target) {
-				ensure!(now >= end, Error::<T>::InCooldown);
-				Cooldowns::<T>::remove(&target);
-			}
 			let calls = Self::calls_to_pause(&target)?;
 
 			let deposit = Self::hold_deposit(&who, &target)?;
@@ -488,9 +470,8 @@ pub mod pallet {
 
 		/// End a pause and slash or refund every deposit behind it.
 		///
-		/// A slash also puts `target` and each of its calls on cooldown for [`Config::Cooldown`].
-		/// Only the calls on their own, so a cheap single call that gets slashed can't block the
-		/// groups it's in.
+		/// Anyone can pause `target` again right away. There is no cooldown on purpose: it would
+		/// let someone get slashed on purpose to keep everyone else from pausing a real problem.
 		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::unpause(T::MaxDepositsPerPause::get()))]
 		pub fn unpause(
@@ -498,17 +479,12 @@ pub mod pallet {
 			target: TargetOf<T>,
 			slash: bool,
 		) -> DispatchResultWithPostInfo {
-			let now = T::BlockNumberProvider::current_block_number();
-
 			let pause = Pauses::<T>::get(&target).ok_or(Error::<T>::NotPaused)?;
 			Self::ensure_admin(origin, &pause, AdminAction::Unpause(target.clone()))?;
-			// A forced pause has no deposit, so there's nothing to slash and no cooldown.
+			// A forced pause has no deposit, so there's nothing to slash.
 			let slash = slash && !pause.deposits.is_empty();
 			Self::do_unpause(&target, &pause);
 			Self::settle_deposits(&target, &pause.deposits, slash);
-			if slash {
-				Self::start_cooldown(&target, &pause.calls, now);
-			}
 
 			Self::deposit_event(Event::Unpaused { target, slashed: slash });
 			Ok(Some(T::WeightInfo::unpause(pause.deposits.len() as u32)).into())
@@ -573,9 +549,6 @@ pub mod pallet {
 		}
 
 		/// Refund or slash the deposits of the pause `id`, which ran out by itself.
-		///
-		/// A slash also starts the cooldown, like [`Call::unpause`] does. It runs from now, not
-		/// from when the pause ended.
 		#[pallet::call_index(5)]
 		#[pallet::weight(T::WeightInfo::settle(T::MaxDepositsPerPause::get()))]
 		pub fn settle(
@@ -585,13 +558,9 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let ended = EndedPauses::<T>::get(id).ok_or(Error::<T>::NothingToSettle)?;
 			T::AdminOrigin::ensure_origin(origin, &AdminAction::Settle(ended.target.clone()))?;
-			let now = T::BlockNumberProvider::current_block_number();
 
 			EndedPauses::<T>::remove(id);
 			Self::settle_deposits(&ended.target, &ended.deposits, slash);
-			if slash {
-				Self::start_cooldown(&ended.target, &ended.calls, now);
-			}
 
 			Self::deposit_event(Event::Settled { target: ended.target, id, slashed: slash });
 			Ok(Some(T::WeightInfo::settle(ended.deposits.len() as u32)).into())
@@ -614,27 +583,6 @@ impl<T: Config> Pallet<T> {
 		};
 		T::AdminOrigin::ensure_origin(origin, &action)?;
 		Ok(())
-	}
-
-	/// Puts `target` and each of its calls on cooldown, if there is one.
-	///
-	/// A cooldown that already runs longer is kept, so a slash after governance lowered
-	/// [`Config::Cooldown`] can't cut an earlier one short.
-	fn start_cooldown(target: &TargetOf<T>, calls: &CallsOf<T>, now: BlockNumberOf<T>) {
-		let cooldown = T::Cooldown::get();
-		if cooldown.is_zero() {
-			return;
-		}
-		let until = now.saturating_add(cooldown);
-		let extend = |key: TargetOf<T>| {
-			Cooldowns::<T>::mutate(key, |end| *end = Some(end.map_or(until, |end| end.max(until))));
-		};
-		extend(target.clone());
-		// Otherwise the same calls could be paused again one by one.
-		for call in calls.iter() {
-			extend(Target::Call(call.clone()));
-		}
-		Self::deposit_event(Event::CooldownStarted { target: target.clone(), until });
 	}
 
 	/// Every pause that ran out and still waits for [`Call::settle`], by id. For the runtime API.
@@ -827,11 +775,7 @@ impl<T: Config> Pallet<T> {
 		if !pause.deposits.is_empty() {
 			EndedPauses::<T>::insert(
 				pause.id,
-				EndedPause {
-					target: target.clone(),
-					calls: pause.calls.clone(),
-					deposits: pause.deposits.clone(),
-				},
+				EndedPause { target: target.clone(), deposits: pause.deposits.clone() },
 			);
 		}
 		Self::deposit_event(Event::Expired { target: target.clone(), id: pause.id });

@@ -76,7 +76,6 @@ impl pallet_tx_pause::Config for Test {
 pub const DEPOSIT: u64 = 100;
 pub const TREASURY: u64 = 1000;
 pub const PAUSE_DURATION: u64 = 10;
-pub const COOLDOWN: u64 = 20;
 pub const MAX_DEPOSITS: u32 = 3;
 pub const MAX_CALLS: u32 = 2;
 pub const CALL_DEPOSIT: u64 = 50;
@@ -166,7 +165,6 @@ parameter_types! {
 	pub static GroupDeposit: u64 = DEPOSIT;
 	pub static CallDepositAmount: u64 = CALL_DEPOSIT;
 	pub static PauseLength: u64 = PAUSE_DURATION;
-	pub static CooldownLength: u64 = COOLDOWN;
 	pub static MoneyUpgraded: bool = false;
 }
 
@@ -236,7 +234,6 @@ impl Config for Test {
 	type AdminOrigin = AdminOrigin;
 	type BlockNumberProvider = MockRelay;
 	type PauseDuration = PauseLength;
-	type Cooldown = CooldownLength;
 	type MaxCallsPerTarget = ConstU32<MAX_CALLS>;
 	type MaxDepositsPerPause = ConstU32<MAX_DEPOSITS>;
 	type MaxActivePauses = ConstU32<MAX_ACTIVE_PAUSES>;

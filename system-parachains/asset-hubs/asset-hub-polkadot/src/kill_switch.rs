@@ -304,7 +304,6 @@ impl pallet_kill_switch::Config for Runtime {
 	type AdminOrigin = KillSwitchAdmin;
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type PauseDuration = dynamic_params::kill_switch::PauseDuration;
-	type Cooldown = dynamic_params::kill_switch::Cooldown;
 	type MaxCallsPerTarget = ConstU32<16>;
 	type MaxDepositsPerPause = ConstU32<10>;
 	// The 4 groups, the rest is for single calls.

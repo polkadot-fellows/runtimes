@@ -1582,9 +1582,6 @@ pub mod dynamic_params {
 		/// How long a pause lasts, and how much each extension adds. In relay chain blocks.
 		#[codec(index = 5)]
 		pub static PauseDuration: BlockNumber = RC_DAYS;
-		/// How long a slashed target can't be paused again. In relay chain blocks.
-		#[codec(index = 6)]
-		pub static Cooldown: BlockNumber = 7 * RC_DAYS;
 	}
 }
 

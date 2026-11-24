@@ -193,8 +193,6 @@ fn pause_expires_and_deposit_stays_locked() {
 		System::assert_has_event(
 			Event::Settled { target: transfer(), id: 0, slashed: false }.into(),
 		);
-		// A refund doesn't start a cooldown.
-		assert!(!Cooldowns::<Test>::contains_key(transfer()));
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }
@@ -218,16 +216,6 @@ fn can_slash_a_pause_after_it_ended() {
 			Event::Settled { target: transfer(), id: 0, slashed: true }.into(),
 		);
 
-		// The cooldown runs from the slash, not from when the pause ended.
-		System::assert_has_event(
-			Event::CooldownStarted { target: transfer(), until: 100 + COOLDOWN }.into(),
-		);
-		for target in [transfer(), call("transfer_allow_death")] {
-			assert_noop!(
-				KillSwitch::pause(RuntimeOrigin::signed(3), target),
-				Error::<Test>::InCooldown
-			);
-		}
 		assert_ok!(KillSwitch::do_try_state());
 	});
 }
@@ -465,7 +453,7 @@ fn fails_to_extend() {
 }
 
 #[test]
-fn unpause_with_slash_starts_cooldown() {
+fn can_pause_again_right_after_a_slash() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
 		assert_ok!(KillSwitch::extend(RuntimeOrigin::signed(2), transfer()));
@@ -477,61 +465,19 @@ fn unpause_with_slash_starts_cooldown() {
 		assert_eq!(Balances::free_balance(1), 1_000 - DEPOSIT);
 		assert_eq!(Balances::free_balance(TREASURY), 2 * DEPOSIT);
 		assert!(Expiries::<Test>::get().is_empty());
-		System::assert_has_event(
-			Event::CooldownStarted { target: transfer(), until: 1 + COOLDOWN }.into(),
-		);
 		System::assert_has_event(Event::Unpaused { target: transfer(), slashed: true }.into());
 
-		// Nobody can pause it again until the cooldown is over, not even its call on its own.
-		for target in [transfer(), call("transfer_allow_death")] {
-			assert_noop!(
-				KillSwitch::pause(RuntimeOrigin::signed(3), target),
-				Error::<Test>::InCooldown
-			);
-		}
-		// Another group with the same call is still fine.
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(3), group(Group::Money)));
-		RelayBlock::set(1 + COOLDOWN);
+		// A slash doesn't block anyone. Otherwise someone could get slashed on purpose and keep
+		// everyone else from pausing while they use a real bug.
+		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(3), call("transfer_allow_death")));
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(3), transfer()));
-		assert!(!Cooldowns::<Test>::contains_key(transfer()));
-	});
-}
-
-#[test]
-fn slash_never_shortens_a_cooldown() {
-	new_test_ext().execute_with(|| {
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
-		assert_ok!(KillSwitch::unpause(fellowship(), transfer(), true));
-		assert_eq!(Cooldowns::<Test>::get(call("transfer_allow_death")), Some(1 + COOLDOWN));
-
-		// Governance shortens the cooldown, then another group with the same call gets slashed.
-		CooldownLength::set(2);
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), group(Group::Money)));
-		assert_ok!(KillSwitch::unpause(fellowship(), group(Group::Money), true));
-		assert_eq!(Cooldowns::<Test>::get(group(Group::Money)), Some(3));
-
-		// The call keeps its longer cooldown.
-		RelayBlock::set(5);
-		assert_eq!(Cooldowns::<Test>::get(call("transfer_allow_death")), Some(1 + COOLDOWN));
-		assert_noop!(
-			KillSwitch::pause(RuntimeOrigin::signed(3), call("transfer_allow_death")),
-			Error::<Test>::InCooldown
-		);
-	});
-}
-
-#[test]
-fn root_can_pause_during_cooldown() {
-	new_test_ext().execute_with(|| {
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
-		assert_ok!(KillSwitch::unpause(fellowship(), transfer(), true));
-		assert_ok!(KillSwitch::force_pause(RuntimeOrigin::root(), transfer(), Some(5)));
 		assert!(!transfer_works());
+		assert_ok!(KillSwitch::do_try_state());
 	});
 }
 
 #[test]
-fn unpause_with_refund_has_no_cooldown() {
+fn can_pause_again_right_after_a_refund() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
 		assert_ok!(KillSwitch::unpause(RuntimeOrigin::root(), transfer(), false));
@@ -539,7 +485,6 @@ fn unpause_with_refund_has_no_cooldown() {
 		assert!(transfer_works());
 		assert_eq!(held(1), 0);
 		assert_eq!(Balances::free_balance(1), 1_000);
-		assert!(!Cooldowns::<Test>::contains_key(transfer()));
 
 		// If the problem comes back, anyone can pause right away.
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), transfer()));
@@ -750,22 +695,6 @@ fn single_call_price() {
 }
 
 #[test]
-fn slashed_call_does_not_block_its_groups() {
-	new_test_ext().execute_with(|| {
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), call("transfer_allow_death")));
-		assert_ok!(KillSwitch::unpause(fellowship(), call("transfer_allow_death"), true));
-
-		assert_noop!(
-			KillSwitch::pause(RuntimeOrigin::signed(2), call("transfer_allow_death")),
-			Error::<Test>::InCooldown
-		);
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), transfer()));
-		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(2), group(Group::Money)));
-		assert_ok!(KillSwitch::do_try_state());
-	});
-}
-
-#[test]
 fn calls_can_extend_with_every_group_paused() {
 	new_test_ext().execute_with(|| {
 		// Groups first, then single calls in what's left.
@@ -931,7 +860,7 @@ fn slashing_a_forced_pause_does_nothing_extra() {
 		assert_ok!(KillSwitch::unpause(RuntimeOrigin::root(), transfer(), true));
 
 		System::assert_has_event(Event::Unpaused { target: transfer(), slashed: false }.into());
-		assert_eq!(Cooldowns::<Test>::iter().count(), 0);
+		assert_eq!(Balances::free_balance(TREASURY), 0);
 		assert_ok!(KillSwitch::pause(RuntimeOrigin::signed(1), transfer()));
 	});
 }

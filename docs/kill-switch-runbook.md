@@ -47,7 +47,7 @@ Whitelisted Caller track, which takes about 2 days even under pressure (see belo
 - **Root:** everything the Fellowship can do, plus `force_pause`, which needs no deposit and can
   have no end. Only Root can end or move a forced pause.
 
-All values (deposits, pause length, cooldown) are parameters only Root can set. The kill switch
+All values (deposits, pause length) are parameters only Root can set. The kill switch
 ships with every deposit at 0, which means only Root can pause until a referendum sets them.
 
 ## Expected reaction times
@@ -93,8 +93,9 @@ without one person having to fund all of it.
    instead runs out or gets unpaused by the fix, **put the refund (`settle` or `unpause` without
    slash) in the same proposal as the fix**, so nobody has to remember it later.
 3. **False positive.** `unpause` with a refund. The deposits come back right away.
-4. **Malicious or griefing.** `unpause` with a slash. The slashed deposit goes to the DAP, and
-   the target and each of its calls go on cooldown.
+4. **Malicious or griefing.** `unpause` with a slash. The slashed deposit goes to the DAP. Anyone
+   can pause the same thing again right away, there is no cooldown on purpose: it would let
+   someone get slashed on purpose to keep everyone else from pausing a real problem.
 5. **Not sure yet.** Let it run out. The calls work again, but the deposits stay locked and
    slashable until someone calls `settle(id, slash)`, with the id from the `Expired` event. There's
    no deadline, so take the time to look into it.
