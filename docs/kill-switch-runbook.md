@@ -3,8 +3,8 @@
 What to do when something on Asset Hub Polkadot gets paused through the kill switch
 (`pallet-kill-switch`), who does what, and how long each step is expected to take.
 
-> Draft. The Fellowship and fix times below come from past fix referenda. The W3F / Parity time is
-> still an assumption until they confirm it.
+> Draft. The Fellowship and fix times below come from past fix referenda. W3F or Parity funding
+> extensions is not agreed, it's being checked with both.
 
 ## What can be paused
 
@@ -55,8 +55,8 @@ ships with every deposit at 0, which means only Root can pause until a referendu
 | Who                     | Step                                                        | Expected time        |
 | ----------------------- | ----------------------------------------------------------- | -------------------- |
 | anyone                  | spots the issue and pauses                                  | minutes              |
-| W3F / Parity            | notice and keep it going with their own `extend` deposits   | ~12h (assumption)    |
-| Fellowship              | vote to extend, unpause or settle                           | ~1 to 1.5 days       |
+| Fellowship              | vote to extend (`force_extend`, no deposit), unpause or settle | ~1 to 1.5 days    |
+| W3F / Parity            | may fund extensions with their own deposits                 | not agreed, being checked |
 | Fellowship / Parity     | write and release the fix                                   | depends on the bug   |
 | governance              | fix release to live on-chain                                | ~2 days, 72h target  |
 
@@ -122,8 +122,12 @@ the fix also refunds the deposits behind the pause. The clock starts at the rele
 takes to write the fix depends on the bug, and nobody can put a number on that.
 
 These are targets, not guarantees. The 96 hours leaves about a day for a slower vote or a missing
-large voter. The time W3F and Parity need to start extending with their own deposits (about 12h)
-is not the Fellowship's to promise, it stays an assumption until they confirm it.
+large voter.
+
+Honest long pauses are kept going by the Fellowship with `force_extend`, which needs no deposit.
+The vote takes about a day, so it has to start well before the pause runs out. Whether W3F or
+Parity would also fund extensions with their own deposits isn't agreed, and it's being checked
+with both. Nothing here depends on it.
 
 ## Tips
 
@@ -131,17 +135,27 @@ Whoever puts up a deposit locks a lot of funds and takes the slash risk, and an 
 gets them their own funds back. Anyone can open a Treasury tip for a pause that protected the
 chain. Whether to pay one is up to OpenGov. It isn't a Fellowship commitment.
 
-## Planned changes
+## Before deposits are turned on
 
-Still being discussed on [#1344](https://github.com/polkadot-fellows/runtimes/pull/1344):
+The kill switch ships with every deposit at 0, so only Root can pause. These have to land before
+a referendum turns the deposits on. Without them, someone can keep re-pausing after every slash,
+paying one deposit per Fellowship vote:
 
-- Escalating deposits for long pauses: the Nth period in a row costs `base + (N - 1) * step`,
-  where `step` is a percentage of `base`. Every paid pause and extension counts, whoever pays.
-  Switching to an overlapping group doesn't reset it. It resets once the calls have been
-  unpaused for two full periods.
-- Shorter pause periods (around 6h) once escalation is in.
+- **A Fellowship fast track for lifting pauses.** A low-threshold track open to all rank 3+, so
+  whoever is awake can lift a pause within hours instead of a day or more. Only for lifting and
+  extending, not for slashing or pausing. The slash can wait, the deposits stay locked until
+  `settle`.
+- **Escalating deposits.** The Nth paid period in a row costs `base + (N - 1) * step`, where
+  `step` is a percentage of `base`. Every paid pause and extension counts, whoever pays, and so
+  does pausing again right after a slash. Switching to an overlapping group doesn't reset it. It
+  resets once the calls have been unpaused for two full periods. Since the Fellowship extends
+  honest long pauses for free, this only hits whoever keeps paying to extend, so it can be steep.
+  It also replaces the cooldown this pallet used to have, which could be used to block pausing.
+- **Shorter pause periods** (around 6h) once escalation is in.
 
-Proposed cost of keeping a 10k group paused with 6h periods:
+Both are follow-ups to [#1344](https://github.com/polkadot-fellows/runtimes/pull/1344).
+
+What someone extending on their own money would pay to keep a 10k group paused with 6h periods:
 
 | step | first 12h | 3 days (12 periods) | 4.5 days (18 periods) |
 | ---- | --------- | ------------------- | --------------------- |
@@ -150,8 +164,9 @@ Proposed cost of keeping a 10k group paused with 6h periods:
 | 100% | 30k       | 780k                | 1.71M                 |
 
 These are deposits, not fees. An honest pause gets them back, so the cost is mostly the lockup.
-The first 12h is meant to be affordable for whoever spots the problem. After that, W3F or
-Parity are expected to pay for the extensions with their own deposits. The first pauser's
-deposit stays locked until the pause is settled.
+The first 12h is meant to be affordable for whoever spots the problem. After that, an honest
+pause is extended by the Fellowship, so these numbers only matter for someone paying to keep it
+going on their own. The first pauser's deposit stays locked until the pause is settled. The step
+gets picked together with the fast track.
 
 This runbook will be updated once these land.
