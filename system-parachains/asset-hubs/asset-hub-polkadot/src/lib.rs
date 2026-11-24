@@ -3082,6 +3082,7 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 		Block,
 		kill_switch::KillSwitchGroup,
 		pallet_tx_pause::RuntimeCallNameOf<Runtime>,
+		AccountId,
 		Balance,
 	> for Runtime {
 		fn pause_groups() -> Vec<
@@ -3096,6 +3097,26 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 
 		fn call_deposit(call: pallet_tx_pause::RuntimeCallNameOf<Runtime>) -> Option<Balance> {
 			KillSwitch::call_deposit(&call)
+		}
+
+		fn ended_pauses() -> Vec<
+			pallet_kill_switch::runtime_api::EndedPauseInfo<
+				pallet_kill_switch::Target<
+					kill_switch::KillSwitchGroup,
+					pallet_tx_pause::RuntimeCallNameOf<Runtime>,
+				>,
+				AccountId,
+				Balance,
+			>,
+		> {
+			KillSwitch::ended_pauses()
+				.into_iter()
+				.map(|(id, ended)| pallet_kill_switch::runtime_api::EndedPauseInfo {
+					id,
+					target: ended.target,
+					deposits: ended.deposits.into_iter().map(|d| (d.who, d.amount)).collect(),
+				})
+				.collect()
 		}
 	}
 
