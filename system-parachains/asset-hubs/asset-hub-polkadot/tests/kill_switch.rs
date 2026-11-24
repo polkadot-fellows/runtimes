@@ -22,16 +22,21 @@ use asset_hub_polkadot_runtime::{
 	RuntimeOrigin, SessionKeys, TxPause,
 };
 use asset_test_utils::{ExtBuilder, RuntimeHelper};
+use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use frame_support::{
 	assert_noop, assert_ok,
 	traits::{
 		fungible::{InspectHold, Mutate},
-		Contains,
+		Contains, Hooks,
 	},
+	weights::WeightMeter,
 };
-use pallet_kill_switch::{Target, TargetOf};
+use pallet_kill_switch::{Pauses, Target, TargetOf};
 use parachains_common::{AccountId, AssetHubPolkadotAuraId as AuraId};
-use sp_runtime::{traits::Dispatchable, DispatchError};
+use sp_runtime::{
+	traits::{BlockNumberProvider, Dispatchable},
+	DispatchError,
+};
 use system_parachains_constants::polkadot::currency::UNITS;
 use xcm::latest::prelude::*;
 
@@ -163,6 +168,38 @@ fn fellowship_can_slash_over_xcm() {
 		assert_ok!(KillSwitch::unpause(fellowship(), group(KillSwitchGroup::Psm), true));
 		assert_eq!(held(&alice), 0);
 		assert_eq!(Balances::free_balance(&alice), free - 10_000 * UNITS);
+	});
+}
+
+#[test]
+fn fellowship_settles_a_pause_that_ran_out() {
+	test_ext().execute_with(|| {
+		let alice = funded_alice();
+		let free = Balances::free_balance(&alice);
+		RelaychainDataProvider::<Runtime>::set_block_number(1);
+		assert_ok!(KillSwitch::pause(
+			TestRuntimeHelper::origin_of(alice.clone()),
+			group(KillSwitchGroup::Psm)
+		));
+		let pause = Pauses::<Runtime>::get(group(KillSwitchGroup::Psm)).unwrap();
+
+		// Nobody ends it, so it runs out.
+		RelaychainDataProvider::<Runtime>::set_block_number(pause.until.unwrap());
+		KillSwitch::on_poll(1, &mut WeightMeter::new());
+		assert!(Pauses::<Runtime>::get(group(KillSwitchGroup::Psm)).is_none());
+
+		// The deposit stays locked until the Fellowship looks at it.
+		assert_eq!(held(&alice), 10_000 * UNITS);
+		assert_eq!(KillSwitch::ended_pauses().len(), 1);
+		assert_noop!(
+			KillSwitch::settle(TestRuntimeHelper::origin_of(AccountId::from(BOB)), pause.id, false),
+			DispatchError::BadOrigin
+		);
+
+		assert_ok!(KillSwitch::settle(fellowship(), pause.id, false));
+		assert_eq!(held(&alice), 0);
+		assert_eq!(Balances::free_balance(&alice), free);
+		assert!(KillSwitch::ended_pauses().is_empty());
 	});
 }
 
