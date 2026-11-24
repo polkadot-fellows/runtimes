@@ -438,6 +438,8 @@ parameter_types! {
 
 impl pallet_staking_async::Config for Runtime {
 	type Filter = ();
+	// TODO: decide a `ChillInactiveThreshold` value. None is stored, so `chill_inactive` is
+	// disabled until governance sets one through `set_staking_configs`.
 	// `chill_inactive` treats a validator as inactive in an era if it earned zero points in every
 	// service, relay chain consensus included.
 	type IsValidatorInactive = pallet_staking_async::AllZero;
@@ -733,62 +735,6 @@ impl frame_support::traits::OnRuntimeUpgrade for InitiateStakingAsync {
 	}
 }
 
-/// Sets `ChillInactiveThreshold` through `set_staking_configs` if none is stored, so the value
-/// meets the same checks as a governance call. polkadot-sdk#13536 removed its default. A value set
-/// by governance is kept.
-pub struct SetChillInactiveThreshold;
-impl SetChillInactiveThreshold {
-	/// Eras, within the last `HistoryDepth`, a validator must be inactive in to be chilled.
-	// TODO: consider raising it to the largest value with margin once re-benchmarked.
-	// Close to 2.6.0, which required every era of `HistoryDepth` (84). The threshold must keep
-	// `chill_inactive` within one normal extrinsic, and the asset-hub-westend weights since
-	// polkadot-sdk#13536 show 84 does not fit.
-	pub const THRESHOLD: u32 = 64;
-}
-impl frame_support::traits::OnRuntimeUpgrade for SetChillInactiveThreshold {
-	fn on_runtime_upgrade() -> Weight {
-		use pallet_staking_async::{
-			ConfigOp::{Noop, Set},
-			WeightInfo as _,
-		};
-
-		let read = <Runtime as frame_system::Config>::DbWeight::get().reads(1);
-		if pallet_staking_async::ChillInactiveThreshold::<Runtime>::exists() {
-			return read;
-		}
-		if let Err(e) = pallet_staking_async::Pallet::<Runtime>::set_staking_configs(
-			frame_system::RawOrigin::Root.into(),
-			Noop,
-			Noop,
-			Noop,
-			Noop,
-			Noop,
-			Noop,
-			Noop,
-			Noop,
-			Set(Self::THRESHOLD),
-		) {
-			log::error!(
-				target: "runtime::asset-hub-polkadot",
-				"Failed to set `ChillInactiveThreshold` to {}: {e:?}",
-				Self::THRESHOLD
-			);
-		}
-		read.saturating_add(
-			<Runtime as pallet_staking_async::Config>::WeightInfo::set_staking_configs_all_set(),
-		)
-	}
-
-	#[cfg(feature = "try-runtime")]
-	fn post_upgrade(_state: Vec<u8>) -> Result<(), sp_runtime::TryRuntimeError> {
-		frame_support::ensure!(
-			pallet_staking_async::ChillInactiveThreshold::<Runtime>::exists(),
-			"no `ChillInactiveThreshold` stored"
-		);
-		Ok(())
-	}
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -823,32 +769,6 @@ mod tests {
 		assert!(is_inactive(&[(RelayConsensus, 0)]));
 		assert!(!is_inactive(&[(RelayConsensus, 1)]));
 		assert!(!is_inactive(&[(RelayConsensus, 0), (Collation, 1)]));
-	}
-
-	/// Covers the `SetChillInactiveThreshold` migration. Remove together with it.
-	#[test]
-	fn set_chill_inactive_threshold_sets_value_if_absent_and_keeps_governance_value() {
-		use frame_support::traits::OnRuntimeUpgrade;
-		use pallet_staking_async::ChillInactiveThreshold;
-
-		sp_io::TestExternalities::new_empty().execute_with(|| {
-			// GIVEN no threshold is stored
-			assert_eq!(ChillInactiveThreshold::<Runtime>::get(), None);
-			// WHEN the upgrade runs
-			SetChillInactiveThreshold::on_runtime_upgrade();
-			// THEN `set_staking_configs` accepted and stored the migration's threshold
-			assert_eq!(
-				ChillInactiveThreshold::<Runtime>::get(),
-				Some(SetChillInactiveThreshold::THRESHOLD)
-			);
-
-			// GIVEN governance set a different threshold
-			ChillInactiveThreshold::<Runtime>::put(10);
-			// WHEN the upgrade runs
-			SetChillInactiveThreshold::on_runtime_upgrade();
-			// THEN the governance value is kept
-			assert_eq!(ChillInactiveThreshold::<Runtime>::get(), Some(10));
-		});
 	}
 
 	// TODO: in the future, make these tests use remote-ext and increase their longevity.

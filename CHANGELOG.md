@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Update all runtimes to `polkadot-sdk` `stable2611` ([#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)).
-- Asset Hub Polkadot and Kusama: the runtime upgrade sets the `chill_inactive` threshold to 64 eras if none is stored. A validator counts as inactive only with zero points in every service ([SDK #13536](https://github.com/paritytech/polkadot-sdk/pull/13536), [#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)).
+- Asset Hub Polkadot and Kusama: `chill_inactive` is disabled until governance sets its threshold. A validator counts as inactive only with zero points in every service ([SDK #13536](https://github.com/paritytech/polkadot-sdk/pull/13536), [#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)).
 
 ## [2.6.0] 18.11.2026
 
