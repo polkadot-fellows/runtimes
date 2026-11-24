@@ -3,8 +3,8 @@
 What to do when something on Asset Hub Polkadot gets paused through the kill switch
 (`pallet-kill-switch`), who does what, and how long each step is expected to take.
 
-> Draft. The reaction times below are assumptions to tune the parameters against. They still need
-> to be confirmed by W3F, Parity and the Fellowship.
+> Draft. The Fellowship and fix times below come from past fix referenda. The W3F / Parity time is
+> still an assumption until they confirm it.
 
 ## What can be paused
 
@@ -35,8 +35,9 @@ during a pause:
 - swaps used to pay transaction fees in a pool asset
 - transfers of pool LP tokens (`PoolAssets`)
 
-If the problem can be reached through one of them, a pause alone won't stop it. Escalate to Root
-right away.
+If the problem can be reached through one of them, a pause alone won't stop it. Raise it with the
+Fellowship right away. Anything only Root can do goes through a Fellowship whitelist and the
+Whitelisted Caller track, which takes about 2 days even under pressure (see below).
 
 ## Who can do what
 
@@ -51,23 +52,43 @@ ships with every deposit at 0, which means only Root can pause until a referendu
 
 ## Expected reaction times
 
-| Who                     | Step                                                       | Expected time |
-| ----------------------- | ---------------------------------------------------------- | ------------- |
-| anyone                  | spots the issue and pauses                                  | minutes       |
-| W3F / Parity            | notice and keep it going with their own `extend` deposits   | ~12h          |
-| Fellowship              | vote to extend or unpause                                   | ~24h          |
-| Fellowship / Parity     | fix released and enacted on-chain                           | ~72h (to check) |
+| Who                     | Step                                                        | Expected time        |
+| ----------------------- | ----------------------------------------------------------- | -------------------- |
+| anyone                  | spots the issue and pauses                                  | minutes              |
+| W3F / Parity            | notice and keep it going with their own `extend` deposits   | ~12h (assumption)    |
+| Fellowship              | vote to extend, unpause or settle                           | ~1 to 1.5 days       |
+| Fellowship / Parity     | write and release the fix                                   | depends on the bug   |
+| governance              | fix release to live on-chain                                | ~2 days, 72h target  |
 
-So a real bug can need a pause of about 3 to 4 days end to end, plus buffer. Pause length,
-extension costs and limits should be tuned so a pause can last that long without one person
-having to fund all of it.
+Every runtime fix goes through a Fellowship whitelist (Fellows track on Collectives) and the
+Whitelisted Caller track on Polkadot, voted side by side. Getting both up after a release takes
+minutes to an hour, and enactment after the votes about ten minutes. The public vote is the
+bottleneck, because its support threshold only drops to normal turnout around day four or five,
+so a fast fix needs a lot of DOT voting early. A plain Root referendum is far too slow for this:
+the only one that passed this year took about a month.
+
+Past urgent fixes, from submission to executed:
+
+| Fix                     | Polkadot (Whitelisted Caller) | Collectives (Fellowship whitelist) |
+| ----------------------- | ----------------------------- | ---------------------------------- |
+| v2.0.7                  | 46.6h (#1840)                 | 44.8h (#476)                       |
+| June fix                | 63.6h (#1914)                 | 33.8h (#569)                       |
+| 2.5.1                   | 38.9h (#1960)                 | 14.2h (#665)                       |
+| dotUSD supply fix       | 52.4h (#1961)                 | 32.8h (#668)                       |
+
+Routine upgrades take closer to five or six days, since nobody pushes turnout.
+
+So a real bug needs a pause of however long the fix takes to write, plus about 2 to 4 days to get
+it live. Pause length, extension costs and limits should be tuned so a pause can last that long
+without one person having to fund all of it.
 
 ## When a pause happens
 
 1. **Check it.** Look at the `Paused` event: who paused, what, and which deposit. Find the
    issue they're reacting to and confirm the paused calls are the right ones.
-2. **Real bug.** Keep it paused. Extend with `force_extend` before it runs out, or take it over
-   with a Root `force_pause` if the fix will take long. Prepare the fix.
+2. **Real bug.** Keep it paused. Extend with `force_extend` before it runs out. A Root
+   `force_pause` takeover also works, but Root means a whitelist and Whitelisted Caller vote, so
+   it's only worth it if it can ride along with the fix. Prepare the fix.
    A Root `force_pause` takeover refunds the deposits behind the pause right away. If the pause
    instead runs out or gets unpaused by the fix, **put the refund (`settle` or `unpause` without
    slash) in the same proposal as the fix**, so nobody has to remember it later.
@@ -89,19 +110,19 @@ to the following.
 **Look at it within 12 hours.** Someone in the Fellowship checks what was paused and why, says
 so in the Fellowship channel, and links the issue being reacted to.
 
-**Decide within 24 hours.** There is a Fellowship vote to extend, unpause with a refund, or
-unpause with a slash. If it's not clear yet whether the pause was honest, the vote can be to
-extend and look further. Nobody should be rushed into a slash.
+**Start a vote within 12 hours, decide within 36, 48 at the latest.** There is a Fellowship vote
+to extend, unpause with a refund, or unpause with a slash. If it's not clear yet whether the pause
+was honest, the vote can be to extend and look further. Nobody should be rushed into a slash.
+Past emergency whitelists took 14 to 45 hours, so 24 hours would be missed more often than not.
 
-**Get the fix enacted on-chain within 72 hours** if the pause was for a real bug. What counts is
-the fix being live, not just voted on. The proposal that enacts the fix also refunds the deposits
-behind the pause. The 72 hours is a working number, to be checked against how long past fix
-referenda actually took before this goes up for a vote.
+**Get the fix live on-chain within 72 hours of its release, 96 at the latest,** if the pause was
+for a real bug. What counts is the fix being live, not just voted on. The proposal that enacts
+the fix also refunds the deposits behind the pause. The clock starts at the release: how long it
+takes to write the fix depends on the bug, and nobody can put a number on that.
 
-These are targets, not guarantees. If one is missed, the fallback is a Root referendum. The
-times W3F and Parity need to start extending with their own deposits (about 12h) are not the
-Fellowship's to promise.
-They're in the table above as assumptions until W3F and Parity confirm them.
+These are targets, not guarantees. The 96 hours leaves about a day for a slower vote or a missing
+large voter. The time W3F and Parity need to start extending with their own deposits (about 12h)
+is not the Fellowship's to promise, it stays an assumption until they confirm it.
 
 ## Tips
 
