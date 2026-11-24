@@ -45,7 +45,7 @@ use frame_support::{
 	parameter_types,
 	traits::{
 		fungible::{HoldConsideration, ItemOf},
-		ConstBool, ConstU128, ConstUint, ConstantStoragePrice, ContainsPair, Get, PalletInfoAccess,
+		ConstBool, ConstUint, ConstantStoragePrice, ContainsPair, Get, PalletInfoAccess,
 	},
 	BoundedVec,
 };
@@ -63,10 +63,7 @@ use indiv_support::{
 };
 use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
 use scale_info::TypeInfo;
-use sp_runtime::{
-	traits::{ConstI8, ConstU16},
-	DispatchError, DispatchResult, MultiSignature,
-};
+use sp_runtime::{traits::ConstI8, DispatchError, DispatchResult, MultiSignature};
 use sp_statement_store::StatementAllowance;
 use system_parachains_constants::polkadot::{
 	consensus::elastic_scaling::{DAYS as PARA_DAYS, MINUTES as PARA_MINUTES},
@@ -338,7 +335,7 @@ impl indiv_pallet_coinage::Config for Runtime {
 	type MinimumExponent = ConstI8<0>;
 	type MaximumExponent = ConstI8<14>;
 	type MinimumExponentForOutputUnloadFee = ConstI8<0>;
-	type MaximumAge = ConstU16<16>;
+	type MaximumAge = parameters::CoinageMaximumAge;
 	type MaxSplitOutputs = ConstU32<32>;
 	type MaxConsolidation = ConstU32<64>;
 	type MaxBatchUnpaidLoad = ConstU32<10>;
@@ -349,12 +346,11 @@ impl indiv_pallet_coinage::Config for Runtime {
 
 	type MembershipProof = People;
 	type UnloadTokenTimePeriodPeopleLitePeople = ConstU32<{ 24 * 60 * 60 }>; // 1 day
-																		  // Free unload token allowance per time period, expressed in DOT (the pallet's native balance,
-																		  // not HOLLAR): 20 DOT for people and 10 DOT for lite people. The fee is dynamic (it follows
-																		  // the fee multiplier), and usage is additionally capped by `MaxFreeUnloadTokensPerTimePeriod`.
-	type UnloadTokenAllowancePerTimePeriodForPeople = ConstU128<{ 20 * UNITS }>;
-	type UnloadTokenAllowancePerTimePeriodForLitePeople = ConstU128<{ 10 * UNITS }>;
-	type MaxFreeUnloadTokensPerTimePeriod = ConstU32<1000>;
+	type UnloadTokenAllowancePerTimePeriodForPeople =
+		parameters::CoinageUnloadTokenAllowancePerTimePeriodForPeople;
+	type UnloadTokenAllowancePerTimePeriodForLitePeople =
+		parameters::CoinageUnloadTokenAllowancePerTimePeriodForLitePeople;
+	type MaxFreeUnloadTokensPerTimePeriod = parameters::CoinageMaxFreeUnloadTokensPerTimePeriod;
 
 	type FeeConversion = AssetConversion;
 	type NativeAssetKind = xcm_config::RelayLocation;

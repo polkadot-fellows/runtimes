@@ -129,14 +129,28 @@ pub mod dynamic_params {
 		pub static MaxLitePeople: u32 = 10_000;
 	}
 
-	/// Coinage deposits, both in DOT.
+	/// Coinage deposits, coin lifetime and free unload token allowances.
 	#[dynamic_pallet_params]
 	#[codec(index = 4)]
 	pub mod coinage {
+		/// Load deposit held per loaded recycler key, in DOT.
 		#[codec(index = 0)]
 		pub static LoadDepositPrice: Balance = UNITS / 10;
+		/// Deposit held from the creator of a sponsored instance, in DOT.
 		#[codec(index = 1)]
 		pub static InstanceCreationDeposit: Balance = 10 * UNITS;
+		/// Number of transfers and splits after which a coin must be recycled.
+		#[codec(index = 2)]
+		pub static MaximumAge: u16 = 16;
+		/// Free unload token budget of a person per time period, in DOT.
+		#[codec(index = 3)]
+		pub static UnloadTokenAllowancePerTimePeriodForPeople: Balance = 20 * UNITS;
+		/// Free unload token budget of a lite person per time period, in DOT.
+		#[codec(index = 4)]
+		pub static UnloadTokenAllowancePerTimePeriodForLitePeople: Balance = 10 * UNITS;
+		/// Upper bound on the free unload tokens per time period, whatever the unload fee.
+		#[codec(index = 5)]
+		pub static MaxFreeUnloadTokensPerTimePeriod: u32 = 1000;
 	}
 
 	/// The external asset that score payouts are denominated in.
@@ -277,6 +291,18 @@ pub type CoinageLoadDepositPrice =
 	AtLeast<dynamic_params::coinage::LoadDepositPrice, frame_support::traits::ConstU128<1>>;
 pub type CoinageInstanceCreationDeposit = dynamic_params::coinage::InstanceCreationDeposit;
 
+/// Coinage maximum coin age, kept at 2 or more: a recycler unloaded into coins yields coins of
+/// age 1, better to let them be transferred once before they have to be recycled.
+pub type CoinageMaximumAge =
+	AtLeast<dynamic_params::coinage::MaximumAge, frame_support::traits::ConstU16<2>>;
+/// Free unload token allowances and cap. Zero is valid and disables free unload tokens.
+pub type CoinageUnloadTokenAllowancePerTimePeriodForPeople =
+	dynamic_params::coinage::UnloadTokenAllowancePerTimePeriodForPeople;
+pub type CoinageUnloadTokenAllowancePerTimePeriodForLitePeople =
+	dynamic_params::coinage::UnloadTokenAllowancePerTimePeriodForLitePeople;
+pub type CoinageMaxFreeUnloadTokensPerTimePeriod =
+	dynamic_params::coinage::MaxFreeUnloadTokensPerTimePeriod;
+
 /// Routes each parameter key to the origin allowed to set it. Every key is listed so that a new
 /// one fails to compile until routed.
 pub struct DynamicParameterOrigin;
@@ -334,14 +360,19 @@ impl EnsureOriginWithArg<RuntimeOrigin, RuntimeParametersKey> for DynamicParamet
 				origin.clone(),
 			)
 			.map(|_| ()),
-			// Where the chain sends data, what coinage costs, what score pays out in, and which
+			// Where the chain sends data, the coinage settings, what score pays out in, and which
 			// account funds airdrop prizes.
 			RuntimeParametersKey::BulletinStorage(
 				BulletinStorageKey::BulletinChainLocation(_) |
 				BulletinStorageKey::BulletinTransactionStoragePalletIndex(_),
 			) |
 			RuntimeParametersKey::Coinage(
-				CoinageKey::LoadDepositPrice(_) | CoinageKey::InstanceCreationDeposit(_),
+				CoinageKey::LoadDepositPrice(_) |
+				CoinageKey::InstanceCreationDeposit(_) |
+				CoinageKey::MaximumAge(_) |
+				CoinageKey::UnloadTokenAllowancePerTimePeriodForPeople(_) |
+				CoinageKey::UnloadTokenAllowancePerTimePeriodForLitePeople(_) |
+				CoinageKey::MaxFreeUnloadTokensPerTimePeriod(_),
 			) |
 			RuntimeParametersKey::ExternalAsset(ExternalAssetKey::AssetLocation(_)) |
 			RuntimeParametersKey::PeopleAirdrops(PeopleAirdropsKey::PrizeSource(_)) |

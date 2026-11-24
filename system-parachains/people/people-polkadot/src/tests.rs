@@ -727,6 +727,10 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 		ExternalAsset(external_asset::AssetLocation.into()),
 		PeopleAirdrops(people_airdrops::PrizeSource.into()),
 		Game(game::AirdropSource.into()),
+		Coinage(coinage::MaximumAge.into()),
+		Coinage(coinage::UnloadTokenAllowancePerTimePeriodForPeople.into()),
+		Coinage(coinage::UnloadTokenAllowancePerTimePeriodForLitePeople.into()),
+		Coinage(coinage::MaxFreeUnloadTokensPerTimePeriod.into()),
 	];
 
 	// THEN Root passes all, the voice only the operational keys.
@@ -755,7 +759,7 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 			),
 		));
 		assert_eq!(<statement_storage::StmtStoreSlotsPerPeriod as Get<u32>>::get(), 40);
-		// The coinage deposits are Root only, so the voice is refused.
+		// The coinage settings are Root only, so the voice is refused.
 		assert_noop!(
 			Parameters::set_parameter(
 				technical_maintenance,
@@ -766,6 +770,67 @@ fn dynamic_parameter_origin_routes_keys_by_scope() {
 			),
 			DispatchError::BadOrigin,
 		);
+	});
+}
+
+#[test]
+fn coinage_parameters_reach_the_pallet() {
+	use crate::{
+		parameters::{dynamic_params::coinage, RuntimeParameters},
+		xcm_config::RelayLocation,
+		Coinage, Parameters, RuntimeGenesisConfig, UNITS,
+	};
+	use sp_runtime::BuildStorage;
+
+	let set = |parameter| {
+		assert_ok!(Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			RuntimeParameters::Coinage(parameter)
+		));
+	};
+
+	let mut ext = sp_io::TestExternalities::new(
+		RuntimeGenesisConfig::default().build_storage().expect("runtime genesis builds"),
+	);
+	ext.execute_with(|| {
+		// GIVEN the defaults.
+		assert_eq!(Coinage::get_load_deposit(), (RelayLocation::get(), UNITS / 10));
+		assert_eq!(Coinage::get_maximum_age(), 16);
+		assert_eq!(Coinage::get_unload_token_allowance_per_time_period_for_people(), 20 * UNITS);
+		assert_eq!(
+			Coinage::get_unload_token_allowance_per_time_period_for_lite_people(),
+			10 * UNITS
+		);
+		assert_eq!(Coinage::get_max_free_unload_tokens_per_time_period(), 1000);
+
+		// WHEN Root sets each parameter.
+		set(coinage::Parameters::LoadDepositPrice(coinage::LoadDepositPrice, Some(UNITS)));
+		set(coinage::Parameters::MaximumAge(coinage::MaximumAge, Some(32)));
+		set(coinage::Parameters::UnloadTokenAllowancePerTimePeriodForPeople(
+			coinage::UnloadTokenAllowancePerTimePeriodForPeople,
+			Some(40 * UNITS),
+		));
+		set(coinage::Parameters::UnloadTokenAllowancePerTimePeriodForLitePeople(
+			coinage::UnloadTokenAllowancePerTimePeriodForLitePeople,
+			Some(0),
+		));
+		set(coinage::Parameters::MaxFreeUnloadTokensPerTimePeriod(
+			coinage::MaxFreeUnloadTokensPerTimePeriod,
+			Some(5),
+		));
+
+		// THEN coinage reads the new values.
+		assert_eq!(Coinage::get_load_deposit(), (RelayLocation::get(), UNITS));
+		assert_eq!(Coinage::get_maximum_age(), 32);
+		assert_eq!(Coinage::get_unload_token_allowance_per_time_period_for_people(), 40 * UNITS);
+		assert_eq!(Coinage::get_unload_token_allowance_per_time_period_for_lite_people(), 0);
+		assert_eq!(Coinage::get_max_free_unload_tokens_per_time_period(), 5);
+
+		// The maximum age is kept at 2 or more and the load deposit price non-zero.
+		set(coinage::Parameters::MaximumAge(coinage::MaximumAge, Some(0)));
+		set(coinage::Parameters::LoadDepositPrice(coinage::LoadDepositPrice, Some(0)));
+		assert_eq!(Coinage::get_maximum_age(), 2);
+		assert_eq!(Coinage::get_load_deposit().1, 1);
 	});
 }
 
