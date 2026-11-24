@@ -1475,7 +1475,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-message-queue 31.0.0",
  "pallet-treasury",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
@@ -1569,7 +1569,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
  "pallet-uniques",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-vesting",
  "pallet-vesting-precompiles",
  "pallet-whitelist",
@@ -1774,7 +1774,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
  "pallet-uniques",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-verify-signature",
  "pallet-vesting",
  "pallet-vesting-precompiles",
@@ -2636,7 +2636,7 @@ dependencies = [
  "bp-runtime",
  "frame-support 28.0.0",
  "frame-system 28.0.0",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "parity-scale-codec",
  "scale-info",
  "sp-runtime 31.0.1",
@@ -2842,7 +2842,7 @@ dependencies = [
  "pallet-timestamp 27.0.0",
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub",
@@ -3006,7 +3006,7 @@ dependencies = [
  "pallet-timestamp 27.0.0",
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "pallet-xcm-bridge-hub",
@@ -3090,7 +3090,7 @@ dependencies = [
  "pallet-bridge-parachains",
  "pallet-bridge-relayers",
  "pallet-timestamp 27.0.0",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-bridge-hub",
  "parachains-common",
@@ -3126,7 +3126,7 @@ dependencies = [
  "pallet-bridge-parachains",
  "pallet-bridge-relayers",
  "pallet-transaction-payment 28.0.0",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "parity-scale-codec",
  "scale-info",
  "sp-io 30.0.0",
@@ -3161,13 +3161,12 @@ dependencies = [
 
 [[package]]
 name = "bulletin-pallets-common"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcba7819fbaed1595f75f6bd4b82c7d8fe1570a8dc8b6e076181c3d6afdc5dbe"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/polkadot-bulletin-chain?branch=release-v0.15.0#f258484f6a9cce64292392c9313372e6587b1bf6"
 dependencies = [
- "pallet-utility 50.0.0",
+ "pallet-utility",
  "parity-scale-codec",
- "polkadot-sdk-frame 0.19.0",
+ "polkadot-sdk-frame 0.1.0",
  "scale-info",
 ]
 
@@ -3245,7 +3244,7 @@ dependencies = [
  "pallet-timestamp 27.0.0",
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
@@ -3270,7 +3269,7 @@ dependencies = [
  "sp-session 27.0.0",
  "sp-storage 19.0.0",
  "sp-transaction-pool 26.0.0",
- "sp-transaction-storage-proof 26.0.0",
+ "sp-transaction-storage-proof",
  "sp-version 29.0.0",
  "staging-parachain-info",
  "staging-xcm 7.0.1",
@@ -3285,16 +3284,15 @@ dependencies = [
 
 [[package]]
 name = "bulletin-transaction-storage-primitives"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b9b1dd4adb8aaf350bbe4b3613955f39a5ef2143969efd0329dd3d55b9f789b"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/polkadot-bulletin-chain?branch=release-v0.15.0#f258484f6a9cce64292392c9313372e6587b1bf6"
 dependencies = [
  "cid",
  "parity-scale-codec",
  "scale-info",
- "sp-io 49.0.0",
- "sp-runtime 49.0.0",
- "sp-transaction-storage-proof 44.0.0",
+ "sp-io 30.0.0",
+ "sp-runtime 31.0.1",
+ "sp-transaction-storage-proof",
  "tracing",
 ]
 
@@ -3644,7 +3642,7 @@ dependencies = [
  "pallet-message-queue 31.0.0",
  "pallet-scheduler",
  "pallet-treasury",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-whitelist",
  "pallet-xcm",
  "parachains-common",
@@ -3708,7 +3706,7 @@ dependencies = [
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
@@ -4020,7 +4018,7 @@ dependencies = [
  "pallet-timestamp 27.0.0",
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
@@ -4135,7 +4133,7 @@ dependencies = [
  "pallet-timestamp 27.0.0",
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
@@ -5667,7 +5665,7 @@ dependencies = [
  "pallet-timestamp 27.0.0",
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
@@ -7144,7 +7142,7 @@ dependencies = [
  "frame-system 28.0.0",
  "integration-tests-helpers",
  "kusama-system-emulated-network",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-whitelist",
  "pallet-xcm",
  "parity-scale-codec",
@@ -7164,7 +7162,7 @@ dependencies = [
  "frame-support 28.0.0",
  "frame-system 28.0.0",
  "integration-tests-helpers",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-whitelist",
  "pallet-xcm",
  "parity-scale-codec",
@@ -11509,65 +11507,61 @@ dependencies = [
 
 [[package]]
 name = "pallet-bulletin-data-renewal"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7771b45d9ed1e0ee4576430913349cc802f9a2f2ef867722f08ea3fb64111272"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/polkadot-bulletin-chain?branch=release-v0.15.0#f258484f6a9cce64292392c9313372e6587b1bf6"
 dependencies = [
  "array-bytes 6.2.2",
  "bulletin-transaction-storage-primitives",
  "pallet-bulletin-transaction-storage",
  "parity-scale-codec",
- "polkadot-sdk-frame 0.19.0",
+ "polkadot-sdk-frame 0.1.0",
  "scale-info",
  "tracing",
 ]
 
 [[package]]
 name = "pallet-bulletin-hop-promotion"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97481d2a0f258e8cbc03a70080944a00674a12dd01c3f7e11248b45e01835781"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/polkadot-bulletin-chain?branch=release-v0.15.0#f258484f6a9cce64292392c9313372e6587b1bf6"
 dependencies = [
  "bulletin-transaction-storage-primitives",
- "frame-support 49.1.0",
- "frame-system 49.0.0",
+ "frame-support 28.0.0",
+ "frame-system 28.0.0",
  "pallet-bulletin-transaction-storage",
- "pallet-timestamp 49.0.0",
+ "pallet-timestamp 27.0.0",
  "parity-scale-codec",
- "polkadot-sdk-frame 0.19.0",
+ "polkadot-sdk-frame 0.1.0",
  "scale-info",
- "sp-core 43.0.0",
- "sp-io 49.0.0",
- "sp-runtime 49.0.0",
+ "sp-core 28.0.0",
+ "sp-io 30.0.0",
+ "sp-runtime 31.0.1",
 ]
 
 [[package]]
 name = "pallet-bulletin-transaction-storage"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76729550133d28c19be07caedbe16d245690c185ac0c5127f2ea98f8d8ec99c6"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/polkadot-bulletin-chain?branch=release-v0.15.0#f258484f6a9cce64292392c9313372e6587b1bf6"
 dependencies = [
  "array-bytes 6.2.2",
  "bulletin-transaction-storage-primitives",
  "impl-trait-for-tuples",
  "pallet-bulletin-transaction-storage-runtime-api",
  "parity-scale-codec",
- "polkadot-sdk-frame 0.19.0",
+ "polkadot-sdk-frame 0.1.0",
  "scale-info",
- "sp-transaction-storage-proof 44.0.0",
+ "sp-transaction-storage-proof",
  "tracing",
 ]
 
 [[package]]
 name = "pallet-bulletin-transaction-storage-runtime-api"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02182b98b6dd2ba4a72f26577234e59b391cdc9be9e89ba50828f050dee1bac3"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/polkadot-bulletin-chain?branch=release-v0.15.0#f258484f6a9cce64292392c9313372e6587b1bf6"
 dependencies = [
  "bulletin-transaction-storage-primitives",
  "parity-scale-codec",
  "scale-info",
- "sp-api 44.0.0",
+ "sp-api 26.0.0",
 ]
 
 [[package]]
@@ -12643,7 +12637,7 @@ dependencies = [
  "frame-system 28.0.0",
  "pallet-balances 28.0.0",
  "pallet-proxy",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "parity-scale-codec",
  "scale-info",
  "sp-core 28.0.0",
@@ -13333,22 +13327,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-utility"
-version = "50.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4abc116ff7142ea62c1872a36ffb120bd50aceb296c20ceedc414efcbe7a08ef"
-dependencies = [
- "frame-benchmarking 50.0.0",
- "frame-support 49.1.0",
- "frame-system 49.0.0",
- "parity-scale-codec",
- "scale-info",
- "sp-core 43.0.0",
- "sp-io 49.0.0",
- "sp-runtime 49.0.0",
-]
-
-[[package]]
 name = "pallet-verify-signature"
 version = "1.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2611#c8028742b4d954b4bd7b83cf8318d40cdaecd7e7"
@@ -13795,7 +13773,7 @@ dependencies = [
  "pallet-timestamp 27.0.0",
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
@@ -13909,7 +13887,7 @@ dependencies = [
  "pallet-timestamp 27.0.0",
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
@@ -14056,7 +14034,7 @@ dependencies = [
  "pallet-timestamp 27.0.0",
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-verify-signature",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
@@ -14526,7 +14504,7 @@ dependencies = [
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-vesting",
  "pallet-whitelist",
  "pallet-xcm",
@@ -18938,7 +18916,7 @@ dependencies = [
  "pallet-message-queue 31.0.0",
  "pallet-session 28.0.0",
  "pallet-timestamp 27.0.0",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-xcm",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
@@ -20622,23 +20600,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sp-transaction-storage-proof"
-version = "44.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e7262cad19ca733821d48f2ef0735abb73001016c27341375ddbfa1a0b4f970"
-dependencies = [
- "async-trait",
- "parity-scale-codec",
- "scale-info",
- "sp-api 44.0.0",
- "sp-core 43.0.0",
- "sp-crypto-hashing 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sp-inherents 44.0.0",
- "sp-runtime 49.0.0",
- "sp-trie 47.0.0",
-]
-
-[[package]]
 name = "sp-trie"
 version = "29.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=stable2611#c8028742b4d954b4bd7b83cf8318d40cdaecd7e7"
@@ -21011,7 +20972,7 @@ dependencies = [
  "pallet-transaction-payment 28.0.0",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
- "pallet-utility 28.0.0",
+ "pallet-utility",
  "pallet-vesting",
  "pallet-whitelist",
  "pallet-xcm",
