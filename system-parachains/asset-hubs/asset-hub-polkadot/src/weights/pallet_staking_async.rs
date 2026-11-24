@@ -895,12 +895,15 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 			.saturating_add(T::DbWeight::get().writes((2_u64).saturating_mul(v.into())))
 			.saturating_add(Weight::from_parts(0, 2576).saturating_mul(v.into()))
 	}
+	// TODO: copied from polkadot-sdk stable2611 asset-hub-westend, re-benchmark.
 	/// Storage: `Staking::ActiveEra` (r:1 w:1)
 	/// Proof: `Staking::ActiveEra` (`max_values`: Some(1), `max_size`: Some(13), added: 508, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::ErasRewardPoints` (r:1 w:1)
 	/// Proof: `Staking::ErasRewardPoints` (`max_values`: None, `max_size`: Some(36018), added: 38493, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::ErasValidatorIncentiveWeight` (r:999 w:0)
 	/// Proof: `Staking::ErasValidatorIncentiveWeight` (`max_values`: None, `max_size`: Some(68), added: 2543, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::ErasRewardPointsByService` (r:1 w:1)
+	/// Proof: `Staking::ErasRewardPointsByService` (`max_values`: None, `max_size`: Some(36027), added: 38502, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::ErasSumWeightedPoints` (r:1 w:1)
 	/// Proof: `Staking::ErasSumWeightedPoints` (`max_values`: None, `max_size`: Some(28), added: 2503, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::CurrentEra` (r:1 w:1)
@@ -912,9 +915,11 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 	/// Storage: `Staking::DisableMintingGuard` (r:1 w:1)
 	/// Proof: `Staking::DisableMintingGuard` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::BondedEras` (r:1 w:1)
-	/// Proof: `Staking::BondedEras` (`max_values`: Some(1), `max_size`: Some(233), added: 728, mode: `MaxEncodedLen`)
+	/// Proof: `Staking::BondedEras` (`max_values`: Some(1), `max_size`: Some(25), added: 520, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::AreNominatorsSlashable` (r:1 w:0)
 	/// Proof: `Staking::AreNominatorsSlashable` (`max_values`: Some(1), `max_size`: Some(1), added: 496, mode: `MaxEncodedLen`)
+	/// Storage: `Staking::NextEraValidators` (r:1 w:0)
+	/// Proof: `Staking::NextEraValidators` (`max_values`: Some(1), `max_size`: Some(32006), added: 32501, mode: `MaxEncodedLen`)
 	/// Storage: `Staking::ForceEra` (r:1 w:0)
 	/// Proof: `Staking::ForceEra` (`max_values`: Some(1), `max_size`: Some(1), added: 496, mode: `MaxEncodedLen`)
 	/// Storage: `MultiBlockElection::CurrentPhase` (r:1 w:1)
@@ -934,16 +939,16 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 	/// The range of component `v` is `[1, 1000]`.
 	fn rc_on_session_report(v: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `8226 + v * (61 ±0)`
-		//  Estimated: `39483 + v * (2543 ±0)`
-		// Minimum execution time: 162_529_000 picoseconds.
-		Weight::from_parts(143_685_395, 0)
-			.saturating_add(Weight::from_parts(0, 39483))
-			// Standard Error: 3_249
-			.saturating_add(Weight::from_parts(4_051_372, 0).saturating_mul(v.into()))
-			.saturating_add(T::DbWeight::get().reads(15))
+		//  Measured:  `8241 + v * (61 ±0)`
+		//  Estimated: `39492 + v * (2543 ±0)`
+		// Minimum execution time: 253_198_000 picoseconds.
+		Weight::from_parts(170_875_893, 0)
+			.saturating_add(Weight::from_parts(0, 39492))
+			// Standard Error: 9_879
+			.saturating_add(Weight::from_parts(6_772_584, 0).saturating_mul(v.into()))
+			.saturating_add(T::DbWeight::get().reads(17))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(v.into())))
-			.saturating_add(T::DbWeight::get().writes(17))
+			.saturating_add(T::DbWeight::get().writes(18))
 			.saturating_add(Weight::from_parts(0, 2543).saturating_mul(v.into()))
 	}
 	/// Storage: `Staking::ActiveEra` (r:1 w:0)
@@ -1042,21 +1047,24 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
+	// TODO: copied from polkadot-sdk stable2611 asset-hub-westend, re-benchmark.
 	/// Storage: `Staking::ActiveEra` (r:1 w:0)
 	/// Proof: `Staking::ActiveEra` (`max_values`: Some(1), `max_size`: Some(13), added: 508, mode: `Measured`)
 	/// Storage: `Staking::EraPruningState` (r:1 w:1)
 	/// Proof: `Staking::EraPruningState` (`max_values`: None, `max_size`: Some(13), added: 2488, mode: `Measured`)
+	/// Storage: `Staking::ErasRewardPointsByService` (r:2 w:2)
+	/// Proof: `Staking::ErasRewardPointsByService` (`max_values`: None, `max_size`: Some(36027), added: 38502, mode: `Measured`)
 	/// Storage: `Staking::ErasRewardPoints` (r:0 w:1)
 	/// Proof: `Staking::ErasRewardPoints` (`max_values`: None, `max_size`: Some(36018), added: 38493, mode: `Measured`)
 	fn prune_era_reward_points() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `789`
-		//  Estimated: `4254`
-		// Minimum execution time: 18_068_000 picoseconds.
-		Weight::from_parts(19_426_000, 0)
-			.saturating_add(Weight::from_parts(0, 4254))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(2))
+		//  Measured:  `1014`
+		//  Estimated: `6954`
+		// Minimum execution time: 43_010_000 picoseconds.
+		Weight::from_parts(48_518_000, 0)
+			.saturating_add(Weight::from_parts(0, 6954))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	/// Storage: `Staking::ActiveEra` (r:1 w:0)
 	/// Proof: `Staking::ActiveEra` (`max_values`: Some(1), `max_size`: Some(13), added: 508, mode: `Measured`)
@@ -1122,6 +1130,7 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 			.saturating_add(T::DbWeight::get().writes(79))
 			.saturating_add(Weight::from_parts(0, 83).saturating_mul(v.into()))
 	}
+	// TODO: copied from polkadot-sdk stable2611 asset-hub-westend, re-benchmark.
 	/// Storage: `Staking::ChillInactiveThreshold` (r:1 w:0)
 	/// Proof: `Staking::ChillInactiveThreshold` (`max_values`: Some(1), `max_size`: Some(4), added: 499, mode: `Measured`)
 	/// Storage: `Staking::ActiveEra` (r:1 w:0)
@@ -1130,6 +1139,8 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 	/// Proof: `Staking::ErasStakersOverview` (`max_values`: None, `max_size`: Some(92), added: 2567, mode: `Measured`)
 	/// Storage: `Staking::ErasRewardPoints` (r:84 w:0)
 	/// Proof: `Staking::ErasRewardPoints` (`max_values`: None, `max_size`: Some(36018), added: 38493, mode: `Measured`)
+	/// Storage: `Staking::ErasRewardPointsByService` (r:252 w:0)
+	/// Proof: `Staking::ErasRewardPointsByService` (`max_values`: None, `max_size`: Some(36027), added: 38502, mode: `Measured`)
 	/// Storage: `Staking::Validators` (r:1 w:1)
 	/// Proof: `Staking::Validators` (`max_values`: None, `max_size`: Some(45), added: 2520, mode: `Measured`)
 	/// Storage: `Staking::CounterForValidators` (r:1 w:1)
@@ -1145,17 +1156,17 @@ impl<T: frame_system::Config> pallet_staking_async::WeightInfo for WeightInfo<T>
 	/// The range of component `l` is `[2, 84]`.
 	fn chill_inactive(l: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `37334 + l * (116 ±0)`
-		//  Estimated: `40800 + l * (2591 ±0)`
-		// Minimum execution time: 218_787_000 picoseconds.
-		Weight::from_parts(149_583_991, 0)
-			.saturating_add(Weight::from_parts(0, 40800))
-			// Standard Error: 52_159
-			.saturating_add(Weight::from_parts(53_794_721, 0).saturating_mul(l.into()))
+		//  Measured:  `1418 + l * (108161 ±0)`
+		//  Estimated: `4884 + l * (115587 ±0)`
+		// Minimum execution time: 725_897_000 picoseconds.
+		Weight::from_parts(250_386_913, 0)
+			.saturating_add(Weight::from_parts(0, 4884))
+			// Standard Error: 94_857
+			.saturating_add(Weight::from_parts(272_170_095, 0).saturating_mul(l.into()))
 			.saturating_add(T::DbWeight::get().reads(8))
-			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(l.into())))
+			.saturating_add(T::DbWeight::get().reads((5_u64).saturating_mul(l.into())))
 			.saturating_add(T::DbWeight::get().writes(5))
-			.saturating_add(Weight::from_parts(0, 2591).saturating_mul(l.into()))
+			.saturating_add(Weight::from_parts(0, 115587).saturating_mul(l.into()))
 	}
 	// TODO 2611-bench: copied from polkadot-sdk master asset-hub-westend
 	/// Storage: `Staking::ActiveEra` (r:1 w:0)
