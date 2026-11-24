@@ -164,7 +164,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("bulletin-polkadot"),
 	impl_name: alloc::borrow::Cow::Borrowed("bulletin-polkadot"),
 	authoring_version: 1,
-	spec_version: 2_005_003,
+	spec_version: 2_006_000,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 2,
@@ -285,7 +285,7 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	pub const AccumulateForwardPalletId: PalletId = ACCUMULATE_FORWARD_PALLET_ID;
-	pub const ForwardPeriod: BlockNumber = HOURS;
+	pub const ForwardPeriod: BlockNumber = polkadot_runtime_constants::time::HOURS;
 	pub const MinForwardAmount: Balance = UNITS;
 }
 
@@ -300,10 +300,7 @@ impl pallet_accumulate_and_forward::Config for Runtime {
 	>;
 	type TransferPeriod = ForwardPeriod;
 	type MinTransferAmount = MinForwardAmount;
-	// Local clock: relay parent numbers can skip the exact multiples the forward fires on.
-	// TODO: switch to `RelaychainDataProvider`, tracked in
-	// https://github.com/polkadot-fellows/runtimes/issues/1327.
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
 	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 

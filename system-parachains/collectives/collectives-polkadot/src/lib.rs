@@ -56,7 +56,7 @@ use alloc::{borrow::Cow, boxed::Box, vec, vec::Vec};
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use fellowship::{pallet_fellowship_origins, Architects, Fellows};
-use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp, ToParentTreasury};
+use impls::{AllianceProposalProvider, EqualOrGreatestRootCmp};
 use parameters::dynamic_params;
 use polkadot_runtime_common::impls::{
 	ContainsParts as ContainsLocationParts, VersionedLocatableAsset,
@@ -65,7 +65,7 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	generic, impl_opaque_keys,
-	traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT},
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill,
 };
@@ -97,12 +97,14 @@ use parachains_common::{
 };
 use sp_runtime::{Debug, FixedU128};
 use system_parachains_constants::{
-	polkadot::{account::*, consensus::*, currency::*, fee::WeightToFee},
+	polkadot::{
+		account::*, consensus::*, currency::*, fee::WeightToFee, locations::DapStagingLocation,
+	},
 	AVERAGE_ON_INITIALIZE_RATIO, DAYS, HOURS, MAXIMUM_BLOCK_WEIGHT, MINUTES, NORMAL_DISPATCH_RATIO,
 	SLOT_DURATION,
 };
 use xcm_config::{
-	AssetHubLocation, FellowshipAdminBodyId, LocationToAccountId, RelayChainLocation, SelfParaId,
+	AssetHubLocation, DotLocation, FellowshipAdminBodyId, RelayChainLocation, SelfParaId,
 	StakingPot, TreasurerBodyId, XcmOriginToTransactDispatchOrigin,
 };
 
@@ -132,7 +134,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("collectives"),
 	impl_name: Cow::Borrowed("collectives"),
 	authoring_version: 1,
-	spec_version: 2_005_003,
+	spec_version: 2_006_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 7,
@@ -232,7 +234,7 @@ impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
-	type DustRemoval = ();
+	type DustRemoval = AccumulateForward;
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
@@ -243,6 +245,27 @@ impl pallet_balances::Config for Runtime {
 	type FreezeIdentifier = ();
 	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
+}
+
+parameter_types! {
+	pub const AccumulateForwardPalletId: PalletId = ACCUMULATE_FORWARD_PALLET_ID;
+	pub const ForwardPeriod: BlockNumber = polkadot_runtime_constants::time::HOURS;
+	pub const MinForwardAmount: Balance = UNITS;
+}
+
+impl pallet_accumulate_and_forward::Config for Runtime {
+	type Currency = Balances;
+	type PalletId = AccumulateForwardPalletId;
+	type Forwarder = xcm_builder::TeleportForwarderForAccountId32<
+		xcm_config::XcmConfig,
+		AssetHubLocation,
+		DotLocation,
+		DapStagingLocation,
+	>;
+	type TransferPeriod = ForwardPeriod;
+	type MinTransferAmount = MinForwardAmount;
+	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
+	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -682,7 +705,6 @@ pub const MAX_ALLIES: u32 = 100;
 
 parameter_types! {
 	pub const AllyDeposit: Balance = 1_000 * UNITS; // 1,000 DOT bond to join as an Ally
-	pub PolkadotTreasuryAccount: AccountId = POLKADOT_TREASURY_PALLET_ID.into_account_truncating();
 	// The number of blocks a member must wait between giving a retirement notice and retiring.
 	// Supposed to be greater than time required to `kick_member` with alliance motion.
 	pub const AllianceRetirementPeriod: BlockNumber = (90 * DAYS) + ALLIANCE_MOTION_DURATION;
@@ -695,7 +717,7 @@ impl pallet_alliance::Config for Runtime {
 	type MembershipManager = RootOrAllianceTwoThirdsMajority;
 	type AnnouncementOrigin = RootOrAllianceTwoThirdsMajority;
 	type Currency = Balances;
-	type Slashed = ToParentTreasury<PolkadotTreasuryAccount, LocationToAccountId, Runtime>;
+	type Slashed = pallet_accumulate_and_forward::LegacyAdapter<Runtime, Balances>;
 	type InitializeMembers = AllianceMotion;
 	type MembershipChanged = AllianceMotion;
 	type RetirementPeriod = AllianceRetirementPeriod;
@@ -814,6 +836,7 @@ construct_runtime!(
 		// Monetary stuff.
 		Balances: pallet_balances = 10,
 		TransactionPayment: pallet_transaction_payment = 11,
+		AccumulateForward: pallet_accumulate_and_forward = 12,
 
 		// Collator support. the order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -909,9 +932,6 @@ pub mod migrations {
 
 	/// Unreleased migrations. Add new ones here:
 	pub type Unreleased = (
-		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
-		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
-		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
 		// `pallet-core-fellowship` storage v1 -> v2 (polkadot-sdk#6978): both instances switch
 		// from local to Relay Chain block numbers.
 		pallet_core_fellowship::migration::MigrateV1ToV2<
@@ -1006,6 +1026,7 @@ mod benches {
 		[frame_system, SystemBench::<Runtime>]
 		[frame_system_extensions, SystemExtensionsBench::<Runtime>]
 		[pallet_balances, Balances]
+		[pallet_accumulate_and_forward, AccumulateForward]
 		[pallet_message_queue, MessageQueue]
 		[pallet_multisig, Multisig]
 		[pallet_parameters, Parameters]

@@ -125,13 +125,8 @@ pub mod migrations {
 	use super::*;
 
 	/// Unreleased migrations. Add new ones here:
-	pub type Unreleased = (
-		cumulus_pallet_xcmp_queue::migration::v6::MigrateV5ToV6<Runtime>,
-		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
-		cumulus_pallet_parachain_system::migration::Migration<Runtime>,
-		coretime::RetireCoretimeBurnAccount,
-		pallet_broker::migration::MigrateV4ToV5<Runtime, BrokerFirstSaleRegion>,
-	);
+	pub type Unreleased =
+		(pallet_broker::migration::MigrateV4ToV5<Runtime, BrokerFirstSaleRegion>,);
 
 	/// All migrations that will run on the next runtime upgrade.
 	pub type SingleBlockMigrations = Unreleased;
@@ -158,7 +153,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("coretime-kusama"),
 	impl_name: Cow::Borrowed("coretime-kusama"),
 	authoring_version: 1,
-	spec_version: 2_005_003,
+	spec_version: 2_006_000,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -319,7 +314,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const AccumulateForwardPalletId: PalletId =
 		kusama_runtime_constants::account::ACCUMULATE_FORWARD_PALLET_ID;
-	pub const ForwardPeriod: BlockNumber = HOURS;
+	pub const ForwardPeriod: BlockNumber = kusama_runtime_constants::time::HOURS;
 	pub const MinForwardAmount: Balance = UNITS;
 }
 
@@ -333,10 +328,7 @@ impl pallet_accumulate_and_forward::Config for Runtime {
 	>;
 	type TransferPeriod = ForwardPeriod;
 	type MinTransferAmount = MinForwardAmount;
-	// Local clock: the relay one would fire on one parity only, as forwards happen on exact
-	// multiples of the period. TODO: use `RelaychainDataProvider` once
-	// https://github.com/paritytech/polkadot-sdk/issues/13149 lands.
-	type BlockNumberProvider = System;
+	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
 	type WeightInfo = weights::pallet_accumulate_and_forward::WeightInfo<Runtime>;
 }
 
