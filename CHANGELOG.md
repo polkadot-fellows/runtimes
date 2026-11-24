@@ -4,11 +4,13 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [2.6.0] 18.11.2026
+## [Unreleased]
 
 ### Added
 
 - Asset Hub Polkadot: add `pallet-kill-switch` and `pallet-tx-pause`. Anyone can pause the PSM, swaps, asset transfers, XCM transfers or a single call for 24 hours by putting up a deposit, and the Fellowship or Root can end the pause early and refund or slash it. A pause that runs out by itself keeps its deposits locked until the Fellowship or Root refunds or slashes them. The deposits are parameters that start at zero, so only Root can pause until governance turns it on. A pause blocks extrinsics and XCM `Transact`, not contracts, incoming XCM or swaps for fees yet ([#1344](https://github.com/polkadot-fellows/runtimes/pull/1344)).
+
+## [2.6.0] 18.11.2026
 
 ### Changed
 
