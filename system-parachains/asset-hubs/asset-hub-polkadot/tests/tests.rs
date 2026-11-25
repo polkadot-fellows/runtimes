@@ -1946,7 +1946,6 @@ mod validator_collators {
 	#[test]
 	fn era_start_weight_follows_the_switch() {
 		use asset_hub_polkadot_runtime::ValidatorSetAnnouncer;
-		use frame_support::traits::Get;
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
 			let read = <Runtime as frame_system::Config>::DbWeight::get().reads(1);
 			let hook_weight = |n| <AnnounceValidatorSet as OnEraStart<AccountId>>::weight(n);
