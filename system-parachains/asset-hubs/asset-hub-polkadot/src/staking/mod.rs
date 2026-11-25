@@ -1162,11 +1162,31 @@ mod tests {
 
 		#[test]
 		fn session_report() {
-			use crate::{AccountId, Runtime};
+			analyze_session_report(false);
+		}
+
+		/// The era-start hook charges the announcer weight once governance turns on validator
+		/// collation, so the report must still fit the message-queue bound.
+		#[test]
+		fn session_report_with_validator_collation() {
+			analyze_session_report(true);
+		}
+
+		fn analyze_session_report(enabled: bool) {
+			use crate::{dynamic_params::validator_collation, AccountId, Runtime};
 			use frame_support::{dispatch::GetDispatchInfo, traits::Get};
 			use pallet_staking_async_rc_client as rc_client;
 
 			sp_io::TestExternalities::new_empty().execute_with(|| {
+				frame_support::assert_ok!(crate::Parameters::set_parameter(
+					crate::RuntimeOrigin::root(),
+					crate::RuntimeParameters::ValidatorCollation(
+						validator_collation::Parameters::Enabled(
+							validator_collation::Enabled,
+							Some(enabled),
+						),
+					),
+				));
 				// this benchmark is a function of current active validator count
 				pallet_staking_async::ValidatorCount::<Runtime>::put(600);
 				let hefty_report = rc_client::SessionReport {

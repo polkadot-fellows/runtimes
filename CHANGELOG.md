@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Asset Hub, People and Bulletin Polkadot: validators can collate on these chains and earn era points for it. Collation stays off until governance sets the collator caps and the points per block and turns on the `ValidatorCollation` switch on Asset Hub. Collator selection's kick threshold stays one session until then, and grows with the collator cap.
+- Asset Hub, People and Bulletin Polkadot: validators can collate on these chains and earn era points for it. Collation stays off until governance sets the collator caps and the points per block and turns on the `ValidatorCollation` switch on Asset Hub. Collator selection's kick threshold stays one session until then, and grows with the collator cap. Aura's `MaxAuthorities` drops from 100_000 to 600, so a header carrying the authorities fits the relay chain's head data limit ([#1390](https://github.com/polkadot-fellows/runtimes/pull/1390)).
 
 ### Changed
 

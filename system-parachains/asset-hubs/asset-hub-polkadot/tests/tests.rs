@@ -1994,6 +1994,83 @@ mod validator_collators {
 	}
 
 	#[test]
+	fn only_root_and_the_staking_admin_set_the_cap_and_the_points() {
+		use asset_hub_polkadot_runtime::governance::pallet_custom_origins;
+		use frame_support::assert_noop;
+		use pallet_staking_async_points_converter::PointsPerService;
+		use pallet_validator_collators::{CollatorDraw, MaxCollators};
+		use sp_runtime::DispatchError::BadOrigin;
+		// The referenda that enable validator collation run on the StakingAdmin track.
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			let own = ParachainInfo::parachain_id();
+			// GIVEN the default cap and no points for this chain's blocks
+			assert_eq!(MaxCollators::<Runtime>::get(), CollatorDraw::None);
+			assert_eq!(PointsPerService::<Runtime>::get(own, ServiceKind::Collation), 0);
+
+			// WHEN a signed account, GeneralAdmin or WhitelistedCaller sets them
+			// THEN both calls are rejected
+			for origin in [
+				RuntimeOrigin::signed(AccountId::from(ALICE)),
+				pallet_custom_origins::Origin::GeneralAdmin.into(),
+				pallet_custom_origins::Origin::WhitelistedCaller.into(),
+			] {
+				assert_noop!(
+					ValidatorCollators::set_max_collators(origin.clone(), CollatorDraw::UpTo(1)),
+					BadOrigin
+				);
+				assert_noop!(
+					StakingPointsConverter::set_points_per_service(
+						origin,
+						own,
+						ServiceKind::Collation,
+						1
+					),
+					BadOrigin
+				);
+			}
+
+			// WHEN Root or the StakingAdmin sets them THEN both calls take effect
+			for (value, origin) in [
+				(1, RuntimeOrigin::root()),
+				(2, pallet_custom_origins::Origin::StakingAdmin.into()),
+			] {
+				assert_ok!(ValidatorCollators::set_max_collators(
+					origin.clone(),
+					CollatorDraw::UpTo(value)
+				));
+				assert_ok!(StakingPointsConverter::set_points_per_service(
+					origin,
+					own,
+					ServiceKind::Collation,
+					value
+				));
+				assert_eq!(MaxCollators::<Runtime>::get(), CollatorDraw::UpTo(value));
+				assert_eq!(PointsPerService::<Runtime>::get(own, ServiceKind::Collation), value);
+			}
+		});
+	}
+
+	#[test]
+	fn no_origin_sets_the_validator_set_of_asset_hub() {
+		// Asset Hub stores the set staking elects, from the era start hook. A call that sets it
+		// would let one origin choose who collates on every chain that draws from the set.
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			// GIVEN a set of one validator
+			let validators = [AccountId::from(ALICE)]
+				.into_iter()
+				.collect::<std::collections::BTreeSet<_>>()
+				.try_into()
+				.unwrap();
+			// WHEN Root calls `set_validators` with it
+			// THEN it is rejected and no set is stored
+			frame_support::assert_noop!(
+				ValidatorCollators::set_validators(RuntimeOrigin::root(), 1, validators),
+				sp_runtime::DispatchError::BadOrigin
+			);
+		});
+	}
+
+	#[test]
 	fn own_blocks_earn_points_only_after_governance_sets_them() {
 		ExtBuilder::<Runtime>::default().build().execute_with(|| {
 			let alice = AccountId::from(ALICE);
