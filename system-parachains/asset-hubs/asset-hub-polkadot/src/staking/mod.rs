@@ -43,9 +43,7 @@ use sp_runtime::{
 use sp_staking::{EraIndex, SessionIndex};
 use stepped_curve::*;
 use system_parachains_common::apis::InflationInfo;
-use system_parachains_constants::polkadot::staking::{
-	LAST_KNOWN_HRMP_MAX_MESSAGE_SIZE, MAX_VALIDATOR_SET,
-};
+use system_parachains_constants::polkadot::staking::MAX_VALIDATOR_SET;
 use xcm::v5::prelude::*;
 
 // stuff aliased to `parameters` pallet.
@@ -609,7 +607,11 @@ impl pallet_validator_set_announcer::SendValidatorSet<AccountId> for ValidatorSe
 
 	#[cfg(feature = "std")]
 	fn max_message_size(_: &ParaId) -> Option<usize> {
-		Some(LAST_KNOWN_HRMP_MAX_MESSAGE_SIZE as usize)
+		// The receiving message queues hold a message in pages of this size, a tighter bound than
+		// the HRMP channels.
+		Some(<<Runtime as pallet_message_queue::Config>::HeapSize as frame_support::traits::Get<
+			u32,
+		>>::get() as usize)
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]

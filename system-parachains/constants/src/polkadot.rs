@@ -38,6 +38,14 @@ pub mod consensus {
 	/// Relay chain slot duration, in milliseconds.
 	pub const RELAY_CHAIN_SLOT_DURATION_MILLIS: u32 = 6000;
 
+	/// Most Aura authorities a system chain enacts.
+	///
+	/// A header that changes the authorities carries 32 bytes per authority, and it must fit the
+	/// relay chain's `max_head_data_size`. Pallet-aura truncates a longer list. Collator
+	/// selection's collators come first in it, so only validators drawn by
+	/// `pallet-validator-collators` are dropped.
+	pub const MAX_AURA_AUTHORITIES: u32 = 600;
+
 	/// Parameters enabling async backing functionality.
 	///
 	/// Once all system chains have migrated to the new async backing mechanism, the parameters
@@ -89,15 +97,6 @@ pub mod staking {
 	/// report usually clears them. Their counts are dropped at report time anyway, and entries
 	/// beyond `MaxEntriesPerReport` wait for the next report, so the exact value is not critical.
 	pub const LEFT_AUTHORS_BUFFER: u32 = 30;
-
-	/// The max message size of the HRMP channels between Asset Hub and the system chains where
-	/// validators collate, in both directions, as read on 2026-11-25 from
-	/// `hrmp.hrmpChannels({ sender, recipient })`.
-	///
-	/// The chains that send the validator set and the authored blocks return it as their limit,
-	/// which the pallets check in their `integrity_test`. Recheck it when the relay chain changes
-	/// it.
-	pub const LAST_KNOWN_HRMP_MAX_MESSAGE_SIZE: u32 = 102_400;
 
 	/// Expected time from the arrival of a validator set on a system chain to the end of its era,
 	/// in milliseconds. One era of Asset Hub's staking, six relay chain sessions of four hours.

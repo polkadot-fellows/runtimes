@@ -20797,6 +20797,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-accumulate-and-forward",
+ "pallet-aura",
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-session",
