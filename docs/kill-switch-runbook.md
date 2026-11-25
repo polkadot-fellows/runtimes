@@ -10,12 +10,12 @@ What to do when something on Asset Hub Polkadot gets paused through the kill swi
 
 Anyone can pause one of these groups by putting up its deposit:
 
-| Group            | What it stops                                   |
-| ---------------- | ----------------------------------------------- |
-| `Psm`            | minting and redeeming through the PSM            |
-| `Swaps`          | asset conversion swaps and liquidity changes    |
-| `AssetTransfers` | transfers of local and foreign assets           |
-| `XcmTransfers`   | outgoing XCM transfers                          |
+| Group            | What it stops                                        |
+| ---------------- | ---------------------------------------------------- |
+| `Psm`            | minting and redeeming through the PSM                |
+| `Swaps`          | asset conversion swaps and liquidity changes         |
+| `AssetTransfers` | transfers of local and foreign assets, and LP tokens |
+| `XcmTransfers`   | outgoing XCM transfers                               |
 
 `Swaps`, `AssetTransfers` and `XcmTransfers` also pause local XCM `execute`, since it can do
 the same things.
@@ -33,7 +33,6 @@ during a pause:
 - EVM contracts calling precompiles
 - incoming XCM that deposits or withdraws assets
 - swaps used to pay transaction fees in a pool asset
-- transfers of pool LP tokens (`PoolAssets`)
 
 If the problem can be reached through one of them, a pause alone won't stop it. Raise it with the
 Fellowship right away. Anything only Root can do goes through a Fellowship whitelist and the

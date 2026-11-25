@@ -102,7 +102,6 @@ impl Contains<RuntimeCallNameOf<Runtime>> for NeverPausable {
 /// tx-pause works on whole calls, so a group covers every asset those calls touch, not a single
 /// asset. It only stops extrinsics and XCM `Transact`. Contracts going through the precompiles,
 /// assets arriving over XCM, and swaps for paying fees in another asset aren't covered yet.
-/// Neither are transfers of pool LP tokens (`PoolAssets`).
 #[derive(
 	Clone,
 	Copy,
@@ -123,8 +122,8 @@ pub enum KillSwitchGroup {
 	/// since `ExchangeAsset` swaps through the same pools.
 	#[codec(index = 1)]
 	Swaps,
-	/// Moving local and foreign assets. Also pauses `PolkadotXcm::execute`, since a local XCM can
-	/// move them too.
+	/// Moving local and foreign assets, and pool LP tokens. Also pauses `PolkadotXcm::execute`,
+	/// since a local XCM can move them too.
 	#[codec(index = 2)]
 	AssetTransfers,
 	/// Sending assets to other chains.
@@ -167,6 +166,7 @@ impl KillSwitchGroup {
 			Self::AssetTransfers => vec![
 				(Assets::name(), ASSET_TRANSFERS),
 				(ForeignAssets::name(), ASSET_TRANSFERS),
+				(PoolAssets::name(), ASSET_TRANSFERS),
 				(PolkadotXcm::name(), EXECUTE),
 			],
 			Self::XcmTransfers => vec![(PolkadotXcm::name(), XCM_TRANSFERS)],
@@ -304,7 +304,8 @@ impl pallet_kill_switch::Config for Runtime {
 	type AdminOrigin = KillSwitchAdmin;
 	type BlockNumberProvider = RelaychainDataProvider<Runtime>;
 	type PauseDuration = dynamic_params::kill_switch::PauseDuration;
-	type MaxCallsPerTarget = ConstU32<16>;
+	// `AssetTransfers` is the biggest group, with 19 calls.
+	type MaxCallsPerTarget = ConstU32<24>;
 	type MaxDepositsPerPause = ConstU32<10>;
 	// The 4 groups, the rest is for single calls.
 	type MaxActivePauses = ConstU32<64>;
