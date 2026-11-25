@@ -79,6 +79,34 @@ pub mod consensus {
 	}
 }
 
+/// Constants shared by Asset Hub's staking and the system chains where validators collate.
+pub mod staking {
+	/// Maximum number of validators elected by Asset Hub, and so the bound of the validator set
+	/// that system chains accept from it.
+	pub const MAX_VALIDATOR_SET: u32 = 1000;
+
+	/// Room in a report for authors that left the collators since the previous report, so one
+	/// report usually clears them. Their counts are dropped at report time anyway, and entries
+	/// beyond `MaxEntriesPerReport` wait for the next report, so the exact value is not critical.
+	pub const LEFT_AUTHORS_BUFFER: u32 = 30;
+
+	/// The max message size of the HRMP channels between Asset Hub and the system chains where
+	/// validators collate, in both directions, as read on 2026-11-25 from
+	/// `hrmp.hrmpChannels({ sender, recipient })`.
+	///
+	/// The chains that send the validator set and the authored blocks return it as their limit,
+	/// which the pallets check in their `integrity_test`. Recheck it when the relay chain changes
+	/// it.
+	pub const LAST_KNOWN_HRMP_MAX_MESSAGE_SIZE: u32 = 102_400;
+
+	/// Expected time from the arrival of a validator set on a system chain to the end of its era,
+	/// in milliseconds. One era of Asset Hub's staking, six relay chain sessions of four hours.
+	///
+	/// Asset Hub's runtime tests check that it matches the era length of its staking
+	/// configuration.
+	pub const EXPECTED_ERA_DURATION_MILLIS: u64 = 24 * 60 * 60 * 1000;
+}
+
 /// Constants relating to DOT.
 pub mod currency {
 	use polkadot_core_primitives::Balance;

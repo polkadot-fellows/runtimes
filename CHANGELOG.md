@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Asset Hub, People and Bulletin Polkadot: validators can collate on these chains and earn era points for it. Collation stays off until governance sets the collator caps and the points per block and turns on the `ValidatorCollation` switch on Asset Hub. Collator selection's kick threshold stays one session until then, and grows with the collator cap.
+
 ### Changed
 
 - Update all runtimes to `polkadot-sdk` `stable2611` ([#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)).
