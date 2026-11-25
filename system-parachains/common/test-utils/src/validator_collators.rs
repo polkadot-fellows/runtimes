@@ -19,7 +19,7 @@
 use codec::Decode;
 use frame_support::{
 	assert_ok,
-	traits::{Get, OnFinalize, OnInitialize},
+	traits::{Get, OnFinalize, OnInitialize, OneSessionHandler},
 };
 use frame_system::{pallet_prelude::BlockNumberFor, RawOrigin};
 use pallet_validator_collators::{
@@ -121,6 +121,12 @@ pub fn validators_collate_only_after_governance_raises_the_cap<Runtime, AllPalle
 		// THEN the two forced rotations draw no validator, and the collator-selection list collates
 		// unchanged, in its order
 		assert_eq!(Session::<Runtime>::current_index(), session_before + 2);
+		// AND each of the two blocks counted its author through `pallet-authorship`, so reports
+		// can credit the blocks validators author
+		assert_eq!(
+			pallet_validator_collators::AuthoredBlocks::<Runtime>::iter_values().sum::<u32>(),
+			2
+		);
 		assert_eq!(PendingRotation::<Runtime>::get(), RotationState::Idle);
 		assert_eq!(
 			DrawnCollators::<Runtime>::get().map(|drawn| (drawn.era, drawn.collators.len())),
@@ -174,5 +180,79 @@ pub fn kick_threshold_follows_the_cap<Runtime>(
 			// `MaxValidators`, plus the invulnerables and candidates, rounded up to whole sessions
 			assert_eq!(threshold(), *expected, "cap {cap:?}");
 		}
+	});
+}
+
+/// The regular session rotation keeps its period and offset while no rotation is forced, so
+/// changes of invulnerables and candidates and stale-candidate kicks still take effect.
+pub fn regular_rotation_keeps_its_period<Runtime>(period: u32, offset: u32)
+where
+	Runtime: BasicParachainRuntime + pallet_validator_collators::Config,
+	ValidatorIdOf<Runtime>: From<AccountIdOf<Runtime>>,
+	BlockNumberFor<Runtime>: From<u32>,
+{
+	type ShouldEnd<R> = <R as pallet_session::Config>::ShouldEndSession;
+	use pallet_session::ShouldEndSession;
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		// GIVEN no rotation is forced
+		assert_eq!(PendingRotation::<Runtime>::get(), RotationState::Idle);
+		for session in 1..=3 {
+			let end = offset + session * period;
+			// WHEN the session period ends
+			// THEN the session rotates, and not a block earlier or later
+			assert!(ShouldEnd::<Runtime>::should_end_session(end.into()), "block {end}");
+			assert!(
+				!ShouldEnd::<Runtime>::should_end_session((end - 1).into()),
+				"block {}",
+				end - 1
+			);
+			assert!(
+				!ShouldEnd::<Runtime>::should_end_session((end + 1).into()),
+				"block {}",
+				end + 1
+			);
+		}
+	});
+}
+
+/// The largest header the relay chain accepts carries the Aura authorities when they change.
+/// `allowance` covers what the test block lacks, the seal, the collator's digests and a large
+/// block number.
+pub fn aura_authorities_fit_the_relay_head_data<Runtime>(max_head_data_size: u32, allowance: u32)
+where
+	Runtime: BasicParachainRuntime + pallet_aura::Config,
+	ValidatorIdOf<Runtime>: From<AccountIdOf<Runtime>>,
+	AccountIdOf<Runtime>: From<[u8; 32]>,
+{
+	use codec::Encode;
+	let max = <Runtime as pallet_aura::Config>::MaxAuthorities::get();
+	let entry = |i: u32| {
+		let mut bytes = [0u8; 32];
+		bytes[..4].copy_from_slice(&i.to_le_bytes());
+		let key = <Runtime as pallet_aura::Config>::AuthorityId::decode(&mut &bytes[..])
+			.expect("32 bytes decode as an Aura key");
+		(AccountIdOf::<Runtime>::from(bytes), key)
+	};
+	let collators = (0..max + 100).map(entry).collect::<Vec<_>>();
+
+	ExtBuilder::<Runtime>::default().build().execute_with(|| {
+		// GIVEN more collators than `MaxAuthorities`, as a large validator cap may draw
+		// WHEN a session enacts them
+		let iter = || collators.iter().map(|(who, key)| (who, key.clone()));
+		<pallet_aura::Pallet<Runtime> as OneSessionHandler<AccountIdOf<Runtime>>>::on_new_session(
+			true,
+			iter(),
+			iter(),
+		);
+		// THEN Aura keeps the first `MaxAuthorities`, so collator selection's collators, which
+		// come first, keep collating
+		let authorities = pallet_aura::Authorities::<Runtime>::get();
+		assert_eq!(authorities.len() as u32, max);
+		assert_eq!(authorities.first(), collators.first().map(|(_, key)| key));
+		// AND the header that announces them stays under the relay chain's head-data limit
+		let header = frame_system::Pallet::<Runtime>::finalize();
+		let size = header.encode().len() as u32 + allowance;
+		assert!(size <= max_head_data_size, "a header with {max} authorities is {size} bytes");
 	});
 }

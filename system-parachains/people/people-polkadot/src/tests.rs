@@ -992,6 +992,25 @@ mod validator_collators {
 	}
 
 	#[test]
+	fn regular_rotation_keeps_its_period() {
+		system_parachains_test_utils::validator_collators::regular_rotation_keeps_its_period::<
+			Runtime,
+		>(crate::PERIOD, crate::OFFSET);
+	}
+
+	#[test]
+	fn aura_authorities_fit_the_relay_head_data() {
+		// The relay chain's `max_head_data_size`.
+		const MAX_HEAD_DATA_SIZE: u32 = 20_480;
+		// The seal, the collator's pre-runtime digests, the relay-parent storage root digest and a
+		// four byte block number, about 200 bytes, which the test block lacks.
+		const ALLOWANCE: u32 = 256;
+		system_parachains_test_utils::validator_collators::aura_authorities_fit_the_relay_head_data::<
+			Runtime,
+		>(MAX_HEAD_DATA_SIZE, ALLOWANCE);
+	}
+
+	#[test]
 	fn relay_proof_request_includes_the_validator_collators_randomness_key() {
 		use cumulus_primitives_core::{
 			relay_chain::well_known_keys::ONE_EPOCH_AGO_RANDOMNESS,

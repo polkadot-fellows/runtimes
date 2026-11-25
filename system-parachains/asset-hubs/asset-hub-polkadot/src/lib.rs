@@ -164,7 +164,7 @@ use system_parachains_constants::{
 				MILLISECS_PER_BLOCK as PARA_MILLISECS_PER_BLOCK, RELAY_PARENT_OFFSET,
 				UNINCLUDED_SEGMENT_CAPACITY,
 			},
-			RELAY_CHAIN_SLOT_DURATION_MILLIS,
+			MAX_AURA_AUTHORITIES, RELAY_CHAIN_SLOT_DURATION_MILLIS,
 		},
 		currency::*,
 		fee::WeightToFee as DotWeightToFee,
@@ -1018,7 +1018,7 @@ impl pallet_session::Config for Runtime {
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
-	type MaxAuthorities = ConstU32<100_000>;
+	type MaxAuthorities = ConstU32<MAX_AURA_AUTHORITIES>;
 	type AllowMultipleBlocksPerSlot = ConstBool<true>;
 	type SlotDuration = ConstU64<SLOT_DURATION>;
 }

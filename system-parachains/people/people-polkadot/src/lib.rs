@@ -89,15 +89,12 @@ use system_parachains_constants::{
 			elastic_scaling::{
 				BLOCK_PROCESSING_VELOCITY, RELAY_PARENT_OFFSET, UNINCLUDED_SEGMENT_CAPACITY,
 			},
-			RELAY_CHAIN_SLOT_DURATION_MILLIS,
+			MAX_AURA_AUTHORITIES, RELAY_CHAIN_SLOT_DURATION_MILLIS,
 		},
 		currency::*,
 		fee::WeightToFee as DotWeightToFee,
 		locations::DapStagingLocation,
-		staking::{
-			EXPECTED_ERA_DURATION_MILLIS, LAST_KNOWN_HRMP_MAX_MESSAGE_SIZE, LEFT_AUTHORS_BUFFER,
-			MAX_VALIDATOR_SET,
-		},
+		staking::{EXPECTED_ERA_DURATION_MILLIS, LEFT_AUTHORS_BUFFER, MAX_VALIDATOR_SET},
 	},
 };
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
@@ -495,7 +492,7 @@ impl pallet_session::Config for Runtime {
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
-	type MaxAuthorities = ConstU32<100_000>;
+	type MaxAuthorities = ConstU32<MAX_AURA_AUTHORITIES>;
 	type AllowMultipleBlocksPerSlot = ConstBool<true>;
 	type SlotDuration = ConstU64<SLOT_DURATION>;
 }
@@ -625,7 +622,11 @@ impl pallet_validator_collators::ReportAuthoredBlocks<AccountId> for ReportBlock
 
 	#[cfg(feature = "std")]
 	fn max_message_size() -> Option<usize> {
-		Some(LAST_KNOWN_HRMP_MAX_MESSAGE_SIZE as usize)
+		// The receiving message queue holds a message in pages of this size, a tighter bound than
+		// the HRMP channel.
+		Some(<<Runtime as pallet_message_queue::Config>::HeapSize as frame_support::traits::Get<
+			u32,
+		>>::get() as usize)
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
