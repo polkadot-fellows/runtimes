@@ -228,7 +228,7 @@ parameter_types! {
 /// // Full 16 page deposit, to be paid on top of the above base
 /// sp_io::TestExternalities::default().execute_with(|| {
 /// let deposit = asset_hub_polkadot_runtime::staking::SignedDepositPerPage::get() * 16;
-///     assert_eq!(deposit, 10_6_368_000_000); // around 10.6 DOTs
+///     assert_eq!(deposit, 10_6_369_600_000); // around 10.6 DOTs
 /// })
 /// ```
 pub struct GeometricDeposit;
