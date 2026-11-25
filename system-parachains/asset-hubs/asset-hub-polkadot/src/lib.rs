@@ -160,13 +160,15 @@ use system_parachains_constants::{
 	polkadot::{
 		consensus::{
 			elastic_scaling::{
-				BLOCK_PROCESSING_VELOCITY, HOURS as PARA_HOURS, RELAY_PARENT_OFFSET,
+				BLOCK_PROCESSING_VELOCITY, HOURS as PARA_HOURS,
+				MILLISECS_PER_BLOCK as PARA_MILLISECS_PER_BLOCK, RELAY_PARENT_OFFSET,
 				UNINCLUDED_SEGMENT_CAPACITY,
 			},
 			RELAY_CHAIN_SLOT_DURATION_MILLIS,
 		},
 		currency::*,
 		fee::WeightToFee as DotWeightToFee,
+		staking::{EXPECTED_ERA_DURATION_MILLIS, LEFT_AUTHORS_BUFFER, MAX_VALIDATOR_SET},
 	},
 };
 use xcm::{
@@ -325,7 +327,7 @@ impl pallet_timestamp::Config for Runtime {
 
 impl pallet_authorship::Config for Runtime {
 	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
-	type EventHandler = (CollatorSelection,);
+	type EventHandler = (CollatorSelection, ValidatorCollators);
 }
 
 parameter_types! {
@@ -893,7 +895,7 @@ parameter_types! {
 impl cumulus_pallet_parachain_system::Config for Runtime {
 	type SchedulingSignatureVerifier = ();
 	type RuntimeEvent = RuntimeEvent;
-	type OnSystemEvent = ();
+	type OnSystemEvent = ValidatorCollators;
 	type SelfParaId = parachain_info::Pallet<Runtime>;
 	type DmpQueue = frame_support::traits::EnqueueWithOrigin<MessageQueue, RelayOrigin>;
 	type ReservedDmpWeight = ReservedDmpWeight;
@@ -1002,9 +1004,10 @@ impl pallet_session::Config for Runtime {
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	// we don't have stash and controller, thus we don't need the convert as well.
 	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
-	type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
+	type ShouldEndSession = ValidatorCollators;
 	type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
-	type SessionManager = CollatorSelection;
+	type SessionManager =
+		pallet_session::UnionSessionManager<CollatorSelection, ValidatorCollators>;
 	// Essentially just Aura, but let's be pedantic.
 	type SessionHandler = <SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
@@ -1038,6 +1041,12 @@ pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	>,
 >;
 
+parameter_types! {
+	/// The blocks the chain authors in one Aura slot.
+	pub const BlocksPerAuraSlot: u32 =
+		(SLOT_DURATION / RELAY_CHAIN_SLOT_DURATION_MILLIS as u64) as u32 * BLOCK_PROCESSING_VELOCITY;
+}
+
 impl pallet_collator_selection::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
@@ -1046,12 +1055,74 @@ impl pallet_collator_selection::Config for Runtime {
 	type MaxCandidates = ConstU32<100>;
 	type MinEligibleCollators = ConstU32<4>;
 	type MaxInvulnerables = ConstU32<20>;
-	// should be a multiple of session or things will get inconsistent
-	type KickThreshold = Period;
+	type KickThreshold = system_parachains_common::validator_collators::KickThreshold<
+		Runtime,
+		BlocksPerAuraSlot,
+		Period,
+	>;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
 	type ValidatorRegistration = Session;
 	type WeightInfo = weights::pallet_collator_selection::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+	/// The validators of a set, the invulnerables and candidates of collator selection, and
+	/// [`LEFT_AUTHORS_BUFFER`].
+	pub MaxEntriesPerReport: u32 = MAX_VALIDATOR_SET
+		+ <<Runtime as pallet_collator_selection::Config>::MaxInvulnerables as Get<u32>>::get()
+		+ <<Runtime as pallet_collator_selection::Config>::MaxCandidates as Get<u32>>::get()
+		+ LEFT_AUTHORS_BUFFER;
+	// Validators contribute no collators until governance raises the cap.
+	pub const DefaultMaxCollators: pallet_validator_collators::CollatorDraw =
+		pallet_validator_collators::CollatorDraw::None;
+}
+
+impl pallet_validator_collators::Config for Runtime {
+	type SetOrigin = frame_system::EnsureNever<AccountId>;
+	type UpdateOrigin = CollatorSelectionUpdateOrigin;
+	type ValidatorRegistration = Session;
+	type MaxValidators = staking::MaxValidatorSet;
+	type MaxEntriesPerReport = MaxEntriesPerReport;
+	type PeriodicSession = pallet_session::PeriodicSessions<Period, Offset>;
+	type BlockReporter = staking::CreditBlocksLocally;
+	type DefaultMaxCollators = DefaultMaxCollators;
+	type DefaultReportPeriod = ConstU32<{ 10 * MINUTES * BLOCK_PROCESSING_VELOCITY }>;
+	type UnixTime = Timestamp;
+	type DefaultExpectedEraDuration = ConstU64<EXPECTED_ERA_DURATION_MILLIS>;
+	type DefaultReportMargin = ConstU64<300_000>;
+	type MaxReportMargin = ConstU64<1_800_000>;
+	type WeightInfo = weights::pallet_validator_collators::WeightInfo<Runtime>;
+}
+
+impl pallet_validator_set_announcer::Config for Runtime {
+	type Sender = staking::ValidatorSetToSystemChains;
+	type Destinations = ValidatorCollatorChains;
+	type WeightInfo = weights::pallet_validator_set_announcer::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+	/// Twice the blocks the fastest reporting chain can author in an expected era duration.
+	pub const MaxBlocksPerEntry: u32 =
+		(2 * EXPECTED_ERA_DURATION_MILLIS / PARA_MILLISECS_PER_BLOCK) as u32;
+	/// The sibling system chains that run `pallet-validator-collators` and report their authored
+	/// blocks here.
+	pub ValidatorCollatorChains: Vec<ParaId> = vec![
+		polkadot_runtime_constants::system_parachain::PEOPLE_ID.into(),
+		polkadot_runtime_constants::system_parachain::BULLETIN_ID.into(),
+	];
+}
+
+impl pallet_staking_async_points_converter::Config for Runtime {
+	type Source = ParaId;
+	type ReportOrigin = staking::EnsureReportingSiblings<ValidatorCollatorChains>;
+	type PointsOrigin = CollatorSelectionUpdateOrigin;
+	type RewardPoints = Staking;
+	// A relay chain block earns 20 era points. The cap leaves governance room above the per-unit
+	// value that matches it, while an era's total stays far from saturating.
+	type MaxPointsPerService = ConstU32<1_000>;
+	type MaxBlocksPerEntry = MaxBlocksPerEntry;
+	type WeightInfo = weights::pallet_staking_async_points_converter::WeightInfo<Runtime>;
 }
 
 impl pallet_asset_conversion_tx_payment::Config for Runtime {
@@ -1420,6 +1491,8 @@ impl frame_support::traits::EnsureOriginWithArg<RuntimeOrigin, RuntimeParameters
 				TechnicalMaintenance,
 			>::ensure_origin(origin.clone())
 			.map(|_| ()),
+			ValidatorCollation(_) =>
+				CollatorSelectionUpdateOrigin::ensure_origin(origin.clone()).map(|_| ()),
 			// technical params, can be controlled by the fellowship voice.
 			Scheduler(_) | MessageQueue(_) => EitherOfDiverse::<
 				EnsureRoot<AccountId>,
@@ -1566,6 +1639,17 @@ pub mod dynamic_params {
 		/// Maximum aliases processed by one stale-alias sweep call.
 		#[codec(index = 14)]
 		pub static MaxStaleAliasBatch: u32 = 32;
+	}
+
+	/// Collation by validators on the system chains.
+	#[dynamic_pallet_params]
+	#[codec(index = 4)]
+	pub mod validator_collation {
+		/// Whether an era start hands the validator set to `pallet-validator-collators` here and
+		/// on the chains in `ValidatorCollatorChains`. Off, no set is stored or sent, so no
+		/// session rotation is forced.
+		#[codec(index = 0)]
+		pub static Enabled: bool = false;
 	}
 }
 
@@ -1789,6 +1873,9 @@ construct_runtime!(
 		Session: pallet_session = 22,
 		Aura: pallet_aura = 23,
 		AuraExt: cumulus_pallet_aura_ext = 24,
+		ValidatorCollators: pallet_validator_collators = 25,
+		ValidatorSetAnnouncer: pallet_validator_set_announcer = 26,
+		StakingPointsConverter: pallet_staking_async_points_converter = 28,
 
 		// XCM helpers.
 		XcmpQueue: cumulus_pallet_xcmp_queue = 30,
@@ -2105,6 +2192,8 @@ mod benches {
 		[pallet_treasury, Treasury]
 		[pallet_transaction_payment, TransactionPayment]
 		[pallet_collator_selection, CollatorSelection]
+		[pallet_validator_collators, ValidatorCollators]
+		[pallet_validator_set_announcer, ValidatorSetAnnouncer]
 		[cumulus_pallet_parachain_system, ParachainSystem]
 		[cumulus_pallet_weight_reclaim, WeightReclaim]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
@@ -2132,6 +2221,7 @@ mod benches {
 		// Staking
 		[pallet_staking_async, Staking]
 		[pallet_staking_async_rc_client, StakingRcClientBench::<Runtime>]
+		[pallet_staking_async_points_converter, StakingPointsConverter]
 		[pallet_bags_list, VoterList]
 		[pallet_dap, Dap]
 		// DelegatedStaking has no calls
@@ -3026,6 +3116,14 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 	impl cumulus_primitives_core::GetParachainInfo<Block> for Runtime {
 		fn parachain_id() -> ParaId {
 			ParachainInfo::parachain_id()
+		}
+	}
+
+	impl cumulus_primitives_core::KeyToIncludeInRelayProof<Block> for Runtime {
+		fn keys_to_prove() -> cumulus_primitives_core::RelayProofRequest {
+			cumulus_primitives_core::RelayProofRequest {
+				keys: ValidatorCollators::relay_keys_to_prove(),
+			}
 		}
 	}
 

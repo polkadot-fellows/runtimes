@@ -20,6 +20,12 @@ pallet-balances = { workspace = true, default-features = true }
 pallet-message-queue = { workspace = true, default-features = true }
 pallet-identity = { workspace = true, default-features = true }
 pallet-parameters = { workspace = true, default-features = true }
+pallet-authorship = { workspace = true, default-features = true }
+pallet-session = { workspace = true, default-features = true }
+pallet-staking-async = { workspace = true, default-features = true }
+pallet-staking-async-points-converter = { workspace = true, default-features = true }
+pallet-validator-collators = { workspace = true, default-features = true }
+pallet-validator-set-announcer = { workspace = true, default-features = true }
 indiv-pallet-coinage = { workspace = true, default-features = true }
 indiv-pallet-members = { workspace = true, default-features = true }
 indiv-pallet-members-notifier = { workspace = true, default-features = true }
@@ -27,6 +33,8 @@ indiv-pallet-members-subscriber = { workspace = true, default-features = true }
 indiv-pallet-people = { workspace = true, default-features = true }
 indiv-support = { workspace = true, default-features = true }
 verifiable = { workspace = true, default-features = true }
+sp-keyring = { workspace = true, default-features = true }
+sp-staking = { workspace = true, default-features = true }
 
 # Polkadot
 polkadot-runtime-common = { workspace = true, default-features = true }
@@ -70,6 +78,11 @@ runtime-benchmarks = [
 	"pallet-identity/runtime-benchmarks",
 	"pallet-message-queue/runtime-benchmarks",
 	"pallet-parameters/runtime-benchmarks",
+	"pallet-session/runtime-benchmarks",
+	"pallet-staking-async-points-converter/runtime-benchmarks",
+	"pallet-staking-async/runtime-benchmarks",
+	"pallet-validator-collators/runtime-benchmarks",
+	"pallet-validator-set-announcer/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"people-polkadot-runtime/runtime-benchmarks",
@@ -79,6 +92,7 @@ runtime-benchmarks = [
 	"polkadot-runtime/runtime-benchmarks",
 	"polkadot-system-emulated-network/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
 	"xcm-runtime-apis/runtime-benchmarks",
 	"xcm/runtime-benchmarks",
