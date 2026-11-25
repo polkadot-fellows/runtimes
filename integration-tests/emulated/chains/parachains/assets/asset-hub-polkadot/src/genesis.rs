@@ -86,7 +86,7 @@ pub fn genesis() -> sp_core::storage::Storage {
 		session: asset_hub_polkadot_runtime::SessionConfig {
 			keys: collators::session_keys()
 				.into_iter()
-				.map(|(acc, aura, _)| {
+				.map(|(acc, aura)| {
 					(
 						acc.clone(),                                      // account id
 						acc,                                              // validator id
