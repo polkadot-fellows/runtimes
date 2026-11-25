@@ -390,3 +390,135 @@ fn validator_set_of_asset_hub_decodes_on_people_and_bulletin() {
 		other => panic!("the set decodes on Bulletin as {other:?}"),
 	}
 }
+
+/// Sends `call` from Asset Hub to `destination` for `origin` to execute there, as a
+/// referendum's `pallet_xcm::send` does.
+fn send_transact_from_asset_hub(
+	origin: <AssetHubPolkadot as Chain>::RuntimeOrigin,
+	destination: Location,
+	call: Vec<u8>,
+) {
+	use frame_support::sp_runtime::traits::Dispatchable;
+	AssetHubPolkadot::execute_with(|| {
+		let send = <AssetHubPolkadot as Chain>::RuntimeCall::PolkadotXcm(pallet_xcm::Call::send {
+			dest: bx!(VersionedLocation::from(destination)),
+			message: bx!(VersionedXcm::from(Xcm(vec![
+				UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+				Transact {
+					origin_kind: OriginKind::Xcm,
+					fallback_max_weight: None,
+					call: call.into()
+				},
+			]))),
+		});
+		assert_ok!(send.dispatch(origin));
+	});
+}
+
+#[test]
+fn asset_hub_staking_admin_sets_the_cap_on_people() {
+	use asset_hub_polkadot_runtime::governance::pallet_custom_origins::Origin;
+	type RuntimeEvent = <PeoplePolkadot as Chain>::RuntimeEvent;
+	let set_cap = |max| {
+		people_polkadot_runtime::RuntimeCall::ValidatorCollators(
+			pallet_validator_collators::Call::set_max_collators { max },
+		)
+		.encode()
+	};
+	// GIVEN the default cap
+	PeoplePolkadot::execute_with(|| {
+		assert_eq!(MaxCollators::<PeopleRuntime>::get(), CollatorDraw::None)
+	});
+
+	// WHEN Asset Hub's GeneralAdmin sends a cap
+	send_transact_from_asset_hub(
+		Origin::GeneralAdmin.into(),
+		AssetHubPolkadot::sibling_location_of(PeoplePolkadot::para_id()),
+		set_cap(CollatorDraw::UpTo(1)),
+	);
+	// THEN People executes the message, `Transact` fails without failing it, and the cap stays
+	PeoplePolkadot::execute_with(|| {
+		assert_expected_events!(
+			PeoplePolkadot,
+			vec![
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: true, .. }
+				) => {},
+			]
+		);
+		assert_eq!(MaxCollators::<PeopleRuntime>::get(), CollatorDraw::None);
+	});
+
+	// WHEN Asset Hub's StakingAdmin, the track of the enabling referenda, sends a cap
+	send_transact_from_asset_hub(
+		Origin::StakingAdmin.into(),
+		AssetHubPolkadot::sibling_location_of(PeoplePolkadot::para_id()),
+		set_cap(CollatorDraw::UpTo(3)),
+	);
+	// THEN People stores it
+	PeoplePolkadot::execute_with(|| {
+		assert_expected_events!(
+			PeoplePolkadot,
+			vec![
+				RuntimeEvent::ValidatorCollators(
+					pallet_validator_collators::Event::MaxCollatorsSet { max: CollatorDraw::UpTo(3) }
+				) => {},
+			]
+		);
+		assert_eq!(MaxCollators::<PeopleRuntime>::get(), CollatorDraw::UpTo(3));
+	});
+}
+
+#[test]
+fn asset_hub_staking_admin_sets_the_cap_on_bulletin() {
+	use asset_hub_polkadot_runtime::governance::pallet_custom_origins::Origin;
+	type RuntimeEvent = <BulletinPolkadot as Chain>::RuntimeEvent;
+	let set_cap = |max| {
+		bulletin_polkadot_runtime::RuntimeCall::ValidatorCollators(
+			pallet_validator_collators::Call::set_max_collators { max },
+		)
+		.encode()
+	};
+	// GIVEN the default cap
+	BulletinPolkadot::execute_with(|| {
+		assert_eq!(MaxCollators::<BulletinRuntime>::get(), CollatorDraw::None)
+	});
+
+	// WHEN Asset Hub's GeneralAdmin sends a cap
+	send_transact_from_asset_hub(
+		Origin::GeneralAdmin.into(),
+		AssetHubPolkadot::sibling_location_of(BulletinPolkadot::para_id()),
+		set_cap(CollatorDraw::UpTo(1)),
+	);
+	// THEN Bulletin executes the message, `Transact` fails without failing it, and the cap stays
+	BulletinPolkadot::execute_with(|| {
+		assert_expected_events!(
+			BulletinPolkadot,
+			vec![
+				RuntimeEvent::MessageQueue(
+					pallet_message_queue::Event::Processed { success: true, .. }
+				) => {},
+			]
+		);
+		assert_eq!(MaxCollators::<BulletinRuntime>::get(), CollatorDraw::None);
+	});
+
+	// WHEN Asset Hub's StakingAdmin, the track of the enabling referenda, sends a cap
+	send_transact_from_asset_hub(
+		Origin::StakingAdmin.into(),
+		AssetHubPolkadot::sibling_location_of(BulletinPolkadot::para_id()),
+		set_cap(CollatorDraw::UpTo(3)),
+	);
+	// THEN Bulletin stores it
+	BulletinPolkadot::execute_with(|| {
+		assert_expected_events!(
+			BulletinPolkadot,
+			vec![
+				RuntimeEvent::ValidatorCollators(
+					pallet_validator_collators::Event::MaxCollatorsSet { max: CollatorDraw::UpTo(3) }
+				) => {},
+			]
+		);
+		assert_eq!(MaxCollators::<BulletinRuntime>::get(), CollatorDraw::UpTo(3));
+	});
+}
