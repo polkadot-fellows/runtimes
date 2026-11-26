@@ -1789,53 +1789,58 @@ mod validator_collators {
 				);
 			}
 		});
-		// AND the reporting chains are People and Bulletin, not this chain
+		// AND the collating chains are pinned. Add a chain here once it starts collating. Asset
+		// Hub credits its own blocks locally, so it is never listed.
 		assert_eq!(ValidatorCollatorChains::get(), vec![PEOPLE_ID.into(), BULLETIN_ID.into()]);
 	}
 
+	/// Opens a channel to every chain in `ValidatorCollatorChains`.
+	fn open_channels_to_collating_chains() {
+		let mut destinations = ValidatorCollatorChains::get();
+		// Parachain system binary searches the channels by para id.
+		destinations.sort();
+		ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(destinations[0]);
+		cumulus_pallet_parachain_system::RelevantMessagingState::<Runtime>::mutate(|state| {
+			let state = state.as_mut().expect("a channel was just opened");
+			let channel = state.egress_channels[0].1.clone();
+			state.egress_channels =
+				destinations.into_iter().map(|id| (id, channel.clone())).collect();
+		});
+	}
+
 	#[test]
-	fn era_start_sends_the_set_to_people_and_bulletin() {
+	fn era_start_sends_the_set_to_each_collating_chain() {
 		let alice = AccountId::from(ALICE);
 		let bob = AccountId::from(BOB);
 		ExtBuilder::<Runtime>::default()
 			.with_safe_xcm_version(xcm::latest::VERSION)
 			.build()
 			.execute_with(|| {
-				// GIVEN open channels to People and Bulletin
-				ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
-					PEOPLE_ID.into(),
-				);
-				cumulus_pallet_parachain_system::RelevantMessagingState::<Runtime>::mutate(
-					|state| {
-						let state = state.as_mut().expect("a channel was just opened");
-						let channel = state.egress_channels[0].1.clone();
-						state.egress_channels = [PEOPLE_ID, BULLETIN_ID]
-							.into_iter()
-							.map(|id| (id.into(), channel.clone()))
-							.collect();
-					},
-				);
+				// GIVEN open channels to the collating chains
+				open_channels_to_collating_chains();
 
 				// WHEN governance has turned validator collation on and era 1 starts with Alice
 				// and Bob
 				enable_validator_collation();
 				AnnounceValidatorSet::on_era_start(1, &[alice.clone(), bob.clone()]);
 
-				// THEN the set is stored here and sent to both chains
-				let announced = |destination: u32| {
-					RuntimeEvent::ValidatorSetAnnouncer(
-						pallet_validator_set_announcer::Event::AnnouncementSent {
-							destination: destination.into(),
-							era: 1,
-						},
-					)
-				};
+				// THEN the set is stored here and sent to each collating chain
 				let events = events();
 				assert!(events.contains(&RuntimeEvent::ValidatorCollators(
 					pallet_validator_collators::Event::ValidatorSetReceived { era: 1, count: 2 }
 				)));
-				assert!(events.contains(&announced(PEOPLE_ID)));
-				assert!(events.contains(&announced(BULLETIN_ID)));
+				let mut destinations = ValidatorCollatorChains::get();
+				for destination in &destinations {
+					assert!(
+						events.contains(&RuntimeEvent::ValidatorSetAnnouncer(
+							pallet_validator_set_announcer::Event::AnnouncementSent {
+								destination: *destination,
+								era: 1,
+							},
+						)),
+						"no announcement to {destination:?}",
+					);
+				}
 
 				// AND each chain gets an unpaid `Transact` of `set_validators` with Asset Hub's
 				// location as an XCM origin
@@ -1843,9 +1848,10 @@ mod validator_collators {
 					ValidatorSetToSystemChains::encoded_call(1, &[alice.clone(), bob.clone()]);
 				let mut messages = XcmpQueue::take_outbound_messages(usize::MAX, &[]);
 				messages.sort_by_key(|(destination, _)| *destination);
+				destinations.sort();
 				assert_eq!(
 					messages.iter().map(|(destination, _)| *destination).collect::<Vec<_>>(),
-					vec![PEOPLE_ID.into(), BULLETIN_ID.into()]
+					destinations
 				);
 				for (_, page) in messages {
 					let mut data = &page[..];
@@ -1880,11 +1886,9 @@ mod validator_collators {
 			.with_safe_xcm_version(xcm::latest::VERSION)
 			.build()
 			.execute_with(|| {
-				// GIVEN validator collation is off, as by default, and a channel to People is
-				// open
-				ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
-					PEOPLE_ID.into(),
-				);
+				// GIVEN validator collation is off, as by default, and channels to the collating
+				// chains are open
+				open_channels_to_collating_chains();
 
 				// WHEN staking starts era 1 with Alice and Bob
 				start_era_one_through_staking(vec![alice, bob]);
@@ -1920,7 +1924,7 @@ mod validator_collators {
 			// WHEN staking starts era 1 with Alice and Bob
 			start_era_one_through_staking(vec![alice, bob]);
 
-			// THEN the hook stores the set here and announces it to People and Bulletin
+			// THEN the hook stores the set here and announces it to each collating chain
 			assert_eq!(
 				pallet_validator_collators::ExternalValidatorSet::<Runtime>::get()
 					.map(|set| (set.era, set.validators.len())),
@@ -1931,14 +1935,17 @@ mod validator_collators {
 				pallet_validator_collators::RotationState::AwaitingQueue
 			);
 			let announcements = announcements();
-			for id in [PEOPLE_ID, BULLETIN_ID] {
-				assert!(announcements.iter().any(|event| matches!(
-					event,
-					RuntimeEvent::ValidatorSetAnnouncer(
-						pallet_validator_set_announcer::Event::AnnouncementSent { destination, era: 1 } |
-						pallet_validator_set_announcer::Event::AnnouncementFailed { destination, era: 1 }
-					) if *destination == id.into()
-				)));
+			for id in ValidatorCollatorChains::get() {
+				assert!(
+					announcements.iter().any(|event| matches!(
+						event,
+						RuntimeEvent::ValidatorSetAnnouncer(
+							pallet_validator_set_announcer::Event::AnnouncementSent { destination, era: 1 } |
+							pallet_validator_set_announcer::Event::AnnouncementFailed { destination, era: 1 }
+						) if *destination == id
+					)),
+					"no announcement to {id:?}",
+				);
 			}
 		});
 	}
@@ -2128,28 +2135,30 @@ mod validator_collators {
 		type EnsureReportingSibling = EnsureReportingSiblings<ValidatorCollatorChains>;
 		let sibling =
 			|id: u32| RuntimeOrigin::from(cumulus_pallet_xcm::Origin::SiblingParachain(id.into()));
-		// GIVEN People or Bulletin as a sibling parachain origin
+		let chains = ValidatorCollatorChains::get();
+		// GIVEN a collating chain as a sibling parachain origin
 		// WHEN it reports THEN it is accepted under its own id
-		for id in [PEOPLE_ID, BULLETIN_ID] {
-			assert_eq!(EnsureReportingSibling::try_origin(sibling(id)).ok(), Some(id.into()));
+		for id in &chains {
+			assert_eq!(EnsureReportingSibling::try_origin(sibling((*id).into())).ok(), Some(*id));
 		}
-		// GIVEN another system or non-system sibling, the relay chain, People's or Bulletin's
-		// location as an XCM origin, their sovereign accounts, or root
-		let people = Location::new(1, Parachain(PEOPLE_ID));
-		let bulletin = Location::new(1, Parachain(BULLETIN_ID));
+		// GIVEN another system or non-system sibling, the relay chain, a collating chain's
+		// location as an XCM origin, its sovereign account, or root
 		let account_of = |location| LocationToAccountId::convert_location(&location).unwrap();
-		for origin in [
-			sibling(1000),
-			sibling(1001),
-			sibling(1005),
-			sibling(2000),
-			RuntimeOrigin::from(cumulus_pallet_xcm::Origin::Relay),
-			RuntimeOrigin::from(pallet_xcm::Origin::Xcm(people.clone())),
-			RuntimeOrigin::from(pallet_xcm::Origin::Xcm(bulletin.clone())),
-			RuntimeOrigin::signed(account_of(people)),
-			RuntimeOrigin::signed(account_of(bulletin)),
-			RuntimeOrigin::root(),
-		] {
+		let others = [1000, 1001, 1005, 2000]
+			.into_iter()
+			.filter(|id| !chains.contains(&(*id).into()))
+			.map(sibling);
+		let as_collating_chains = chains.iter().flat_map(|id| {
+			let location = Location::new(1, Parachain((*id).into()));
+			[
+				RuntimeOrigin::from(pallet_xcm::Origin::Xcm(location.clone())),
+				RuntimeOrigin::signed(account_of(location)),
+			]
+		});
+		for origin in others
+			.chain(as_collating_chains)
+			.chain([RuntimeOrigin::from(cumulus_pallet_xcm::Origin::Relay), RuntimeOrigin::root()])
+		{
 			// WHEN it reports THEN it is rejected
 			assert!(EnsureReportingSibling::try_origin(origin).is_err());
 		}
@@ -2169,7 +2178,9 @@ mod validator_collators {
 			// GIVEN era 1 is active with Alice exposed
 			activate_era_one_with(&alice);
 
-			for id in [PEOPLE_ID, BULLETIN_ID] {
+			let chains: Vec<u32> =
+				ValidatorCollatorChains::get().into_iter().map(Into::into).collect();
+			for &id in &chains {
 				// WHEN a non-system sibling, or an account on the chain, sends the message the
 				// chain sends to report its blocks
 				// THEN the barrier rejects it, since only system chains execute without paying
@@ -2207,21 +2218,23 @@ mod validator_collators {
 			}
 			assert_eq!(collation_points(1), vec![]);
 
-			// WHEN governance sets 5 points per Bulletin block and Bulletin reports again
-			assert_ok!(StakingPointsConverter::set_points_per_service(
-				RuntimeOrigin::root(),
-				BULLETIN_ID.into(),
-				ServiceKind::Collation,
-				5
-			));
-			assert_ok!(RuntimeHelper::execute_as_origin(
-				(Location::new(1, Parachain(BULLETIN_ID)), OriginKind::Native),
-				report(),
-				None,
-			)
-			.ensure_complete());
-			// THEN Alice's blocks are credited as Bulletin's collation points
-			assert_eq!(collation_points(1), vec![(alice, 15)]);
+			for (reported, &id) in (1..).zip(&chains) {
+				// WHEN governance sets 5 points per block of the chain and the chain reports again
+				assert_ok!(StakingPointsConverter::set_points_per_service(
+					RuntimeOrigin::root(),
+					id.into(),
+					ServiceKind::Collation,
+					5
+				));
+				assert_ok!(RuntimeHelper::execute_as_origin(
+					(Location::new(1, Parachain(id)), OriginKind::Native),
+					report(),
+					None,
+				)
+				.ensure_complete());
+				// THEN Alice's blocks are credited as the chain's collation points
+				assert_eq!(collation_points(1), vec![(alice.clone(), 15 * reported)]);
+			}
 		});
 	}
 

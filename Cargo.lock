@@ -20794,18 +20794,25 @@ name = "system-parachains-test-utils"
 version = "1.0.0"
 dependencies = [
  "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcm",
+ "cumulus-primitives-core",
  "frame-support",
  "frame-system",
  "pallet-accumulate-and-forward",
  "pallet-aura",
+ "pallet-authorship",
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-session",
  "pallet-validator-collators",
+ "pallet-xcm",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
+ "sp-io 50.0.0",
  "sp-keystore 0.50.0",
  "sp-runtime 50.0.0",
+ "staging-xcm",
+ "staging-xcm-executor",
 ]
 
 [[package]]
