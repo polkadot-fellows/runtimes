@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Update all runtimes to `polkadot-sdk` `stable2611` ([#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)).
+- Update Individuality to `sdk-2611-3004014` (stable2611) ([#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)).
 - Asset Hub Polkadot and Kusama: `chill_inactive` is disabled until governance sets its threshold. A validator counts as inactive only with zero points in every service ([SDK #13536](https://github.com/paritytech/polkadot-sdk/pull/13536), [#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)).
 - Asset Hub Polkadot and Kusama: transfers, mints, and burns in `Assets`, `ForeignAssets`, and `PoolAssets` now also deposit a `ContractEmitted` event from `pallet-revive`, next to the `pallet-assets` event. It carries an ERC-20 `Transfer` log from the asset's precompile address. This also applies to plain extrinsics and XCM, so the number and order of events change for indexers. Destroying an asset emits no log for the balances it removes, so indexers must drop the balances of a destroyed asset. The `ERC20` precompile itself now emits `Transfer` only for zero-value transfers ([SDK #12581](https://github.com/paritytech/polkadot-sdk/pull/12581), [#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)).
 - Asset Hub Polkadot and Kusama: changes for Ethereum users and tooling in `pallet-revive` ([#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)):
