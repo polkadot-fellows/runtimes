@@ -74,7 +74,9 @@ use frame_system::{
 use governance::{pallet_custom_origins, FellowshipAdmin, GeneralAdmin, StakingAdmin, Treasurer};
 use kusama_runtime_constants::time::{DAYS as RC_DAYS, HOURS as RC_HOURS, MINUTES as RC_MINUTES};
 use pallet_asset_conversion_precompiles::AssetConversion as AssetConversionPrecompile;
-use pallet_assets_precompiles::{ForeignAssetId, ForeignIdConfig, InlineIdConfig, ERC20};
+use pallet_assets_precompiles::{
+	Erc20TransferLogsCallback, ForeignAssetId, ForeignIdConfig, InlineIdConfig, ERC20,
+};
 use pallet_nfts::PalletFeatures;
 use pallet_nomination_pools::PoolId;
 use pallet_proxy::ProxyDefinition;
@@ -357,7 +359,13 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_local::WeightInfo<Runtime>;
-	type CallbackHandle = ();
+	// TODO 2611-bench: The callback adds work to every asset balance change, also for
+	// `PoolAssets` and `ForeignAssets`. Rerun the benchmarks of every pallet that moves assets.
+	type CallbackHandle = Erc20TransferLogsCallback<
+		Runtime,
+		InlineIdConfig<{ TRUST_BACKED_ASSETS_PRECOMPILE }>,
+		TrustBackedAssetsInstance,
+	>;
 	type AssetIdAllocator = pallet_assets::AutoIncAssetId<Runtime, TrustBackedAssetsInstance>;
 	type AssetAccountDeposit = AssetAccountDeposit;
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
@@ -404,7 +412,11 @@ impl pallet_assets::Config<PoolAssetsInstance> for Runtime {
 	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_pool::WeightInfo<Runtime>;
-	type CallbackHandle = ();
+	type CallbackHandle = Erc20TransferLogsCallback<
+		Runtime,
+		InlineIdConfig<{ POOL_ASSETS_PRECOMPILE }>,
+		PoolAssetsInstance,
+	>;
 	type AssetIdAllocator = ();
 	type ReserveData = ();
 	#[cfg(feature = "runtime-benchmarks")]
@@ -512,7 +524,14 @@ impl pallet_assets::Config<ForeignAssetsInstance> for Runtime {
 	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_foreign::WeightInfo<Runtime>;
-	type CallbackHandle = (ForeignAssetId<Runtime, ForeignAssetsInstance>,);
+	type CallbackHandle = (
+		ForeignAssetId<Runtime, ForeignAssetsInstance>,
+		Erc20TransferLogsCallback<
+			Runtime,
+			ForeignIdConfig<{ FOREIGN_ASSETS_PRECOMPILE }, Runtime, ForeignAssetsInstance>,
+			ForeignAssetsInstance,
+		>,
+	);
 	type AssetIdAllocator = ();
 	type AssetAccountDeposit = ForeignAssetsAssetAccountDeposit;
 	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
@@ -1249,8 +1268,9 @@ parameter_types! {
 
 impl pallet_revive::Config for Runtime {
 	type Time = Timestamp;
-	// TODO 2611-review: Westend keeps this at zero until every eth-rpc serving the chain reads
-	// receipt data V2 (polkadot-sdk master, asset-hub-westend).
+	// Keep this at zero until every eth-rpc serving the chain runs `stable2611` and the upstream
+	// change to how buffered logs are charged has landed:
+	// https://github.com/polkadot-fellows/runtimes/issues/1391
 	type MaxOutsideFrameLogs = ConstU32<0>;
 	type Balance = Balance;
 	type Currency = Balances;
@@ -1262,9 +1282,13 @@ impl pallet_revive::Config for Runtime {
 	type DepositPerByte = DepositPerByte;
 	type WeightInfo = weights::pallet_revive::WeightInfo<Runtime>;
 	type Precompiles = (
-		ERC20<Self, InlineIdConfig<0x120>, TrustBackedAssetsInstance>,
-		ERC20<Self, InlineIdConfig<0x320>, PoolAssetsInstance>,
-		ERC20<Self, ForeignIdConfig<0x220, Self, ForeignAssetsInstance>, ForeignAssetsInstance>,
+		ERC20<Self, InlineIdConfig<{ TRUST_BACKED_ASSETS_PRECOMPILE }>, TrustBackedAssetsInstance>,
+		ERC20<Self, InlineIdConfig<{ POOL_ASSETS_PRECOMPILE }>, PoolAssetsInstance>,
+		ERC20<
+			Self,
+			ForeignIdConfig<{ FOREIGN_ASSETS_PRECOMPILE }, Self, ForeignAssetsInstance>,
+			ForeignAssetsInstance,
+		>,
 		XcmPrecompile<Self>,
 		AssetConversionPrecompile<{ ASSET_CONVERSION_PRECOMPILE }, Self>,
 		VestingPrecompile<Self>,
@@ -1306,6 +1330,19 @@ impl pallet_vesting_precompiles::pallet::Config for Runtime {
 	type WeightInfo = weights::pallet_vesting_precompiles::WeightInfo<Runtime>;
 }
 
+/// Address prefix of the `ERC20` precompile for trust-backed assets (`Assets`).
+///
+/// The same value configures the precompile and the instance's `Erc20TransferLogsCallback`. The
+/// callback derives from it the token address that emits its `Transfer` logs.
+pub const TRUST_BACKED_ASSETS_PRECOMPILE: u16 = 0x0120;
+/// Address prefix of the `ERC20` precompile for foreign assets (`ForeignAssets`).
+///
+/// See [`TRUST_BACKED_ASSETS_PRECOMPILE`].
+pub const FOREIGN_ASSETS_PRECOMPILE: u16 = 0x0220;
+/// Address prefix of the `ERC20` precompile for pool assets (`PoolAssets`).
+///
+/// See [`TRUST_BACKED_ASSETS_PRECOMPILE`].
+pub const POOL_ASSETS_PRECOMPILE: u16 = 0x0320;
 /// Precompile address identifier (embedded at bytes [16..18] of the H160 address).
 pub const ASSET_CONVERSION_PRECOMPILE: u16 = 0x0420;
 

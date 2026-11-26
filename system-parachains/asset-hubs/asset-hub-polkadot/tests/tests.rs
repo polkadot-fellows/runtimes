@@ -1544,3 +1544,121 @@ fn session_key_deposit_works() {
 		(generated.keys, generated.proof.encode())
 	});
 }
+
+/// The addresses that emitted an ERC-20 `Transfer` log in the current block.
+fn erc20_transfer_log_emitters() -> Vec<sp_core::H160> {
+	let transfer = sp_core::H256(sp_io::hashing::keccak_256(b"Transfer(address,address,uint256)"));
+	asset_hub_polkadot_runtime::System::events()
+		.into_iter()
+		.filter_map(|record| match record.event {
+			RuntimeEvent::Revive(pallet_revive::Event::ContractEmitted {
+				contract,
+				topics,
+				..
+			}) if topics.first() == Some(&transfer) => Some(contract),
+			_ => None,
+		})
+		.collect()
+}
+
+/// The address of the `ERC20` precompile with the given `prefix` for the asset with `index`.
+fn erc20_precompile_address(index: u32, prefix: u16) -> sp_core::H160 {
+	let mut address = [0u8; 20];
+	address[..4].copy_from_slice(&index.to_be_bytes());
+	address[16..18].copy_from_slice(&prefix.to_be_bytes());
+	sp_core::H160(address)
+}
+
+/// Every `pallet-assets` instance mirrors its balance changes as ERC-20 `Transfer` logs, emitted
+/// from the address of the instance's `ERC20` precompile.
+///
+/// The `ERC20` precompile itself emits no `Transfer` log for a nonzero transfer. It relies on
+/// `Erc20TransferLogsCallback` being the `CallbackHandle` of the instance, with the address prefix
+/// of the instance's precompile.
+///
+/// A missing callback leaves the list of emitters empty, and a callback with another prefix fails
+/// the address check. The expected prefixes are literals because changing a prefix moves the
+/// address of every live token. The test does not call the precompiles, so it does not catch a
+/// precompile registered with the wrong prefix or instance.
+#[test]
+fn asset_balance_changes_are_mirrored_as_erc20_transfer_logs() {
+	use asset_hub_polkadot_runtime::{PoolAssets, System};
+
+	ExtBuilder::<Runtime>::default()
+		.with_collators(collator_session_keys().collators())
+		.with_session_keys(collator_session_keys().session_keys())
+		.build()
+		.execute_with(|| {
+			let owner = AccountId::from(ALICE);
+			let recipient = AccountId::from(SOME_ASSET_ADMIN);
+			let root = RuntimeHelper::root_origin;
+			let signed = || RuntimeHelper::origin_of(owner.clone());
+
+			// Trust-backed assets: A mint and a transfer are each mirrored once.
+			let trust_backed_id: AssetIdForTrustBackedAssets = 11;
+			assert_ok!(Assets::force_create(
+				root(),
+				trust_backed_id.into(),
+				owner.clone().into(),
+				true,
+				1
+			));
+			System::reset_events();
+			assert_ok!(Assets::mint(signed(), trust_backed_id.into(), owner.clone().into(), 1_000));
+			assert_ok!(Assets::transfer(
+				signed(),
+				trust_backed_id.into(),
+				recipient.clone().into(),
+				100
+			));
+			assert_eq!(
+				erc20_transfer_log_emitters(),
+				vec![erc20_precompile_address(trust_backed_id, 0x0120); 2]
+			);
+
+			// Pool assets.
+			let pool_id = 12;
+			assert_ok!(PoolAssets::force_create(root(), pool_id, owner.clone().into(), true, 1));
+			System::reset_events();
+			assert_ok!(PoolAssets::mint(signed(), pool_id, owner.clone().into(), 1_000));
+			assert_ok!(PoolAssets::transfer(signed(), pool_id, recipient.clone().into(), 100));
+			assert_eq!(
+				erc20_transfer_log_emitters(),
+				vec![erc20_precompile_address(pool_id, 0x0320); 2]
+			);
+
+			// Foreign assets: The index is not the asset ID but is assigned on creation. Create
+			// another asset first so that the one under test does not get index zero.
+			let other_foreign_id = Location::new(1, [Parachain(2000)]);
+			let foreign_id = Location::new(1, [Parachain(2001)]);
+			for id in [&other_foreign_id, &foreign_id] {
+				assert_ok!(ForeignAssets::force_create(
+					root(),
+					id.clone(),
+					owner.clone().into(),
+					true,
+					1
+				));
+			}
+			let foreign_index =
+				pallet_assets_precompiles::pallet::Pallet::<Runtime>::asset_index_of(&foreign_id)
+					.expect("creating a foreign asset assigns it an index");
+			System::reset_events();
+			assert_ok!(ForeignAssets::mint(
+				signed(),
+				foreign_id.clone(),
+				owner.clone().into(),
+				1_000
+			));
+			assert_ok!(ForeignAssets::transfer(
+				signed(),
+				foreign_id,
+				recipient.clone().into(),
+				100
+			));
+			assert_eq!(
+				erc20_transfer_log_emitters(),
+				vec![erc20_precompile_address(foreign_index, 0x0220); 2]
+			);
+		});
+}

@@ -10,6 +10,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Update all runtimes to `polkadot-sdk` `stable2611` ([#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)).
 - Asset Hub Polkadot and Kusama: `chill_inactive` is disabled until governance sets its threshold. A validator counts as inactive only with zero points in every service ([SDK #13536](https://github.com/paritytech/polkadot-sdk/pull/13536), [#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)).
+- Asset Hub Polkadot and Kusama: transfers, mints, and burns in `Assets`, `ForeignAssets`, and `PoolAssets` now also deposit a `ContractEmitted` event from `pallet-revive`, next to the `pallet-assets` event. It carries an ERC-20 `Transfer` log from the asset's precompile address. This also applies to plain extrinsics and XCM, so the number and order of events change for indexers. Destroying an asset emits no log for the balances it removes, so indexers must drop the balances of a destroyed asset. The `ERC20` precompile itself now emits `Transfer` only for zero-value transfers ([SDK #12581](https://github.com/paritytech/polkadot-sdk/pull/12581), [#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)).
+- Asset Hub Polkadot and Kusama: changes for Ethereum users and tooling in `pallet-revive` ([#1384](https://github.com/polkadot-fellows/runtimes/pull/1384)):
+  - Type-4 (EIP-7702) transactions are accepted ([SDK #12229](https://github.com/paritytech/polkadot-sdk/pull/12229)).
+  - Receipts no longer carry the logs of reverted frames or failed transactions, and `receipts_root` and `logs_bloom` follow. Gas estimates for calls that emit logs rise ([SDK #12581](https://github.com/paritytech/polkadot-sdk/pull/12581)).
+  - Receipts carry the `Transfer` log of an asset balance change made inside an Ethereum transaction, for example an asset call through `eth_substrate_call`. On Asset Hub Polkadot, this includes contract storage deposits and refunds paid in PGAS, so tooling that reads a receipt's logs by position must expect them ([SDK #12581](https://github.com/paritytech/polkadot-sdk/pull/12581)).
+  - `balanceOf` of the `ERC20` precompile returns the free plus the held balance. This changes results on Asset Hub Polkadot, where trust-backed assets can be held ([SDK #12581](https://github.com/paritytech/polkadot-sdk/pull/12581)).
+  - Nested calls follow the EIP-150 63/64 rule, so a gas limit copied from an earlier `gasUsed` can now be too low. Use `eth_estimateGas` or a dry run to set limits ([SDK #11079](https://github.com/paritytech/polkadot-sdk/pull/11079)).
 
 ## [2.6.0] 18.11.2026
 
