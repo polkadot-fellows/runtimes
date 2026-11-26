@@ -22,7 +22,7 @@ use super::{
 	NativeAndAssets, ParachainInfo, ParachainSystem, PolkadotXcm, PoolAssets,
 	PriceForParentDelivery, ProsperityEmergency, Runtime, RuntimeCall, RuntimeEvent,
 	RuntimeHoldReason, RuntimeOrigin, StakingAdmin, TechnicalMaintenance, ToKusamaXcmRouter,
-	Treasurer, XcmpQueue,
+	Treasurer, TxPause, XcmpQueue,
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use assets_common::{
@@ -37,7 +37,8 @@ use frame_support::{
 	traits::{
 		fungible::HoldConsideration,
 		tokens::imbalance::{ResolveAssetTo, ResolveTo},
-		ConstU32, Contains, ContainsPair, Equals, Everything, LinearStoragePrice, PalletInfoAccess,
+		ConstU32, Contains, ContainsPair, Equals, Everything, InsideBoth, LinearStoragePrice,
+		PalletInfoAccess,
 	},
 };
 use frame_system::EnsureRoot;
@@ -549,7 +550,8 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases =
 		(bridging::to_kusama::UniversalAliases, bridging::to_ethereum::UniversalAliases);
 	type CallDispatcher = RuntimeCall;
-	type SafeCallFilter = AllExceptReapStash;
+	// What tx-pause blocks for extrinsics is blocked for `Transact` too.
+	type SafeCallFilter = InsideBoth<AllExceptReapStash, TxPause>;
 	type Aliasers = TrustedAliasers;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
