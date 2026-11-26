@@ -84,6 +84,8 @@ impl<T: frame_system::Config> pallet_beefy_mmr::WeightInfo for WeightInfo<T> {
 			.saturating_add(Weight::from_parts(0, 3505))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
+	// TODO 2611-bench: measured before polkadot-sdk#13963 rewrote this benchmark. The range of
+	// `n` is now `[3, 33]`, and the per-item cost on Westend more than doubled.
 	/// Storage: `Mmr::RootHash` (r:1 w:0)
 	/// Proof: `Mmr::RootHash` (`max_values`: Some(1), `max_size`: Some(32), added: 527, mode: `MaxEncodedLen`)
 	/// Storage: `Mmr::NumberOfLeaves` (r:1 w:0)
