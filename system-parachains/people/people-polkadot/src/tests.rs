@@ -754,36 +754,14 @@ fn forward_period_counts_relay_blocks() {
 mod validator_collators {
 	use super::*;
 	use crate::{
-		xcm_config::XcmConfig, AllPalletsWithoutSystem, MessageQueueServiceWeight, ParachainSystem,
-		ReportBlocksToAssetHub, System, ValidatorCollators, XcmpQueue,
-	};
-	use codec::{Decode, DecodeLimit};
-	use cumulus_primitives_core::{XcmpMessageFormat, XcmpMessageSource};
-	use frame_support::{
-		dispatch::GetDispatchInfo,
-		traits::{EnsureOrigin, Get, Hooks},
-		weights::Weight,
+		xcm_config::XcmConfig, AllPalletsWithoutSystem, MessageQueueServiceWeight,
+		ReportBlocksToAssetHub, ValidatorCollators, XcmpQueue,
 	};
 	use parachains_runtimes_test_utils::ExtBuilder;
 	use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, BULLETIN_ID};
-	use xcm::{VersionedXcm, MAX_XCM_DECODE_DEPTH};
-	use xcm_executor::traits::ConvertLocation;
-
-	type SetOrigin = <Runtime as pallet_validator_collators::Config>::SetOrigin;
 
 	fn asset_hub_origin() -> RuntimeOrigin {
 		pallet_xcm::Origin::Xcm(AssetHubLocation::get()).into()
-	}
-
-	fn set_validators(validators: Vec<AccountId>) -> RuntimeCall {
-		RuntimeCall::ValidatorCollators(pallet_validator_collators::Call::set_validators {
-			era: 1,
-			validators: validators
-				.into_iter()
-				.collect::<std::collections::BTreeSet<_>>()
-				.try_into()
-				.unwrap(),
-		})
 	}
 
 	#[test]
@@ -808,177 +786,50 @@ mod validator_collators {
 
 	#[test]
 	fn only_asset_hub_sets_the_validator_set() {
-		// GIVEN Asset Hub's location as an XCM origin
-		// WHEN it sets the validator set THEN it is accepted
-		assert!(SetOrigin::try_origin(asset_hub_origin()).is_ok());
+		system_parachains_test_utils::validator_collators::only_asset_hub_sets_the_validator_set::<
+			Runtime,
+			LocationToAccountId,
+		>(
+			AssetHubLocation::get(),
+			vec![
+				Location::new(1, Parachain(BULLETIN_ID)),
+				Location::new(
+					1,
+					[
+						Parachain(ASSET_HUB_ID),
+						Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					],
+				),
+			],
+		);
+	}
 
-		// GIVEN root, the relay chain, Bulletin, a plurality on Asset Hub, a sibling parachain
-		// origin of Asset Hub, or Asset Hub's sovereign account
-		let sovereign = LocationToAccountId::convert_location(&AssetHubLocation::get()).unwrap();
-		for origin in [
-			RuntimeOrigin::root(),
-			pallet_xcm::Origin::Xcm(RelayChainLocation::get()).into(),
-			pallet_xcm::Origin::Xcm(Location::new(1, Parachain(BULLETIN_ID))).into(),
-			pallet_xcm::Origin::Xcm(Location::new(
+	#[test]
+	fn asset_hub_message_sets_the_validator_set_unpaid() {
+		system_parachains_test_utils::validator_collators::asset_hub_message_sets_the_validator_set_unpaid::<
+			Runtime,
+			XcmConfig,
+		>(ExtBuilder::<Runtime>::default().build(), AssetHubLocation::get(), Location::new(
 				1,
 				[
 					Parachain(ASSET_HUB_ID),
 					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
 				],
-			))
-			.into(),
-			cumulus_pallet_xcm::Origin::SiblingParachain(ASSET_HUB_ID.into()).into(),
-			RuntimeOrigin::signed(sovereign),
-		] {
-			// WHEN it sets the validator set THEN it is rejected
-			assert!(SetOrigin::try_origin(origin).is_err());
-		}
-	}
-
-	#[test]
-	fn asset_hub_message_sets_the_validator_set_unpaid() {
-		let alice = AccountId::from(ALICE);
-		let execute = |from: Location| {
-			let message: Xcm<RuntimeCall> = Xcm::builder_unsafe()
-				.unpaid_execution(Unlimited, None)
-				.transact(OriginKind::Xcm, None, set_validators(vec![alice.clone()]).encode())
-				.build();
-			let mut id = [0u8; 32];
-			xcm_executor::XcmExecutor::<XcmConfig>::prepare_and_execute(
-				from,
-				message,
-				&mut id,
-				Weight::MAX,
-				// No credit, so only the barrier lets the message through.
-				Weight::zero(),
-			)
-		};
-		ExtBuilder::<Runtime>::default().build().execute_with(|| {
-			// GIVEN the unpaid `Transact` of `set_validators` that Asset Hub sends
-			// WHEN another sibling sends it
-			// THEN the barrier rejects it
-			assert_eq!(
-				execute(Location::new(1, Parachain(2000)))
-					.ensure_complete()
-					.map_err(|e| e.error),
-				Err(XcmError::Barrier)
-			);
-			// WHEN a plurality on Asset Hub sends it THEN the call rejects its origin
-			assert_ok!(execute(Location::new(
-				1,
-				[
-					Parachain(ASSET_HUB_ID),
-					Plurality { id: BodyId::Technical, part: BodyPart::Voice }
-				],
-			))
-			.ensure_complete());
-			assert!(pallet_validator_collators::ExternalValidatorSet::<Runtime>::get().is_none());
-
-			// WHEN Asset Hub sends it
-			// THEN it executes without fees and stores the set
-			assert_ok!(execute(AssetHubLocation::get()).ensure_complete());
-			assert_eq!(
-				pallet_validator_collators::ExternalValidatorSet::<Runtime>::get().map(|set| (
-					set.era,
-					set.validators.into_inner().into_iter().collect::<Vec<_>>()
-				)),
-				Some((1, vec![alice.clone()]))
-			);
-		});
+			));
 	}
 
 	#[test]
 	fn report_reaches_asset_hub_as_an_unpaid_transact() {
-		let alice = AccountId::from(ALICE);
-		let invulnerable = AccountId::from([9u8; 32]);
-		ExtBuilder::<Runtime>::default()
-			.with_safe_xcm_version(xcm::latest::VERSION)
-			.build()
-			.execute_with(|| {
-				// GIVEN a stored set with Alice, an open channel to Asset Hub, and Alice and an
-				// invulnerable outside the set authored blocks
-				ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(
-					ASSET_HUB_ID.into(),
-				);
-				assert_ok!(ValidatorCollators::set_validators(
-					asset_hub_origin(),
-					1,
-					[alice.clone()]
-						.into_iter()
-						.collect::<std::collections::BTreeSet<_>>()
-						.try_into()
-						.unwrap(),
-				));
-				for who in [&alice, &alice, &alice, &invulnerable] {
-					<ValidatorCollators as pallet_authorship::EventHandler<_, _>>::note_author(
-						who.clone(),
-					);
-				}
-
-				// WHEN the report block comes
-				let period = pallet_validator_collators::ReportPeriod::<Runtime>::get();
-				System::reset_events();
-				ValidatorCollators::on_poll(
-					period,
-					&mut frame_support::weights::WeightMeter::new(),
-				);
-
-				// THEN only Alice's count is reported
-				assert!(System::events().iter().any(|record| record.event ==
-					crate::RuntimeEvent::ValidatorCollators(
-						pallet_validator_collators::Event::BlocksReported {
-							authors: 2,
-							reported: 1
-						}
-					)));
-				// AND it is queued for Asset Hub as an unpaid `Transact` with this chain's native
-				// origin
-				let messages = XcmpQueue::take_outbound_messages(usize::MAX, &[]);
-				assert_eq!(messages.len(), 1);
-				let (destination, page) = &messages[0];
-				assert_eq!(*destination, ASSET_HUB_ID.into());
-				let mut data = &page[..];
-				assert_eq!(
-					XcmpMessageFormat::decode(&mut data),
-					Ok(XcmpMessageFormat::ConcatenatedVersionedXcm)
-				);
-				let xcm: Xcm<()> =
-					VersionedXcm::<()>::decode_with_depth_limit(MAX_XCM_DECODE_DEPTH, &mut data)
-						.unwrap()
-						.try_into()
-						.unwrap();
-				let expected_call = ReportBlocksToAssetHub::encoded_call(&[(alice.clone(), 3)]);
-				assert!(matches!(
-					xcm.0.as_slice(),
-					[
-						UnpaidExecution { weight_limit: Unlimited, check_origin: None },
-						Transact { origin_kind: OriginKind::Native, call, .. },
-						SetTopic(_),
-					] if call.encoded() == expected_call.as_slice()
-				));
-			});
+		system_parachains_test_utils::validator_collators::report_reaches_asset_hub_as_an_unpaid_transact::<
+			Runtime,
+			XcmpQueue,
+		>(AssetHubLocation::get(), ReportBlocksToAssetHub::encoded_call);
 	}
 
 	#[test]
 	fn full_validator_set_fits_the_message_queue() {
-		// GIVEN the largest validator set Asset Hub sends
-		let max =
-			<<Runtime as pallet_validator_collators::Config>::MaxValidators as Get<u32>>::get();
-		let call = set_validators(
-			(0..max)
-				.map(|i| {
-					let mut account = [0u8; 32];
-					account[..4].copy_from_slice(&i.to_le_bytes());
-					AccountId::from(account)
-				})
-				.collect(),
-		);
-		// WHEN this chain processes it from its message queue
-		// THEN it fits the service weight, so it is not set aside as overweight
-		let weight = call.get_dispatch_info().call_weight;
-		assert!(
-			MessageQueueServiceWeight::get().all_gte(weight),
-			"a set of {max} validators weighs {weight:?}",
+		system_parachains_test_utils::validator_collators::full_validator_set_fits_the_message_queue::<Runtime>(
+			MessageQueueServiceWeight::get(),
 		);
 	}
 
@@ -1012,16 +863,9 @@ mod validator_collators {
 
 	#[test]
 	fn relay_proof_request_includes_the_validator_collators_randomness_key() {
-		use cumulus_primitives_core::{
-			relay_chain::well_known_keys::ONE_EPOCH_AGO_RANDOMNESS,
-			runtime_decl_for_key_to_include_in_relay_proof::KeyToIncludeInRelayProofV1,
-			RelayStorageKey,
-		};
-		// GIVEN the runtime wires pallet-validator-collators, which reads the relay chain epoch
-		// randomness from every relay chain state proof
-		// WHEN a collator asks the runtime which relay chain keys to prove
-		let keys = Runtime::keys_to_prove().keys;
-		// THEN the randomness key is requested
-		assert!(keys.contains(&RelayStorageKey::Top(ONE_EPOCH_AGO_RANDOMNESS.to_vec())));
+		system_parachains_test_utils::validator_collators::relay_proof_request_includes_the_validator_collators_randomness_key::<
+			Runtime,
+			Block,
+		>();
 	}
 }

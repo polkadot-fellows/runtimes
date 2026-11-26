@@ -12,15 +12,22 @@ publish = false
 codec = { workspace = true, default-features = true }
 
 cumulus-pallet-parachain-system = { workspace = true, default-features = true }
+cumulus-pallet-xcm = { workspace = true, default-features = true }
+cumulus-primitives-core = { workspace = true, default-features = true }
 
 frame-support = { workspace = true, default-features = true }
 frame-system = { workspace = true, default-features = true }
 pallet-accumulate-and-forward = { workspace = true, default-features = true }
 pallet-aura = { workspace = true, default-features = true }
+pallet-authorship = { workspace = true, default-features = true }
 pallet-balances = { workspace = true, default-features = true }
 pallet-collator-selection = { workspace = true, default-features = true }
 pallet-session = { workspace = true, default-features = true }
 pallet-validator-collators = { workspace = true, default-features = true }
+pallet-xcm = { workspace = true, default-features = true }
 parachains-runtimes-test-utils = { workspace = true }
+sp-io = { workspace = true, default-features = true }
 sp-keystore = { workspace = true }
 sp-runtime = { workspace = true, default-features = true }
+xcm = { workspace = true, default-features = true }
+xcm-executor = { workspace = true, default-features = true }
