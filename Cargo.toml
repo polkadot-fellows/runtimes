@@ -395,6 +395,26 @@ members = [
 	"system-parachains/people/people-polkadot",
 ]
 
+[patch.crates-io]
+encointer-balances-tx-payment = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+encointer-balances-tx-payment-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+encointer-primitives = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-balances = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-bazaar = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-bazaar-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-ceremonies = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-ceremonies-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-communities = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-communities-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-democracy = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-faucet = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-offline-payment = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-reputation-commitments = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-reputation-rings = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-scheduler = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-treasuries = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+pallet-encointer-treasuries-rpc-runtime-api = { git = "https://github.com/encointer/pallets", branch = "bump-stable2611" }
+
 [profile.release]
 # Polkadot runtime requires unwinding.
 panic = "unwind"
