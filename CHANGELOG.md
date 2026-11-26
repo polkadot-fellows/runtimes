@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Removed
+
+- Asset Hub Polkadot & Kusama: remove the unused `ChildBountyCount` storage value from `pallet-child-bounties`, which is now tracked per-parent (integrates [paritytech/polkadot-sdk#13333](https://github.com/paritytech/polkadot-sdk/pull/13333)) ([#1328](https://github.com/polkadot-fellows/runtimes/pull/1328)).
+
 ## [2.6.0] 18.11.2026
 
 ### Changed
