@@ -120,7 +120,7 @@ fn pausing_blocks_the_target_calls() {
 		assert!(is_filtered(asset_transfer(), &alice));
 		// Pool LP tokens too.
 		let lp_transfer = RuntimeCall::PoolAssets(pallet_assets::Call::transfer {
-			id: 0u32.into(),
+			id: 0,
 			target: AccountId::from(BOB).into(),
 			amount: 1,
 		});
