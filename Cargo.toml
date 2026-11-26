@@ -42,10 +42,10 @@ bp-relayers = { git = "https://github.com/paritytech/polkadot-sdk", branch = "st
 bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2611", default-features = false, version = "*" }
 bp-xcm-bridge-hub = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2611", default-features = false, version = "*" }
 bp-xcm-bridge-hub-router = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2611", default-features = false, version = "*" }
-bulletin-pallets-common = { git = "https://github.com/paritytech/polkadot-bulletin-chain", branch = "release-v0.15.0", default-features = false, version = "*" }
+bulletin-pallets-common = { version = "0.15.0", default-features = false }
 bulletin-polkadot-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bulletin/bulletin-polkadot" }
 bulletin-polkadot-runtime = { path = "system-parachains/bulletin/bulletin-polkadot" }
-bulletin-transaction-storage-primitives = { git = "https://github.com/paritytech/polkadot-bulletin-chain", branch = "release-v0.15.0", default-features = false, version = "*" }
+bulletin-transaction-storage-primitives = { version = "0.15.0", default-features = false }
 bridge-hub-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2611", default-features = false, version = "*" }
 bridge-hub-kusama-emulated-chain = { path = "integration-tests/emulated/chains/parachains/bridges/bridge-hub-kusama" }
 bridge-hub-kusama-runtime = { path = "system-parachains/bridge-hubs/bridge-hub-kusama" }
@@ -141,10 +141,10 @@ pallet-bridge-messages = { git = "https://github.com/paritytech/polkadot-sdk", b
 pallet-bridge-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2611", default-features = false, version = "*" }
 pallet-bridge-relayers = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2611", default-features = false, version = "*" }
 pallet-broker = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2611", default-features = false, version = "*" }
-pallet-bulletin-data-renewal = { git = "https://github.com/paritytech/polkadot-bulletin-chain", branch = "release-v0.15.0", default-features = false, version = "*" }
-pallet-bulletin-hop-promotion = { git = "https://github.com/paritytech/polkadot-bulletin-chain", branch = "release-v0.15.0", default-features = false, version = "*" }
-pallet-bulletin-transaction-storage = { git = "https://github.com/paritytech/polkadot-bulletin-chain", branch = "release-v0.15.0", default-features = false, version = "*" }
-pallet-bulletin-transaction-storage-runtime-api = { git = "https://github.com/paritytech/polkadot-bulletin-chain", branch = "release-v0.15.0", default-features = false, version = "*" }
+pallet-bulletin-data-renewal = { version = "0.15.0", default-features = false }
+pallet-bulletin-hop-promotion = { version = "0.15.0", default-features = false }
+pallet-bulletin-transaction-storage = { version = "0.15.0", default-features = false }
+pallet-bulletin-transaction-storage-runtime-api = { version = "0.15.0", default-features = false }
 pallet-child-bounties = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2611", default-features = false, version = "*" }
 pallet-collator-selection = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2611", default-features = false, version = "*" }
 pallet-collective = { git = "https://github.com/paritytech/polkadot-sdk", branch = "stable2611", default-features = false, version = "*" }
