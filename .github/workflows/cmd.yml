@@ -12,6 +12,9 @@ permissions: # allow the action to comment on the PR
 
 jobs:
   fellows:
+    # `issue_comment` fires for every comment on an issue or a pull request. Start only for a
+    # `/cmd` comment on a pull request. All other jobs need this one, so they are skipped with it.
+    if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/cmd') }}
     runs-on: ubuntu-24.04
     outputs:
       github-handles: ${{ steps.load-fellows.outputs.github-handles }}
