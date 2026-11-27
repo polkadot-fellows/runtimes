@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Asset Hub Polkadot: the `Assets` proxy can dispatch every `Psm` call, `AssetOwner` can create and remove a PSM and set its admins and external assets, and `AssetManager` can set its fees, debt limit, circuit breakers and ceiling weights ([#1304](https://github.com/polkadot-fellows/runtimes/pull/1304)).
+
+## [2.6.0] 18.11.2026
+
+### Changed
+
 - Update all runtimes to `polkadot-sdk` `stable2609-2` ([#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 - Asset Hub Polkadot and Kusama: signed election submissions store their base deposit, fixed at registration; a migration derives it for stored submissions ([SDK #13722](https://github.com/paritytech/polkadot-sdk/pull/13722), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 - Collectives Polkadot: the Fellowship and Ambassador core-fellowship pallets measure time in Relay Chain blocks instead of Collectives blocks, so promotion and demotion periods keep their length in real time if the Collectives block time changes. A migration converts the stored periods and member timestamps: one 12-second Collectives block counts as two Relay Chain blocks ([SDK #6978](https://github.com/paritytech/polkadot-sdk/pull/6978), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
@@ -24,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Polkadot and Kusama relays: migrate DMP queues to paged storage ([SDK #11909](https://github.com/paritytech/polkadot-sdk/pull/11909), [#1355](https://github.com/polkadot-fellows/runtimes/pull/1355)).
 - Polkadot Relay, Bridge Hub, Collectives and People: dust, treasury burns and slashes are no longer burnt or sent to the Relay Chain treasury. They accumulate in a `pallet-accumulate-and-forward` account and are teleported to the DAP staging account on Asset Hub ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).
 - Polkadot and Kusama system parachains using `pallet-accumulate-and-forward` measure its forward period in Relay Chain blocks ([#1369](https://github.com/polkadot-fellows/runtimes/pull/1369)).
-- Asset Hub Polkadot: the `Assets` proxy can dispatch every `Psm` call, `AssetOwner` can create and remove a PSM and set its admins and external assets, and `AssetManager` can set its fees, debt limit, circuit breakers and ceiling weights ([#1304](https://github.com/polkadot-fellows/runtimes/pull/1304)).
+- People Polkadot: more coinage settings are governance-mutable through `pallet-parameters`, all `Root` only: the maximum coin age and the free unload token allowances of people and lite people and their cap ([#1273](https://github.com/polkadot-fellows/runtimes/pull/1273)).
 
 ### Removed
 
