@@ -197,6 +197,9 @@ impl MaybeConvert<TaskId, AccountId> for SovereignAccountOf {
 
 impl pallet_broker::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	// No `pallet-on-demand-para` here: On-demand revenue still comes from the relay chain
+	// through `notify_revenue`.
+	type OnDemandRevenue = ();
 	type Currency = Balances;
 	type OnRevenue = AccumulateForward;
 	type TimeslicePeriod = ConstU32<{ coretime::TIMESLICE_PERIOD }>;

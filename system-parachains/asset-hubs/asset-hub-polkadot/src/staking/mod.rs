@@ -228,7 +228,7 @@ parameter_types! {
 /// // Full 16 page deposit, to be paid on top of the above base
 /// sp_io::TestExternalities::default().execute_with(|| {
 /// let deposit = asset_hub_polkadot_runtime::staking::SignedDepositPerPage::get() * 16;
-///     assert_eq!(deposit, 10_6_368_000_000); // around 10.6 DOTs
+///     assert_eq!(deposit, 10_6_369_600_000); // around 10.6 DOTs
 /// })
 /// ```
 pub struct GeometricDeposit;
@@ -436,26 +436,16 @@ parameter_types! {
 	pub const ValidatorSetExportSession: SessionIndex = 4;
 }
 
-/// A validator is inactive in an era if it earned no era points.
-///
-/// Defined here instead of using the SDK's `()` impl, so that the rule only changes through an
-/// explicit runtime change.
-pub struct NoEraPoints;
-impl pallet_staking_async::IsValidatorInactive<AccountId> for NoEraPoints {
-	fn is_inactive(
-		_era: sp_staking::EraIndex,
-		_stash: &AccountId,
-		era_points: pallet_staking_async::RewardPoint,
-	) -> bool {
-		era_points == 0
-	}
-}
-
 impl pallet_staking_async::Config for Runtime {
 	type Filter = ();
-	// Makes the permissionless `chill_inactive` call live, with `ChillInactiveThreshold` defaulting
-	// to `HistoryDepth` eras (governance can change it via `set_staking_configs`).
-	type IsValidatorInactive = NoEraPoints;
+	// TODO: decide a `ChillInactiveThreshold` value. None is stored, so `chill_inactive` is
+	// disabled until governance sets one through `set_staking_configs`.
+	// `chill_inactive` treats a validator as inactive in an era if it earned zero points in every
+	// service, relay chain consensus included.
+	type IsValidatorInactive = pallet_staking_async::AllZero;
+	// Validators do not collate on system chains yet. This runtime has no
+	// `pallet-validator-set-announcer`.
+	type OnEraStart = ();
 	type OldCurrency = Balances;
 	type Currency = Balances;
 	type CurrencyBalance = Balance;
@@ -563,6 +553,7 @@ impl Convert<rc_client::ValidatorSetReport<AccountId>, Xcm<()>> for ValidatorSet
 	fn convert(report: rc_client::ValidatorSetReport<AccountId>) -> Xcm<()> {
 		rc_client::build_transact_xcm(
 			RelayChainRuntimePallets::AhClient(AhClientCalls::ValidatorSet(report)).encode(),
+			OriginKind::Native,
 		)
 	}
 }
@@ -576,7 +567,7 @@ impl Convert<rc_client::KeysMessage<AccountId>, Xcm<()>> for KeysMessageToXcm {
 			rc_client::KeysMessage::PurgeKeys { stash } =>
 				RelayChainRuntimePallets::AhClient(AhClientCalls::PurgeKeys { stash }).encode(),
 		};
-		rc_client::build_transact_xcm(encoded_call)
+		rc_client::build_transact_xcm(encoded_call, OriginKind::Native)
 	}
 }
 
@@ -758,6 +749,27 @@ mod tests {
 	use sp_runtime::Percent;
 	use sp_staking::budget::IssuanceCurve as _;
 	use sp_weights::constants::{WEIGHT_PROOF_SIZE_PER_KB, WEIGHT_REF_TIME_PER_MILLIS};
+
+	/// This runtime chills a validator only if it earned zero points in every service, relay chain
+	/// consensus included.
+	#[test]
+	fn validator_is_inactive_only_with_zero_points_in_every_service() {
+		use pallet_staking_async::IsValidatorInactive;
+		use sp_staking::ServiceKind::{self, Collation, RelayConsensus};
+
+		let is_inactive = |points: &[(ServiceKind, u32)]| {
+			<Runtime as pallet_staking_async::Config>::IsValidatorInactive::is_inactive(
+				0,
+				&AccountId::from([0u8; 32]),
+				points,
+			)
+		};
+
+		assert!(is_inactive(&[]));
+		assert!(is_inactive(&[(RelayConsensus, 0)]));
+		assert!(!is_inactive(&[(RelayConsensus, 1)]));
+		assert!(!is_inactive(&[(RelayConsensus, 0), (Collation, 1)]));
+	}
 
 	// TODO: in the future, make these tests use remote-ext and increase their longevity.
 

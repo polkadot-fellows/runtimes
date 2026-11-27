@@ -169,7 +169,10 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
-	type SingleBlockMigrations = (cumulus_pallet_parachain_system::migration::Migration<Runtime>,);
+	type SingleBlockMigrations = (
+		cumulus_pallet_parachain_system::migration::v3::Migration<Runtime>,
+		cumulus_pallet_parachain_system::migration::MigrateV3ToV4<Runtime>,
+	);
 	type MultiBlockMigrator = ();
 	type PreInherents = ();
 	type PostInherents = ();

@@ -75,7 +75,11 @@ pub fn genesis() -> sp_core::storage::Storage {
 			..Default::default()
 		},
 		collator_selection: asset_hub_polkadot_runtime::CollatorSelectionConfig {
-			invulnerables: collators::invulnerables().iter().cloned().map(|(acc, _)| acc).collect(),
+			invulnerables: collators::invulnerables()
+				.iter()
+				.cloned()
+				.map(|(acc, _, _)| acc)
+				.collect(),
 			candidacy_bond: ED * 16,
 			..Default::default()
 		},

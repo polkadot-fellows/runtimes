@@ -236,6 +236,9 @@ parameter_types! {
 			version: hex!("06000000"), // https://notes.ethereum.org/@bbusa/fusaka-bpo-timeline
 			epoch: 411392,
 		},
+		// Glamsterdam is not scheduled on mainnet yet, so the epoch is `u64::MAX`, as in Ethereum's
+		// mainnet config. Set the real epoch once it is scheduled.
+		gloas: Fork { version: hex!("07000000"), epoch: u64::MAX },
 	};
 }
 
@@ -268,7 +271,11 @@ parameter_types! {
 		},
 		fulu: Fork {
 			version: hex!("06000000"),
-			epoch: 50000000,
+			epoch: 2000,
+		},
+		gloas: Fork {
+			version: hex!("80733183"),
+			epoch: 3000,
 		},
 	};
 }

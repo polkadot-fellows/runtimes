@@ -18,7 +18,10 @@
 use super::*;
 
 /// Unreleased migrations. Add new ones here:
-pub type Unreleased = ();
+pub type Unreleased = (
+	// polkadot-sdk#12876: `LastProcessedHrmpMessage` gains the HRMP sender.
+	cumulus_pallet_parachain_system::migration::MigrateV3ToV4<crate::Runtime>,
+);
 
 /// Migrations/checks that do not need to be versioned and can run on every update.
 pub type Permanent = (

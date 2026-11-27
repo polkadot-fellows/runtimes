@@ -91,7 +91,7 @@ pub mod pallet {
 			+ MutateHold<
 				Self::AccountId,
 				Reason = <Self as pallet_balances::Config>::RuntimeHoldReason,
-			> + InspectFreeze<Self::AccountId, Id = Self::FreezeIdentifier>
+			> + InspectFreeze<Self::AccountId, Id = Self::RuntimeFreezeReason>
 			+ MutateFreeze<Self::AccountId>
 			+ Unbalanced<Self::AccountId>
 			+ ReservableCurrency<Self::AccountId, Balance = u128>

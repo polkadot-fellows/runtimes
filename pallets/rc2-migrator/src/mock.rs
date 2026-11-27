@@ -142,6 +142,7 @@ parameter_types! {
 impl parachains_hrmp::Config for Test {
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeEvent = RuntimeEvent;
+	type DepositProvider = Hrmp;
 	type ChannelManager = EnsureRoot<AccountId>;
 	type Currency = Balances;
 	type DefaultChannelSizeAndCapacityWithSystem = DefaultChannelSizeAndCapacityWithSystem;

@@ -354,8 +354,6 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type RuntimeHoldReason = RuntimeHoldReason;
 	type RuntimeFreezeReason = RuntimeFreezeReason;
-	type FreezeIdentifier = ();
-	type MaxFreezes = frame_support::traits::VariantCountOf<RuntimeFreezeReason>;
 	type DoneSlashHandler = ();
 }
 
@@ -1006,6 +1004,10 @@ pub mod migrations {
 	pub type Unreleased = (
 		// Not yet enacted on Encointer, which runs v2.3.0 (storage version 6 on-chain).
 		cumulus_pallet_xcmp_queue::migration::v7::MigrateV6ToV7<Runtime>,
+		// polkadot-sdk#12876: `LastProcessedHrmpMessage` gains the HRMP sender.
+		cumulus_pallet_parachain_system::migration::MigrateV3ToV4<crate::Runtime>,
+		// polkadot-sdk#13259: Proposals are rekeyed by `hash((call, threshold))`.
+		pallet_collective::migrations::v5::MigrateToV5<Runtime, CouncilCollective>,
 	);
 
 	/// All migrations that will run on the next runtime upgrade.

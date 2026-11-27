@@ -21,7 +21,23 @@ pub type Unreleased = (
 	// EPMB signed: store the base deposit per submission, fixed at registration
 	// (polkadot-sdk#13722).
 	pallet_election_provider_multi_block::signed::migrations::v1::MigrateV0ToV1<crate::Runtime>,
+	// polkadot-sdk#12876: `LastProcessedHrmpMessage` gains the HRMP sender.
+	cumulus_pallet_parachain_system::migration::MigrateV3ToV4<crate::Runtime>,
+	// polkadot-sdk#13333: `ChildBountyCount` left the pallet; its raw value is still on chain.
+	RemoveChildBountyCount,
 );
+
+frame_support::parameter_types! {
+	pub const ChildBountiesPalletName: &'static str = "ChildBounties";
+	pub const ChildBountyCountStorageName: &'static str = "ChildBountyCount";
+}
+
+/// Removes the raw `ChildBounties::ChildBountyCount` value, which the pallet no longer declares.
+pub type RemoveChildBountyCount = frame_support::migrations::RemoveStorage<
+	ChildBountiesPalletName,
+	ChildBountyCountStorageName,
+	<crate::Runtime as frame_system::Config>::DbWeight,
+>;
 
 /// All single block migrations that will run on the next runtime upgrade.
 pub type SingleBlockMigrations = Unreleased;
