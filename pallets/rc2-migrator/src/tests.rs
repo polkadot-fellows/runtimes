@@ -15,15 +15,22 @@
 // along with Polkadot. If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	mock::*, xcm_config::NothingOnceDataMigrationStarts, CtMigratorCall, CtRuntimeCall, Error,
-	Event, Manager, MigrationPhase, Paused, RcMigrationStage,
+	mock::*, xcm_config::NothingOnceDataMigrationStarts, CtMigratorCall, CtRuntimeCall,
+	DenySignedOnceMigrationStarts, Error, Event, Limits, Manager, MigrationPhase, Paused,
+	RcMigrationStage,
 };
 use codec::Encode;
 use frame_support::{
 	assert_noop, assert_ok,
-	traits::{ContainsPair, Everything},
+	dispatch::{GetDispatchInfo, Pays},
+	hypothetically,
+	traits::{ContainsPair, Everything, GetCallName, UnfilteredDispatchable},
 };
-use sp_runtime::{traits::Dispatchable, DispatchError::BadOrigin};
+use sp_runtime::{
+	traits::{Dispatchable, TransactionExtension, TxBaseImplication},
+	transaction_validity::{InvalidTransaction, TransactionSource, TransactionValidityError},
+	DispatchError::BadOrigin,
+};
 use xcm::prelude::*;
 
 fn stage() -> Stage {
@@ -157,7 +164,8 @@ fn the_admin_origin_or_the_manager_schedules_and_only_into_the_future() {
 
 		// WHEN the manager schedules the present moment. THEN it is refused like it is for root.
 		assert_noop!(
-			Rc2Migrator::schedule_migration(RuntimeOrigin::signed(ALICE), now, WARM_UP, COOL_OFF),
+			Rc2Migrator::schedule_migration(RuntimeOrigin::signed(ALICE), now, WARM_UP, COOL_OFF)
+				.map_err(|e| e.error),
 			Error::<Test>::StartInPast
 		);
 
@@ -213,7 +221,8 @@ fn the_manager_drives_the_migration_but_cannot_appoint_one() {
 		// WHEN the manager appoints a manager. THEN it is refused, so the appointment stays with
 		// the admin origin alone.
 		assert_noop!(
-			Rc2Migrator::set_manager(RuntimeOrigin::signed(ALICE), Some(CORETIME)),
+			Rc2Migrator::set_manager(RuntimeOrigin::signed(ALICE), Some(CORETIME))
+				.map_err(|e| e.error),
 			BadOrigin
 		);
 
@@ -903,5 +912,129 @@ fn teleport_trust_ends_when_the_data_migration_starts() {
 				"at {stage:?}"
 			);
 		}
+	});
+}
+
+/// What [`DenySignedOnceMigrationStarts`] says about `call` sent from `origin`.
+fn validate_tx(origin: RuntimeOrigin, call: &RuntimeCall) -> Result<(), TransactionValidityError> {
+	DenySignedOnceMigrationStarts::<Test>::new()
+		.validate(
+			origin,
+			call,
+			&call.get_dispatch_info(),
+			0,
+			(),
+			&TxBaseImplication(call),
+			TransactionSource::External,
+		)
+		.map(|_| ())
+}
+
+#[test]
+fn signed_transactions_are_refused_once_the_migration_starts() {
+	new_test_ext().execute_with(|| {
+		// A call the call filter lets through during the migration, and a migrator call.
+		let remark = tagged_remark(INTRA_MIGRATION);
+		let migrator_call = RuntimeCall::Rc2Migrator(crate::Call::pause_migration {});
+		for stage in all_stages() {
+			// GIVEN the machine at `stage`.
+			set_stage(stage.clone());
+
+			// THEN a signed account's transaction is valid only before the start, whatever it
+			// calls.
+			let expected =
+				if stage.has_started() { Err(InvalidTransaction::Call.into()) } else { Ok(()) };
+			for call in [&remark, &migrator_call] {
+				assert_eq!(
+					validate_tx(RuntimeOrigin::signed(ALICE), call),
+					expected,
+					"{call:?} at {stage:?}"
+				);
+			}
+
+			// THEN an unsigned transaction passes.
+			assert_ok!(validate_tx(RuntimeOrigin::none(), &remark));
+		}
+	});
+}
+
+#[test]
+fn the_manager_and_the_admin_origin_still_send_migrator_calls() {
+	new_test_ext().execute_with(|| {
+		// GIVEN Bob is the manager. The mock's admin origin is a signed account too.
+		Manager::<Test>::put(BOB);
+
+		let remark = tagged_remark(INTRA_MIGRATION);
+		let migrator_call = RuntimeCall::Rc2Migrator(crate::Call::pause_migration {});
+		for stage in all_stages() {
+			// GIVEN the machine at `stage`.
+			set_stage(stage.clone());
+
+			for who in [BOB, ADMIN] {
+				// THEN their migrator calls are valid at every stage.
+				assert_ok!(validate_tx(RuntimeOrigin::signed(who.clone()), &migrator_call));
+				// THEN their other calls are refused from the start, like anyone's.
+				assert_eq!(
+					validate_tx(RuntimeOrigin::signed(who.clone()), &remark).is_ok(),
+					!stage.has_started(),
+					"{who:?} at {stage:?}"
+				);
+			}
+		}
+	});
+}
+
+/// One of each call of this pallet.
+fn every_migrator_call() -> Vec<crate::Call<Test>> {
+	vec![
+		crate::Call::schedule_migration {
+			start: now_ms() + BLOCK_TIME_MS,
+			warm_up: WARM_UP,
+			cool_off: COOL_OFF,
+		},
+		crate::Call::force_set_stage { stage: Stage::WarmUp { end_at: 10 } },
+		crate::Call::ct_ready {},
+		crate::Call::cancel_migration {},
+		crate::Call::set_manager { new: None },
+		crate::Call::pause_migration {},
+		crate::Call::resume_migration {},
+		crate::Call::set_limits { limits: Limits::<Test>::get() },
+	]
+}
+
+#[test]
+fn the_manager_pays_no_fee_whether_its_call_succeeds_or_fails() {
+	new_test_ext().execute_with(|| {
+		// GIVEN Bob is the manager and the machine waits for the Coretime chain.
+		Manager::<Test>::put(BOB);
+		set_stage(Stage::WaitingForCt);
+
+		let calls = every_migrator_call();
+		let names: Vec<_> = calls.iter().map(|call| call.get_call_name()).collect();
+		assert_eq!(names, crate::Call::<Test>::get_call_names(), "a call is missing");
+
+		let mut manager_succeeded = vec![];
+		for call in calls {
+			for who in [BOB, ADMIN, ALICE] {
+				// WHEN `who` sends `call`.
+				let result = hypothetically!(call
+					.clone()
+					.dispatch_bypass_filter(RuntimeOrigin::signed(who.clone())));
+				let pays = match &result {
+					Ok(info) => info.pays_fee,
+					Err(e) => e.post_info.pays_fee,
+				};
+
+				// THEN the manager pays no fee, and anyone else pays.
+				let expected = if who == BOB { Pays::No } else { Pays::Yes };
+				assert_eq!(pays, expected, "{call:?} from {who:?}");
+				if who == BOB {
+					manager_succeeded.push(result.is_ok());
+				}
+			}
+		}
+
+		// The manager's calls above include ones that succeed and ones that fail.
+		assert!(manager_succeeded.contains(&true) && manager_succeeded.contains(&false));
 	});
 }
