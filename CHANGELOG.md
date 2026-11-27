@@ -4,6 +4,12 @@ Changelog for the runtimes governed by the Polkadot Fellowship.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Asset Hub Polkadot: the `Assets` proxy can dispatch every `Psm` call, `AssetOwner` can create and remove a PSM and set its admins and external assets, and `AssetManager` can set its fees, debt limit, circuit breakers and ceiling weights ([#1304](https://github.com/polkadot-fellows/runtimes/pull/1304)).
+
 ## [2.6.0] 18.11.2026
 
 ### Changed
