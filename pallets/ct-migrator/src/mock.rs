@@ -16,15 +16,21 @@
 
 //! Test runtime for `pallet-ct-migrator`.
 
-use crate::{self as pallet_ct_migrator, accounts::PortableAccountOf, HoldReason};
-use codec::Decode;
+use crate::{
+	self as pallet_ct_migrator, accounts::PortableAccountOf, proxy::PortableProxyOf, HoldReason,
+};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
-	traits::{fungible::InspectHold, Contains},
+	traits::{fungible::InspectHold, ConstU128, ConstU32, Contains, InstanceFilter},
 };
 use frame_system::EnsureSignedBy;
-use migrator_types::{PortableAccount, PortableHold, PortableHoldReason};
-use sp_runtime::BuildStorage;
+use migrator_types::{
+	PortableAccount, PortableHold, PortableHoldReason, PortableProxy, PortableProxyDelegate,
+	PortableProxyType,
+};
+use scale_info::TypeInfo;
+use sp_runtime::{traits::BlakeTwo256, BuildStorage};
 use xcm::prelude::*;
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -34,6 +40,7 @@ frame_support::construct_runtime! {
 	pub enum Test {
 		System: frame_system,
 		Balances: pallet_balances,
+		Proxy: pallet_proxy,
 		CtMigrator: pallet_ct_migrator,
 	}
 }
@@ -64,6 +71,71 @@ impl pallet_balances::Config for Test {
 pub const ALICE: AccountId = 1;
 // The account behind the admin origin.
 pub const ADMIN: AccountId = 2;
+// Delegates in the proxy tests.
+pub const BOB: AccountId = 3;
+pub const CHARLIE: AccountId = 4;
+pub const DAVE: AccountId = 5;
+pub const EVE: AccountId = 6;
+
+#[derive(
+	Copy,
+	Clone,
+	Eq,
+	PartialEq,
+	Ord,
+	PartialOrd,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Debug,
+	MaxEncodedLen,
+	TypeInfo,
+	Default,
+)]
+pub enum ProxyType {
+	#[default]
+	Any,
+	NonTransfer,
+}
+
+impl From<PortableProxyType> for ProxyType {
+	fn from(t: PortableProxyType) -> Self {
+		match t {
+			PortableProxyType::Any | PortableProxyType::ParaRegistration => ProxyType::Any,
+			PortableProxyType::NonTransfer | PortableProxyType::CancelProxy =>
+				ProxyType::NonTransfer,
+		}
+	}
+}
+
+impl InstanceFilter<RuntimeCall> for ProxyType {
+	fn filter(&self, _c: &RuntimeCall) -> bool {
+		matches!(self, ProxyType::Any)
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		self == o || matches!(self, ProxyType::Any)
+	}
+}
+
+/// What one proxy definition costs here: `PROXY_DEPOSIT_BASE + PROXY_DEPOSIT_FACTOR` for the first.
+pub const PROXY_DEPOSIT_BASE: u128 = 100;
+pub const PROXY_DEPOSIT_FACTOR: u128 = 20;
+
+impl pallet_proxy::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type Currency = Balances;
+	type ProxyType = ProxyType;
+	type ProxyDepositBase = ConstU128<PROXY_DEPOSIT_BASE>;
+	type ProxyDepositFactor = ConstU128<PROXY_DEPOSIT_FACTOR>;
+	type MaxProxies = ConstU32<4>;
+	type WeightInfo = ();
+	type MaxPending = ConstU32<4>;
+	type CallHasher = BlakeTwo256;
+	type AnnouncementDepositBase = ConstU128<0>;
+	type AnnouncementDepositFactor = ConstU128<0>;
+	type BlockNumberProvider = System;
+}
 
 ord_parameter_types! {
 	pub const AdminAccount: AccountId = ADMIN;
@@ -108,6 +180,8 @@ impl pallet_ct_migrator::Config for Test {
 	type AdminOrigin = EnsureSignedBy<AdminAccount, AccountId>;
 	type Currency = Balances;
 	type RuntimeHoldReason = RuntimeHoldReason;
+	// relay 6s blocks, this chain 12s
+	type RcBlockTimeRatio = ConstU32<2>;
 	type PreMigrationCalls = TaggedRemark<PRE_MIGRATION>;
 	type IntraMigrationCalls = TaggedRemark<INTRA_MIGRATION>;
 	type PostMigrationCalls = TaggedRemark<POST_MIGRATION>;
@@ -160,8 +234,23 @@ pub fn sent_call(n: usize) -> crate::Rc2RuntimeCall {
 	panic!("message {n} carried no Transact");
 }
 
+pub fn fund(who: &AccountId, amount: u128) {
+	frame_support::assert_ok!(
+		<Balances as frame_support::traits::fungible::Mutate<AccountId>>::mint_into(who, amount)
+	);
+}
+
 pub fn free(who: &AccountId) -> u128 {
 	pallet_balances::Pallet::<Test>::free_balance(who)
+}
+
+pub fn reserved(who: &AccountId) -> u128 {
+	pallet_balances::Pallet::<Test>::reserved_balance(who)
+}
+
+/// What the proxy pallet reserves for `n` definitions here.
+pub fn proxy_deposit(n: u128) -> u128 {
+	PROXY_DEPOSIT_BASE + PROXY_DEPOSIT_FACTOR * n
 }
 
 pub fn held(reason: HoldReason, who: &AccountId) -> u128 {
@@ -198,4 +287,15 @@ pub fn portable_account(
 		.map(|(reason, amount)| PortableHold { reason, amount })
 		.collect();
 	PortableAccount { who: *who, free, holds: holds.try_into().unwrap() }
+}
+
+pub fn portable_proxy(
+	delegator: &AccountId,
+	delegates: Vec<(AccountId, PortableProxyType, u32)>,
+) -> PortableProxyOf<Test> {
+	let delegates: Vec<_> = delegates
+		.into_iter()
+		.map(|(delegate, proxy_type, delay)| PortableProxyDelegate { delegate, proxy_type, delay })
+		.collect();
+	PortableProxy { delegator: *delegator, delegates: delegates.try_into().unwrap() }
 }

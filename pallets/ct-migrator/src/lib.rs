@@ -46,6 +46,7 @@ mod mock;
 mod tests;
 
 pub mod accounts;
+pub mod proxy;
 
 pub use pallet::*;
 
@@ -55,16 +56,22 @@ use frame_support::{
 	storage::with_storage_layer,
 	traits::{
 		fungible::{Inspect, Mutate, MutateHold},
-		Contains, EnsureOrigin, GetCallMetadata,
+		Contains, Currency, EnsureOrigin, GetCallMetadata,
 	},
 };
 use frame_system::pallet_prelude::*;
-use migrator_types::PortableHoldReason;
+use migrator_types::{PortableHoldReason, PortableProxyType};
 use sp_runtime::DispatchError;
 use xcm::prelude::*;
 
 pub type BalanceOf<T> =
 	<<T as Config>::Currency as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+/// The migrator's currency, as opposed to the proxy pallet's.
+pub(crate) type CurrencyOf<T> = <T as Config>::Currency;
+/// The proxy pallet's balance; `pallet_proxy::BalanceOf` is private.
+type ProxyBalanceOf<T> = <<T as pallet_proxy::Config>::Currency as Currency<
+	<T as frame_system::Config>::AccountId,
+>>::Balance;
 
 const LOG_TARGET: &str = "runtime::ct-migrator";
 
@@ -131,7 +138,10 @@ pub mod pallet {
 	use super::*;
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config:
+		// The runtime says what each migrated proxy permission is here.
+		frame_system::Config + pallet_proxy::Config<ProxyType: From<PortableProxyType>>
+	{
 		/// The overarching event type.
 		#[allow(deprecated)]
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -143,11 +153,17 @@ pub mod pallet {
 		type AdminOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
 		/// Native currency. Migrated balances are minted here; migrated reserves land as holds.
-		type Currency: Mutate<Self::AccountId>
+		/// Its balance is the proxy pallet's.
+		type Currency: Mutate<Self::AccountId, Balance = ProxyBalanceOf<Self>>
 			+ MutateHold<Self::AccountId, Reason = Self::RuntimeHoldReason>;
 
 		/// The overarching hold reason type.
 		type RuntimeHoldReason: From<HoldReason>;
+
+		/// How many Relay Chain blocks make one of this chain's, at least one: it divides every
+		/// migrated proxy delay, rounding up.
+		#[pallet::constant]
+		type RcBlockTimeRatio: Get<u32>;
 
 		/// Calls that are allowed before the migration starts.
 		type PreMigrationCalls: Contains<<Self as frame_system::Config>::RuntimeCall>;
@@ -170,7 +186,8 @@ pub mod pallet {
 		#[codec(index = 1)]
 		HrmpDeposit,
 		/// A Relay Chain proxy deposit whose definitions travel here. Released when they arrive:
-		/// the recreated entry is re-reserved at this chain's rates and the rest becomes free.
+		/// this chain's deposit for the recreated entry is reserved out of it, never more, and
+		/// what is left becomes free.
 		#[codec(index = 2)]
 		ProxyDeposit,
 		/// Relay Chain reserve that no pallet's deposit records accounted for. Parked here for
@@ -182,6 +199,13 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn integrity_test() {
+			assert!(T::RcBlockTimeRatio::get() >= 1, "a Relay Chain block is at most one of ours");
+		}
+	}
 
 	/// The Coretime chain migration state.
 	#[pallet::storage]
@@ -203,6 +227,13 @@ pub mod pallet {
 	/// Total minted by the accounts stage, to reconcile against what the relay chain burned.
 	#[pallet::storage]
 	pub type CtMintedTotal<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	/// Proxy sets that could not be written, parked as received, by delegator. The delegator's
+	/// `ProxyDeposit` hold stays in place.
+	// TODO(ahm-v2): a root call that writes a parked set again or releases its hold.
+	#[pallet::storage]
+	pub type FailedProxies<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, proxy::PortableProxyOf<T>, OptionQuery>;
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -233,6 +264,8 @@ pub mod pallet {
 		},
 		/// A batch of migrated accounts was processed.
 		AccountsReceived { count_good: u32, count_bad: u32 },
+		/// A batch of migrated proxy sets was processed.
+		ProxiesReceived { count_good: u32, count_bad: u32 },
 	}
 
 	#[pallet::call]
@@ -326,6 +359,23 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 			Self::do_receive_accounts(accounts);
+			Ok(())
+		}
+
+		/// Write a batch of proxy sets migrated from the relay chain. See
+		/// [`Pallet::do_receive_proxies`]. Never fails: a set that cannot be written is parked,
+		/// the rest of the batch goes through.
+		// TODO(ahm-v2): proper benchmark
+		#[pallet::call_index(6)]
+		#[pallet::weight(
+			T::DbWeight::get().reads_writes(4, 4).saturating_mul(proxies.len() as u64)
+		)]
+		pub fn receive_proxies(
+			origin: OriginFor<T>,
+			proxies: Vec<proxy::PortableProxyOf<T>>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			Self::do_receive_proxies(proxies);
 			Ok(())
 		}
 	}
