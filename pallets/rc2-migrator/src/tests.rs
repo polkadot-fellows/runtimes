@@ -16,7 +16,7 @@
 
 use crate::{
 	mock::*, xcm_config::NothingOnceDataMigrationStarts, CtMigratorCall, CtRuntimeCall, Error,
-	Event, Manager, MigrationPhase, Paused, RcMigrationStage,
+	Event, Manager, MaxTiCorrection, MigrationPhase, Paused, RcMigrationStage,
 };
 use codec::Encode;
 use frame_support::{
@@ -107,12 +107,24 @@ fn the_admin_origin_or_the_manager_schedules_and_only_into_the_future() {
 	new_test_ext().execute_with(|| {
 		// WHEN a signed account with no appointment tries to schedule. THEN it is refused.
 		assert_noop!(
-			Rc2Migrator::schedule_migration(RuntimeOrigin::signed(ALICE), 10, WARM_UP, COOL_OFF),
+			Rc2Migrator::schedule_migration(
+				RuntimeOrigin::signed(ALICE),
+				10,
+				WARM_UP,
+				COOL_OFF,
+				MAX_TI_CORRECTION
+			),
 			BadOrigin
 		);
 		// Being the Coretime chain confers no scheduling power either.
 		assert_noop!(
-			Rc2Migrator::schedule_migration(RuntimeOrigin::signed(CORETIME), 10, WARM_UP, COOL_OFF),
+			Rc2Migrator::schedule_migration(
+				RuntimeOrigin::signed(CORETIME),
+				10,
+				WARM_UP,
+				COOL_OFF,
+				MAX_TI_CORRECTION
+			),
 			BadOrigin
 		);
 
@@ -120,11 +132,23 @@ fn the_admin_origin_or_the_manager_schedules_and_only_into_the_future() {
 		// past would begin the migration on the very next block.
 		let now = now_ms();
 		assert_noop!(
-			Rc2Migrator::schedule_migration(RuntimeOrigin::root(), now, WARM_UP, COOL_OFF),
+			Rc2Migrator::schedule_migration(
+				RuntimeOrigin::root(),
+				now,
+				WARM_UP,
+				COOL_OFF,
+				MAX_TI_CORRECTION
+			),
 			Error::<Test>::StartInPast
 		);
 		assert_noop!(
-			Rc2Migrator::schedule_migration(RuntimeOrigin::root(), now - 1, WARM_UP, COOL_OFF),
+			Rc2Migrator::schedule_migration(
+				RuntimeOrigin::root(),
+				now - 1,
+				WARM_UP,
+				COOL_OFF,
+				MAX_TI_CORRECTION
+			),
 			Error::<Test>::StartInPast
 		);
 
@@ -134,9 +158,11 @@ fn the_admin_origin_or_the_manager_schedules_and_only_into_the_future() {
 			RuntimeOrigin::root(),
 			start,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 		assert_stage(Stage::Scheduled { start });
+		assert_eq!(MaxTiCorrection::<Test>::get(), MAX_TI_CORRECTION);
 
 		// WHEN root schedules again. THEN it is refused, so a second governance call cannot
 		// silently move a start date that is already committed.
@@ -145,7 +171,8 @@ fn the_admin_origin_or_the_manager_schedules_and_only_into_the_future() {
 				RuntimeOrigin::root(),
 				start + BLOCK_TIME_MS,
 				WARM_UP,
-				COOL_OFF
+				COOL_OFF,
+				MAX_TI_CORRECTION
 			),
 			Error::<Test>::AlreadyScheduled
 		);
@@ -157,7 +184,13 @@ fn the_admin_origin_or_the_manager_schedules_and_only_into_the_future() {
 
 		// WHEN the manager schedules the present moment. THEN it is refused like it is for root.
 		assert_noop!(
-			Rc2Migrator::schedule_migration(RuntimeOrigin::signed(ALICE), now, WARM_UP, COOL_OFF),
+			Rc2Migrator::schedule_migration(
+				RuntimeOrigin::signed(ALICE),
+				now,
+				WARM_UP,
+				COOL_OFF,
+				MAX_TI_CORRECTION
+			),
 			Error::<Test>::StartInPast
 		);
 
@@ -167,7 +200,8 @@ fn the_admin_origin_or_the_manager_schedules_and_only_into_the_future() {
 			RuntimeOrigin::signed(ALICE),
 			start,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 		assert_stage(Stage::Scheduled { start });
 	});
@@ -193,7 +227,8 @@ fn the_manager_drives_the_migration_but_cannot_appoint_one() {
 			RuntimeOrigin::signed(ALICE),
 			start,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 		assert_stage(Stage::Scheduled { start });
 		assert_ok!(Rc2Migrator::cancel_migration(RuntimeOrigin::signed(ALICE)));
@@ -243,7 +278,8 @@ fn a_scheduled_migration_can_be_cancelled_and_scheduled_again() {
 			RuntimeOrigin::root(),
 			start,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 
 		// WHEN a signed account cancels. THEN it is refused.
@@ -258,7 +294,8 @@ fn a_scheduled_migration_can_be_cancelled_and_scheduled_again() {
 			RuntimeOrigin::root(),
 			start,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 		assert_stage(Stage::Scheduled { start });
 
@@ -282,7 +319,8 @@ fn a_scheduled_migration_starts_once_the_clock_passes_it_and_not_before() {
 			RuntimeOrigin::root(),
 			start,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 
 		// WHEN the blocks before it pass. THEN nothing is sent and the stage holds: the relay
@@ -310,7 +348,8 @@ fn the_start_signal_is_the_message_the_coretime_chain_expects() {
 			RuntimeOrigin::root(),
 			start,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 
 		// WHEN the machine sends its start signal.
@@ -364,7 +403,8 @@ fn the_coretime_chain_or_the_operator_confirms_readiness() {
 			RuntimeOrigin::root(),
 			start,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 		run_blocks(2);
 		assert_stage(Stage::WaitingForCt);
@@ -450,7 +490,8 @@ fn a_failed_send_leaves_the_stage_alone_for_a_retry() {
 			RuntimeOrigin::root(),
 			start,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 		SendFails::set(true);
 
@@ -545,7 +586,8 @@ fn force_set_stage_needs_a_pause_and_the_admins_powers() {
 			RuntimeOrigin::root(),
 			now_ms() + BLOCK_TIME_MS,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 		run_blocks(2);
 		assert_stage(Stage::WaitingForCt);
@@ -605,7 +647,8 @@ fn a_running_migration_can_be_paused_and_resumed_where_it_stopped() {
 			RuntimeOrigin::root(),
 			start,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 		run_blocks(2);
 		assert_stage(Stage::WaitingForCt);
@@ -659,7 +702,8 @@ fn the_machine_runs_from_pending_to_done() {
 			RuntimeOrigin::root(),
 			start,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 
 		// WHEN the start passes.
@@ -723,7 +767,8 @@ fn the_scheduled_windows_are_the_ones_the_machine_holds_for() {
 			RuntimeOrigin::root(),
 			start,
 			short_warm_up,
-			short_cool_off
+			short_cool_off,
+			MAX_TI_CORRECTION
 		));
 
 		// WHEN the handshake completes. THEN the warm-up runs for the scheduled window.
@@ -750,7 +795,8 @@ fn the_warm_up_holds_for_its_period_and_can_be_halted() {
 			RuntimeOrigin::root(),
 			start,
 			WARM_UP,
-			COOL_OFF
+			COOL_OFF,
+			MAX_TI_CORRECTION
 		));
 		run_blocks(2);
 		assert_ok!(Rc2Migrator::ct_ready(RuntimeOrigin::signed(CORETIME)));

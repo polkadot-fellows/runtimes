@@ -270,6 +270,7 @@ mod tests {
 		("Rc2Migrator", "force_set_stage"),
 		("Rc2Migrator", "set_manager"),
 		("Rc2Migrator", "set_limits"),
+		("Rc2Migrator", "set_max_ti_correction"),
 	];
 
 	/// Calls the test below cannot build. It builds each call from zero bytes, and these take an

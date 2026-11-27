@@ -26,6 +26,7 @@
 
 pub mod accounts;
 pub mod session;
+pub mod ti_correction;
 
 use crate::mock::Para;
 use frame_support::hypothetically;

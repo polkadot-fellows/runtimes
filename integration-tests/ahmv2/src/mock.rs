@@ -455,6 +455,15 @@ pub fn dmp_sink<P: Para>(
 	}
 }
 
+/// The relay chain's issuance that no account holds, measured the way it would be off-chain
+/// before scheduling the migration.
+pub fn unheld_issuance_rc() -> u128 {
+	let held: u128 = frame_system::Account::<RelayRuntime>::iter()
+		.map(|(_, info)| info.data.total())
+		.sum();
+	pallet_balances::TotalIssuance::<RelayRuntime>::get().saturating_sub(held)
+}
+
 /// Walk both chains from `Pending` to `MigrationDone` over their real queues.
 ///
 /// The data stages get at most `max_blocks` relay-chain blocks. After each of them, what the relay
@@ -489,6 +498,7 @@ pub fn walk_migration(
 			start,
 			WARM_UP,
 			COOL_OFF,
+			unheld_issuance_rc(),
 		));
 		next_block_rc();
 		next_block_rc();
