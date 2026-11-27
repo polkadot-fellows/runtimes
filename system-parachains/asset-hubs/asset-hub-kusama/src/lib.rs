@@ -359,8 +359,6 @@ impl pallet_assets::Config<TrustBackedAssetsInstance> for Runtime {
 	type Holder = ();
 	type Extra = ();
 	type WeightInfo = weights::pallet_assets_local::WeightInfo<Runtime>;
-	// TODO 2611-bench: The callback adds work to every asset balance change, also for
-	// `PoolAssets` and `ForeignAssets`. Rerun the benchmarks of every pallet that moves assets.
 	type CallbackHandle = Erc20TransferLogsCallback<
 		Runtime,
 		InlineIdConfig<{ TRUST_BACKED_ASSETS_PRECOMPILE }>,
