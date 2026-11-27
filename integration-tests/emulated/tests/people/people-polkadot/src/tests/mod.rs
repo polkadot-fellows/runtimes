@@ -20,3 +20,4 @@ mod identity;
 mod individuality;
 mod reserve_transfers;
 mod teleport;
+mod validator_collators;

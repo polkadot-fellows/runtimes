@@ -26,7 +26,10 @@ use crate::{governance::StakingAdmin, *};
 use codec::Encode;
 use cumulus_pallet_parachain_system::RelaychainDataProvider;
 use frame_election_provider_support::{ElectionDataProvider, SequentialPhragmen};
-use frame_support::{traits::tokens::imbalance::ResolveTo, BoundedVec};
+use frame_support::{
+	traits::{tokens::imbalance::ResolveTo, EnsureOrigin},
+	BoundedVec,
+};
 use pallet_election_provider_multi_block::{self as multi_block, SolutionAccuracyOf};
 use pallet_staking_async::UseValidatorsMap;
 use pallet_staking_async_rc_client as rc_client;
@@ -37,9 +40,10 @@ use sp_runtime::{
 	transaction_validity::TransactionPriority,
 	FixedPointNumber, Perquintill, SaturatedConversion,
 };
-use sp_staking::SessionIndex;
+use sp_staking::{EraIndex, SessionIndex};
 use stepped_curve::*;
 use system_parachains_common::apis::InflationInfo;
+use system_parachains_constants::polkadot::staking::MAX_VALIDATOR_SET;
 use xcm::v5::prelude::*;
 
 // stuff aliased to `parameters` pallet.
@@ -65,7 +69,7 @@ parameter_types! {
 	pub VoterSnapshotPerBlock: u32 = MaxElectingVoters::get().div_ceil(Pages::get());
 
 	/// Maximum number of validators that we may want to elect. 1000 is the end target.
-	pub const MaxValidatorSet: u32 = 1000;
+	pub const MaxValidatorSet: u32 = MAX_VALIDATOR_SET;
 
 	/// In each page, we may observe up to all of the validators.
 	pub MaxWinnersPerPage: u32 = MaxValidatorSet::get();
@@ -443,9 +447,7 @@ impl pallet_staking_async::Config for Runtime {
 	// `chill_inactive` treats a validator as inactive in an era if it earned zero points in every
 	// service, relay chain consensus included.
 	type IsValidatorInactive = pallet_staking_async::AllZero;
-	// Validators do not collate on system chains yet. This runtime has no
-	// `pallet-validator-set-announcer`.
-	type OnEraStart = ();
+	type OnEraStart = AnnounceValidatorSet;
 	type OldCurrency = Balances;
 	type Currency = Balances;
 	type CurrencyBalance = Balance;
@@ -525,6 +527,160 @@ impl pallet_staking_async_rc_client::Config for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type KeyDeposit = ConstU128<UNITS>;
 	type WeightInfo = weights::pallet_staking_async_rc_client::WeightInfo<Runtime>;
+}
+
+/// Announces the validators of every new era to this chain and to the other system chains, once
+/// governance turns on [`dynamic_params::validator_collation::Enabled`].
+///
+/// [`OnEraStart::enabled`](pallet_staking_async::OnEraStart::enabled) stays `true`, so staking
+/// keeps the elected set and the first era start after the switch turns on announces it.
+pub struct AnnounceValidatorSet;
+impl pallet_staking_async::OnEraStart<AccountId> for AnnounceValidatorSet {
+	fn on_era_start(era: EraIndex, validators: &[AccountId]) {
+		if !dynamic_params::validator_collation::Enabled::get() {
+			return;
+		}
+		// A rejected set is reported by the announcer with `AnnouncementRejected`.
+		let _ = ValidatorSetAnnouncer::announce(era, validators);
+	}
+
+	fn weight(validators: u32) -> Weight {
+		// The switch is read when the session report is weighed and again when it is applied, in
+		// the same state.
+		let switch = <Runtime as frame_system::Config>::DbWeight::get().reads(1);
+		match dynamic_params::validator_collation::Enabled::get() {
+			true => switch.saturating_add(ValidatorSetAnnouncer::announce_weight(validators)),
+			false => switch,
+		}
+	}
+}
+
+// Every chain in `ValidatorCollatorChains` decodes this encoding.
+// `people-polkadot-integration-tests` checks it on the receiving runtimes it includes and fails if
+// it drifts.
+#[derive(Encode)]
+enum ReceivingChainPallets {
+	// index of `ValidatorCollators` on every receiving chain.
+	#[codec(index = 25)]
+	ValidatorCollators(ValidatorCollatorsCalls),
+}
+
+#[derive(Encode)]
+enum ValidatorCollatorsCalls {
+	// index of `fn set_validators` in `pallet-validator-collators`.
+	#[codec(index = 0)]
+	SetValidators { era: EraIndex, validators: Vec<AccountId> },
+}
+
+/// Sends the validator set to a system chain as an unpaid `Transact` of `set_validators`, which the
+/// destination dispatches with Asset Hub's location as an XCM origin.
+pub struct ValidatorSetToSystemChains;
+
+impl ValidatorSetToSystemChains {
+	/// The encoded call that stores the validator set of `era` on a receiving chain.
+	pub fn encoded_call(era: EraIndex, validators: &[AccountId]) -> Vec<u8> {
+		ReceivingChainPallets::ValidatorCollators(ValidatorCollatorsCalls::SetValidators {
+			era,
+			validators: validators.to_vec(),
+		})
+		.encode()
+	}
+}
+
+impl pallet_validator_set_announcer::SendValidatorSet<AccountId> for ValidatorSetToSystemChains {
+	type Destination = ParaId;
+
+	fn send(destination: &ParaId, era: EraIndex, validators: &[AccountId]) -> Result<(), ()> {
+		let location = Location::new(1, Parachain((*destination).into()));
+		send_xcm::<xcm_config::XcmRouter>(
+			location,
+			rc_client::build_transact_xcm(Self::encoded_call(era, validators), OriginKind::Xcm),
+		)
+		.map(|_| ())
+		.map_err(|error| {
+			log::warn!(
+				target: "runtime::validator-set-announcer",
+				"failed to send the validator set of era {era} to {destination:?}: {error:?}",
+			);
+		})
+	}
+
+	#[cfg(feature = "std")]
+	fn max_message_size(_: &ParaId) -> Option<usize> {
+		// The receiving message queues hold a message in pages of this size, a tighter bound than
+		// the HRMP channels.
+		Some(<<Runtime as pallet_message_queue::Config>::HeapSize as frame_support::traits::Get<
+			u32,
+		>>::get() as usize)
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn ensure_successful_send(destination: &ParaId) {
+		ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(*destination)
+	}
+}
+
+/// Accepts the sibling parachain origin of one of the `Reporters`, the system chains allowed to
+/// report the blocks authored on them, and returns its parachain id.
+pub struct EnsureReportingSiblings<Reporters>(core::marker::PhantomData<Reporters>);
+impl<Reporters: Get<Vec<ParaId>>> EnsureOrigin<RuntimeOrigin>
+	for EnsureReportingSiblings<Reporters>
+{
+	type Success = ParaId;
+
+	fn try_origin(o: RuntimeOrigin) -> Result<ParaId, RuntimeOrigin> {
+		match o.clone().into() {
+			Ok(cumulus_pallet_xcm::Origin::SiblingParachain(id))
+				if Reporters::get().contains(&id) =>
+				Ok(id),
+			_ => Err(o),
+		}
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
+		let id = Reporters::get().first().copied().ok_or(())?;
+		Ok(cumulus_pallet_xcm::Origin::SiblingParachain(id).into())
+	}
+}
+
+/// Credits the block counts of this chain's own blocks.
+pub struct CreditBlocksLocally;
+impl pallet_validator_collators::ReportAuthoredBlocks<AccountId> for CreditBlocksLocally {
+	fn report(blocks: &[(AccountId, u32)]) -> Result<(), ()> {
+		StakingPointsConverter::credit_authored_blocks(
+			ParachainInfo::parachain_id(),
+			blocks.iter().cloned(),
+		);
+		Ok(())
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn ensure_successful_report(blocks: &[(AccountId, u32)]) {
+		// Weight this chain's blocks and expose every account in an active era, so that the
+		// credit reaches staking and accrues every entry.
+		pallet_staking_async_points_converter::PointsPerService::<Runtime>::insert(
+			ParachainInfo::parachain_id(),
+			sp_staking::ServiceKind::Collation,
+			1,
+		);
+		let era = pallet_staking_async::ActiveEra::<Runtime>::get()
+			.map(|active| active.index)
+			.unwrap_or_else(|| {
+				pallet_staking_async::ActiveEra::<Runtime>::put(
+					pallet_staking_async::ActiveEraInfo { index: 1, start: Some(0) },
+				);
+				1
+			});
+		for (who, _) in blocks {
+			Staking::add_era_stakers(
+				era,
+				who.clone(),
+				sp_staking::Exposure { total: 1, own: 1, others: vec![] },
+			);
+			pallet_staking_async::ErasValidatorIncentiveWeight::<Runtime>::insert(era, who, 1);
+		}
+	}
 }
 
 #[derive(Encode, Decode)]
@@ -1006,11 +1162,31 @@ mod tests {
 
 		#[test]
 		fn session_report() {
-			use crate::{AccountId, Runtime};
+			analyze_session_report(false);
+		}
+
+		/// The era-start hook charges the announcer weight once governance turns on validator
+		/// collation, so the report must still fit the message-queue bound.
+		#[test]
+		fn session_report_with_validator_collation() {
+			analyze_session_report(true);
+		}
+
+		fn analyze_session_report(enabled: bool) {
+			use crate::{dynamic_params::validator_collation, AccountId, Runtime};
 			use frame_support::{dispatch::GetDispatchInfo, traits::Get};
 			use pallet_staking_async_rc_client as rc_client;
 
 			sp_io::TestExternalities::new_empty().execute_with(|| {
+				frame_support::assert_ok!(crate::Parameters::set_parameter(
+					crate::RuntimeOrigin::root(),
+					crate::RuntimeParameters::ValidatorCollation(
+						validator_collation::Parameters::Enabled(
+							validator_collation::Enabled,
+							Some(enabled),
+						),
+					),
+				));
 				// this benchmark is a function of current active validator count
 				pallet_staking_async::ValidatorCount::<Runtime>::put(600);
 				let hefty_report = rc_client::SessionReport {

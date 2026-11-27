@@ -1662,3 +1662,658 @@ fn asset_balance_changes_are_mirrored_as_erc20_transfer_logs() {
 			);
 		});
 }
+
+mod validator_collators {
+	use super::*;
+	use asset_hub_polkadot_runtime::{
+		staking::{
+			self, AnnounceValidatorSet, EnsureReportingSiblings, ValidatorSetToSystemChains,
+		},
+		AllPalletsWithoutSystem, ParachainInfo, StakingPointsConverter, ValidatorCollatorChains,
+		ValidatorCollators,
+	};
+	use codec::DecodeLimit;
+	use cumulus_primitives_core::{XcmpMessageFormat, XcmpMessageSource};
+	use frame_support::traits::{EnsureOrigin, Get, Hooks};
+	use pallet_staking_async::OnEraStart;
+	use polkadot_runtime_constants::system_parachain::{BULLETIN_ID, PEOPLE_ID};
+	use sp_staking::ServiceKind;
+	use xcm::{VersionedXcm, MAX_XCM_DECODE_DEPTH};
+
+	fn events() -> Vec<RuntimeEvent> {
+		frame_system::Pallet::<Runtime>::events().into_iter().map(|r| r.event).collect()
+	}
+
+	/// Era 1 is active with `who` exposed, so credited points reach `who`.
+	fn activate_era_one_with(who: &AccountId) {
+		pallet_staking_async::ActiveEra::<Runtime>::put(pallet_staking_async::ActiveEraInfo {
+			index: 1,
+			start: Some(0),
+		});
+		pallet_staking_async::session_rotation::Eras::<Runtime>::upsert_exposure(
+			1,
+			who,
+			pallet_staking_async::Exposure { total: 1, own: 1, others: vec![] },
+		);
+	}
+
+	/// Governance turns on validator collation, through the parameter's admin origin.
+	fn enable_validator_collation() {
+		use asset_hub_polkadot_runtime::dynamic_params::validator_collation;
+		assert_ok!(asset_hub_polkadot_runtime::Parameters::set_parameter(
+			RuntimeOrigin::root(),
+			asset_hub_polkadot_runtime::RuntimeParameters::ValidatorCollation(
+				validator_collation::Parameters::Enabled(validator_collation::Enabled, Some(true)),
+			),
+		));
+	}
+
+	/// Era 0 is active and era 1 is planned with `validators` elected. The relay chain then
+	/// reports the session that activates era 1, so staking starts it and calls its era-start
+	/// hook.
+	fn start_era_one_through_staking(validators: Vec<AccountId>) {
+		pallet_staking_async::ActiveEra::<Runtime>::put(pallet_staking_async::ActiveEraInfo {
+			index: 0,
+			start: Some(0),
+		});
+		pallet_staking_async::CurrentEra::<Runtime>::put(1);
+		pallet_staking_async::ForceEra::<Runtime>::put(pallet_staking_async::Forcing::ForceNone);
+		pallet_staking_async::NextEraValidators::<Runtime>::put((
+			1,
+			frame_support::BoundedVec::truncate_from(validators),
+		));
+		frame_system::Pallet::<Runtime>::reset_events();
+		assert_ok!(asset_hub_polkadot_runtime::StakingRcClient::relay_session_report(
+			RuntimeOrigin::root(),
+			pallet_staking_async_rc_client::SessionReport {
+				end_index: 0,
+				validator_points: vec![],
+				activation_timestamp: Some((1_000, 1)),
+				leftover: false,
+			},
+		));
+		assert_eq!(pallet_staking_async::ActiveEra::<Runtime>::get().map(|a| a.index), Some(1));
+	}
+
+	fn announcements() -> Vec<RuntimeEvent> {
+		events()
+			.into_iter()
+			.filter(|event| matches!(event, RuntimeEvent::ValidatorSetAnnouncer(_)))
+			.collect()
+	}
+
+	fn collation_points(era: u32) -> Vec<(AccountId, u32)> {
+		pallet_staking_async::ErasRewardPointsByService::<Runtime>::get(era, ServiceKind::Collation)
+			.individual
+			.into_iter()
+			.collect()
+	}
+
+	#[test]
+	fn validators_collate_only_after_governance_raises_the_cap() {
+		system_parachains_test_utils::validator_collators::validators_collate_only_after_governance_raises_the_cap::<
+			Runtime,
+			AllPalletsWithoutSystem,
+		>(
+			|owner| {
+				let generated = SessionKeys::generate(&owner.encode(), None);
+				(generated.keys, generated.proof.encode())
+			},
+			|era, validators| {
+				enable_validator_collation();
+				AnnounceValidatorSet::on_era_start(era, &validators)
+			},
+		);
+	}
+
+	#[test]
+	fn no_genesis_preset_gives_points_per_service() {
+		use asset_hub_polkadot_runtime::{genesis_config_presets, RuntimeGenesisConfig};
+		// GIVEN the default genesis and every genesis preset of the runtime
+		// WHEN the chain starts from one of them
+		// THEN no source earns points until governance sets them
+		// The presets read storage, so they run in externalities.
+		sp_io::TestExternalities::new_empty().execute_with(|| {
+			assert!(RuntimeGenesisConfig::default()
+				.staking_points_converter
+				.points_per_service
+				.is_empty());
+			for id in genesis_config_presets::preset_names() {
+				let preset: serde_json::Value = serde_json::from_slice(
+					&genesis_config_presets::get_preset(&id).expect("listed presets exist"),
+				)
+				.expect("presets are JSON");
+				assert!(
+					preset.get("stakingPointsConverter").is_none(),
+					"preset {id:?} configures the points converter"
+				);
+			}
+		});
+		// AND the collating chains are pinned. Add a chain here once it starts collating. Asset
+		// Hub credits its own blocks locally, so it is never listed.
+		assert_eq!(ValidatorCollatorChains::get(), vec![PEOPLE_ID.into(), BULLETIN_ID.into()]);
+	}
+
+	/// Opens a channel to every chain in `ValidatorCollatorChains`.
+	fn open_channels_to_collating_chains() {
+		let mut destinations = ValidatorCollatorChains::get();
+		// Parachain system binary searches the channels by para id.
+		destinations.sort();
+		ParachainSystem::open_outbound_hrmp_channel_for_benchmarks_or_tests(destinations[0]);
+		cumulus_pallet_parachain_system::RelevantMessagingState::<Runtime>::mutate(|state| {
+			let state = state.as_mut().expect("a channel was just opened");
+			let channel = state.egress_channels[0].1.clone();
+			state.egress_channels =
+				destinations.into_iter().map(|id| (id, channel.clone())).collect();
+		});
+	}
+
+	#[test]
+	fn era_start_sends_the_set_to_each_collating_chain() {
+		let alice = AccountId::from(ALICE);
+		let bob = AccountId::from(BOB);
+		ExtBuilder::<Runtime>::default()
+			.with_safe_xcm_version(xcm::latest::VERSION)
+			.build()
+			.execute_with(|| {
+				// GIVEN open channels to the collating chains
+				open_channels_to_collating_chains();
+
+				// WHEN governance has turned validator collation on and era 1 starts with Alice
+				// and Bob
+				enable_validator_collation();
+				AnnounceValidatorSet::on_era_start(1, &[alice.clone(), bob.clone()]);
+
+				// THEN the set is stored here and sent to each collating chain
+				let events = events();
+				assert!(events.contains(&RuntimeEvent::ValidatorCollators(
+					pallet_validator_collators::Event::ValidatorSetReceived { era: 1, count: 2 }
+				)));
+				let mut destinations = ValidatorCollatorChains::get();
+				for destination in &destinations {
+					assert!(
+						events.contains(&RuntimeEvent::ValidatorSetAnnouncer(
+							pallet_validator_set_announcer::Event::AnnouncementSent {
+								destination: *destination,
+								era: 1,
+							},
+						)),
+						"no announcement to {destination:?}",
+					);
+				}
+
+				// AND each chain gets an unpaid `Transact` of `set_validators` with Asset Hub's
+				// location as an XCM origin
+				let expected_call =
+					ValidatorSetToSystemChains::encoded_call(1, &[alice.clone(), bob.clone()]);
+				let mut messages = XcmpQueue::take_outbound_messages(usize::MAX, &[]);
+				messages.sort_by_key(|(destination, _)| *destination);
+				destinations.sort();
+				assert_eq!(
+					messages.iter().map(|(destination, _)| *destination).collect::<Vec<_>>(),
+					destinations
+				);
+				for (_, page) in messages {
+					let mut data = &page[..];
+					assert_eq!(
+						XcmpMessageFormat::decode(&mut data),
+						Ok(XcmpMessageFormat::ConcatenatedVersionedXcm)
+					);
+					let xcm: Xcm<()> = VersionedXcm::<()>::decode_with_depth_limit(
+						MAX_XCM_DECODE_DEPTH,
+						&mut data,
+					)
+					.unwrap()
+					.try_into()
+					.unwrap();
+					assert!(matches!(
+						xcm.0.as_slice(),
+						[
+							UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+							Transact { origin_kind: OriginKind::Xcm, call, .. },
+							SetTopic(_),
+						] if call.encoded() == expected_call.as_slice()
+					));
+				}
+			});
+	}
+
+	#[test]
+	fn staking_era_start_stores_and_sends_nothing_while_collation_is_off() {
+		let alice = AccountId::from(ALICE);
+		let bob = AccountId::from(BOB);
+		ExtBuilder::<Runtime>::default()
+			.with_safe_xcm_version(xcm::latest::VERSION)
+			.build()
+			.execute_with(|| {
+				// GIVEN validator collation is off, as by default, and channels to the collating
+				// chains are open
+				open_channels_to_collating_chains();
+
+				// WHEN staking starts era 1 with Alice and Bob
+				start_era_one_through_staking(vec![alice, bob]);
+
+				// THEN no set is stored, so no session rotation is forced, and nothing is sent
+				assert!(!pallet_validator_collators::ExternalValidatorSet::<Runtime>::exists());
+				assert_eq!(
+					pallet_validator_collators::PendingRotation::<Runtime>::get(),
+					pallet_validator_collators::RotationState::Idle
+				);
+				assert_eq!(announcements(), vec![]);
+				assert_eq!(XcmpQueue::take_outbound_messages(usize::MAX, &[]), vec![]);
+			});
+	}
+
+	#[test]
+	fn staking_era_start_announces_the_elected_set_once_collation_is_on() {
+		let alice = AccountId::from(ALICE);
+		let bob = AccountId::from(BOB);
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			// GIVEN governance set the cap first, which forces no rotation while no set is stored
+			assert_ok!(ValidatorCollators::set_max_collators(
+				RuntimeOrigin::root(),
+				pallet_validator_collators::CollatorDraw::UpTo(2),
+			));
+			assert_eq!(
+				pallet_validator_collators::PendingRotation::<Runtime>::get(),
+				pallet_validator_collators::RotationState::Idle
+			);
+			// AND then turned validator collation on
+			enable_validator_collation();
+
+			// WHEN staking starts era 1 with Alice and Bob
+			start_era_one_through_staking(vec![alice, bob]);
+
+			// THEN the hook stores the set here and announces it to each collating chain
+			assert_eq!(
+				pallet_validator_collators::ExternalValidatorSet::<Runtime>::get()
+					.map(|set| (set.era, set.validators.len())),
+				Some((1, 2))
+			);
+			assert_eq!(
+				pallet_validator_collators::PendingRotation::<Runtime>::get(),
+				pallet_validator_collators::RotationState::AwaitingQueue
+			);
+			let announcements = announcements();
+			for id in ValidatorCollatorChains::get() {
+				assert!(
+					announcements.iter().any(|event| matches!(
+						event,
+						RuntimeEvent::ValidatorSetAnnouncer(
+							pallet_validator_set_announcer::Event::AnnouncementSent { destination, era: 1 } |
+							pallet_validator_set_announcer::Event::AnnouncementFailed { destination, era: 1 }
+						) if *destination == id
+					)),
+					"no announcement to {id:?}",
+				);
+			}
+		});
+	}
+
+	#[test]
+	fn era_start_weight_follows_the_switch() {
+		use asset_hub_polkadot_runtime::ValidatorSetAnnouncer;
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			let read = <Runtime as frame_system::Config>::DbWeight::get().reads(1);
+			let hook_weight = |n| <AnnounceValidatorSet as OnEraStart<AccountId>>::weight(n);
+			for n in [0, 320, 1000] {
+				// GIVEN validator collation is off
+				// WHEN staking weighs the era-start hook
+				// THEN it charges only the read of the switch, as the hook does nothing else
+				assert_eq!(hook_weight(n), read);
+			}
+
+			// GIVEN governance turned validator collation on
+			enable_validator_collation();
+			for n in [0, 320, 1000] {
+				// THEN it charges the read of the switch and announcing `n` validators, so the
+				// session report that starts an era is weighed for the announcement
+				assert_eq!(
+					hook_weight(n),
+					read.saturating_add(ValidatorSetAnnouncer::announce_weight(n))
+				);
+			}
+		});
+	}
+
+	#[test]
+	fn only_the_collator_selection_origin_switches_validator_collation() {
+		use asset_hub_polkadot_runtime::{
+			dynamic_params::validator_collation::Enabled, governance::pallet_custom_origins,
+			DynamicParameterOrigin, RuntimeParametersKey,
+		};
+		use frame_support::traits::EnsureOriginWithArg;
+		let key = RuntimeParametersKey::ValidatorCollation(Enabled.into());
+		// GIVEN the switch's key
+		// WHEN root or the StakingAdmin sets it THEN it is accepted
+		for origin in [RuntimeOrigin::root(), pallet_custom_origins::Origin::StakingAdmin.into()] {
+			assert!(DynamicParameterOrigin::try_origin(origin, &key).is_ok());
+		}
+		// WHEN another origin sets it THEN it is rejected
+		for origin in [
+			RuntimeOrigin::signed(AccountId::from(ALICE)),
+			pallet_custom_origins::Origin::WhitelistedCaller.into(),
+			pallet_custom_origins::Origin::GeneralAdmin.into(),
+		] {
+			assert!(DynamicParameterOrigin::try_origin(origin, &key).is_err());
+		}
+	}
+
+	#[test]
+	fn only_root_and_the_staking_admin_set_the_cap_and_the_points() {
+		use asset_hub_polkadot_runtime::governance::pallet_custom_origins;
+		use frame_support::assert_noop;
+		use pallet_staking_async_points_converter::PointsPerService;
+		use pallet_validator_collators::{CollatorDraw, MaxCollators};
+		use sp_runtime::DispatchError::BadOrigin;
+		// The referenda that enable validator collation run on the StakingAdmin track.
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			let own = ParachainInfo::parachain_id();
+			// GIVEN the default cap and no points for this chain's blocks
+			assert_eq!(MaxCollators::<Runtime>::get(), CollatorDraw::None);
+			assert_eq!(PointsPerService::<Runtime>::get(own, ServiceKind::Collation), 0);
+
+			// WHEN a signed account, GeneralAdmin or WhitelistedCaller sets them
+			// THEN both calls are rejected
+			for origin in [
+				RuntimeOrigin::signed(AccountId::from(ALICE)),
+				pallet_custom_origins::Origin::GeneralAdmin.into(),
+				pallet_custom_origins::Origin::WhitelistedCaller.into(),
+			] {
+				assert_noop!(
+					ValidatorCollators::set_max_collators(origin.clone(), CollatorDraw::UpTo(1)),
+					BadOrigin
+				);
+				assert_noop!(
+					StakingPointsConverter::set_points_per_service(
+						origin,
+						own,
+						ServiceKind::Collation,
+						1
+					),
+					BadOrigin
+				);
+			}
+
+			// WHEN Root or the StakingAdmin sets them THEN both calls take effect
+			for (value, origin) in [
+				(1, RuntimeOrigin::root()),
+				(2, pallet_custom_origins::Origin::StakingAdmin.into()),
+			] {
+				assert_ok!(ValidatorCollators::set_max_collators(
+					origin.clone(),
+					CollatorDraw::UpTo(value)
+				));
+				assert_ok!(StakingPointsConverter::set_points_per_service(
+					origin,
+					own,
+					ServiceKind::Collation,
+					value
+				));
+				assert_eq!(MaxCollators::<Runtime>::get(), CollatorDraw::UpTo(value));
+				assert_eq!(PointsPerService::<Runtime>::get(own, ServiceKind::Collation), value);
+			}
+		});
+	}
+
+	#[test]
+	fn no_origin_sets_the_validator_set_of_asset_hub() {
+		// Asset Hub stores the set staking elects, from the era start hook. A call that sets it
+		// would let one origin choose who collates on every chain that draws from the set.
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			// GIVEN a set of one validator
+			let validators = [AccountId::from(ALICE)]
+				.into_iter()
+				.collect::<std::collections::BTreeSet<_>>()
+				.try_into()
+				.unwrap();
+			// WHEN Root calls `set_validators` with it
+			// THEN it is rejected and no set is stored
+			frame_support::assert_noop!(
+				ValidatorCollators::set_validators(RuntimeOrigin::root(), 1, validators),
+				sp_runtime::DispatchError::BadOrigin
+			);
+		});
+	}
+
+	#[test]
+	fn own_blocks_earn_points_only_after_governance_sets_them() {
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			let alice = AccountId::from(ALICE);
+			let own = ParachainInfo::parachain_id();
+			let report = || {
+				// Alice authored 3 blocks here and the report block comes.
+				for _ in 0..3 {
+					<ValidatorCollators as pallet_authorship::EventHandler<_, _>>::note_author(
+						alice.clone(),
+					);
+				}
+				let period = pallet_validator_collators::ReportPeriod::<Runtime>::get();
+				frame_system::Pallet::<Runtime>::reset_events();
+				ValidatorCollators::on_poll(
+					period,
+					&mut frame_support::weights::WeightMeter::new(),
+				);
+			};
+			// GIVEN era 1 is active with Alice exposed and the stored set of Alice
+			activate_era_one_with(&alice);
+			assert_ok!(ValidatorCollators::receive_validator_set(1, [alice.clone()]));
+
+			// WHEN this chain reports Alice's blocks with the default points per service
+			report();
+			// THEN they earn no points
+			assert!(events().contains(&RuntimeEvent::StakingPointsConverter(
+				pallet_staking_async_points_converter::Event::BlocksIgnored {
+					source: own,
+					blocks: 3
+				}
+			)));
+			assert_eq!(collation_points(1), vec![]);
+
+			// WHEN governance sets 5 points per block of this chain and Alice's next blocks are
+			// reported
+			assert_ok!(StakingPointsConverter::set_points_per_service(
+				RuntimeOrigin::root(),
+				own,
+				ServiceKind::Collation,
+				5
+			));
+			report();
+			// THEN they reach staking as collation points of this chain, with no message sent
+			assert!(events().contains(&RuntimeEvent::StakingPointsConverter(
+				pallet_staking_async_points_converter::Event::BlocksCredited {
+					source: own,
+					blocks: 3
+				}
+			)));
+			assert_eq!(collation_points(1), vec![(alice, 15)]);
+		});
+	}
+
+	#[test]
+	fn only_listed_chains_report_blocks_and_only_as_themselves() {
+		type EnsureReportingSibling = EnsureReportingSiblings<ValidatorCollatorChains>;
+		let sibling =
+			|id: u32| RuntimeOrigin::from(cumulus_pallet_xcm::Origin::SiblingParachain(id.into()));
+		let chains = ValidatorCollatorChains::get();
+		// GIVEN a collating chain as a sibling parachain origin
+		// WHEN it reports THEN it is accepted under its own id
+		for id in &chains {
+			assert_eq!(EnsureReportingSibling::try_origin(sibling((*id).into())).ok(), Some(*id));
+		}
+		// GIVEN another system or non-system sibling, the relay chain, a collating chain's
+		// location as an XCM origin, its sovereign account, or root
+		let account_of = |location| LocationToAccountId::convert_location(&location).unwrap();
+		let others = [1000, 1001, 1005, 2000]
+			.into_iter()
+			.filter(|id| !chains.contains(&(*id).into()))
+			.map(sibling);
+		let as_collating_chains = chains.iter().flat_map(|id| {
+			let location = Location::new(1, Parachain((*id).into()));
+			[
+				RuntimeOrigin::from(pallet_xcm::Origin::Xcm(location.clone())),
+				RuntimeOrigin::signed(account_of(location)),
+			]
+		});
+		for origin in others
+			.chain(as_collating_chains)
+			.chain([RuntimeOrigin::from(cumulus_pallet_xcm::Origin::Relay), RuntimeOrigin::root()])
+		{
+			// WHEN it reports THEN it is rejected
+			assert!(EnsureReportingSibling::try_origin(origin).is_err());
+		}
+	}
+
+	#[test]
+	fn report_messages_execute_unpaid_and_earn_points_only_once_set() {
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			let alice = AccountId::from(ALICE);
+			let report = || {
+				RuntimeCall::StakingPointsConverter(
+					pallet_staking_async_points_converter::Call::report_authored_blocks {
+						blocks: vec![(alice.clone(), 3)],
+					},
+				)
+			};
+			// GIVEN era 1 is active with Alice exposed
+			activate_era_one_with(&alice);
+
+			let chains: Vec<u32> =
+				ValidatorCollatorChains::get().into_iter().map(Into::into).collect();
+			for &id in &chains {
+				// WHEN a non-system sibling, or an account on the chain, sends the message the
+				// chain sends to report its blocks
+				// THEN the barrier rejects it, since only system chains execute without paying
+				for origin in [
+					Location::new(1, Parachain(2000)),
+					Location::new(1, [Parachain(id), AccountId32 { network: None, id: ALICE }]),
+				] {
+					assert_eq!(
+						RuntimeHelper::execute_as_origin(
+							(origin, OriginKind::Native),
+							report(),
+							None
+						)
+						.ensure_complete()
+						.map_err(|error| error.error),
+						Err(XcmError::Barrier)
+					);
+				}
+
+				// WHEN the chain sends it, an unpaid `Transact` with its native origin
+				// THEN it executes, and with the default points per service earns nothing
+				frame_system::Pallet::<Runtime>::reset_events();
+				assert_ok!(RuntimeHelper::execute_as_origin(
+					(Location::new(1, Parachain(id)), OriginKind::Native),
+					report(),
+					None,
+				)
+				.ensure_complete());
+				assert!(events().contains(&RuntimeEvent::StakingPointsConverter(
+					pallet_staking_async_points_converter::Event::BlocksIgnored {
+						source: id.into(),
+						blocks: 3
+					}
+				)));
+			}
+			assert_eq!(collation_points(1), vec![]);
+
+			for (reported, &id) in (1..).zip(&chains) {
+				// WHEN governance sets 5 points per block of the chain and the chain reports again
+				assert_ok!(StakingPointsConverter::set_points_per_service(
+					RuntimeOrigin::root(),
+					id.into(),
+					ServiceKind::Collation,
+					5
+				));
+				assert_ok!(RuntimeHelper::execute_as_origin(
+					(Location::new(1, Parachain(id)), OriginKind::Native),
+					report(),
+					None,
+				)
+				.ensure_complete());
+				// THEN Alice's blocks are credited as the chain's collation points
+				assert_eq!(collation_points(1), vec![(alice.clone(), 15 * reported)]);
+			}
+		});
+	}
+
+	#[test]
+	fn full_report_fits_the_message_queue() {
+		ExtBuilder::<Runtime>::default().build().execute_with(|| {
+			// GIVEN the largest report a chain sends, all credited
+			let entries = <staking::MaxValidatorSet as Get<u32>>::get();
+			let message = StakingPointsConverter::report_authored_blocks_weight(entries);
+			// WHEN Asset Hub processes it from its message queue
+			// THEN it fits the service weight, so it is not set aside as overweight
+			let service_weight =
+				asset_hub_polkadot_runtime::dynamic_params::message_queue::MaxOnInitWeight::get()
+					.expect("the message queue has a service weight");
+			assert!(
+				service_weight.all_gte(message),
+				"a full report of {entries} entries weighs {message:?}",
+			);
+		});
+	}
+
+	#[test]
+	fn kick_threshold_follows_the_cap() {
+		use pallet_validator_collators::CollatorDraw::{All, UpTo};
+		system_parachains_test_utils::validator_collators::kick_threshold_follows_the_cap::<Runtime>(
+			asset_hub_polkadot_runtime::Period::get(),
+			&[(UpTo(1000), 28_800), (UpTo(320), 10_800), (UpTo(500), 18_000), (All, 28_800)],
+		);
+	}
+
+	#[test]
+	fn regular_rotation_keeps_its_period() {
+		system_parachains_test_utils::validator_collators::regular_rotation_keeps_its_period::<
+			Runtime,
+		>(asset_hub_polkadot_runtime::Period::get(), asset_hub_polkadot_runtime::Offset::get());
+	}
+
+	#[test]
+	fn aura_authorities_fit_the_relay_head_data() {
+		// The relay chain's `max_head_data_size`.
+		const MAX_HEAD_DATA_SIZE: u32 = 20_480;
+		// The seal, the collator's pre-runtime digests, the relay-parent storage root digest and a
+		// four byte block number, about 200 bytes, which the test block lacks.
+		const ALLOWANCE: u32 = 256;
+		system_parachains_test_utils::validator_collators::aura_authorities_fit_the_relay_head_data::<
+			Runtime,
+		>(MAX_HEAD_DATA_SIZE, ALLOWANCE);
+	}
+
+	#[test]
+	fn relay_proof_request_includes_the_validator_collators_randomness_key() {
+		use cumulus_primitives_core::{
+			relay_chain::well_known_keys::ONE_EPOCH_AGO_RANDOMNESS,
+			runtime_decl_for_key_to_include_in_relay_proof::KeyToIncludeInRelayProofV1,
+			RelayStorageKey,
+		};
+		// GIVEN the runtime wires pallet-validator-collators, which reads the relay chain epoch
+		// randomness from every relay chain state proof
+		// WHEN a collator asks the runtime which relay chain keys to prove
+		let keys = Runtime::keys_to_prove().keys;
+		// THEN the randomness key is requested
+		assert!(keys.contains(&RelayStorageKey::Top(ONE_EPOCH_AGO_RANDOMNESS.to_vec())));
+	}
+
+	// `fast-runtime` shortens the era, not the expected era duration.
+	#[cfg(not(feature = "fast-runtime"))]
+	#[test]
+	fn expected_era_duration_matches_the_staking_era() {
+		use system_parachains_constants::polkadot::staking::EXPECTED_ERA_DURATION_MILLIS;
+		// GIVEN the era length of Asset Hub's staking
+		let era = staking::SessionsPerEra::get() as u64 *
+			staking::RelaySessionDuration::get() as u64 *
+			RELAY_CHAIN_SLOT_DURATION_MILLIS as u64;
+		// WHEN system chains expect the end of an era after the arrival of its set
+		// THEN they expect it after one era, so they report shortly before the rotation
+		assert_eq!(
+			EXPECTED_ERA_DURATION_MILLIS, era,
+			"update `system_parachains_constants::polkadot::staking::EXPECTED_ERA_DURATION_MILLIS` \
+			to the era length of {era} ms",
+		);
+	}
+}

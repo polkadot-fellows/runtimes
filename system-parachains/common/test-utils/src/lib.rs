@@ -16,6 +16,8 @@
 
 //! Generic test cases shared by the system-parachain runtime tests.
 
+pub mod validator_collators;
+
 use codec::Decode;
 use frame_support::{
 	assert_noop, assert_ok,

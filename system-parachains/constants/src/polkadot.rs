@@ -38,6 +38,14 @@ pub mod consensus {
 	/// Relay chain slot duration, in milliseconds.
 	pub const RELAY_CHAIN_SLOT_DURATION_MILLIS: u32 = 6000;
 
+	/// Most Aura authorities a system chain enacts.
+	///
+	/// A header that changes the authorities carries 32 bytes per authority, and it must fit the
+	/// relay chain's `max_head_data_size`. Pallet-aura truncates a longer list. Collator
+	/// selection's collators come first in it, so only validators drawn by
+	/// `pallet-validator-collators` are dropped.
+	pub const MAX_AURA_AUTHORITIES: u32 = 600;
+
 	/// Parameters enabling async backing functionality.
 	///
 	/// Once all system chains have migrated to the new async backing mechanism, the parameters
@@ -77,6 +85,25 @@ pub mod consensus {
 		pub const HOURS: BlockNumber = MINUTES * 60;
 		pub const DAYS: BlockNumber = HOURS * 24;
 	}
+}
+
+/// Constants shared by Asset Hub's staking and the system chains where validators collate.
+pub mod staking {
+	/// Maximum number of validators elected by Asset Hub, and so the bound of the validator set
+	/// that system chains accept from it.
+	pub const MAX_VALIDATOR_SET: u32 = 1000;
+
+	/// Room in a report for authors that left the collators since the previous report, so one
+	/// report usually clears them. Their counts are dropped at report time anyway, and entries
+	/// beyond `MaxEntriesPerReport` wait for the next report, so the exact value is not critical.
+	pub const LEFT_AUTHORS_BUFFER: u32 = 30;
+
+	/// Expected time from the arrival of a validator set on a system chain to the end of its era,
+	/// in milliseconds. One era of Asset Hub's staking, six relay chain sessions of four hours.
+	///
+	/// Asset Hub's runtime tests check that it matches the era length of its staking
+	/// configuration.
+	pub const EXPECTED_ERA_DURATION_MILLIS: u64 = 24 * 60 * 60 * 1000;
 }
 
 /// Constants relating to DOT.

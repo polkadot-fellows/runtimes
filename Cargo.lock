@@ -1767,6 +1767,7 @@ dependencies = [
  "pallet-session",
  "pallet-staking",
  "pallet-staking-async",
+ "pallet-staking-async-points-converter",
  "pallet-staking-async-rc-client",
  "pallet-staking-runtime-api",
  "pallet-timestamp",
@@ -1775,6 +1776,8 @@ dependencies = [
  "pallet-treasury",
  "pallet-uniques",
  "pallet-utility",
+ "pallet-validator-collators",
+ "pallet-validator-set-announcer",
  "pallet-verify-signature",
  "pallet-vesting",
  "pallet-vesting-precompiles",
@@ -3251,6 +3254,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
+ "pallet-validator-collators",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
  "parachains-common",
@@ -12510,6 +12514,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-staking-async-points-converter"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3ba0c0ce67fa09b6ad1e554a359062abefadf1daef48a43c543923ef063ef19"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 50.0.0",
+ "sp-staking",
+]
+
+[[package]]
 name = "pallet-staking-async-rc-client"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12694,6 +12713,45 @@ dependencies = [
  "sp-core 44.0.0",
  "sp-io 50.0.0",
  "sp-runtime 50.0.0",
+]
+
+[[package]]
+name = "pallet-validator-collators"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff237e601a7ffbb17e080e6e6b0efdf8a6b8899fdf512f47e38031fce40e7265"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "cumulus-primitives-core",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-authorship",
+ "pallet-session",
+ "parity-scale-codec",
+ "rand 0.8.8",
+ "rand_chacha 0.3.1",
+ "scale-info",
+ "sp-runtime 50.0.0",
+ "sp-staking",
+ "sp-trie 48.0.0",
+]
+
+[[package]]
+name = "pallet-validator-set-announcer"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e75fe3637345448ca1df8c67a7f860a1838219bfb6946fd68d4cdaac9ee27cc2"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-validator-collators",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime 50.0.0",
+ "sp-staking",
 ]
 
 [[package]]
@@ -13337,10 +13395,16 @@ dependencies = [
  "indiv-support",
  "integration-tests-helpers",
  "pallet-assets",
+ "pallet-authorship",
  "pallet-balances",
  "pallet-identity",
  "pallet-message-queue",
  "pallet-parameters",
+ "pallet-session",
+ "pallet-staking-async",
+ "pallet-staking-async-points-converter",
+ "pallet-validator-collators",
+ "pallet-validator-set-announcer",
  "pallet-xcm",
  "parachains-common",
  "parity-scale-codec",
@@ -13351,7 +13415,9 @@ dependencies = [
  "polkadot-runtime-constants",
  "polkadot-system-emulated-network",
  "sp-io 50.0.0",
+ "sp-keyring",
  "sp-runtime 50.0.0",
+ "sp-staking",
  "staging-xcm",
  "staging-xcm-executor",
  "verifiable",
@@ -13418,6 +13484,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
+ "pallet-validator-collators",
  "pallet-verify-signature",
  "pallet-xcm",
  "pallet-xcm-benchmarks",
@@ -20691,7 +20758,10 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-balances",
+ "pallet-collator-selection",
+ "pallet-validator-collators",
  "pallet-xcm",
+ "parachains-common",
  "parity-scale-codec",
  "polkadot-primitives",
  "scale-info",
@@ -20724,15 +20794,25 @@ name = "system-parachains-test-utils"
 version = "1.0.0"
 dependencies = [
  "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcm",
+ "cumulus-primitives-core",
  "frame-support",
  "frame-system",
  "pallet-accumulate-and-forward",
+ "pallet-aura",
+ "pallet-authorship",
  "pallet-balances",
+ "pallet-collator-selection",
  "pallet-session",
+ "pallet-validator-collators",
+ "pallet-xcm",
  "parachains-runtimes-test-utils",
  "parity-scale-codec",
+ "sp-io 50.0.0",
  "sp-keystore 0.50.0",
  "sp-runtime 50.0.0",
+ "staging-xcm",
+ "staging-xcm-executor",
 ]
 
 [[package]]

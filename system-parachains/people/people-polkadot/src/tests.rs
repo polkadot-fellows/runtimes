@@ -750,3 +750,122 @@ fn forward_period_counts_relay_blocks() {
 		)
 	});
 }
+
+mod validator_collators {
+	use super::*;
+	use crate::{
+		xcm_config::XcmConfig, AllPalletsWithoutSystem, MessageQueueServiceWeight,
+		ReportBlocksToAssetHub, ValidatorCollators, XcmpQueue,
+	};
+	use parachains_runtimes_test_utils::ExtBuilder;
+	use polkadot_runtime_constants::system_parachain::{ASSET_HUB_ID, BULLETIN_ID};
+
+	fn asset_hub_origin() -> RuntimeOrigin {
+		pallet_xcm::Origin::Xcm(AssetHubLocation::get()).into()
+	}
+
+	#[test]
+	fn validators_collate_only_after_governance_raises_the_cap() {
+		system_parachains_test_utils::validator_collators::validators_collate_only_after_governance_raises_the_cap::<
+			Runtime,
+			AllPalletsWithoutSystem,
+		>(
+			|owner| {
+				let generated = SessionKeys::generate(&owner.encode(), None);
+				(generated.keys, generated.proof.encode())
+			},
+			|era, validators| {
+				assert_ok!(ValidatorCollators::set_validators(
+					asset_hub_origin(),
+					era,
+					validators.into_iter().collect::<std::collections::BTreeSet<_>>().try_into().unwrap(),
+				));
+			},
+		);
+	}
+
+	#[test]
+	fn only_asset_hub_sets_the_validator_set() {
+		system_parachains_test_utils::validator_collators::only_asset_hub_sets_the_validator_set::<
+			Runtime,
+			LocationToAccountId,
+		>(
+			AssetHubLocation::get(),
+			vec![
+				Location::new(1, Parachain(BULLETIN_ID)),
+				Location::new(
+					1,
+					[
+						Parachain(ASSET_HUB_ID),
+						Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+					],
+				),
+			],
+		);
+	}
+
+	#[test]
+	fn asset_hub_message_sets_the_validator_set_unpaid() {
+		system_parachains_test_utils::validator_collators::asset_hub_message_sets_the_validator_set_unpaid::<
+			Runtime,
+			XcmConfig,
+		>(ExtBuilder::<Runtime>::default().build(), AssetHubLocation::get(), Location::new(
+				1,
+				[
+					Parachain(ASSET_HUB_ID),
+					Plurality { id: BodyId::Technical, part: BodyPart::Voice },
+				],
+			));
+	}
+
+	#[test]
+	fn report_reaches_asset_hub_as_an_unpaid_transact() {
+		system_parachains_test_utils::validator_collators::report_reaches_asset_hub_as_an_unpaid_transact::<
+			Runtime,
+			XcmpQueue,
+		>(AssetHubLocation::get(), ReportBlocksToAssetHub::encoded_call);
+	}
+
+	#[test]
+	fn full_validator_set_fits_the_message_queue() {
+		system_parachains_test_utils::validator_collators::full_validator_set_fits_the_message_queue::<Runtime>(
+			MessageQueueServiceWeight::get(),
+		);
+	}
+
+	#[test]
+	fn kick_threshold_follows_the_cap() {
+		use pallet_validator_collators::CollatorDraw::{All, UpTo};
+		system_parachains_test_utils::validator_collators::kick_threshold_follows_the_cap::<Runtime>(
+			crate::PERIOD,
+			&[(UpTo(1000), 27_000), (UpTo(320), 10_800), (UpTo(500), 16_200), (All, 27_000)],
+		);
+	}
+
+	#[test]
+	fn regular_rotation_keeps_its_period() {
+		system_parachains_test_utils::validator_collators::regular_rotation_keeps_its_period::<
+			Runtime,
+		>(crate::PERIOD, crate::OFFSET);
+	}
+
+	#[test]
+	fn aura_authorities_fit_the_relay_head_data() {
+		// The relay chain's `max_head_data_size`.
+		const MAX_HEAD_DATA_SIZE: u32 = 20_480;
+		// The seal, the collator's pre-runtime digests, the relay-parent storage root digest and a
+		// four byte block number, about 200 bytes, which the test block lacks.
+		const ALLOWANCE: u32 = 256;
+		system_parachains_test_utils::validator_collators::aura_authorities_fit_the_relay_head_data::<
+			Runtime,
+		>(MAX_HEAD_DATA_SIZE, ALLOWANCE);
+	}
+
+	#[test]
+	fn relay_proof_request_includes_the_validator_collators_randomness_key() {
+		system_parachains_test_utils::validator_collators::relay_proof_request_includes_the_validator_collators_randomness_key::<
+			Runtime,
+			Block,
+		>();
+	}
+}

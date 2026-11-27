@@ -566,6 +566,14 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl cumulus_primitives_core::KeyToIncludeInRelayProof<Block> for Runtime {
+		fn keys_to_prove() -> cumulus_primitives_core::RelayProofRequest {
+			cumulus_primitives_core::RelayProofRequest {
+				keys: ValidatorCollators::relay_keys_to_prove(),
+			}
+		}
+	}
+
 	impl sp_transaction_storage_proof::runtime_api::TransactionStorageApi<Block> for Runtime {
 		fn retention_period() -> sp_runtime::traits::NumberFor<Block> {
 			TransactionStorage::retention_period()

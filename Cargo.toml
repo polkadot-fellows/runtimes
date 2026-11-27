@@ -207,6 +207,7 @@ pallet-staking = { version = "51.0.0", default-features = false }
 pallet-delegated-staking = { version = "17.0.0", default-features = false }
 pallet-staking-async-ah-client = { version = "0.14.0", default-features = false }
 pallet-staking-async-rc-client = { version = "0.14.0", default-features = false }
+pallet-staking-async-points-converter = { version = "0.2.0", default-features = false }
 pallet-staking-reward-curve = { version = "12.0.0" }
 pallet-staking-reward-fn = { version = "25.0.0", default-features = false }
 pallet-staking-runtime-api = { version = "35.0.0", default-features = false }
@@ -218,6 +219,8 @@ pallet-transaction-payment-rpc-runtime-api = { version = "51.0.0", default-featu
 pallet-treasury = { version = "50.0.0", default-features = false }
 pallet-uniques = { version = "52.0.0", default-features = false }
 pallet-utility = { version = "51.0.0", default-features = false }
+pallet-validator-collators = { version = "0.2.0", default-features = false }
+pallet-validator-set-announcer = { version = "0.2.0", default-features = false }
 pallet-verify-signature = { version = "0.14.0", default-features = false }
 pallet-vesting = { version = "51.0.0", default-features = false }
 pallet-vesting-precompiles = { version = "0.9.0", default-features = false }
