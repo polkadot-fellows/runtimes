@@ -17,6 +17,7 @@ permissions:
 jobs:
   clippy:
     runs-on: self-hosted
+    timeout-minutes: 45
 
     steps:
       - name: Checkout

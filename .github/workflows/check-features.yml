@@ -19,6 +19,7 @@ jobs:
   check:
     name: Check workspace features
     runs-on: self-hosted
+    timeout-minutes: 75
 
     steps:
       - name: Checkout
