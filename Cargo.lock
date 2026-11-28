@@ -12161,9 +12161,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-recovery"
-version = "51.0.0"
+version = "51.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e38ba5be21847a7cea4ddd3a0f2b9ede94fdbc6d4b4c18cfc87d0fb830f6f06"
+checksum = "f9ceb4726e5dc8ab4f072b9bd9caf5e246e14da863310f45405a115a006a22c8"
 dependencies = [
  "frame-support",
  "frame-system",

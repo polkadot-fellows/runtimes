@@ -193,7 +193,7 @@ pallet-preimage = { version = "51.0.0", default-features = false }
 pallet-proxy = { version = "51.0.0", default-features = false }
 pallet-psm = { version = "0.9.0", default-features = false }
 pallet-ranked-collective = { version = "51.0.0", default-features = false }
-pallet-recovery = { version = "51.0.0", default-features = false }
+pallet-recovery = { version = "51.0.1", default-features = false }
 pallet-referenda = { version = "51.0.0", default-features = false }
 pallet-remote-proxy = { path = "pallets/remote-proxy", default-features = false }
 pallet-revive = { version = "0.23.0", default-features = false }
