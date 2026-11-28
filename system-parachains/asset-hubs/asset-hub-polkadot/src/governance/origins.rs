@@ -81,6 +81,12 @@ pub mod pallet_custom_origins {
 		/// goes wrong. Wider administrative powers, such as fees, debt ceilings and asset
 		/// composition, stay on stricter paths until deliberately wired here.
 		ProsperityEmergency,
+		/// Origin for maintenance of dotNS operational values, in its contracts and in the
+		/// runtime: durations, windows, size caps and call limits. Each value is bounded, and a
+		/// change cannot affect positions already open. It moves no funds, sets no prices,
+		/// decides no names (grants, revocations, reservations) and does not upgrade or rewire
+		/// the protocol.
+		DotnsMaintenance,
 	}
 
 	macro_rules! decl_unit_ensures {
@@ -126,6 +132,7 @@ pub mod pallet_custom_origins {
 		WishForChange,
 		TechnicalMaintenance,
 		ProsperityEmergency,
+		DotnsMaintenance,
 	);
 
 	macro_rules! decl_ensure {
