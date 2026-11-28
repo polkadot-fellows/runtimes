@@ -7,8 +7,15 @@ pub mod helpers;
 
 pub type Error = Box<dyn std::error::Error>;
 
-// Chain generator command template
-const CMD_TPL: &str = "chain-spec-generator {{chainName}}";
+// Chain generator command template.
+//
+// The `env` prefix works around paritytech/zombienet-sdk#635: with the Docker provider, zombienet
+// runs the first word of this command with `--help` inside the node image, although the command
+// itself runs on the host. `chain-spec-generator` is not in the image, but `env` is.
+//
+// Limitation: with the native provider, the lookup runs on the host, and the BSD `env` of macOS
+// rejects `--help`.
+const CMD_TPL: &str = "env chain-spec-generator {{chainName}}";
 
 // Relaychain nodes
 const ALICE: &str = "alice";
