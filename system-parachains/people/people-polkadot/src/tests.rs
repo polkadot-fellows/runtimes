@@ -328,31 +328,6 @@ fn individuality_cross_runtime_pallet_indices_are_pinned() {
 }
 
 #[test]
-fn asset_hub_subscription_whitelist_matches_asset_hub() {
-	use crate::individuality::{
-		asset_hub_subscription_whitelist, LitePeopleRingExponent, MembersFlexibleRingExponent,
-	};
-	use cumulus_primitives_core::ParaId;
-	use frame_support::traits::PalletInfoAccess;
-	use indiv_support::traits::{PEOPLE_IDENTIFIER, PEOPLE_LITE_IDENTIFIER};
-	use polkadot_runtime_constants::system_parachain::ASSET_HUB_ID;
-
-	let whitelist = asset_hub_subscription_whitelist();
-	assert_eq!(whitelist.len(), 1);
-	let entry = &whitelist[0];
-	assert_eq!(entry.para_id, ParaId::from(ASSET_HUB_ID));
-	assert_eq!(entry.pallet_index, asset_hub_polkadot_runtime::MembersSubscriber::index() as u8);
-	assert_eq!(
-		entry.collections,
-		vec![
-			(*PEOPLE_IDENTIFIER, MembersFlexibleRingExponent::get().exponent()),
-			(*PEOPLE_LITE_IDENTIFIER, LitePeopleRingExponent::get().exponent()),
-		],
-	);
-	assert!(entry.collections.windows(2).all(|pair| pair[0].0 < pair[1].0));
-}
-
-#[test]
 fn individuality_deployment_order_guards_are_enforced() {
 	use crate::{
 		assets::hollar::HollarLocation, Assets, ChunksManager, Coinage, RuntimeGenesisConfig,

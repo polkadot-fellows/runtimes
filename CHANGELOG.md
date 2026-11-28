@@ -43,6 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- People Polkadot: remove `asset_hub_subscription_whitelist`, the record of the Asset Hub whitelist entry that the single-use `SeedSubscriptionWhitelist` migration seeded in 2.5.0, which [#1292](https://github.com/polkadot-fellows/runtimes/pull/1292) kept after removing the migration ([#1375](https://github.com/polkadot-fellows/runtimes/pull/1375)).
 - Polkadot & Kusama: remove `pallet-election-provider-multi-phase` and the on-chain election from the relay runtimes. Staking elections run on Asset Hub since the AHM, and a migration clears the pallet's storage ([#1313](https://github.com/polkadot-fellows/runtimes/pull/1313)).
 - Migrations that already ran ([#1371](https://github.com/polkadot-fellows/runtimes/pull/1371))
 

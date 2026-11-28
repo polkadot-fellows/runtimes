@@ -6,9 +6,9 @@ use asset_hub_polkadot_runtime::governance::pallet_custom_origins::Origin;
 use cumulus_pallet_parachain_system::{
 	relay_state_snapshot::MessagingStateSnapshot, RelevantMessagingState,
 };
-use frame_support::{assert_noop, sp_runtime::traits::Dispatchable, BoundedVec};
+use frame_support::{sp_runtime::traits::Dispatchable, BoundedVec};
 use indiv_pallet_members::{CurrentRingIndex, Root};
-use indiv_pallet_members_notifier::{PendingInit, Subscribers, SubscriptionWhitelist};
+use indiv_pallet_members_notifier::{PendingInit, Subscribers};
 use indiv_pallet_members_subscriber::{
 	Pallet as MembersSubscriber, RingCollectionExponents, Subscription,
 };
@@ -205,30 +205,6 @@ fn asset_hub_governance_creates_a_coinage_instance() {
 		assert_eq!(instance.asset_id, asset);
 		assert_eq!(instance.asset_unit, HOLLAR_UNITS / 100);
 		assert_eq!(instance.mode, indiv_pallet_coinage::InstanceMode::Sufficient);
-	});
-}
-
-#[test]
-fn asset_hub_subscribes_from_the_genesis_whitelist() {
-	type PeopleRuntime = <PeoplePolkadot as Chain>::Runtime;
-	type PeopleRuntimeOrigin = <PeoplePolkadot as Chain>::RuntimeOrigin;
-
-	PeoplePolkadot::execute_with(|| {
-		let para_id = AssetHubPolkadot::para_id();
-		let authorized = PeopleRuntimeOrigin::from(frame_system::RawOrigin::Authorized);
-
-		assert_ok!(people_polkadot_runtime::MembersNotifier::subscribe_whitelisted(
-			authorized.clone(),
-			para_id,
-		));
-
-		assert!(Subscribers::<PeopleRuntime>::contains_key(para_id));
-		assert!(PendingInit::<PeopleRuntime>::contains_key(para_id));
-		assert!(!SubscriptionWhitelist::<PeopleRuntime>::contains_key(para_id));
-		assert_noop!(
-			people_polkadot_runtime::MembersNotifier::subscribe_whitelisted(authorized, para_id),
-			indiv_pallet_members_notifier::Error::<PeopleRuntime>::NotWhitelisted
-		);
 	});
 }
 
