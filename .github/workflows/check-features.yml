@@ -35,7 +35,7 @@ jobs:
           toolchain: "${{env.RUST_STABLE_VERSION}}"
 
       - name: Install Zepter
-        run: cargo install --locked -q zepter && zepter --version
+        run: cargo install zepter --version $ZEPTER_VERSION --locked -q && zepter --version
 
       - name: Check features
         run: |
